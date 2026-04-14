@@ -1,8 +1,9 @@
 # DDNA Dashboard — Estado del Proyecto
 
 > **Última actualización**: Abril 2026
+> **Live**: https://ddna-dashboard.vercel.app/
 > **Repo**: https://github.com/lucasalvador98/ddna-dashboard
-> **Supabase project**: `ddna-dashboard` (ref: `ppyyqrvirjqmfpqaqnxy`, org: `monitoreoddna55`, region: `us-west-2`)
+> **Supabase**: `ddna-dashboard` (ppyyqrvirjqmfpqaqnxy)
 
 ---
 
@@ -45,17 +46,46 @@
 - `/api/health` — Health check (verifica Supabase)
 - `/api/indicadores` — GET indicadores con filtro por categoría
 - `/api/fuentes` — GET fuentes de datos
+- `/api/upload` — POST carga de datos CSV (admin)
 
-### 7. Propuesta de modernización
-- `../propuesta/PROPUESTA_MODERNIZACION_TABLERO_MONITOREO.html` — Documento HTML con la propuesta completa (arquitectura, objetivos, módulos, cronograma)
+### 7. Admin upload interface
+- `/admin` — Interfaz web para cargar datos CSV por indicador
+- Preview de datos antes de insertar
+- Historial de upl oads en tabla `uploads`
+
+### 8. Identidad DDNA completa
+- Fuentes: Caprasimo (headings), DK Lemon Yellow Sun (labels), Epilogue (body)
+- Iconos Recurso 1-7 PNG en sidebar (reemplazan Lucide)
+- 20 dataColors de Tema.json como CSS variables para gráficos
+- Tipografía consistente: .font-display (Caprasimo), .font-accent (DK Lemon), .font-body (Epilogue)
+
+### 9. ETL Python
+- `etl/` — Pipeline completo para cargar datos desde Excel
+- Fases: `inspect` → `transform` → `load`
+- Transformadores por categoría: salud, educación, pobreza, seguridad, demografía
+- SQL generator con UPSERT y UUIDs deterministas
+- CLI: `python main.py etl --all`
+
+### 10. Deploy en Vercel
+- **Live: https://ddna-dashboard.vercel.app/**
+- Conectado a repo GitHub
+- Build automático en push a main
 
 ---
 
-## Qué falta (pendiente) 🔲
+## Pending 🔲
 
-### Prioridad ALTA
+- **Carga de datos reales desde Excel**: Usar ETL (`python etl/main.py etl --all`) para cargar los datos crudos desde `datos/raw/` a Supabase
+- **Auth**: No requerido — datos públicos, así que por ahora queda fuera de scope
 
-#### ~~Conectar gráficos de secciones a Supabase~~ ✅ HECHO
+---
+
+## Links útiles
+
+- **Dashboard live**: https://ddna-dashboard.vercel.app/
+- **Repo**: https://github.com/lucasalvador98/ddna-dashboard
+- **Supabase**: https://supabase.com/dashboard/project/ppyyqrvirjqmfpqaqnxy
+- **Supabase SQL Editor**: https://supabase.com/dashboard/project/ppyyqrvirjqmfpqaqnxy/sql
 **Implementado en commit `727b27a`**:
 - `src/lib/chart-data.ts` — Datos placeholder centralizados para las 5 secciones
 - `src/lib/use-chart-data.ts` — Hook `useChartData(categoria)` que:

@@ -1,8 +1,9 @@
 # DDNA Dashboard
 
+> **Live**: https://ddna-dashboard.vercel.app/  
 > Tablero General de Monitoreo de la **Defensoría de los Derechos de Niñas, Niños y Adolescentes** — Provincia de Córdoba
 
-Sistema de monitoreo y visualización de indicadores de infancia y adolescencia que reemplaza la dependencia de Power BI por una solución web moderna, de código abierto y mantenible.
+Sistema de monitoreo y visualización de indicadores de infancia y adolescencia que reemplaza la dependencia de Power BI por una solución web moderna, de código abierto y mantenible. **Deployado en Vercel**.
 
 ---
 
@@ -163,20 +164,18 @@ src/
 
 - [x] Scaffold del proyecto (Next.js 16 + TypeScript + Tailwind v4)
 - [x] Layout con sidebar colapsable + header con logos oficiales DDNA
-- [x] Identidad visual completa (colores, paleta, fuentes Epilogue)
+- [x] Identidad visual completa (Caprasimo + DK Lemon fonts, Recurso 1-7 icons, Tema.json palette)
 - [x] Home page con KPIs conectados a Supabase + fallback placeholder
 - [x] 6 secciones temáticas con gráficos Recharts (salud, educación, pobreza, seguridad, inversión, fuentes)
-- [x] Supabase: esquema con 3 tablas (`indicadores`, `datos_indicadores`, `fuentes_datos`)
-- [x] 8 indicadores + 11 indicadores extendidos seedeados
-- [x] ~60 datos históricos cargados (2018-2024)
-- [x] API REST: `/api/health`, `/api/indicadores`, `/api/fuentes`
+- [x] Supabase: esquema con 4 tablas (`indicadores`, `datos_indicadores`, `fuentes_datos`, `uploads`)
+- [x] 11+ indicadores seedeados con datos históricos (2018-2024)
+- [x] API REST: `/api/health`, `/api/indicadores`, `/api/fuentes`, `/api/upload`
 - [x] Catálogo de fuentes con badges por categoría
-- [ ] Conectar gráficos de secciones a datos Supabase (usar `desglose` JSONB)
-- [ ] Interfaz de carga CSV para admins
-- [ ] Autenticación (Supabase Auth)
-- [ ] Scripts ETL Python para fuentes con API
-- [ ] Carga de datos reales desde Excel (`datos/raw/`)
-- [ ] Deploy en Vercel
+- [x] Interfaz de carga CSV para admins (`/admin`)
+- [x] Scripts ETL Python para datos Excel (`etl/`)
+- [x] Deploy en Vercel — **https://ddna-dashboard.vercel.app/**
+- [ ] Carga de datos reales desde Excel (usar ETL: `python etl/main.py etl --all`)
+- [ ] Autenticación — no requerida (datos públicos)
 
 ---
 
