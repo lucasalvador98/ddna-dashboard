@@ -4,6 +4,8 @@ import { BookOpen, GraduationCap, AlertCircle, Trophy } from "lucide-react";
 import { KpiCard } from "@/components/kpi-card";
 import { SectionHeader } from "@/components/section-header";
 import { ChartCard } from "@/components/charts/chart-card";
+import { useChartData } from "@/lib/use-chart-data";
+import { placeholderChartData } from "@/lib/chart-data";
 import {
   AreaChart,
   Area,
@@ -17,26 +19,11 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-// Mock data: Tasa de escolarización por nivel 2018-2024
-const escolarizacionData = [
-  { year: "2018", inicial: 84.2, primario: 98.1, secundario: 78.5 },
-  { year: "2019", inicial: 85.8, primario: 98.3, secundario: 79.8 },
-  { year: "2020", inicial: 83.1, primario: 97.8, secundario: 76.2 },
-  { year: "2021", inicial: 86.4, primario: 98.5, secundario: 80.3 },
-  { year: "2022", inicial: 87.9, primario: 98.7, secundario: 82.1 },
-  { year: "2023", inicial: 89.2, primario: 99.1, secundario: 84.6 },
-  { year: "2024", inicial: 90.8, primario: 99.3, secundario: 86.2 },
-];
-
-// Mock data: Resultados Aprender por área
-const aprenderData = [
-  { area: "Lengua", satisfactorio: 62.4, básico: 24.1, debajo: 13.5 },
-  { area: "Matemática", satisfactorio: 48.7, básico: 31.2, debajo: 20.1 },
-  { area: "Ciencias Naturales", satisfactorio: 55.8, básico: 28.4, debajo: 15.8 },
-  { area: "Ciencias Sociales", satisfactorio: 58.2, básico: 27.1, debajo: 14.7 },
-];
-
 export default function EducacionPage() {
+  const { data: chartData } = useChartData("educacion");
+  const escolarizacionData = chartData?.charts?.escolarizacion ?? placeholderChartData.educacion.charts.escolarizacion;
+  const aprenderData = chartData?.charts?.aprender ?? placeholderChartData.educacion.charts.aprender;
+
   return (
     <div className="space-y-6">
       <SectionHeader

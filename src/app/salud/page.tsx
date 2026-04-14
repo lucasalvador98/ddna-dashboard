@@ -4,6 +4,8 @@ import { Heart, Baby, Syringe, TrendingUp, TrendingDown } from "lucide-react";
 import { KpiCard } from "@/components/kpi-card";
 import { SectionHeader } from "@/components/section-header";
 import { ChartCard } from "@/components/charts/chart-card";
+import { useChartData } from "@/lib/use-chart-data";
+import { placeholderChartData } from "@/lib/chart-data";
 import {
   LineChart,
   Line,
@@ -17,28 +19,11 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-// Mock data: Mortalidad infantil 2018-2024
-const mortalidadData = [
-  { year: "2018", cordoba: 8.9, argentina: 9.4 },
-  { year: "2019", cordoba: 8.5, argentina: 9.1 },
-  { year: "2020", cordoba: 7.8, argentina: 8.4 },
-  { year: "2021", cordoba: 7.6, argentina: 8.2 },
-  { year: "2022", cordoba: 7.4, argentina: 7.9 },
-  { year: "2023", cordoba: 7.1, argentina: 7.6 },
-  { year: "2024", cordoba: 6.8, argentina: 7.2 },
-];
-
-// Mock data: Cobertura vacunal
-const vacunalData = [
-  { vaccine: "BCG", cobertura: 94.2 },
-  { vaccine: "Polio", cobertura: 91.8 },
-  { vaccine: "Sarampión", cobertura: 89.5 },
-  { vaccine: "Triple Viral", cobertura: 87.3 },
-  { vaccine: "Hepatitis B", cobertura: 95.1 },
-  { vaccine: "neumococo", cobertura: 88.9 },
-];
-
 export default function SaludPage() {
+  const { data: chartData } = useChartData("salud");
+  const mortalidadData = chartData?.charts?.mortalidad ?? placeholderChartData.salud.charts.mortalidad;
+  const vacunalData = chartData?.charts?.vacunal ?? placeholderChartData.salud.charts.vacunal;
+
   return (
     <div className="space-y-6">
       <SectionHeader

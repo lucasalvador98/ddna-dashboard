@@ -4,6 +4,8 @@ import { Users, TrendingDown, TrendingUp, AlertTriangle } from "lucide-react";
 import { KpiCard } from "@/components/kpi-card";
 import { SectionHeader } from "@/components/section-header";
 import { ChartCard } from "@/components/charts/chart-card";
+import { useChartData } from "@/lib/use-chart-data";
+import { placeholderChartData } from "@/lib/chart-data";
 import {
   LineChart,
   Line,
@@ -17,25 +19,11 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-// Mock data: Pobreza e indigencia infantil 2018-2024
-const pobrezaData = [
-  { year: "2018", pobreza: 49.2, indigencia: 12.8 },
-  { year: "2019", pobreza: 47.1, indigencia: 11.9 },
-  { year: "2020", pobreza: 52.4, indigencia: 15.3 },
-  { year: "2021", pobreza: 54.2, indigencia: 17.1 },
-  { year: "2022", pobreza: 51.8, indigencia: 15.8 },
-  { year: "2023", pobreza: 48.3, indigencia: 13.4 },
-  { year: "2024", pobreza: 45.7, indigencia: 11.9 },
-];
-
-// Mock data: Brecha de pobreza por grupo etario
-const brechaData = [
-  { grupo: "0-5 años", pobreza: 52.4, brecha: 8.2 },
-  { grupo: "6-12 años", pobreza: 48.1, brecha: 3.9 },
-  { grupo: "13-17 años", pobreza: 44.8, brecha: 0.6 },
-];
-
 export default function PobrezaPage() {
+  const { data: chartData } = useChartData("pobreza");
+  const pobrezaData = chartData?.charts?.pobreza ?? placeholderChartData.pobreza.charts.pobreza;
+  const brechaData = chartData?.charts?.brecha ?? placeholderChartData.pobreza.charts.brecha;
+
   return (
     <div className="space-y-6">
       <SectionHeader

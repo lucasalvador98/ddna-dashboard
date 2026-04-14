@@ -4,6 +4,8 @@ import { Coins, TrendingUp, Percent, BarChart3 } from "lucide-react";
 import { KpiCard } from "@/components/kpi-card";
 import { SectionHeader } from "@/components/section-header";
 import { ChartCard } from "@/components/charts/chart-card";
+import { useChartData } from "@/lib/use-chart-data";
+import { placeholderChartData } from "@/lib/chart-data";
 import {
   ComposedChart,
   Bar,
@@ -17,29 +19,10 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-// Mock data: Inversión social en infancia por área 2018-2024 (en millones de pesos)
-const inversionData = [
-  { year: "2018", educacion: 12450, salud: 8920, proteccion: 3420, desarrollo: 2180 },
-  { year: "2019", educacion: 13890, salud: 9540, proteccion: 3890, desarrollo: 2450 },
-  { year: "2020", educacion: 15120, salud: 11280, proteccion: 4280, desarrollo: 2890 },
-  { year: "2021", educacion: 16840, salud: 12890, proteccion: 4920, desarrollo: 3240 },
-  { year: "2022", educacion: 18420, salud: 14120, proteccion: 5450, desarrollo: 3680 },
-  { year: "2023", educacion: 20150, salud: 15840, proteccion: 6120, desarrollo: 4120 },
-  { year: "2024", educacion: 22480, salud: 17120, proteccion: 6890, desarrollo: 4580 },
-];
-
-// Mock data: % del presupuesto destinado a infancia
-const presupuestoData = [
-  { year: "2018", porcentaje: 18.4 },
-  { year: "2019", porcentaje: 19.1 },
-  { year: "2020", porcentaje: 20.8 },
-  { year: "2021", porcentaje: 21.4 },
-  { year: "2022", porcentaje: 22.1 },
-  { year: "2023", porcentaje: 22.8 },
-  { year: "2024", porcentaje: 23.5 },
-];
-
 export default function InversionPage() {
+  const { data: chartData } = useChartData("inversion");
+  const inversionData = chartData?.charts?.inversion ?? placeholderChartData.inversion.charts.inversion;
+  const presupuestoData = chartData?.charts?.presupuesto ?? placeholderChartData.inversion.charts.presupuesto;
   const totalInversion = 51110; // 2024 total in millions
 
   return (

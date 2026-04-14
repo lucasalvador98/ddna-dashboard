@@ -4,6 +4,8 @@ import { Shield, AlertTriangle, TrendingUp, BarChart3 } from "lucide-react";
 import { KpiCard } from "@/components/kpi-card";
 import { SectionHeader } from "@/components/section-header";
 import { ChartCard } from "@/components/charts/chart-card";
+import { useChartData } from "@/lib/use-chart-data";
+import { placeholderChartData } from "@/lib/chart-data";
 import {
   LineChart,
   Line,
@@ -18,26 +20,11 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-// Mock data: Denuncias registradas 2019-2024
-const denunciasData = [
-  { year: "2019", cantidad: 1847 },
-  { year: "2020", cantidad: 2156 },
-  { year: "2021", cantidad: 2489 },
-  { year: "2022", cantidad: 2634 },
-  { year: "2023", cantidad: 2847 },
-  { year: "2024", cantidad: 3102 },
-];
-
-// Mock data: Distribución por tipo de denuncia
-const tipoData = [
-  { name: "Violencia familiar", value: 1248, color: "#3777FF" },
-  { name: "Negligencia", value: 892, color: "#F3A712" },
-  { name: "Abuso sexual", value: 456, color: "#BF1363" },
-  { name: "Maltrato infantil", value: 312, color: "#E07A5F" },
-  { name: "Otros", value: 194, color: "#A7DBF9" },
-];
-
 export default function SeguridadPage() {
+  const { data: chartData } = useChartData("seguridad");
+  const denunciasData = chartData?.charts?.denuncias ?? placeholderChartData.seguridad.charts.denuncias;
+  const tipoData = chartData?.charts?.tipo ?? placeholderChartData.seguridad.charts.tipo;
+
   return (
     <div className="space-y-6">
       <SectionHeader
@@ -143,7 +130,7 @@ export default function SeguridadPage() {
                 dataKey="value"
               >
                 {tipoData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
+                  <Cell key={`cell-${index}`} fill={String(entry.color)} />
                 ))}
               </Pie>
               <Tooltip
