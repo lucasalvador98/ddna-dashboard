@@ -1,0 +1,115 @@
+@import "tailwindcss";
+
+/* DDNA Design Tokens - Primary Theme */
+:root {
+  /* Primary Colors */
+  --ddna-amber: #F3A712;
+  --ddna-magenta: #BF1363;
+  --ddna-orange: #FF7F11;
+  --ddna-cream: #FFE2BF;
+
+  /* Accent Colors */
+  --ddna-blue: #3777FF;
+  --ddna-navy: #00074E;
+  --ddna-mauve: #A66999;
+
+  /* Background Colors */
+  --ddna-background: #FFF0DE;
+  --ddna-outspace: #FFE8CD;
+
+  /* Text */
+  --ddna-text: #4D4D4D;
+  --ddna-text-dark: #000000;
+
+  /* Secondary Theme Colors */
+  --ddna-sky-blue: #1E9AD8;
+  --ddna-light-blue: #A7DBF9;
+  --ddna-terracotta: #E07A5F;
+  --ddna-light-orange: #FFB347;
+  --ddna-secondary-bg: #FDF3E7;
+
+  /* Borders */
+  --ddna-border: #E0E0E0;
+
+  /* Semantic Colors */
+  --ddna-success: #22C55E;
+  --ddna-warning: #F59E0B;
+  --ddna-error: #EF4444;
+  --ddna-info: #3B82F6;
+}
+
+@theme inline {
+  /* Primary palette */
+  --color-amber: var(--ddna-amber);
+  --color-magenta: var(--ddna-magenta);
+  --color-orange: var(--ddna-orange);
+  --color-cream: var(--ddna-cream);
+  --color-blue: var(--ddna-blue);
+  --color-navy: var(--ddna-navy);
+  --color-mauve: var(--ddna-mauve);
+
+  /* Background palette */
+  --color-background: var(--ddna-background);
+  --color-outspace: var(--ddna-outspace);
+  --color-secondary-bg: var(--ddna-secondary-bg);
+
+  /* Text palette */
+  --color-text-primary: var(--ddna-text);
+  --color-text-dark: var(--ddna-text-dark);
+
+  /* Secondary palette */
+  --color-sky-blue: var(--ddna-sky-blue);
+  --color-light-blue: var(--ddna-light-blue);
+  --color-terracotta: var(--ddna-terracotta);
+  --color-light-orange: var(--ddna-light-orange);
+
+  /* Border */
+  --color-border: var(--ddna-border);
+
+  /* Semantic */
+  --color-success: var(--ddna-success);
+  --color-warning: var(--ddna-warning);
+  --color-error: var(--ddna-error);
+  --color-info: var(--ddna-info);
+
+  /* Font */
+  --font-sans: var(--font-epilogue);
+}
+
+/* Base styles */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--ddna-background);
+  color: var(--ddna-text);
+  font-family: var(--font-epilogue), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--ddna-outspace);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--ddna-mauve);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ddna-magenta);
+}
+
+/* Selection */
+::selection {
+  background-color: var(--ddna-amber);
+  color: var(--ddna-text-dark);
+}
