@@ -71,9 +71,14 @@ Los gráficos muestran datos de Supabase cuando hay, y fallback a placeholder cu
 Para que todos los gráficos muestren datos reales de Supabase, hay que cargar más datos
 via ETL desde los archivos Excel/CSV en `datos/raw/`.
 
-### Prioridad MEDIA
+### Prioridad MEDIA (en progreso)
 
-#### Cargar datos reales desde los Excel/CSV
+#### Datos de referencia en Supabase — ✅ HECHO (parcial)
+Se sembraron ~110 data points en Supabase para los 11 indicadores. Los datos son **referencia/aproximación** que coinciden con los placeholders — no son extraídos de los Excel reales. Todos los gráficos funcionan con datos de Supabase cuando está conectado.
+
+**Indicadores con datos completos**: mortalidad (14), cobert. vacunal (11), escolarización (6), abandono (5), aprender (12), pobreza (13), indigencia (7), denuncias (10), inversión (5), presupuesto (7), población (5).
+
+#### ETL de datos reales desde Excel/CSV — PENDIENTE
 **Problema**: Los archivos en `datos/raw/` contienen datos reales pero están en formato Excel/CSV heterogéneo. Solo hay ~66 datos seedeados en Supabase (la mayoría mock approximations).
 
 **Archivos disponibles**:
