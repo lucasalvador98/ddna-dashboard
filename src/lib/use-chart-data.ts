@@ -154,16 +154,29 @@ function transformToChartData(
   // Map indicadores to chart keys based on category
   const chartKeyMap = getChartKeyMap(categoria, indicadores);
 
+  // Group all indicator IDs by their chart key (multiple indicators may share a key)
+  const chartKeyGroups = new Map<string, string[]>();
   for (const [indicadorId, chartKey] of chartKeyMap) {
-    const indicadorData = dataByIndicador.get(indicadorId);
-    if (!indicadorData || indicadorData.length === 0) continue;
+    if (!chartKeyGroups.has(chartKey)) {
+      chartKeyGroups.set(chartKey, []);
+    }
+    chartKeyGroups.get(chartKey)!.push(indicadorId);
+  }
 
-    const regions = [...new Set(indicadorData.map((d) => d.region))];
-    const hasDesglose = indicadorData.some((d) => d.desglose && Object.keys(d.desglose).length > 0);
+  for (const [chartKey, indicadorIds] of chartKeyGroups) {
+    // Collect ALL data for all indicators in this chart group
+    const allData = indicadorIds
+      .flatMap((id) => dataByIndicador.get(id) ?? [])
+      .sort((a, b) => a.periodo.localeCompare(b.periodo));
+
+    if (allData.length === 0) continue;
+
+    const hasDesglose = allData.some((d) => d.desglose && Object.keys(d.desglose).length > 0);
+    const regions = [...new Set(allData.map((d) => d.region))];
 
     if (hasDesglose && chartKey === "vacunal") {
       // Categorical: vaccine coverage {vaccine, cobertura}
-      charts[chartKey] = indicadorData
+      charts[chartKey] = allData
         .filter((d) => d.desglose && "vacuna" in d.desglose)
         .map((d) => ({
           vaccine: d.desglose!.vacuna,
@@ -172,7 +185,7 @@ function transformToChartData(
     } else if (hasDesglose && chartKey === "aprender") {
       // Stacked bar: Aprender results by area
       const areaData = new Map<string, Record<string, number>>();
-      for (const d of indicadorData) {
+      for (const d of allData) {
         if (!d.desglose) continue;
         const area = d.desglose.area || "Sin área";
         const nivel = d.desglose.nivel || "desconocido";
@@ -194,19 +207,42 @@ function transformToChartData(
         "Maltrato infantil": "#E07A5F",
         "Otros": "#A7DBF9",
       };
-      charts[chartKey] = indicadorData
+      charts[chartKey] = allData
         .filter((d) => d.desglose && "tipo" in d.desglose)
         .map((d) => ({
           name: d.desglose!.tipo,
           value: Number(d.valor),
           color: tipoColors[d.desglose!.tipo] || "#999999",
         }));
-    } else if (regions.length > 1) {
-      // Multi-region time series: pivot by region
-      const periods = [...new Set(indicadorData.map((d) => d.periodo))].sort();
+    } else if (indicadorIds.length > 1 && chartKey === "pobreza") {
+      // Multi-indicator merge: combine poverty + indigence into one chart
+      // Each indicator gets its own data key based on indicator name
+      const periods = [...new Set(allData.map((d) => d.periodo))].sort();
       const pivoted = periods.map((periodo) => {
         const point: Record<string, string | number> = { year: periodo };
-        for (const row of indicadorData.filter((d) => d.periodo === periodo)) {
+        for (const indicadorId of indicadorIds) {
+          const indNombre = indicadores.find((i) => i.id === indicadorId)?.nombre ?? indicadorId;
+          const indData = (dataByIndicador.get(indicadorId) ?? []).filter((d) => d.periodo === periodo);
+          const indicador = indicadores.find((i) => i.id === indicadorId);
+          // Use a short key for the chart data
+          const key = indicador?.nombre?.toLowerCase().includes("indigencia") ? "indigencia" : "pobreza";
+          for (const row of indData) {
+            if (row.region === "Córdoba" || indData.length === 1) {
+              point[key] = Number(row.valor);
+            } else if (row.region !== "Córdoba") {
+              // Skip non-Córdoba regions for merged chart (poverty line uses Córdoba data)
+            }
+          }
+        }
+        return point;
+      });
+      charts[chartKey] = pivoted;
+    } else if (regions.length > 1) {
+      // Multi-region time series: pivot by region
+      const periods = [...new Set(allData.map((d) => d.periodo))].sort();
+      const pivoted = periods.map((periodo) => {
+        const point: Record<string, string | number> = { year: periodo };
+        for (const row of allData.filter((d) => d.periodo === periodo)) {
           const regionKey = row.region.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "_");
           point[regionKey] = Number(row.valor);
         }
@@ -214,28 +250,52 @@ function transformToChartData(
       });
       charts[chartKey] = pivoted;
     } else {
-      // Simple time series: {year, valor} or multi-key with desglose
-      const periods = [...new Set(indicadorData.map((d) => d.periodo))].sort();
-      const pivoted = periods.map((periodo) => {
-        const point: Record<string, string | number> = { year: periodo };
-        const periodData = indicadorData.filter((d) => d.periodo === periodo);
+      // Simple time series: merge by periodo, using indicator name as key
+      const periods = [...new Set(allData.map((d) => d.periodo))].sort();
 
-        if (periodData.length === 1) {
-          point.valor = Number(periodData[0].valor);
-        } else {
-          for (const row of periodData) {
-            if (row.desglose && Object.keys(row.desglose).length > 0) {
-              // Use the first desglose value as the key
-              const key = Object.values(row.desglose)[0];
-              point[key] = Number(row.valor);
-            } else {
-              point.valor = Number(row.valor);
+      if (indicadorIds.length > 1) {
+        // Multiple indicators merged by period
+        const pivoted = periods.map((periodo) => {
+          const point: Record<string, string | number> = { year: periodo };
+          for (const indicadorId of indicadorIds) {
+            const indicador = indicadores.find((i) => i.id === indicadorId);
+            const indData = (dataByIndicador.get(indicadorId) ?? []).filter((d) => d.periodo === periodo);
+            for (const row of indData) {
+              if (row.desglose && Object.keys(row.desglose).length > 0) {
+                const key = Object.values(row.desglose)[0];
+                point[key] = Number(row.valor);
+              } else {
+                // Use indicator-specific key from the chartKeyMap
+                const key = indicador?.nombre?.toLowerCase().includes("presupuesto") ? "porcentaje" : "valor";
+                point[key] = Number(row.valor);
+              }
             }
           }
-        }
-        return point;
-      });
-      charts[chartKey] = pivoted;
+          return point;
+        });
+        charts[chartKey] = pivoted;
+      } else {
+        // Single indicator
+        const pivoted = periods.map((periodo) => {
+          const point: Record<string, string | number> = { year: periodo };
+          const periodData = allData.filter((d) => d.periodo === periodo);
+
+          if (periodData.length === 1) {
+            point.valor = Number(periodData[0].valor);
+          } else {
+            for (const row of periodData) {
+              if (row.desglose && Object.keys(row.desglose).length > 0) {
+                const key = Object.values(row.desglose)[0];
+                point[key] = Number(row.valor);
+              } else {
+                point.valor = Number(row.valor);
+              }
+            }
+          }
+          return point;
+        });
+        charts[chartKey] = pivoted;
+      }
     }
   }
 
