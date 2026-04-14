@@ -55,42 +55,21 @@
 
 ### Prioridad ALTA
 
-#### Conectar gráficos de secciones a Supabase
-**Problema**: Las 6 secciones (`salud`, `educacion`, `pobreza`, `seguridad`, `inversion`, `fuentes`) usan datos mock hardcodeados en cada `page.tsx`. Solo la home page consulta Supabase.
+#### ~~Conectar gráficos de secciones a Supabase~~ ✅ HECHO
+**Implementado en commit `727b27a`**:
+- `src/lib/chart-data.ts` — Datos placeholder centralizados para las 5 secciones
+- `src/lib/use-chart-data.ts` — Hook `useChartData(categoria)` que:
+  1. Consulta `indicadores` + `datos_indicadores` desde Supabase por categoría
+  2. Transforma datos según el tipo (serie temporal, comparativa, desglose, categórico)
+  3. Usa columna `desglose` JSONB para subdimensiones (vacunas, áreas Aprender, etc.)
+  4. Fallback automático a `placeholderChartData[categoria]` si Supabase no responde
+- 5 secciones actualizadas: `salud`, `educacion`, `pobreza`, `seguridad`, `inversion`
+- `fuentes` ya usaba Supabase directamente (no necesita hook)
 
-**Solución**: Crear un hook `useChartData(categoria, indicadorNombres)` que:
-1. Consulte `datos_indicadores` + `indicadores` desde Supabase por categoría
-2. Use la columna `desglose` para reconstruir series con subdimensiones
-3. Transforme los datos al formato que Recharts espera
-4. Fallback a los datos mock actuales si Supabase no responde
-
-**Archivos a crear/modificar**:
-- `src/lib/hooks.ts` — Agregar `useChartData()`
-- `src/app/salud/page.tsx` — Reemplazar `const mortalidadData = [...]` con hook
-- `src/app/educacion/page.tsx` — Reemplazar datos mock
-- `src/app/pobreza/page.tsx` — Reemplazar datos mock
-- `src/app/seguridad/page.tsx` — Reemplazar datos mock
-- `src/app/inversion/page.tsx` — Reemplazar datos mock
-- `src/app/fuentes/page.tsx` — Ya usa Supabase con fallback
-
-**Tipos de chart data**:
-```
-Series simples (1 indicador, 1 región):
-  datos_indicadores WHERE indicador_id=X ORDER BY periodo
-  → [{year: "2024", valor: 6.8}]
-
-Series comparativas (1 indicador, 2 regiones):
-  datos_indicadores WHERE indicador_id=X y region IN ('Córdoba', 'Argentina')
-  → [{year: "2024", cordoba: 6.8, argentina: 7.2}]
-
-Series con desglose (1 indicador, subdimensiones):
-  datos_indicadores WHERE indicador_id=X y desglose IS NOT NULL
-  → [{year: "2024", initial: 90.8, primario: 99.3, secundario: 86.2}]
-
-Datos categóricos (desglose sin tiempo):
-  datos_indicadores WHERE indicador_id=X y periodo='2023'
-  → [{name: "BCG", cobertura: 94.2}, ...]
-```
+**NOTA**: Los datos en Supabase son limitados (~66 puntos, la mayoría mock approximations).
+Los gráficos muestran datos de Supabase cuando hay, y fallback a placeholder cuando no.
+Para que todos los gráficos muestren datos reales de Supabase, hay que cargar más datos
+via ETL desde los archivos Excel/CSV en `datos/raw/`.
 
 ### Prioridad MEDIA
 
