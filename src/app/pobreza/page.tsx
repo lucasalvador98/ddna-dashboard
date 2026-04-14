@@ -19,6 +19,20 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+// Tema.json dataColors palette for consistent branding
+const DDNA_COLORS = {
+  amber: "#F3A712",
+  magenta: "#BF1363",
+  orange: "#FF7F11",
+  cream: "#FFE2BF",
+  blue: "#3777FF",
+  navy: "#00074E",
+  mauve: "#A66999",
+  teal: "#3599B8",
+  cyan: "#4AC5BB",
+  terracotta: "#E07A5F",
+};
+
 export default function PobrezaPage() {
   const { data: chartData } = useChartData("pobreza");
   const pobrezaData = chartData?.charts?.pobreza ?? placeholderChartData.pobreza.charts.pobreza;
@@ -105,20 +119,20 @@ export default function PobrezaPage() {
               <Line
                 type="monotone"
                 dataKey="pobreza"
-                stroke="#BF1363"
+                stroke={DDNA_COLORS.magenta}
                 strokeWidth={3}
-                dot={{ fill: "#BF1363", strokeWidth: 2 }}
-                activeDot={{ r: 6, fill: "#BF1363" }}
+                dot={{ fill: DDNA_COLORS.magenta, strokeWidth: 2 }}
+                activeDot={{ r: 6, fill: DDNA_COLORS.magenta }}
                 name="Pobreza"
               />
               <Line
                 type="monotone"
                 dataKey="indigencia"
-                stroke="#E07A5F"
+                stroke={DDNA_COLORS.terracotta}
                 strokeWidth={2}
                 strokeDasharray="5 5"
-                dot={{ fill: "#E07A5F", strokeWidth: 2 }}
-                activeDot={{ r: 4, fill: "#E07A5F" }}
+                dot={{ fill: DDNA_COLORS.terracotta, strokeWidth: 2 }}
+                activeDot={{ r: 4, fill: DDNA_COLORS.terracotta }}
                 name="Indigencia"
               />
             </LineChart>
@@ -170,14 +184,14 @@ export default function PobrezaPage() {
               />
               <Bar
                 dataKey="pobreza"
-                fill="#BF1363"
+                fill={DDNA_COLORS.magenta}
                 radius={[0, 4, 4, 0]}
                 barSize={32}
                 name="Pobreza NNA"
               />
               <Bar
                 dataKey="brecha"
-                fill="#E07A5F"
+                fill={DDNA_COLORS.terracotta}
                 radius={[0, 4, 4, 0]}
                 barSize={32}
                 name="Brecha vs adultos"

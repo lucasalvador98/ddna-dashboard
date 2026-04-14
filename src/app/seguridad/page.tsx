@@ -20,6 +20,20 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+// Tema.json dataColors palette for consistent branding
+const DDNA_COLORS = {
+  amber: "#F3A712",
+  magenta: "#BF1363",
+  orange: "#FF7F11",
+  cream: "#FFE2BF",
+  blue: "#3777FF",
+  navy: "#00074E",
+  mauve: "#A66999",
+  teal: "#3599B8",
+  cyan: "#4AC5BB",
+  terracotta: "#E07A5F",
+};
+
 export default function SeguridadPage() {
   const { data: chartData } = useChartData("seguridad");
   const denunciasData = chartData?.charts?.denuncias ?? placeholderChartData.seguridad.charts.denuncias;
@@ -97,10 +111,10 @@ export default function SeguridadPage() {
               <Line
                 type="monotone"
                 dataKey="cantidad"
-                stroke="#3777FF"
+                stroke={DDNA_COLORS.blue}
                 strokeWidth={3}
-                dot={{ fill: "#3777FF", strokeWidth: 2, r: 5 }}
-                activeDot={{ r: 7, fill: "#3777FF" }}
+                dot={{ fill: DDNA_COLORS.blue, strokeWidth: 2, r: 5 }}
+                activeDot={{ r: 7, fill: DDNA_COLORS.blue }}
                 name="Denuncias"
               />
             </LineChart>

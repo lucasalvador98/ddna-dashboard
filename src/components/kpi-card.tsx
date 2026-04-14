@@ -80,7 +80,7 @@ export function KpiCard({
         {change && (
           <div
             className={clsx(
-              "flex items-center gap-1 text-sm font-medium px-2 py-1 rounded-full",
+              "flex items-center gap-1 text-sm font-body font-medium px-2 py-1 rounded-full",
               changeType === "up" && "bg-[#22C55E]/10 text-[#22C55E]",
               changeType === "down" && "bg-[#EF4444]/10 text-[#EF4444]",
               changeType === "neutral" && "bg-[#E0E0E0]/50 text-[#4D4D4D]"
@@ -95,9 +95,9 @@ export function KpiCard({
 
       {/* Content */}
       <div className="mt-4">
-        <h3 className="text-sm font-medium text-[#4D4D4D]">{title}</h3>
-        <p className="text-3xl font-bold text-[#00074E] mt-1">{value}</p>
-        <p className="text-sm text-[#4D4D4D]/70 mt-1 leading-relaxed">
+        <h3 className="font-accent text-sm text-[#4D4D4D] tracking-wide">{title}</h3>
+        <p className="font-display text-4xl text-[#00074E] mt-1">{value}</p>
+        <p className="font-body text-sm text-[#4D4D4D]/70 mt-2 leading-relaxed">
           {subtitle}
         </p>
       </div>

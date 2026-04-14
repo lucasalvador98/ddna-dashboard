@@ -28,8 +28,8 @@ export function SectionHeader({ icon: Icon, title, description, color }: Section
         <Icon className="w-7 h-7" />
       </div>
       <div>
-        <h1 className="text-2xl font-bold text-[#00074E]">{title}</h1>
-        <p className="text-sm text-[#4D4D4D] mt-1">{description}</p>
+        <h1 className="font-display text-2xl text-[#00074E] tracking-tight">{title}</h1>
+        <p className="font-body text-sm text-[#4D4D4D] mt-1">{description}</p>
       </div>
     </div>
   );

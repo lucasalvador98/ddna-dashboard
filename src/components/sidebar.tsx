@@ -5,32 +5,23 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
-import {
-  Home,
-  Heart,
-  BookOpen,
-  Users,
-  Shield,
-  Coins,
-  FileText,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface NavItem {
   label: string;
   href: string;
-  icon: React.ComponentType<{ className?: string }>;
+  iconSrc: string;
+  iconAlt: string;
 }
 
 const navItems: NavItem[] = [
-  { label: "Inicio", href: "/", icon: Home },
-  { label: "Salud", href: "/salud", icon: Heart },
-  { label: "Educación", href: "/educacion", icon: BookOpen },
-  { label: "Pobreza", href: "/pobreza", icon: Users },
-  { label: "Seguridad", href: "/seguridad", icon: Shield },
-  { label: "Inversión Social", href: "/inversion", icon: Coins },
-  { label: "Fuentes de Datos", href: "/fuentes", icon: FileText },
+  { label: "Inicio", href: "/", iconSrc: "/logos/Recurso 1@2x.png", iconAlt: "Inicio" },
+  { label: "Salud", href: "/salud", iconSrc: "/logos/Recurso 2@2x.png", iconAlt: "Salud" },
+  { label: "Educación", href: "/educacion", iconSrc: "/logos/Recurso 3@2x.png", iconAlt: "Educación" },
+  { label: "Pobreza", href: "/pobreza", iconSrc: "/logos/Recurso 4@2x.png", iconAlt: "Pobreza" },
+  { label: "Seguridad", href: "/seguridad", iconSrc: "/logos/Recurso 5@2x.png", iconAlt: "Seguridad" },
+  { label: "Inversión Social", href: "/inversion", iconSrc: "/logos/Recurso 6@2x.png", iconAlt: "Inversión Social" },
+  { label: "Fuentes de Datos", href: "/fuentes", iconSrc: "/logos/Recurso 7@2x.png", iconAlt: "Fuentes de Datos" },
 ];
 
 export function Sidebar() {
@@ -40,12 +31,18 @@ export function Sidebar() {
   return (
     <aside
       className={clsx(
-        "hidden md:flex flex-col bg-[#00074E] text-white transition-all duration-300 ease-in-out",
-        isCollapsed ? "w-16" : "w-64"
+        "hidden md:flex flex-col bg-[#00074E] text-white transition-all duration-300 ease-in-out relative overflow-hidden",
+        isCollapsed ? "w-20" : "w-64"
       )}
     >
+      {/* Subtle gradient overlay for depth */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#00074E] via-[#00074E] to-[#1a1a5e] pointer-events-none" />
+      
+      {/* Decorative corner accent */}
+      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-[#3777FF]/10 to-transparent pointer-events-none" />
+      
       {/* Logo Area */}
-      <div className="flex items-center justify-between p-4 border-b border-[#3777FF]/30">
+      <div className="relative z-10 flex items-center justify-between p-4 border-b border-[#3777FF]/30">
         {!isCollapsed && (
           <div className="flex items-center gap-2">
             <Image
@@ -77,11 +74,10 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-4">
+      <nav className="relative z-10 flex-1 py-4">
         <ul className="space-y-1 px-2">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
-            const Icon = item.icon;
 
             return (
               <li key={item.href}>
@@ -96,14 +92,30 @@ export function Sidebar() {
                   )}
                   title={isCollapsed ? item.label : undefined}
                 >
-                  <Icon
-                    className={clsx(
-                      "flex-shrink-0",
-                      isCollapsed ? "w-5 h-5" : "w-5 h-5"
-                    )}
-                  />
+                  <div className={clsx(
+                    "flex-shrink-0 w-6 h-6 relative",
+                    isCollapsed ? "mx-auto" : ""
+                  )}>
+                    <Image
+                      src={item.iconSrc}
+                      alt={item.iconAlt}
+                      width={24}
+                      height={24}
+                      className={clsx(
+                        "object-contain",
+                        isActive ? "brightness-0 invert" : "brightness-0 invert opacity-70 hover:opacity-100"
+                      )}
+                    />
+                  </div>
                   {!isCollapsed && (
-                    <span className="font-medium text-sm">{item.label}</span>
+                    <span 
+                      className={clsx(
+                        "font-accent text-sm tracking-wide",
+                        isActive ? "font-medium" : ""
+                      )}
+                    >
+                      {item.label}
+                    </span>
                   )}
                 </Link>
               </li>
@@ -113,7 +125,7 @@ export function Sidebar() {
       </nav>
 
       {/* Collapse Toggle */}
-      <div className="p-4 border-t border-[#3777FF]/30">
+      <div className="relative z-10 p-4 border-t border-[#3777FF]/30">
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           className={clsx(
@@ -128,7 +140,7 @@ export function Sidebar() {
           ) : (
             <>
               <ChevronLeft className="w-5 h-5" />
-              <span className="text-sm">Colapsar</span>
+              <span className="font-accent text-sm">Colapsar</span>
             </>
           )}
         </button>
@@ -136,8 +148,8 @@ export function Sidebar() {
 
       {/* Version */}
       {!isCollapsed && (
-        <div className="px-4 pb-4">
-          <p className="text-xs text-[#A7DBF9]/60 text-center">
+        <div className="relative z-10 px-4 pb-4">
+          <p className="font-accent text-xs text-[#A7DBF9]/60 text-center">
             v0.1.0
           </p>
         </div>

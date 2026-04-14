@@ -40,8 +40,8 @@ export function Header() {
       <div className="hidden md:flex items-center justify-between px-6 py-4">
         {/* Breadcrumb / Title */}
         <div>
-          <h1 className="text-xl font-bold text-[#00074E]">{title}</h1>
-          <p className="text-sm text-[#4D4D4D]">
+          <h1 className="font-display text-2xl text-[#00074E] tracking-tight">{title}</h1>
+          <p className="font-body text-sm text-[#4D4D4D] mt-0.5">
             Defensoría de los Derechos de Niñas, Niños y Adolescentes
           </p>
         </div>
@@ -56,14 +56,14 @@ export function Header() {
               aria-label="Selector de idioma"
             >
               <Globe className="w-4 h-4" />
-              <span className="text-sm font-medium">ES</span>
+              <span className="font-body text-sm font-medium">ES</span>
             </button>
             {isLangOpen && (
               <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-[#E0E0E0] py-1 z-50">
-                <button className="w-full px-4 py-2 text-left text-sm hover:bg-[#FDF3E7] text-[#4D4D4D]">
+                <button className="w-full px-4 py-2 text-left font-body text-sm hover:bg-[#FDF3E7] text-[#4D4D4D]">
                   Español
                 </button>
-                <button className="w-full px-4 py-2 text-left text-sm hover:bg-[#FDF3E7] text-[#4D4D4D]">
+                <button className="w-full px-4 py-2 text-left font-body text-sm hover:bg-[#FDF3E7] text-[#4D4D4D]">
                   English
                 </button>
               </div>
@@ -125,7 +125,7 @@ export function Header() {
                   href={link.href}
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={clsx(
-                    "block px-4 py-3 text-sm transition-colors",
+                    "block px-4 py-3 font-body text-sm transition-colors",
                     pathname === link.href
                       ? "bg-[#3777FF]/10 text-[#3777FF] font-medium border-l-4 border-[#3777FF]"
                       : "text-[#4D4D4D] hover:bg-[#FDF3E7]"

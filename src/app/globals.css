@@ -36,6 +36,28 @@
   --ddna-warning: #F59E0B;
   --ddna-error: #EF4444;
   --ddna-info: #3B82F6;
+
+  /* Extended Data Colors from Tema.json */
+  --ddna-data-1: #F3A712;   /* Amber */
+  --ddna-data-2: #BF1363;   /* Magenta */
+  --ddna-data-3: #FF7F11;   /* Orange */
+  --ddna-data-4: #FFE2BF;   /* Cream */
+  --ddna-data-5: #3777FF;   /* Blue */
+  --ddna-data-6: #00074E;   /* Navy */
+  --ddna-data-7: #A66999;   /* Mauve */
+  --ddna-data-8: #3599B8;   /* Teal */
+  --ddna-data-9: #DFBFBF;   /* Light Gray */
+  --ddna-data-10: #4AC5BB;  /* Cyan */
+  --ddna-data-11: #5F6B6D;  /* Gray */
+  --ddna-data-12: #FB8281;  /* Salmon */
+  --ddna-data-13: #F4D25A;  /* Yellow */
+  --ddna-data-14: #7F898A;  /* Gray */
+  --ddna-data-15: #A4DDEE;  /* Light Cyan */
+  --ddna-data-16: #FDAB89;  /* Peach */
+  --ddna-data-17: #B687AC;  /* Purple */
+  --ddna-data-18: #28738A;  /* Dark Teal */
+  --ddna-data-19: #A78F8F;  /* Brown Gray */
+  --ddna-data-20: #168980;  /* Green */
 }
 
 @theme inline {
@@ -72,8 +94,42 @@
   --color-error: var(--ddna-error);
   --color-info: var(--ddna-info);
 
-  /* Font */
+  /* Data colors for charts */
+  --color-data-1: var(--ddna-data-1);
+  --color-data-2: var(--ddna-data-2);
+  --color-data-3: var(--ddna-data-3);
+  --color-data-4: var(--ddna-data-4);
+  --color-data-5: var(--ddna-data-5);
+  --color-data-6: var(--ddna-data-6);
+  --color-data-7: var(--ddna-data-7);
+  --color-data-8: var(--ddna-data-8);
+  --color-data-9: var(--ddna-data-9);
+  --color-data-10: var(--ddna-data-10);
+  --color-data-11: var(--ddna-data-11);
+  --color-data-12: var(--ddna-data-12);
+  --color-data-13: var(--ddna-data-13);
+  --color-data-14: var(--ddna-data-14);
+  --color-data-15: var(--ddna-data-15);
+  --color-data-16: var(--ddna-data-16);
+  --color-data-17: var(--ddna-data-17);
+  --color-data-18: var(--ddna-data-18);
+  --color-data-19: var(--ddna-data-19);
+  --color-data-20: var(--ddna-data-20);
+
+  /* Font families */
   --font-sans: var(--font-epilogue);
+  --font-caprasimo: var(--font-caprasimo);
+  --font-dk-lemon: var(--font-dk-lemon);
+
+  /* Typography scale */
+  --font-size-display: 3rem;
+  --font-size-h1: 2.25rem;
+  --font-size-h2: 1.875rem;
+  --font-size-h3: 1.5rem;
+  --font-size-h4: 1.25rem;
+  --font-size-base: 1rem;
+  --font-size-sm: 0.875rem;
+  --font-size-xs: 0.75rem;
 }
 
 /* Base styles */
@@ -87,6 +143,30 @@ body {
   font-family: var(--font-epilogue), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Font utility classes */
+.font-display {
+  font-family: var(--font-caprasimo), Georgia, serif;
+}
+
+.font-accent {
+  font-family: var(--font-dk-lemon), Georgia, serif;
+}
+
+.font-body {
+  font-family: var(--font-epilogue), system-ui, sans-serif;
+}
+
+/* Typography helpers */
+.text-display {
+  font-family: var(--font-caprasimo), Georgia, serif;
+  font-weight: 400;
+}
+
+.text-accent-label {
+  font-family: var(--font-dk-lemon), Georgia, serif;
+  font-weight: 400;
 }
 
 /* Custom scrollbar */

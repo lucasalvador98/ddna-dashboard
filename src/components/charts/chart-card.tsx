@@ -45,9 +45,9 @@ export function ChartCard({
             style={{ backgroundColor: accentColor }}
           />
           <div>
-            <h3 className="text-lg font-bold text-[#00074E]">{title}</h3>
+            <h3 className="font-display text-lg text-[#00074E] tracking-tight">{title}</h3>
             {subtitle && (
-              <p className="text-sm text-[#4D4D4D] mt-1">{subtitle}</p>
+              <p className="font-body text-sm text-[#4D4D4D] mt-1">{subtitle}</p>
             )}
           </div>
         </div>

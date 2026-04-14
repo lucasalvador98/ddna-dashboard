@@ -19,11 +19,24 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+// Tema.json dataColors palette for consistent branding
+const DDNA_COLORS = {
+  amber: "#F3A712",
+  magenta: "#BF1363",
+  orange: "#FF7F11",
+  cream: "#FFE2BF",
+  blue: "#3777FF",
+  navy: "#00074E",
+  mauve: "#A66999",
+  teal: "#3599B8",
+  cyan: "#4AC5BB",
+  terracotta: "#E07A5F",
+};
+
 export default function InversionPage() {
   const { data: chartData } = useChartData("inversion");
   const inversionData = chartData?.charts?.inversion ?? placeholderChartData.inversion.charts.inversion;
   const presupuestoData = chartData?.charts?.presupuesto ?? placeholderChartData.inversion.charts.presupuesto;
-  const totalInversion = 51110; // 2024 total in millions
 
   return (
     <div className="space-y-6">
@@ -113,25 +126,25 @@ export default function InversionPage() {
               <Bar
                 dataKey="educacion"
                 stackId="a"
-                fill="#F3A712"
+                fill={DDNA_COLORS.amber}
                 name="Educación"
               />
               <Bar
                 dataKey="salud"
                 stackId="a"
-                fill="#3777FF"
+                fill={DDNA_COLORS.blue}
                 name="Salud"
               />
               <Bar
                 dataKey="proteccion"
                 stackId="a"
-                fill="#BF1363"
+                fill={DDNA_COLORS.magenta}
                 name="Protección"
               />
               <Bar
                 dataKey="desarrollo"
                 stackId="a"
-                fill="#E07A5F"
+                fill={DDNA_COLORS.terracotta}
                 radius={[4, 4, 0, 0]}
                 name="Desarrollo"
               />
@@ -175,10 +188,10 @@ export default function InversionPage() {
               <Line
                 type="monotone"
                 dataKey="porcentaje"
-                stroke="#FFB347"
+                stroke={DDNA_COLORS.orange}
                 strokeWidth={3}
-                dot={{ fill: "#FFB347", strokeWidth: 2, r: 5 }}
-                activeDot={{ r: 7, fill: "#FFB347" }}
+                dot={{ fill: DDNA_COLORS.orange, strokeWidth: 2, r: 5 }}
+                activeDot={{ r: 7, fill: DDNA_COLORS.orange }}
                 name="% Presupuesto"
               />
             </LineChart>

@@ -19,6 +19,20 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+// Tema.json dataColors palette for consistent branding
+const DDNA_COLORS = {
+  amber: "#F3A712",
+  magenta: "#BF1363",
+  orange: "#FF7F11",
+  cream: "#FFE2BF",
+  blue: "#3777FF",
+  navy: "#00074E",
+  mauve: "#A66999",
+  teal: "#3599B8",
+  cyan: "#4AC5BB",
+  terracotta: "#E07A5F",
+};
+
 export default function SaludPage() {
   const { data: chartData } = useChartData("salud");
   const mortalidadData = chartData?.charts?.mortalidad ?? placeholderChartData.salud.charts.mortalidad;
@@ -105,20 +119,20 @@ export default function SaludPage() {
               <Line
                 type="monotone"
                 dataKey="cordoba"
-                stroke="#E07A5F"
+                stroke={DDNA_COLORS.terracotta}
                 strokeWidth={3}
-                dot={{ fill: "#E07A5F", strokeWidth: 2 }}
-                activeDot={{ r: 6, fill: "#E07A5F" }}
+                dot={{ fill: DDNA_COLORS.terracotta, strokeWidth: 2 }}
+                activeDot={{ r: 6, fill: DDNA_COLORS.terracotta }}
                 name="Córdoba"
               />
               <Line
                 type="monotone"
                 dataKey="argentina"
-                stroke="#3777FF"
+                stroke={DDNA_COLORS.blue}
                 strokeWidth={2}
                 strokeDasharray="5 5"
-                dot={{ fill: "#3777FF", strokeWidth: 2 }}
-                activeDot={{ r: 4, fill: "#3777FF" }}
+                dot={{ fill: DDNA_COLORS.blue, strokeWidth: 2 }}
+                activeDot={{ r: 4, fill: DDNA_COLORS.blue }}
                 name="Argentina"
               />
             </LineChart>
@@ -162,7 +176,7 @@ export default function SaludPage() {
               />
               <Bar
                 dataKey="cobertura"
-                fill="#E07A5F"
+                fill={DDNA_COLORS.blue}
                 radius={[0, 4, 4, 0]}
                 barSize={32}
               />

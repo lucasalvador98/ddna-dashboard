@@ -72,15 +72,15 @@ export default function HomePage() {
             />
           </div>
           
-          <h1 className="text-3xl lg:text-4xl font-bold mb-3">
+          <h1 className="font-display text-3xl lg:text-4xl text-white tracking-tight mb-3">
             Tablero General de Monitoreo
           </h1>
-          <p className="text-lg text-[#A7DBF9] max-w-2xl">
+          <p className="font-body text-lg text-[#A7DBF9] max-w-2xl">
             Defensoría de los Derechos de Niñas, Niños y Adolescentes — Provincia de Córdoba
           </p>
           
           <div className="mt-6 flex flex-wrap gap-4">
-            <div className="flex items-center gap-2 text-sm text-[#A7DBF9]">
+            <div className="flex items-center gap-2 font-body text-sm text-[#A7DBF9]">
               {source === "supabase" ? (
                 <>
                   <span className="w-2 h-2 rounded-full bg-[#22C55E] animate-pulse" />
@@ -93,7 +93,7 @@ export default function HomePage() {
                 </>
               )}
             </div>
-            <div className="text-sm text-[#A7DBF9]">
+            <div className="font-body text-sm text-[#A7DBF9]">
               Fuente: {source === "supabase" ? "Base de datos DDNA" : "Valores referenciales"}
             </div>
           </div>
@@ -102,13 +102,13 @@ export default function HomePage() {
 
       {/* KPI Grid */}
       <section>
-        <h2 className="text-xl font-bold text-[#00074E] mb-4">
+        <h2 className="font-display text-xl text-[#00074E] mb-4 tracking-tight">
           Indicadores Clave
         </h2>
         {loading && source === "supabase" ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1E9AD8]" />
-            <span className="ml-3 text-[#4D4D4D]">Cargando indicadores...</span>
+            <span className="ml-3 font-body text-[#4D4D4D]">Cargando indicadores...</span>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
@@ -190,20 +190,20 @@ export default function HomePage() {
       {/* Quick Stats */}
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl border border-[#E0E0E0] p-4 text-center">
-          <p className="text-2xl font-bold text-[#00074E]">3.892.456</p>
-          <p className="text-xs text-[#4D4D4D] mt-1">Población total 0-17</p>
+          <p className="font-display text-3xl text-[#00074E]">3.892.456</p>
+          <p className="font-accent text-xs text-[#4D4D4D] mt-2 tracking-wide">Población total 0-17</p>
         </div>
         <div className="bg-white rounded-xl border border-[#E0E0E0] p-4 text-center">
-          <p className="text-2xl font-bold text-[#3777FF]">847</p>
-          <p className="text-xs text-[#4D4D4D] mt-1">Centros de salud</p>
+          <p className="font-display text-3xl text-[#3777FF]">847</p>
+          <p className="font-accent text-xs text-[#4D4D4D] mt-2 tracking-wide">Centros de salud</p>
         </div>
         <div className="bg-white rounded-xl border border-[#E0E0E0] p-4 text-center">
-          <p className="text-2xl font-bold text-[#F3A712]">2.341</p>
-          <p className="text-xs text-[#4D4D4D] mt-1">Establecimientos educativos</p>
+          <p className="font-display text-3xl text-[#F3A712]">2.341</p>
+          <p className="font-accent text-xs text-[#4D4D4D] mt-2 tracking-wide">Establecimientos educativos</p>
         </div>
         <div className="bg-white rounded-xl border border-[#E0E0E0] p-4 text-center">
-          <p className="text-2xl font-bold text-[#BF1363]">95,1%</p>
-          <p className="text-xs text-[#4D4D4D] mt-1">Cobertura vacunal</p>
+          <p className="font-display text-3xl text-[#BF1363]">95,1%</p>
+          <p className="font-accent text-xs text-[#4D4D4D] mt-2 tracking-wide">Cobertura vacunal</p>
         </div>
       </section>
     </div>

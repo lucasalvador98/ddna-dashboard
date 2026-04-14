@@ -19,6 +19,20 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+// Tema.json dataColors palette for consistent branding
+const DDNA_COLORS = {
+  amber: "#F3A712",
+  magenta: "#BF1363",
+  orange: "#FF7F11",
+  cream: "#FFE2BF",
+  blue: "#3777FF",
+  navy: "#00074E",
+  mauve: "#A66999",
+  teal: "#3599B8",
+  cyan: "#4AC5BB",
+  terracotta: "#E07A5F",
+};
+
 export default function EducacionPage() {
   const { data: chartData } = useChartData("educacion");
   const escolarizacionData = chartData?.charts?.escolarizacion ?? placeholderChartData.educacion.charts.escolarizacion;
@@ -78,16 +92,16 @@ export default function EducacionPage() {
             >
               <defs>
                 <linearGradient id="colorInicial" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#F3A712" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#F3A712" stopOpacity={0} />
+                  <stop offset="5%" stopColor={DDNA_COLORS.amber} stopOpacity={0.3} />
+                  <stop offset="95%" stopColor={DDNA_COLORS.amber} stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="colorPrimario" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3777FF" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#3777FF" stopOpacity={0} />
+                  <stop offset="5%" stopColor={DDNA_COLORS.blue} stopOpacity={0.3} />
+                  <stop offset="95%" stopColor={DDNA_COLORS.blue} stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="colorSecundario" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#BF1363" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#BF1363" stopOpacity={0} />
+                  <stop offset="5%" stopColor={DDNA_COLORS.magenta} stopOpacity={0.3} />
+                  <stop offset="95%" stopColor={DDNA_COLORS.magenta} stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
@@ -125,7 +139,7 @@ export default function EducacionPage() {
               <Area
                 type="monotone"
                 dataKey="inicial"
-                stroke="#F3A712"
+                stroke={DDNA_COLORS.amber}
                 strokeWidth={2}
                 fillOpacity={1}
                 fill="url(#colorInicial)"
@@ -134,7 +148,7 @@ export default function EducacionPage() {
               <Area
                 type="monotone"
                 dataKey="primario"
-                stroke="#3777FF"
+                stroke={DDNA_COLORS.blue}
                 strokeWidth={2}
                 fillOpacity={1}
                 fill="url(#colorPrimario)"
@@ -143,7 +157,7 @@ export default function EducacionPage() {
               <Area
                 type="monotone"
                 dataKey="secundario"
-                stroke="#BF1363"
+                stroke={DDNA_COLORS.magenta}
                 strokeWidth={2}
                 fillOpacity={1}
                 fill="url(#colorSecundario)"
@@ -207,14 +221,14 @@ export default function EducacionPage() {
               <Bar
                 dataKey="básico"
                 stackId="a"
-                fill="#F3A712"
+                fill={DDNA_COLORS.amber}
                 radius={[0, 0, 0, 0]}
                 name="Básico"
               />
               <Bar
                 dataKey="debajo"
                 stackId="a"
-                fill="#E07A5F"
+                fill={DDNA_COLORS.terracotta}
                 radius={[4, 4, 0, 0]}
                 name="Debajo del básico"
               />

@@ -15,13 +15,13 @@ type CategoriaIndicador =
   | "inversion"
   | "demografia";
 
-// Category colors for badges
+// Category colors for badges using DDNA theme colors
 const categoryColors: Record<CategoriaIndicador, { bg: string; text: string }> = {
   salud: { bg: "bg-[#E07A5F]/10", text: "text-[#E07A5F]" },
   educacion: { bg: "bg-[#F3A712]/10", text: "text-[#F3A712]" },
   pobreza: { bg: "bg-[#BF1363]/10", text: "text-[#BF1363]" },
   seguridad: { bg: "bg-[#3777FF]/10", text: "text-[#3777FF]" },
-  inversion: { bg: "bg-[#FFB347]/10", text: "text-[#FFB347]" },
+  inversion: { bg: "bg-[#FF7F11]/10", text: "text-[#FF7F11]" },
   demografia: { bg: "bg-[#00074E]/10", text: "text-[#00074E]" },
 };
 
@@ -180,7 +180,7 @@ export default function FuentesPage() {
           />
           <span
             className={clsx(
-              "text-sm font-medium",
+              "font-body text-sm font-medium",
               usingFallback ? "text-[#F59E0B]" : "text-[#22C55E]"
             )}
           >
@@ -190,7 +190,7 @@ export default function FuentesPage() {
           </span>
         </div>
         {lastFetch && (
-          <span className="text-xs text-[#4D4D4D]">
+          <span className="font-body text-xs text-[#4D4D4D]">
             Actualizado: {lastFetch.toLocaleTimeString("es-AR")}
           </span>
         )}
@@ -211,22 +211,22 @@ export default function FuentesPage() {
             <table className="w-full text-left">
               <thead>
                 <tr className="border-b border-[#E0E0E0]">
-                  <th className="py-3 px-4 text-sm font-medium text-[#4D4D4D]">
+                  <th className="py-3 px-4 font-body text-sm font-medium text-[#4D4D4D]">
                     Nombre
                   </th>
-                  <th className="py-3 px-4 text-sm font-medium text-[#4D4D4D]">
+                  <th className="py-3 px-4 font-body text-sm font-medium text-[#4D4D4D]">
                     Organización
                   </th>
-                  <th className="py-3 px-4 text-sm font-medium text-[#4D4D4D]">
+                  <th className="py-3 px-4 font-body text-sm font-medium text-[#4D4D4D]">
                     Categoría
                   </th>
-                  <th className="py-3 px-4 text-sm font-medium text-[#4D4D4D]">
+                  <th className="py-3 px-4 font-body text-sm font-medium text-[#4D4D4D]">
                     Frecuencia
                   </th>
-                  <th className="py-3 px-4 text-sm font-medium text-[#4D4D4D]">
+                  <th className="py-3 px-4 font-body text-sm font-medium text-[#4D4D4D]">
                     Método
                   </th>
-                  <th className="py-3 px-4 text-sm font-medium text-[#4D4D4D]">
+                  <th className="py-3 px-4 font-body text-sm font-medium text-[#4D4D4D]">
                     Última actualización
                   </th>
                 </tr>
@@ -254,13 +254,13 @@ export default function FuentesPage() {
                         )}
                       </div>
                     </td>
-                    <td className="py-4 px-4 text-sm text-[#4D4D4D]">
+                    <td className="py-4 px-4 font-body text-sm text-[#4D4D4D]">
                       {fuente.organizacion}
                     </td>
                     <td className="py-4 px-4">
                       <span
                         className={clsx(
-                          "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium capitalize",
+                          "inline-flex items-center px-2.5 py-1 rounded-full font-body text-xs font-medium capitalize",
                           categoryColors[fuente.categoria]?.bg,
                           categoryColors[fuente.categoria]?.text
                         )}
@@ -268,13 +268,13 @@ export default function FuentesPage() {
                         {fuente.categoria}
                       </span>
                     </td>
-                    <td className="py-4 px-4 text-sm text-[#4D4D4D]">
+                    <td className="py-4 px-4 font-body text-sm text-[#4D4D4D]">
                       {fuente.frecuencia}
                     </td>
                     <td className="py-4 px-4">
                       <span
                         className={clsx(
-                          "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium uppercase",
+                          "inline-flex items-center px-2.5 py-1 rounded-full font-body text-xs font-medium uppercase",
                           methodColors[fuente.metodo_ingesta]?.bg,
                           methodColors[fuente.metodo_ingesta]?.text
                         )}
@@ -282,7 +282,7 @@ export default function FuentesPage() {
                         {methodLabels[fuente.metodo_ingesta] || fuente.metodo_ingesta}
                       </span>
                     </td>
-                    <td className="py-4 px-4 text-sm text-[#4D4D4D]">
+                    <td className="py-4 px-4 font-body text-sm text-[#4D4D4D]">
                       {formatDate(fuente.ultima_actualizacion)}
                     </td>
                   </tr>
