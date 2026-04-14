@@ -1,0 +1,1 @@
+"""Módulo de extracción de datos para el ETL DDNA."""
