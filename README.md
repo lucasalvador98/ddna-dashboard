@@ -173,9 +173,21 @@ src/
 - [x] Catálogo de fuentes con badges por categoría
 - [x] Interfaz de carga CSV para admins (`/admin`)
 - [x] Scripts ETL Python para datos Excel (`etl/`)
+- [x] Carga de datos reales desde Excel (usar ETL: `python etl/main.py etl --all`)
 - [x] Deploy en Vercel — **https://ddna-dashboard.vercel.app/**
-- [ ] Carga de datos reales desde Excel (usar ETL: `python etl/main.py etl --all`)
-- [ ] Autenticación — no requerida (datos públicos)
+
+---
+
+## Contenido en Supabase
+
+| Categoría | Registros |
+|----------|-----------|
+| Salud | 27 (Mortalidad infantil 2005-2024, Cobertura vacunal) |
+| Pobreza | 20 |
+| Educación | 23 |
+| Seguridad | 10 |
+| Inversión | 12 |
+| Demografía | 5 |
 
 ---
 

@@ -75,8 +75,27 @@
 
 ## Pending 🔲
 
-- **Carga de datos reales desde Excel**: Usar ETL (`python etl/main.py etl --all`) para cargar los datos crudos desde `datos/raw/` a Supabase
-- **Auth**: No requerido — datos públicos, así que por ahora queda fuera de scope
+- **Carga de más datos desde Excel**: Los otros archivos (educación, pobreza, seguridad) tienen estructuras complejas — necesitan ajustes en transformadores
+- **Auth**: No requerido — datos públicos
+
+---
+
+## Datos en Supabase (al 14/04/2026)
+
+| Categoría | Registros | Notas |
+|-----------|----------|-------|
+| Salud | 27 | Mortalidad infantil (2005-2024), Cobertura vacunal |
+| Pobreza | 20 | |
+| Educación | 23 | |
+| Seguridad | 10 | |
+| Inversión | 12 | |
+| Demografía | 5 | |
+| **Total** | **97** | |
+
+### Método de carga
+- ETL: `python etl/main.py transform --all` → genera JSONs en `etl/output/`
+- Luego: `python etl/main.py load --method sql` → genera SQL
+- SQL ejecutado en Supabase SQL Editor
 
 ---
 
