@@ -75,6 +75,17 @@
 
 ## Pending 🔲
 
+### Roadmap propuesto (abril 2026)
+- **ETL real de Excel/CSV** (alta prioridad): Mejorar los scripts en `etl/` para soportar todas las estructuras de los archivos bajo `datos/raw/` y cargar datos reales a Supabase.
+- **Automatización**: Añadir GitHub Action que ejecute `python etl/main.py etl --all` diariamente.
+- **Upload CSV**: Mejorar la interfaz de carga con mapeo dinámico de columnas y validación previa.
+- **Dashboard UI**: Migrar componentes de Recharts a versiones más modernas o a Plotly cuando se requieran visualizaciones avanzadas (mapas, diagramas).
+- **Testing**: Añadir pruebas unitarias (Jest) para los hooks y componentes críticos.
+- **Documentación**: Generar docs Markdown en `docs/` (incluyendo la propuesta) y actualizar README.
+- **Deploy**: Configurar variables de entorno en Vercel y habilitar preview deploys por PR.
+
+
+
 - **Carga de más datos desde Excel**: Los otros archivos (educación, pobreza, seguridad) tienen estructuras complejas — necesitan ajustes en transformadores
 - **Auth**: No requerido — datos públicos
 

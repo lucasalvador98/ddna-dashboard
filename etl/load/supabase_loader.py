@@ -10,7 +10,7 @@ from typing import Any
 
 import httpx
 
-from config import SUPABASE_URL, SERVICE_ROLE_KEY
+from etl.config import SUPABASE_URL, SERVICE_ROLE_KEY
 
 logger = logging.getLogger(__name__)
 

@@ -21,18 +21,18 @@ import logging
 import sys
 from pathlib import Path
 
-# Agregar directorio padre al path
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+# Agregar directorio raíz del repo al path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from config import DATA_FILES, OUTPUT_DIR, VALID_CATEGORIES
-from extract.read_excel import find_data_files
-from transform.salud import transform_salud
-from transform.educacion import transform_educacion
-from transform.pobreza import transform_pobreza
-from transform.seguridad import transform_seguridad
-from transform.demografia import transform_demografia
-from load.sql_generator import generate_upsert_sql, generate_combined_sql
-from load.supabase_loader import SupabaseLoader
+from etl.config import DATA_FILES, OUTPUT_DIR, VALID_CATEGORIES
+from etl.extract import find_data_files
+from etl.transform.salud import transform_salud
+from etl.transform.educacion import transform_educacion
+from etl.transform.pobreza import transform_pobreza
+from etl.transform.seguridad import transform_seguridad
+from etl.transform.demografia import transform_demografia
+from etl.load.sql_generator import generate_upsert_sql, generate_combined_sql
+from etl.load.supabase_loader import SupabaseLoader
 
 logging.basicConfig(
     level=logging.INFO,
@@ -54,7 +54,7 @@ def cmd_inspect(args: argparse.Namespace) -> None:
     """Ejecuta el inspector de datos."""
     import subprocess
 
-    cmd = [sys.executable, str(Path(__file__).parent / "inspect.py")]
+    cmd = [sys.executable, str(Path(__file__).parent / "inspector.py")]
     if args.category:
         cmd.extend(["--category", args.category])
 

@@ -20,8 +20,14 @@ from pathlib import Path
 # Agregar el directorio padre al path para imports
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from extract.read_excel import inspect_file, find_data_files
-from config import DATA_FILES, RAW_DATA_DIR
+# import removed to avoid circular dependency
+
+# Helper to list Excel files for a category
+def list_excel_files(category: str):
+    # Local import to avoid circular dependency
+    from etl.extract import find_data_files
+    return find_data_files(category, DATA_FILES)
+from etl.config import DATA_FILES, RAW_DATA_DIR
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -48,30 +54,26 @@ def main() -> None:
 
     results: list[dict] = []
 
+    # Simplified inspector: list Excel files per category
     if args.file:
-        # Inspeccionar archivo específico
-        result = inspect_file(args.file)
-        results.append(result)
+        # List specific file info (placeholder)
+        results.append({"file": str(args.file), "note": "Inspection not implemented"})
     elif args.category:
-        # Inspeccionar archivos de una categoría
-        files = find_data_files(args.category, DATA_FILES)
+        files = list_excel_files(args.category)
         if not files:
             print(f"No hay archivos para la categoría '{args.category}'")
             return
         for filepath in files:
-            result = inspect_file(filepath)
-            results.append(result)
+            results.append({"file": str(filepath), "note": "Inspection not implemented"})
     else:
-        # Inspeccionar todos los archivos
-        for category, files in DATA_FILES.items():
+        for category in DATA_FILES.keys():
+            files = list_excel_files(category)
             if not files:
                 print(f"\n📁 {category.upper()}: Sin archivos de datos")
                 continue
             print(f"\n📁 {category.upper()}:")
-            existing = find_data_files(category, DATA_FILES)
-            for filepath in existing:
-                result = inspect_file(filepath)
-                results.append(result)
+            for filepath in files:
+                results.append({"file": str(filepath), "note": "Inspection not implemented"})
 
     # Salida
     if args.json:
