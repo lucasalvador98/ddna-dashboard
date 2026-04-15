@@ -12,13 +12,14 @@ SUPABASE_URL = os.environ.get(
 SUPABASE_ANON_KEY = os.environ.get(
     "SUPABASE_ANON_KEY",
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9."
-    "eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBweXlxcnZpcmpxbWZwcWFxbnh5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxOTAzMDUsImV4cCI6MjA5MTc2NjMwNX0.eA5yt50LMPf_MlxZGRd9Wq0IiV4Kokd6wI3WaMZK3z8",
+    "eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBweXlxcnZpcmpxbWZwcWFxbnh5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjE5MDMwNSwiZXhwIjoyMDkxNzY2MzA1fQ.g3NSsIO2Y6qGTtfvBQciTfTWyQIW0ev2tuUjY5QcYLM",
 )
 SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 
 # ── Rutas ──
 BASE_DIR = Path(__file__).resolve().parent
-RAW_DATA_DIR = BASE_DIR / ".." / "datos" / "raw"
+# Datos originales en carpeta DDNA original
+RAW_DATA_DIR = Path("E:/Backup Luca/DDNA/datos/raw")
 OUTPUT_DIR = BASE_DIR / "output"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -45,6 +46,8 @@ DATA_FILES: dict[str, list[Path]] = {
     ],
     "demografia": [
         RAW_DATA_DIR / "censo-2022" / "censo poblacion.xlsx",
+        RAW_DATA_DIR / "deis" / "Edad_Madre 2022.xlsx",
+        RAW_DATA_DIR / "deis" / "datosDeis-2024-07-26 (3).xlsx",
     ],
     "inversion": [],  # Sin archivos aún
 }

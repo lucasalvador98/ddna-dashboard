@@ -22,12 +22,9 @@
 - Header con branding institucional
 
 ### 3. Base de datos Supabase
-- **3 tablas**: `fuentes_datos`, `indicadores`, `datos_indicadores`, `uploads`
-- **8 fuentes de datos** seedeadas (DEIS, INDEC, Aprender, Censo, Ministerio Público, etc.)
-- **11 indicadores** seedeados (mortalidad infantil, pobreza, escolarización, denuncias, cobertura vacunal, abandono escolar, indigencia, presupuesto, aprender, inversión, población)
-- **~66 datos históricos** (2018-2024) con series temporales por indicador y región
-- RLS: select público, insert/update solo admin
-- Columna `desglose` JSONB en `datos_indicadores` para series con subdimensiones (vacuna, nivel educativo, tipo de denuncia, etc.)
+- **Tabla simplificada**: `indicadores` con valores embebidos (1667 registros al 15/04/2026)
+- RLS: select público para lectura
+- Columna `desglose` JSONB para subdimensiones (vacuna, nivel educativo, tipo de denuncia, etc.)
 
 ### 4. Home page conectada a Supabase
 - `useIndicadores()` hook en `src/lib/hooks.ts`: consulta Supabase, calcula cambios interanuales, fallback automático a placeholders
@@ -76,37 +73,33 @@
 ## Pending 🔲
 
 ### Roadmap propuesto (abril 2026)
-- **ETL real de Excel/CSV** (alta prioridad): Mejorar los scripts en `etl/` para soportar todas las estructuras de los archivos bajo `datos/raw/` y cargar datos reales a Supabase.
+- **ETL real de Excel/CSV** — ✅ HECHO (15/04/2026): Todos los transformadores completados y datos cargados a Supabase (1667 registros).
 - **Automatización**: Añadir GitHub Action que ejecute `python etl/main.py etl --all` diariamente.
 - **Upload CSV**: Mejorar la interfaz de carga con mapeo dinámico de columnas y validación previa.
 - **Dashboard UI**: Migrar componentes de Recharts a versiones más modernas o a Plotly cuando se requieran visualizaciones avanzadas (mapas, diagramas).
 - **Testing**: Añadir pruebas unitarias (Jest) para los hooks y componentes críticos.
 - **Documentación**: Generar docs Markdown en `docs/` (incluyendo la propuesta) y actualizar README.
 - **Deploy**: Configurar variables de entorno en Vercel y habilitar preview deploys por PR.
-
-
-
-- **Carga de más datos desde Excel**: Los otros archivos (educación, pobreza, seguridad) tienen estructuras complejas — necesitan ajustes en transformadores
 - **Auth**: No requerido — datos públicos
 
 ---
 
-## Datos en Supabase (al 14/04/2026)
+## Datos en Supabase (al 15/04/2026)
 
 | Categoría | Registros | Notas |
-|-----------|----------|-------|
-| Salud | 27 | Mortalidad infantil (2005-2024), Cobertura vacunal |
-| Pobreza | 20 | |
-| Educación | 23 | |
-| Seguridad | 10 | |
-| Inversión | 12 | |
-| Demografía | 5 | |
-| **Total** | **97** | |
+|----------|----------|-------|
+| Salud | 145 | Mortalidad infantil + DEIS |
+| Educación | 1056 | Aprender + Censo 2022 |
+| Pobreza | 48 | INDEC + ENCOPRAC |
+| Seguridad | 7 | Ministerio Público Córdoba |
+| Demografía | 411 | Censo 2022 + DEIS |
+| **Total** | **1667** | |
 
 ### Método de carga
-- ETL: `python etl/main.py transform --all` → genera JSONs en `etl/output/`
-- Luego: `python etl/main.py load --method sql` → genera SQL
-- SQL ejecutado en Supabase SQL Editor
+- ETL: `python etl/main.py transform --category <cat>` → genera JSONs en `etl/output/`
+- Carga via Supabase REST API con service_role key
+- Fix pobreza: columnas con formato "2do. semestre 2016" parseadas correctamente
+- Fix seguridad: datos de nivel fila agregados por materia
 
 ---
 
@@ -138,42 +131,34 @@ Se sembraron ~110 data points en Supabase para los 11 indicadores. Los datos son
 
 **Indicadores con datos completos**: mortalidad (14), cobert. vacunal (11), escolarización (6), abandono (5), aprender (12), pobreza (13), indigencia (7), denuncias (10), inversión (5), presupuesto (7), población (5).
 
-#### ETL de datos reales desde Excel/CSV — PENDIENTE
-**Problema**: Los archivos en `datos/raw/` contienen datos reales pero están en formato Excel/CSV heterogéneo. Solo hay ~66 datos seedeados en Supabase (la mayoría mock approximations).
+#### ETL de datos reales desde Excel/CSV — ✅ HECHO (15/04/2026)
+**Solución implementada**:
+- Transformadores parcheados para manejar estructuras complejas:
+  - **pobreza**: columnas con formato "2do. semestre 2016" parseadas con regex
+  - **seguridad**: datos de nivel fila agregados por materia (Violencia Familiar, Familia, Penal Juvenil, etc.)
+- 1667 registros cargados a Supabase via REST API
 
-**Archivos disponibles**:
+**Archivos procesados**:
 ```
 datos/raw/
   deis/
-    Edad_Madre 2022.xlsx
-    datosDeis-2024-07-26 (3).xlsx
-    Mortalidad infantil Nacion-Provincia.xlsx
+    Mortalidad infantil Nacion-Provincia.xlsx → 144 registros (salud)
+    Edad_Madre 2022.xlsx → demografia
+    datosDeis-2024-07-26 (3).xlsx → demografia
   censo-2022/
-    Cobertura_Salud-Censo.xlsx
-    Educacion por nivel.xlsx
-    Educacion por edades.xlsx
-    censo poblacion.xlsx
+    Educacion por nivel.xlsx → 1056 registros (educacion)
+    Educacion por edades.xlsx → educacion
+    censo poblacion.xlsx → 411 registros (demografia)
+    Cobertura_Salud-Censo.xlsx → salud
   aprender/
-    Estadisticas-educativas-Anuario-2023.pdf
-    Educacion Provincia.xlsx
+    Educacion Provincia.xlsx → educacion
   pobreza/
-    Encoprac 16 a 24 años.xlsx
-    cuadros_informe_pobreza_09_24 (1).xls
-    cuadros_encoprac_2022.xlsx
+    cuadros_informe_pobreza_09_24 (1).xls → 48 registros (pobreza)
+    Encoprac 16 a 24 años.xlsx → pobreza
+    cuadros_encoprac_2022.xlsx → pobreza
   justicia/
-    Justicia_cba_2022.xlsx
-    INFORME SEGUNDO TRIMESTRE 2024 oficina de violencia domestica!!.pdf
-  consumo/
-    consumo_2022.pdf
+    Justicia_cba_2022.xlsx → 7 registros (seguridad)
 ```
-
-**Solución**: Scripts Python ETL que:
-1. Lean cada archivo con `pandas`
-2. Normalicen columnas (año, valor, región, desglose)
-3. Inserten en `datos_indicadores` via Supabase REST API
-4. Se ejecuten manualmente al inicio, luego via GitHub Actions
-
-**Nota**: El archivo `salud adolescente deis.csv` tiene problemas de encoding (caracteres acentuados).
 
 ### Prioridad BAJA
 
@@ -195,52 +180,46 @@ datos/raw/
 
 ---
 
-## Supabase — Detalle de datos existentes
+## Supabase — Schema actual (15/04/2026)
 
-### Indicadores (tabla `indicadores`)
+### Tabla `indicadores` (schema simplificado)
 
-| ID (parcial) | Categoría | Nombre | Unidad | Fuente |
-|---|---|---|---|---|
-| `a99d98e8...` | salud | Mortalidad infantil | ‰ | DEIS |
-| `aca8b608...` | salud | Cobertura vacunal | % | DEIS |
-| `10e42827...` | educacion | Tasa neta de escolarización | % | Aprender |
-| `003b7041...` | educacion | Abandono escolar | % | Aprender |
-| `03ab793b...` | pobreza | Pobreza infantil | % | INDEC |
-| `686c2ed9...` | pobreza | Indigencia infantil | % | INDEC |
-| `87e893b1...` | seguridad | Denuncias registradas | casos | Ministerio Público |
-| `d8db8901...` | inversion | Inversión social en infancia | Md | Dir. Gral. Estadística |
-| `5ca34a61...` | inversion | % presupuesto para infancia | % | Dir. Gral. Estadística |
-| `9ba0f4d7...` | educacion | Resultados evaluaciones Aprender | % | Aprender |
-| `ed0cb02a...` | demografia | Población adolescente | hab | Censo 2022 |
+```sql
+CREATE TABLE indicadores (
+  id UUID PRIMARY KEY,
+  indicador_nombre TEXT NOT NULL,
+  categoria TEXT NOT NULL,
+  valor NUMERIC NOT NULL,
+  unidad TEXT DEFAULT 'casos',
+  periodo TEXT NOT NULL,
+  region TEXT DEFAULT 'Córdoba',
+  desglose JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
 
-### Datos por indicador (tabla `datos_indicadores`)
+### Datos cargados (1667 registros)
 
-| Indicador | Región | Período | Cantidad |
-|---|---|---|---|
-| Mortalidad infantil | Córdoba + Argentina | 2018-2024 | 14 |
-| Cobertura vacunal | Córdoba (por vacuna en desglose) | 2023 | 6 |
-| Escolarización | Córdoba | 2018-2023 | 6 |
-| Abandono escolar | Córdoba | 2019-2023 | 5 |
-| Pobreza infantil | Córdoba + Argentina | 2018-2024 | 13 |
-| Indigencia infantil | Córdoba | 2018-2023 | 6 |
-| Denuncias registradas | Córdoba | 2019-2023 | 5 |
-| Inversión social | Córdoba | 2019-2023 | 5 |
-| % Presupuesto infancia | Córdoba | 2018-2024 | 7 |
-| Resultados Aprender | Córdoba (por área en desglose) | 2023 | 4 |
-| Población adolescente | Córdoba | 2019-2023 | 5 |
+| Categoría | Registros | Fuente |
+|----------|-----------|--------|
+| educacion | 1056 | Aprender + Censo 2022 |
+| demografia | 411 | Censo 2022 + DEIS |
+| salud | 145 | Mortalidad infantil + DEIS |
+| pobreza | 48 | INDEC + ENCOPRAC |
+| seguridad | 7 | Ministerio Público Córdoba |
 
 ### Columna `desglose` (JSONB)
 
-Se usa para series con subdimensiones:
+Se usa para subdimensiones:
 ```json
-// Cobertura vacunal por tipo
-{"vacuna": "BCG"}
+// Mortalidad por provincia
+{"provincia": "Córdoba"}
 
-// Resultados Aprender por área
-{"area": "Lengua", "nivel": "satisfactorio"}
+// Escolarización por nivel
+{"nivel": "Primario", "sector": "estatal"}
 
-// Escolarización por nivel (tbd)
-{"nivel": "inicial"}
+// Población por edad y sexo
+{"edad": "0", "sexo": "total"}
 ```
 
 ---
@@ -260,10 +239,10 @@ npm install
 ```
 
 ### Variables de entorno
-Crear `.env.local`:
+El proyecto ya tiene `.env.local` configurado con:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://ppyyqrvirjqmfpqaqnxy.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBweXlxcnZpcmpxbWZwcWFxbnh5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxOTAzMDUsImV4cCI6MjA5MTc2NjMwNX0.eA5yt50LMPf_MlxZGRd9Wq0IiV4Kokd6wI3WaMZK3z8
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBweXlxcnZpcmpxbWZwcWFxbnh5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjE5MDMwNSwiZXhwIjoyMDkxNzY2MzA1fQ.g3NSsIO2Y6qGTtfvBQciTfTWyQIW0ev2tuUjY5QcYLM
 ```
 
 ### Ejecutar

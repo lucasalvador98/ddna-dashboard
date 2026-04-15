@@ -35,14 +35,16 @@ def _fallback_read_excel(path: str):
 
 def read_excel(path: str):
     """Read an Excel file and return a dict of sheet names to DataFrames or fallback lists.
-    The original code expected a dict of sheets; this wrapper returns a single-sheet dict
-    for compatibility.
+    Reads ALL sheets from the workbook and returns them as a dict.
     """
     pd = _import_pandas()
     if pd:
         try:
-            return pd.read_excel(path)
+            # Read all sheets into a dict
+            return pd.read_excel(path, sheet_name=None)
         except Exception as e:
             print(f"[ETL] pandas.read_excel error: {e}. Using fallback.")
     # Either pandas not available or read_excel failed
-    return _fallback_read_excel(path)
+    # Fallback only reads active sheet
+    data = _fallback_read_excel(path)
+    return {"Sheet1": data}

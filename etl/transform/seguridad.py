@@ -1,5 +1,8 @@
 """
 Transformación de datos de seguridad/justicia.
+
+Este módulo maneja datos de nivel de fila (registros individuales) y los agrega
+por año y tipo de materia/categoría para el dashboard.
 """
 import json
 import logging
@@ -36,84 +39,109 @@ def transform_seguridad() -> list[dict[str, Any]]:
             if df.empty:
                 continue
 
-            records.extend(_transform_justicia(df, filepath.name, sheet_name))
+            records.extend(_transform_justicia_rowlevel(df, filepath.name, sheet_name))
 
     return records
 
 
-def _extract_years_from_columns(df: pd.DataFrame) -> list[str]:
-    """Extrae años de los nombres de columnas."""
-    years: list[str] = []
-    for col in df.columns:
-        try:
-            year = int(str(col).strip())
-            if 1990 <= year <= 2100:
-                years.append(str(year))
-        except (ValueError, TypeError):
-            continue
-    return years
+def _transform_justicia_rowlevel(df: pd.DataFrame, filename: str, sheet: str) -> list[dict[str, Any]]:
+    """
+    Transforma datos de justicia a nivel de fila.
 
-
-def _transform_justicia(df: pd.DataFrame, filename: str, sheet: str) -> list[dict[str, Any]]:
-    """Transforma datos de justicia/delincuencia."""
+    Los datos tienen estructura: cada fila = 1 denuncia/caso individual.
+    Agregamos por año y materia para obtener conteos.
+    """
     records: list[dict[str, Any]] = []
-    years = _extract_years_from_columns(df)
 
-    # Buscar columna de tipo de delito o categoría
-    label_col: str | None = None
-    for col in df.columns:
-        col_lower = str(col).lower()
-        if any(kw in col_lower for kw in ["tipo", "delito", "categoria", "descripcion", "indicador", "variable"]):
-            label_col = col
-            break
+    # Las columnas por posición (evitar problemas de encoding en nombres)
+    # Col 0: Materia, Col 2: Año, Col 6: Número de registros
+    if len(df.columns) < 7:
+        logger.warning("DataFrame con pocas columnas en %s, saltando", filename)
+        return records
 
-    # Si no encontramos label, usar primera columna no-numérica
-    if not label_col:
-        for col in df.columns:
-            if col not in years and df[col].dtype == object:
-                label_col = col
-                break
+    materia_col = df.columns[0]
+    # año_col = df.columns[2]  # Todos los datos son del mismo año
+    count_col = df.columns[6]
 
-    if label_col and years:
-        for _, row in df.iterrows():
-            label = str(row[label_col]).strip() if pd.notna(row[label_col]) else ""
-            for year in years:
-                valor = row.get(year)
-                if pd.notna(valor):
-                    try:
-                        valor_float = float(valor)
-                    except (ValueError, TypeError):
-                        continue
-                    records.append({
-                        "indicador_nombre": label or "Denuncias registradas",
-                        "categoria": "seguridad",
-                        "valor": valor_float,
-                        "periodo": year,
-                        "region": "Córdoba",
-                        "desglose": json.dumps({
-                            "tipo": label,
-                            "fuente": filename,
-                            "hoja": sheet,
-                        }),
-                        "unidad": "casos",
-                    })
-    elif years:
-        # Si no hay columna de label, cada columna de año es un indicador
-        for year in years:
-            valor = df[year].sum() if year in df.columns else None
-            if pd.notna(valor):
+    # Obtener el año de los datos
+    años = df[materia_col].dropna().unique()
+    if len(df) > 0:
+        # Tomar el año de la primera fila, columna 2
+        try:
+            año_val = df.iloc[0, 2]
+            año_str = str(int(float(año_val))) if pd.notna(año_val) else "2022"
+        except (ValueError, TypeError, IndexError):
+            año_str = "2022"
+    else:
+        año_str = "2022"
+
+    # Agregar por materia
+    if materia_col and count_col:
+        agg = df.groupby(materia_col)[count_col].sum().reset_index()
+        agg.columns = ["materia", "total"]
+
+        for _, row in agg.iterrows():
+            materia = str(row["materia"]).strip() if pd.notna(row["materia"]) else "Sin especificar"
+            total = row["total"]
+
+            if pd.notna(total):
                 try:
-                    valor_float = float(valor)
+                    valor = float(total)
                 except (ValueError, TypeError):
                     continue
+
+                # Clasificar tipo para DDNA
+                tipo = _clasificar_materia(materia)
+
                 records.append({
-                    "indicador_nombre": "Denuncias registradas",
+                    "indicador_nombre": f"Casos de {materia}",
                     "categoria": "seguridad",
-                    "valor": valor_float,
-                    "periodo": year,
+                    "valor": valor,
+                    "periodo": año_str,
                     "region": "Córdoba",
-                    "desglose": json.dumps({"fuente": filename, "hoja": sheet}),
+                    "desglose": json.dumps({
+                        "materia": materia,
+                        "tipo": tipo,
+                        "fuente": filename,
+                        "hoja": sheet,
+                    }),
                     "unidad": "casos",
                 })
 
+    # Total general
+    total_general = df[count_col].sum() if count_col in df.columns else len(df)
+    records.append({
+        "indicador_nombre": "Total casos sistema de justicia",
+        "categoria": "seguridad",
+        "valor": float(total_general),
+        "periodo": año_str,
+        "region": "Córdoba",
+        "desglose": json.dumps({
+            "tipo": "total",
+            "fuente": filename,
+            "hoja": sheet,
+            "materias_incluidas": list(df[materia_col].unique()) if materia_col in df.columns else [],
+        }),
+        "unidad": "casos",
+    })
+
     return records
+
+
+def _clasificar_materia(materia: str) -> str:
+    """Clasifica la materia según relevancia para DDNA."""
+    materia_lower = materia.lower()
+    if "violencia" in materia_lower and "familiar" in materia_lower:
+        return "violencia_familiar"
+    elif "penal" in materia_lower and "juvenil" in materia_lower:
+        return "penal_juvenil"
+    elif "niñez" in materia_lower or "nineez" in materia_lower.replace("ñ", "n"):
+        return "ninez"
+    elif "familia" in materia_lower:
+        return "familia"
+    elif "fiscal" in materia_lower:
+        return "fiscalias"
+    elif "civil" in materia_lower:
+        return "civil"
+    else:
+        return "otro"

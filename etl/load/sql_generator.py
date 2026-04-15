@@ -10,7 +10,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from etl.config import OUTPUT_DIR
+from config import OUTPUT_DIR
 
 # ── Indicadores seed conocidos ──
 # Para lookups por nombre+categoria en lugar de UUIDs hardcodeados
@@ -149,13 +149,14 @@ def generate_combined_sql(
     lines.append("-- ============================================================")
     for key, ind in indicadores_unicos.items():
         ind_id = _deterministic_uuid(ind["nombre"], ind["categoria"])
+        desc = f"Datos de {ind['nombre']}"
         lines.append(
             f"INSERT INTO indicadores (id, categoria, nombre, descripcion, unidad, frecuencia_actualizacion, orden, activo)\n"
             f"VALUES (\n"
             f"  '{ind_id}',\n"
             f"  '{ind['categoria']}',\n"
             f"  {sql_escape(ind['nombre'])},\n"
-            f"  {sql_escape(f'Datos de {ind[\"nombre\"]}')},\n"
+            f"  {sql_escape(desc)},\n"
             f"  {sql_escape(ind['unidad'])},\n"
             f"  'anual',\n"
             f"  0,\n"
@@ -182,6 +183,7 @@ def generate_combined_sql(
             if isinstance(desglose, dict):
                 desglose = json.dumps(desglose)
 
+            desglose_escaped = sql_escape(desglose)
             lines.append(
                 f"INSERT INTO datos_indicadores (id, indicador_id, valor, periodo, region, desglose)\n"
                 f"VALUES (\n"
@@ -190,7 +192,7 @@ def generate_combined_sql(
                 f"  {rec['valor']},\n"
                 f"  {sql_escape(rec['periodo'])},\n"
                 f"  {sql_escape(rec['region'])},\n"
-                f"  {sql_escape(desglose)}::jsonb\n"
+                f"  {desglose_escaped}::jsonb\n"
                 f")\n"
                 f"ON CONFLICT (id) DO UPDATE SET\n"
                 f"  valor = EXCLUDED.valor,\n"
@@ -207,7 +209,7 @@ def generate_combined_sql(
 def _deterministic_uuid(*args: str) -> str:
     """Genera un UUID5 determinista a partir de strings para IDs reproducibles."""
     import hashlib
-    namespace = uuid.UUID("ddna-dashboard-0000-0000-000000000000")
+    namespace = uuid.UUID("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
     combined = "|".join(str(a) for a in args)
     return str(uuid.uuid5(namespace, combined))
 
