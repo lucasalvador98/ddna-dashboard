@@ -10,7 +10,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from config import OUTPUT_DIR
+from etl.config import OUTPUT_DIR
 
 # ── Indicadores seed conocidos ──
 # Para lookups por nombre+categoria en lugar de UUIDs hardcodeados
@@ -71,22 +71,13 @@ def generate_upsert_sql(
         lines.append("-- Asegurar que los indicadores existen")
         for key, ind in indicadores_unicos.items():
             ind_id = _deterministic_uuid(ind["nombre"], ind["categoria"])
-            # Verificar si ya existe, sino insertar
+            nom = ind["nombre"]
+            cat = ind["categoria"]
+            desc = f"Datos de {nom}"
             lines.append(
                 f"INSERT INTO indicadores (id, categoria, nombre, descripcion, unidad, frecuencia_actualizacion, orden, activo)\n"
-                f"VALUES (\n"
-                f"  '{ind_id}',\n"
-                f"  '{ind['categoria']}',\n"
-                f"  {sql_escape(ind['nombre'])},\n"
-                f"  {sql_escape(f'Datos de {ind[\"nombre\"]}')},\n"
-                f"  {sql_escape(ind['unidad'])},\n"
-                f"  'anual',\n"
-                f"  0,\n"
-                f"  true\n"
-                f")\n"
-                f"ON CONFLICT (id) DO UPDATE SET\n"
-                f"  nombre = EXCLUDED.nombre,\n"
-                f"  unidad = EXCLUDED.unidad;"
+                f"VALUES ('{ind_id}', '{cat}', {sql_escape(nom)}, {sql_escape(desc)}, {sql_escape(ind['unidad'])}, 'anual', 0, true)\n"
+                f"ON CONFLICT (id) DO UPDATE SET nombre = EXCLUDED.nombre, unidad = EXCLUDED.unidad;"
             )
             lines.append("")
 
@@ -103,17 +94,8 @@ def generate_upsert_sql(
 
         lines.append(
             f"INSERT INTO datos_indicadores (id, indicador_id, valor, periodo, region, desglose)\n"
-            f"VALUES (\n"
-            f"  '{dato_id}',\n"
-            f"  '{ind_id}',\n"
-            f"  {rec['valor']},\n"
-            f"  {sql_escape(rec['periodo'])},\n"
-            f"  {sql_escape(rec['region'])},\n"
-            f"  {sql_escape(desglose)}::jsonb\n"
-            f")\n"
-            f"ON CONFLICT (id) DO UPDATE SET\n"
-            f"  valor = EXCLUDED.valor,\n"
-            f"  desglose = EXCLUDED.desglose;"
+            f"VALUES ('{dato_id}', '{ind_id}', {rec['valor']}, {sql_escape(rec['periodo'])}, {sql_escape(rec['region'])}, {sql_escape(desglose)}::jsonb)\n"
+            f"ON CONFLICT (id) DO UPDATE SET valor = EXCLUDED.valor, desglose = EXCLUDED.desglose;"
         )
         lines.append("")
 
