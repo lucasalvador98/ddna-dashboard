@@ -127,7 +127,7 @@ export function Header() {
                   className={clsx(
                     "block px-4 py-3 font-body text-sm transition-colors",
                     pathname === link.href
-                      ? "bg-[#3777FF]/10 text-[#3777FF] font-medium border-l-4 border-[#3777FF]"
+                      ? "bg-[#F3A712]/10 text-[#F3A712] font-medium border-l-4 border-[#F3A712]"
                       : "text-[#4D4D4D] hover:bg-[#FDF3E7]"
                   )}
                 >

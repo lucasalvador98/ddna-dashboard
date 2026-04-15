@@ -29,7 +29,7 @@ const categoryColors: Record<CategoriaIndicador, { bg: string; text: string }> =
 const methodColors: Record<string, { bg: string; text: string }> = {
   api: { bg: "bg-[#22C55E]/10", text: "text-[#22C55E]" },
   manual: { bg: "bg-[#F59E0B]/10", text: "text-[#F59E0B]" },
-  csv_upload: { bg: "bg-[#3B82F6]/10", text: "text-[#3B82F6]" },
+  csv_upload: { bg: "bg-[#F3A712]/10", text: "text-[#F3A712]" },
 };
 
 // Method labels in Spanish

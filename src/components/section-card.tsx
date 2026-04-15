@@ -18,7 +18,7 @@ interface SectionCardProps {
 
 const colorClasses: Record<
   SectionColor,
-  { bg: string; border: string; iconBg: string; iconText: string; hover: string }
+  { bg: string; border: string; iconBg: string; iconText: string; hover: string; hoverText: string }
 > = {
   amber: {
     bg: "bg-[#F3A712]/5",
@@ -26,6 +26,7 @@ const colorClasses: Record<
     iconBg: "bg-[#F3A712]",
     iconText: "text-[#00074E]",
     hover: "hover:border-[#F3A712]/60",
+    hoverText: "#F3A712",
   },
   magenta: {
     bg: "bg-[#BF1363]/5",
@@ -33,6 +34,7 @@ const colorClasses: Record<
     iconBg: "bg-[#BF1363]",
     iconText: "text-white",
     hover: "hover:border-[#BF1363]/60",
+    hoverText: "#BF1363",
   },
   blue: {
     bg: "bg-[#3777FF]/5",
@@ -40,6 +42,7 @@ const colorClasses: Record<
     iconBg: "bg-[#3777FF]",
     iconText: "text-white",
     hover: "hover:border-[#3777FF]/60",
+    hoverText: "#3777FF",
   },
   terracotta: {
     bg: "bg-[#E07A5F]/5",
@@ -47,6 +50,7 @@ const colorClasses: Record<
     iconBg: "bg-[#E07A5F]",
     iconText: "text-white",
     hover: "hover:border-[#E07A5F]/60",
+    hoverText: "#E07A5F",
   },
   navy: {
     bg: "bg-[#00074E]/5",
@@ -54,6 +58,7 @@ const colorClasses: Record<
     iconBg: "bg-[#00074E]",
     iconText: "text-white",
     hover: "hover:border-[#00074E]/60",
+    hoverText: "#00074E",
   },
   orange: {
     bg: "bg-[#FF7F11]/5",
@@ -61,6 +66,7 @@ const colorClasses: Record<
     iconBg: "bg-[#FF7F11]",
     iconText: "text-white",
     hover: "hover:border-[#FF7F11]/60",
+    hoverText: "#FF7F11",
   },
 };
 
@@ -99,7 +105,12 @@ export function SectionCard({
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <h3 className="text-lg font-bold text-[#00074E] group-hover:text-[#3777FF] transition-colors">
+          <h3 
+            className="text-lg font-bold text-[#00074E] group-hover:transition-colors"
+            style={{ ["--hover-text"]: colors.hoverText } as React.CSSProperties}
+            onMouseEnter={(e) => e.currentTarget.style.color = colors.hoverText}
+            onMouseLeave={(e) => e.currentTarget.style.color = "#00074E"}
+          >
             {title}
           </h3>
           <p className="text-sm text-[#4D4D4D] mt-1 leading-relaxed">
@@ -110,9 +121,11 @@ export function SectionCard({
         {/* Arrow */}
         <ArrowRight
           className={clsx(
-            "w-5 h-5 text-[#4D4D4D] flex-shrink-0 transition-transform duration-200",
-            "group-hover:translate-x-1 group-hover:text-[#3777FF]"
+            "w-5 h-5 text-[#4D4D4D] flex-shrink-0 transition-transform duration-200 group-hover:translate-x-1"
           )}
+          style={{ ["--arrow-hover"]: colors.hoverText } as React.CSSProperties}
+          onMouseEnter={(e) => (e.currentTarget.style.color = colors.hoverText)}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "#4D4D4D")}
         />
       </div>
 

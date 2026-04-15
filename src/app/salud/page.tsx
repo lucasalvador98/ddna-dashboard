@@ -65,7 +65,7 @@ export default function SaludPage() {
           change="+2,3 pp"
           changeType="up"
           icon={Syringe}
-          color="blue"
+          color="terracotta"
         />
         <KpiCard
           title="Nacimientos"
@@ -176,7 +176,7 @@ export default function SaludPage() {
               />
               <Bar
                 dataKey="cobertura"
-                fill={DDNA_COLORS.blue}
+                fill={DDNA_COLORS.terracotta}
                 radius={[0, 4, 4, 0]}
                 barSize={32}
               />

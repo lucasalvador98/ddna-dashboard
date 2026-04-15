@@ -74,7 +74,7 @@ export default function InversionPage() {
           change="+3,1 pp"
           changeType="up"
           icon={TrendingUp}
-          color="blue"
+          color="orange"
         />
       </div>
 

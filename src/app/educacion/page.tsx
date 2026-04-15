@@ -74,7 +74,7 @@ export default function EducacionPage() {
           change="+4,2 pp"
           changeType="up"
           icon={Trophy}
-          color="blue"
+          color="amber"
         />
       </div>
 

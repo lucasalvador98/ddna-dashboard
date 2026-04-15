@@ -41,7 +41,7 @@ export default function HomePage() {
   return (
     <div className="space-y-8">
       {/* Welcome Section */}
-      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#00074E] via-[#00074E] to-[#3777FF] p-8 text-white">
+      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#00074E] via-[#00074E] to-[#00074E] p-8 text-white">
         <div className="absolute inset-0 opacity-10">
           <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
             <defs>
@@ -75,23 +75,13 @@ export default function HomePage() {
           <h1 className="font-display text-3xl lg:text-4xl text-white tracking-tight mb-3">
             Tablero General de Monitoreo
           </h1>
-          <p className="font-body text-lg text-[#A7DBF9] max-w-2xl">
+          <p className="font-body text-lg text-[#FFE2BF] max-w-2xl">
             Defensoría de los Derechos de Niñas, Niños y Adolescentes — Provincia de Córdoba
           </p>
           
           <div className="mt-6 flex flex-wrap gap-4">
-            <div className="flex items-center gap-2 font-body text-sm text-[#A7DBF9]">
-              {source === "supabase" ? (
-                <>
-                  <span className="w-2 h-2 rounded-full bg-[#22C55E] animate-pulse" />
-                  Datos en tiempo real
-                </>
-              ) : (
-                <>
-                  <span className="w-2 h-2 rounded-full bg-[#F3A712]" />
-                  Datos de referencia
-                </>
-              )}
+            <div className="flex items-center gap-2 font-body text-sm text-[#FFE2BF]">
+              Fuente: {source === "supabase" ? "Base de datos DDNA" : "Valores referenciales"}
             </div>
             <div className="font-body text-sm text-[#A7DBF9]">
               Fuente: {source === "supabase" ? "Base de datos DDNA" : "Valores referenciales"}
@@ -194,7 +184,7 @@ export default function HomePage() {
           <p className="font-accent text-xs text-[#4D4D4D] mt-2 tracking-wide">Población total 0-17</p>
         </div>
         <div className="bg-white rounded-xl border border-[#E0E0E0] p-4 text-center">
-          <p className="font-display text-3xl text-[#3777FF]">847</p>
+          <p className="font-display text-3xl text-[#E07A5F]">847</p>
           <p className="font-accent text-xs text-[#4D4D4D] mt-2 tracking-wide">Centros de salud</p>
         </div>
         <div className="bg-white rounded-xl border border-[#E0E0E0] p-4 text-center">

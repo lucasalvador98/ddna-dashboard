@@ -36,13 +36,13 @@ export function Sidebar() {
       )}
     >
       {/* Subtle gradient overlay for depth */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#00074E] via-[#00074E] to-[#1a1a5e] pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-br from-[#00074E] via-[#00074E] to-[#00074E] pointer-events-none" />
       
       {/* Decorative corner accent */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-[#3777FF]/10 to-transparent pointer-events-none" />
+      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-[#F3A712]/10 to-transparent pointer-events-none" />
       
       {/* Logo Area */}
-      <div className="relative z-10 flex items-center justify-between p-4 border-b border-[#3777FF]/30">
+      <div className="relative z-10 flex items-center justify-between p-4 border-b border-[#F3A712]/30">
         {!isCollapsed && (
           <div className="flex items-center gap-2">
             <Image
@@ -85,10 +85,10 @@ export function Sidebar() {
                   href={item.href}
                   className={clsx(
                     "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200",
-                    "hover:bg-[#3777FF]/20",
+                    "hover:bg-[#F3A712]/20",
                     isActive
-                      ? "bg-[#3777FF] text-white shadow-md"
-                      : "text-[#A7DBF9] hover:text-white"
+                      ? "bg-[#F3A712] text-[#00074E] shadow-md"
+                      : "text-[#FFE2BF] hover:text-white"
                   )}
                   title={isCollapsed ? item.label : undefined}
                 >
@@ -125,11 +125,11 @@ export function Sidebar() {
       </nav>
 
       {/* Collapse Toggle */}
-      <div className="relative z-10 p-4 border-t border-[#3777FF]/30">
+      <div className="relative z-10 p-4 border-t border-[#F3A712]/30">
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           className={clsx(
-            "flex items-center gap-2 text-[#A7DBF9] hover:text-white transition-colors",
+            "flex items-center gap-2 text-[#FFE2BF] hover:text-white transition-colors",
             "mx-auto",
             isCollapsed ? "px-2 py-2" : "px-3 py-2"
           )}
@@ -149,7 +149,7 @@ export function Sidebar() {
       {/* Version */}
       {!isCollapsed && (
         <div className="relative z-10 px-4 pb-4">
-          <p className="font-accent text-xs text-[#A7DBF9]/60 text-center">
+          <p className="font-accent text-xs text-[#FFE2BF]/60 text-center">
             v0.1.0
           </p>
         </div>

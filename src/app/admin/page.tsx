@@ -193,8 +193,8 @@ export default function AdminPage() {
                   ? "rgba(34, 197, 94, 0.1)"
                   : status === "error"
                     ? "rgba(239, 68, 68, 0.1)"
-                    : "rgba(55, 119, 255, 0.1)",
-              border: `1px solid ${status === "success" ? "#22c55e" : status === "error" ? "#ef4444" : "#3777FF"}`,
+                    : "rgba(243, 167, 18, 0.1)",
+              border: `1px solid ${status === "success" ? "#22c55e" : status === "error" ? "#ef4444" : "#F3A712"}`,
             }}
           >
             {status === "success" && <CheckCircle className="w-5 h-5 text-green-500" />}
@@ -220,7 +220,7 @@ export default function AdminPage() {
               disabled={loadingIndicadores}
               className="px-4 py-2 rounded-lg text-white font-medium transition-colors"
               style={{
-                backgroundColor: "var(--ddna-blue)",
+                backgroundColor: "var(--ddna-amber)",
                 opacity: loadingIndicadores ? 0.6 : 1,
               }}
             >
@@ -278,9 +278,11 @@ export default function AdminPage() {
           </p>
 
           <div
-            className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 transition-colors"
+            className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors"
             style={{ borderColor: "var(--ddna-border, #E0E0E0)" }}
             onClick={() => document.getElementById("csv-upload")?.click()}
+            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.borderColor = "#F3A712")}
+            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.borderColor = "var(--ddna-border, #E0E0E0)")}
           >
             <Upload className="w-8 h-8 mx-auto mb-2" style={{ color: "var(--ddna-navy)", opacity: 0.4 }} />
             <p className="text-sm" style={{ color: "var(--ddna-navy)", opacity: 0.6 }}>
@@ -297,7 +299,7 @@ export default function AdminPage() {
 
           {/* Or paste CSV directly */}
           <details className="mt-4">
-            <summary className="text-sm cursor-pointer" style={{ color: "var(--ddna-blue)" }}>
+            <summary className="text-sm cursor-pointer" style={{ color: "var(--ddna-amber)" }}>
               O pegue el contenido CSV directamente
             </summary>
             <textarea
@@ -325,7 +327,7 @@ export default function AdminPage() {
         {parsedRows.length > 0 && status === "preview" && (
           <div className="bg-white rounded-2xl p-6 shadow-sm mb-6">
             <div className="flex items-center gap-3 mb-4">
-              <Database className="w-5 h-5" style={{ color: "var(--ddna-blue)" }} />
+              <Database className="w-5 h-5" style={{ color: "var(--ddna-amber)" }} />
               <h2 className="text-lg font-semibold" style={{ color: "var(--ddna-navy)" }}>
                 3. Revisar y Subir ({parsedRows.length} filas)
               </h2>
@@ -371,11 +373,11 @@ export default function AdminPage() {
               <button
                 onClick={handleUpload}
                 disabled={!selectedIndicador}
-                className="px-6 py-3 rounded-lg text-white font-medium transition-colors"
-                style={{
-                  backgroundColor: selectedIndicador ? "var(--ddna-blue)" : "#ccc",
-                  cursor: selectedIndicador ? "pointer" : "not-allowed",
-                }}
+              className="px-6 py-3 rounded-lg text-white font-medium transition-colors"
+              style={{
+                backgroundColor: selectedIndicador ? "var(--ddna-amber)" : "#ccc",
+                cursor: selectedIndicador ? "pointer" : "not-allowed",
+              }}
               >
                 Subir a Supabase
               </button>
@@ -404,7 +406,7 @@ export default function AdminPage() {
                 setMessage("");
               }}
               className="mt-4 px-4 py-2 rounded-lg text-white font-medium"
-              style={{ backgroundColor: "var(--ddna-blue)" }}
+              style={{ backgroundColor: "var(--ddna-amber)" }}
             >
               Subir otro archivo
             </button>
