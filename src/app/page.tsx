@@ -165,7 +165,7 @@ export default function HomePage() {
               }}
             >
               <Image
-                src="/logos/Recurso 2@2x.png"
+                src="/logos/cat-salud.png"
                 alt="Salud"
                 width={48}
                 height={48}
@@ -190,7 +190,7 @@ export default function HomePage() {
               }}
             >
               <Image
-                src="/logos/Recurso 3@2x.png"
+                src="/logos/cat-educacion.png"
                 alt="Educación"
                 width={48}
                 height={48}
@@ -215,7 +215,7 @@ export default function HomePage() {
               }}
             >
               <Image
-                src="/logos/Recurso 4@2x.png"
+                src="/logos/cat-pobreza.png"
                 alt="Pobreza"
                 width={48}
                 height={48}
@@ -240,7 +240,7 @@ export default function HomePage() {
               }}
             >
               <Image
-                src="/logos/Recurso 5@2x.png"
+                src="/logos/cat-justicia.png"
                 alt="Seguridad"
                 width={48}
                 height={48}
@@ -265,7 +265,7 @@ export default function HomePage() {
               }}
             >
               <Image
-                src="/logos/Recurso 6@2x.png"
+                src="/logos/cat-censo.png"
                 alt="Inversión Social"
                 width={48}
                 height={48}
