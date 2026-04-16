@@ -44,8 +44,8 @@ export function Sidebar() {
         isCollapsed ? "w-20" : "w-56"
       )}
     >
-      {/* Orange accent strip at top */}
-      <div className="h-1 bg-[#FF7F11]" />
+      {/* Gradient accent strip at top */}
+      <div className="h-1.5 bg-gradient-to-r from-[#FF7F11] via-[#F3A712] to-[#FF7F11]" />
       
       {/* Logo Area */}
       <div className="flex items-center justify-center p-4 border-b border-[#E0E0E0]">

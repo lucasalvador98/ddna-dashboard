@@ -44,78 +44,61 @@ export default function HomePage() {
 
   return (
     <div className="space-y-10">
-      {/* Header Banner - Official DDNA Style */}
+      {/* Header Banner - Colorful DDNA Style */}
       <section className="relative">
-        {/* Orange accent strip at very top */}
-        <div className="h-1.5 bg-[#FF7F11]" />
-        
-        {/* Main header area - white with logo */}
-        <div className="bg-white py-6 px-6 lg:px-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            {/* Logos */}
-            <div className="flex items-center gap-4">
-              <Image
-                src="/logos/Cba.png"
-                alt="Gobierno de Córdoba"
-                width={56}
-                height={56}
-                className="rounded-lg"
-              />
-              <Image
-                src="/logos/LOGO DDNA_HORIZONTAL_COLOR.png"
-                alt="DDNA"
-                width={220}
-                height={56}
-                className="object-contain"
-              />
-            </div>
-            
-            {/* Title - only visible on larger screens */}
-            <div className="hidden lg:block">
-              <h1 className="font-display text-2xl text-[#00074E] tracking-tight">
-                Tablero de Monitoreo
-              </h1>
-            </div>
-            
-            {/* Meta info */}
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-[#4D4D4D]">
-              <div className="flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span className="font-body">
-                  Fuente: {metadata?.fuente === "api" ? "API externa" : metadata?.fuente === "manual" ? "Carga manual" : (source === "supabase" ? "Base de datos DDNA" : "Valores referenciales")}
-                </span>
+        {/* Gradient background - orange to amber */}
+        <div className="bg-gradient-to-r from-[#FF7F11] via-[#F3A712] to-[#FF7F11] py-6 px-6 lg:px-8">
+          
+          {/* Rounded title container */}
+          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg p-6 inline-block">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+              {/* Logos */}
+              <div className="flex items-center gap-4">
+                <Image
+                  src="/logos/Cba.png"
+                  alt="Gobierno de Córdoba"
+                  width={56}
+                  height={56}
+                  className="rounded-xl shadow-md"
+                />
+                <Image
+                  src="/logos/LOGO DDNA_HORIZONTAL_COLOR.png"
+                  alt="DDNA"
+                  width={200}
+                  height={56}
+                  className="object-contain"
+                />
               </div>
-              {metadata?.ultimaActualizacion && (
+              
+              {/* Title */}
+              <div className="lg:ml-8">
+                <h1 className="font-display text-2xl lg:text-3xl text-[#00074E] tracking-tight">
+                  Tablero de Monitoreo
+                </h1>
+                <p className="font-body text-sm text-[#4D4D4D] mt-1">
+                  Defensoría de los Derechos de Niñas, Niños y Adolescentes
+                </p>
+              </div>
+              
+              {/* Meta info */}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-[#4D4D4D]">
                 <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  <span className="font-body">
-                    Actualizado: {new Date(metadata.ultimaActualizacion).toLocaleDateString("es-AR", { day: "numeric", month: "short", year: "numeric" })}
+                  <span className="bg-[#F3A712]/20 text-[#00074E] px-3 py-1 rounded-full font-accent text-xs">
+                    {metadata?.fuente === "api" ? "API" : metadata?.fuente === "manual" ? "Manual" : (source === "supabase" ? "En vivo" : "Referencia")}
                   </span>
                 </div>
-              )}
+                {metadata?.ultimaActualizacion && (
+                  <span className="text-xs">
+                    Actualizado: {new Date(metadata.ultimaActualizacion).toLocaleDateString("es-AR", { day: "numeric", month: "short", year: "numeric" })}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>
-        
-        {/* Orange accent strip at bottom */}
-        <div className="h-1 bg-[#FF7F11]" />
       </section>
 
-      {/* Page Title - visible on mobile */}
-      <div className="lg:hidden px-6">
-        <h1 className="font-display text-2xl text-[#00074E] tracking-tight">
-          Tablero de Monitoreo
-        </h1>
-        <p className="font-body text-sm text-[#4D4D4D] mt-1">
-          Defensoría de los Derechos de Niñas, Niños y Adolescentes
-        </p>
-      </div>
-
-      {/* Quick Access Grid - DDNA Style with white circular buttons */}
+      {/* Quick Access Grid - Colorful DDNA Style */}
       <section className="px-6 lg:px-8 py-6">
         <h2 className="font-display text-xl text-[#00074E] mb-6 tracking-tight">
           Acceso Rápido
@@ -127,18 +110,18 @@ export default function HomePage() {
             className="group flex flex-col items-center gap-3 no-underline"
           >
             <div 
-              className="w-24 h-24 lg:w-28 lg:h-28 rounded-full bg-white border-2 border-[#E0E0E0] flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:border-[#FF7F11] group-hover:shadow-lg"
-              style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
+              className="w-24 h-24 lg:w-28 lg:h-28 rounded-2xl bg-gradient-to-br from-[#F3A712] to-[#FF7F11] flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl"
+              style={{ boxShadow: "0 4px 15px rgba(243, 167, 18, 0.4)" }}
             >
               <Image
                 src="/logos/Recurso 1@2x.png"
                 alt="Inicio"
                 width={64}
                 height={64}
-                className="w-14 h-14 lg:w-16 lg:h-16 object-contain"
+                className="w-14 h-14 lg:w-16 lg:h-16 object-contain brightness-0 invert"
               />
             </div>
-            <span className="font-accent text-sm text-[#4D4D4D] text-center tracking-wide group-hover:text-[#FF7F11] transition-colors">
+            <span className="font-accent text-sm text-[#4D4D4D] text-center tracking-wide group-hover:text-[#FF7F11] transition-colors font-medium">
               Inicio
             </span>
           </a>
@@ -149,18 +132,18 @@ export default function HomePage() {
             className="group flex flex-col items-center gap-3 no-underline"
           >
             <div 
-              className="w-24 h-24 lg:w-28 lg:h-28 rounded-full bg-white border-2 border-[#E0E0E0] flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:border-[#FF7F11] group-hover:shadow-lg"
-              style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
+              className="w-24 h-24 lg:w-28 lg:h-28 rounded-2xl bg-gradient-to-br from-[#E07A5F] to-[#c45a3f] flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl"
+              style={{ boxShadow: "0 4px 15px rgba(224, 122, 95, 0.4)" }}
             >
               <Image
                 src="/logos/cat-salud.png"
                 alt="Salud"
                 width={64}
                 height={64}
-                className="w-14 h-14 lg:w-16 lg:h-16 object-contain"
+                className="w-14 h-14 lg:w-16 lg:h-16 object-contain brightness-0 invert"
               />
             </div>
-            <span className="font-accent text-sm text-[#4D4D4D] text-center tracking-wide group-hover:text-[#FF7F11] transition-colors">
+            <span className="font-accent text-sm text-[#4D4D4D] text-center tracking-wide group-hover:text-[#E07A5F] transition-colors font-medium">
               Salud
             </span>
           </a>
@@ -171,18 +154,18 @@ export default function HomePage() {
             className="group flex flex-col items-center gap-3 no-underline"
           >
             <div 
-              className="w-24 h-24 lg:w-28 lg:h-28 rounded-full bg-white border-2 border-[#E0E0E0] flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:border-[#FF7F11] group-hover:shadow-lg"
-              style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
+              className="w-24 h-24 lg:w-28 lg:h-28 rounded-2xl bg-gradient-to-br from-[#F3A712] to-[#d4920f] flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl"
+              style={{ boxShadow: "0 4px 15px rgba(243, 167, 18, 0.4)" }}
             >
               <Image
                 src="/logos/cat-educacion.png"
                 alt="Educación"
                 width={64}
                 height={64}
-                className="w-14 h-14 lg:w-16 lg:h-16 object-contain"
+                className="w-14 h-14 lg:w-16 lg:h-16 object-contain brightness-0 invert"
               />
             </div>
-            <span className="font-accent text-sm text-[#4D4D4D] text-center tracking-wide group-hover:text-[#FF7F11] transition-colors">
+            <span className="font-accent text-sm text-[#4D4D4D] text-center tracking-wide group-hover:text-[#F3A712] transition-colors font-medium">
               Educación
             </span>
           </a>
@@ -193,18 +176,18 @@ export default function HomePage() {
             className="group flex flex-col items-center gap-3 no-underline"
           >
             <div 
-              className="w-24 h-24 lg:w-28 lg:h-28 rounded-full bg-white border-2 border-[#E0E0E0] flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:border-[#FF7F11] group-hover:shadow-lg"
-              style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
+              className="w-24 h-24 lg:w-28 lg:h-28 rounded-2xl bg-gradient-to-br from-[#BF1363] to-[#9a0f4f] flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl"
+              style={{ boxShadow: "0 4px 15px rgba(191, 19, 99, 0.4)" }}
             >
               <Image
                 src="/logos/cat-pobreza.png"
                 alt="Pobreza"
                 width={64}
                 height={64}
-                className="w-14 h-14 lg:w-16 lg:h-16 object-contain"
+                className="w-14 h-14 lg:w-16 lg:h-16 object-contain brightness-0 invert"
               />
             </div>
-            <span className="font-accent text-sm text-[#4D4D4D] text-center tracking-wide group-hover:text-[#FF7F11] transition-colors">
+            <span className="font-accent text-sm text-[#4D4D4D] text-center tracking-wide group-hover:text-[#BF1363] transition-colors font-medium">
               Pobreza
             </span>
           </a>
@@ -215,18 +198,18 @@ export default function HomePage() {
             className="group flex flex-col items-center gap-3 no-underline"
           >
             <div 
-              className="w-24 h-24 lg:w-28 lg:h-28 rounded-full bg-white border-2 border-[#E0E0E0] flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:border-[#FF7F11] group-hover:shadow-lg"
-              style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
+              className="w-24 h-24 lg:w-28 lg:h-28 rounded-2xl bg-gradient-to-br from-[#3777FF] to-[#2959cc] flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl"
+              style={{ boxShadow: "0 4px 15px rgba(55, 119, 255, 0.4)" }}
             >
               <Image
                 src="/logos/cat-justicia.png"
                 alt="Seguridad"
                 width={64}
                 height={64}
-                className="w-14 h-14 lg:w-16 lg:h-16 object-contain"
+                className="w-14 h-14 lg:w-16 lg:h-16 object-contain brightness-0 invert"
               />
             </div>
-            <span className="font-accent text-sm text-[#4D4D4D] text-center tracking-wide group-hover:text-[#FF7F11] transition-colors">
+            <span className="font-accent text-sm text-[#4D4D4D] text-center tracking-wide group-hover:text-[#3777FF] transition-colors font-medium">
               Seguridad
             </span>
           </a>
@@ -237,18 +220,18 @@ export default function HomePage() {
             className="group flex flex-col items-center gap-3 no-underline"
           >
             <div 
-              className="w-24 h-24 lg:w-28 lg:h-28 rounded-full bg-white border-2 border-[#E0E0E0] flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:border-[#FF7F11] group-hover:shadow-lg"
-              style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
+              className="w-24 h-24 lg:w-28 lg:h-28 rounded-2xl bg-gradient-to-br from-[#FF7F11] to-[#cc6608] flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl"
+              style={{ boxShadow: "0 4px 15px rgba(255, 127, 17, 0.4)" }}
             >
               <Image
                 src="/logos/cat-censo.png"
                 alt="Inversión Social"
                 width={64}
                 height={64}
-                className="w-14 h-14 lg:w-16 lg:h-16 object-contain"
+                className="w-14 h-14 lg:w-16 lg:h-16 object-contain brightness-0 invert"
               />
             </div>
-            <span className="font-accent text-sm text-[#4D4D4D] text-center tracking-wide group-hover:text-[#FF7F11] transition-colors">
+            <span className="font-accent text-sm text-[#4D4D4D] text-center tracking-wide group-hover:text-[#FF7F11] transition-colors font-medium">
               Inversión
             </span>
           </a>

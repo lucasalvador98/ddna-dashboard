@@ -138,11 +138,12 @@ html {
 }
 
 body {
-  background-color: #FFFFFF;
+  background: linear-gradient(135deg, #FFF8F2 0%, #FFF0E6 50%, #FFE8CC 100%);
   color: var(--ddna-text);
   font-family: var(--font-epilogue), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
 }
 
 /* Font utility classes */
