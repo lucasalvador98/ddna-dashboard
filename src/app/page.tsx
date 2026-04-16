@@ -93,7 +93,7 @@ export default function HomePage() {
               </span>
             </div>
             {metadata?.ultimaActualizacion && (
-              <div className="flex items-center gap-2 text-[#A7DBF9]">
+              <div className="flex items-center gap-2 text-[#FFE2BF]">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
@@ -103,6 +103,164 @@ export default function HomePage() {
               </div>
             )}
           </div>
+        </div>
+      </section>
+
+      {/* Quick Access Grid - DDNA Style */}
+      <section className="py-4">
+        <h2 className="font-display text-xl text-[#00074E] mb-6 tracking-tight">
+          Acceso Rápido
+        </h2>
+        <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6 gap-4 lg:gap-6 justify-items-center">
+          {/* Inicio */}
+          <a 
+            href="/"
+            className="group flex flex-col items-center gap-3 no-underline"
+          >
+            <div 
+              className="w-20 h-20 lg:w-24 lg:h-24 rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg"
+              style={{ 
+                backgroundColor: "#F3A712",
+                boxShadow: "0 4px 12px rgba(243, 167, 18, 0.3)"
+              }}
+            >
+              <Image
+                src="/logos/Recurso 1@2x.png"
+                alt="Inicio"
+                width={48}
+                height={48}
+                className="w-10 h-10 lg:w-12 lg:h-12 object-contain brightness-0 invert"
+              />
+            </div>
+            <span className="font-accent text-sm text-[#4D4D4D] text-center tracking-wide group-hover:text-[#00074E] transition-colors">
+              Inicio
+            </span>
+          </a>
+
+          {/* Salud */}
+          <a 
+            href="/?categoria=salud"
+            className="group flex flex-col items-center gap-3 no-underline"
+          >
+            <div 
+              className="w-20 h-20 lg:w-24 lg:h-24 rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg"
+              style={{ 
+                backgroundColor: "#E07A5F",
+                boxShadow: "0 4px 12px rgba(224, 122, 95, 0.3)"
+              }}
+            >
+              <Image
+                src="/logos/Recurso 2@2x.png"
+                alt="Salud"
+                width={48}
+                height={48}
+                className="w-10 h-10 lg:w-12 lg:h-12 object-contain brightness-0 invert"
+              />
+            </div>
+            <span className="font-accent text-sm text-[#4D4D4D] text-center tracking-wide group-hover:text-[#00074E] transition-colors">
+              Salud
+            </span>
+          </a>
+
+          {/* Educación */}
+          <a 
+            href="/?categoria=educacion"
+            className="group flex flex-col items-center gap-3 no-underline"
+          >
+            <div 
+              className="w-20 h-20 lg:w-24 lg:h-24 rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg"
+              style={{ 
+                backgroundColor: "#F3A712",
+                boxShadow: "0 4px 12px rgba(243, 167, 18, 0.3)"
+              }}
+            >
+              <Image
+                src="/logos/Recurso 3@2x.png"
+                alt="Educación"
+                width={48}
+                height={48}
+                className="w-10 h-10 lg:w-12 lg:h-12 object-contain brightness-0 invert"
+              />
+            </div>
+            <span className="font-accent text-sm text-[#4D4D4D] text-center tracking-wide group-hover:text-[#00074E] transition-colors">
+              Educación
+            </span>
+          </a>
+
+          {/* Pobreza */}
+          <a 
+            href="/?categoria=pobreza"
+            className="group flex flex-col items-center gap-3 no-underline"
+          >
+            <div 
+              className="w-20 h-20 lg:w-24 lg:h-24 rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg"
+              style={{ 
+                backgroundColor: "#BF1363",
+                boxShadow: "0 4px 12px rgba(191, 19, 99, 0.3)"
+              }}
+            >
+              <Image
+                src="/logos/Recurso 4@2x.png"
+                alt="Pobreza"
+                width={48}
+                height={48}
+                className="w-10 h-10 lg:w-12 lg:h-12 object-contain brightness-0 invert"
+              />
+            </div>
+            <span className="font-accent text-sm text-[#4D4D4D] text-center tracking-wide group-hover:text-[#00074E] transition-colors">
+              Pobreza
+            </span>
+          </a>
+
+          {/* Seguridad */}
+          <a 
+            href="/?categoria=seguridad"
+            className="group flex flex-col items-center gap-3 no-underline"
+          >
+            <div 
+              className="w-20 h-20 lg:w-24 lg:h-24 rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg"
+              style={{ 
+                backgroundColor: "#3777FF",
+                boxShadow: "0 4px 12px rgba(55, 119, 255, 0.3)"
+              }}
+            >
+              <Image
+                src="/logos/Recurso 5@2x.png"
+                alt="Seguridad"
+                width={48}
+                height={48}
+                className="w-10 h-10 lg:w-12 lg:h-12 object-contain brightness-0 invert"
+              />
+            </div>
+            <span className="font-accent text-sm text-[#4D4D4D] text-center tracking-wide group-hover:text-[#00074E] transition-colors">
+              Seguridad
+            </span>
+          </a>
+
+          {/* Inversión Social */}
+          <a 
+            href="/?categoria=inversion"
+            className="group flex flex-col items-center gap-3 no-underline"
+          >
+            <div 
+              className="w-20 h-20 lg:w-24 lg:h-24 rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg"
+              style={{ 
+                backgroundColor: "#FF7F11",
+                boxShadow: "0 4px 12px rgba(255, 127, 17, 0.3)"
+              }}
+            >
+              <Image
+                src="/logos/Recurso 6@2x.png"
+                alt="Inversión Social"
+                width={48}
+                height={48}
+                className="w-10 h-10 lg:w-12 lg:h-12 object-contain brightness-0 invert"
+              />
+            </div>
+            <span className="font-accent text-sm text-[#4D4D4D] text-center tracking-wide group-hover:text-[#00074E] transition-colors">
+              Inversión
+            </span>
+          </a>
         </div>
       </section>
 

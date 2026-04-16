@@ -171,18 +171,20 @@ fuentes:
     estado: "pendiente"
 
   # ============================================================
-  # INVERSIÓN (SIN DATOS)
+  # INVERSIÓN
   # ============================================================
   presupuesto_inversion:
     tipo: "manual"
-    archivo: null
+    archivo: "Inversion/BASE DE DATOS.xlsx"
+    hoja: "BASE DE DATOS"
     indicador: "Inversión social en infancia"
     categoria: "inversion"
     unidad: "Md"
     frecuencia: "anual"
     fuente_oficial: "Ministerio de Finanzas Córdoba"
-    ultima_actualizacion: null
-    estado: "no_disponible"
+    ruta_oficial: "E:/Backup Luca/DDNA/01. Monitoreo/TABLEROS Y BASES/Inversion/BASE DE DATOS.xlsx"
+    ultima_actualizacion: "2026-04-16"
+    estado: "cargado"
 
 # ============================================================
 # CONFIGURACIÓN DE APIs (FUTURO)

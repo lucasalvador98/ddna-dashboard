@@ -114,8 +114,9 @@ export function usePaicor(año?: number): UsePaicorResult {
 
         // Aggregate by department for chart
         const deptTotals = new Map<string, number>();
-        for (const row of data) {
-          const dept = row.departamento?.toUpperCase() || "UNKNOWN";
+        const typedData = data as unknown as Array<{departamento: string; cant_beneficios: number | string}>;
+        for (const row of typedData) {
+          const dept = (row.departamento || "UNKNOWN").toUpperCase();
           deptTotals.set(dept, (deptTotals.get(dept) || 0) + (Number(row.cant_beneficios) || 0));
         }
 

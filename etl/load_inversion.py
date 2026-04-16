@@ -2,10 +2,14 @@
 """
 ETL script para cargar datos de Inversión desde Excel a Supabase.
 
-Reads: C:/Users/Usuario/Desktop/08. Monitoreo-20260416T133722Z-3-001/01. Monitoreo/TABLEROS Y BASES/Inversion/BASE DE DATOS.xlsx
-Inserts into: indicadores table with categoria='inversion'
+Usage:
+    python load_inversion.py
+
+The path can be configured via INVERSION_EXCEL_PATH environment variable,
+or defaults to the hardcoded path below.
 """
 
+import os
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -13,7 +17,8 @@ from pathlib import Path
 import openpyxl
 
 # Configuration
-EXCEL_FILE = Path("C:/Users/Usuario/Desktop/08. Monitoreo-20260416T133722Z-3-001/01. Monitoreo/TABLEROS Y BASES/Inversion/BASE DE DATOS.xlsx")
+DEFAULT_EXCEL_FILE = Path(__file__).parent.parent / "datos" / "Inversion" / "BASE DE DATOS.xlsx"
+EXCEL_FILE = Path(os.environ.get("INVERSION_EXCEL_FILE", str(DEFAULT_EXCEL_FILE)))
 SHEET_NAME = "BASE DE DATOS"
 
 # Categories to extract (childhood-related investments)
