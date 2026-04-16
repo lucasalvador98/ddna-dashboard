@@ -1,6 +1,6 @@
 # DDNA Dashboard — Estado del Proyecto
 
-> **Última actualización**: Abril 2026
+> **Última actualización**: Abril 2026 (rediseño visual)
 > **Live**: https://ddna-dashboard.vercel.app/
 > **Repo**: https://github.com/lucasalvador98/ddna-dashboard
 > **Supabase**: `ddna-dashboard` (ppyyqrvirjqmfpqaqnxy)
@@ -20,6 +20,9 @@
 - Logos oficiales: `public/logos/LOGO DDNA_HORIZONTAL_COLOR.png`, `public/logos/Cba.png`
 - Sidebar colapsable con logo DDNA + escudo de Córdoba
 - Header con branding institucional
+- Homepage rediseñado: hero con gradiente naranja→ámbar, wave divider, círculos decorativos flotantes
+- Quick Access con botones circulares coloridos y rotación alternada
+- Stats section con fondo navy oscuro como ancla visual
 
 ### 3. Base de datos Supabase
 - **Tabla simplificada**: `indicadores` con valores embebidos (1667 registros al 15/04/2026)

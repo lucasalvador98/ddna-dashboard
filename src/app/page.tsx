@@ -1,10 +1,10 @@
 "use client";
 
-import { Users, Heart, BookOpen, Coins, UserCircle, AlertTriangle } from "lucide-react";
+import { Users, Heart, BookOpen, Coins, UserCircle, AlertTriangle, Sparkles } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { KpiCard } from "@/components/kpi-card";
 import { useIndicadores } from "@/lib/hooks";
-import { kpisPlaceholder } from "@/lib/data";
 import type { CategoriaIndicador } from "@/lib/supabase";
 
 const categoryConfig: Record<string, { icon: React.ComponentType<{ className?: string }>; color: "amber" | "magenta" | "blue" | "terracotta" | "navy" | "orange" }> = {
@@ -15,6 +15,15 @@ const categoryConfig: Record<string, { icon: React.ComponentType<{ className?: s
   demografia: { icon: UserCircle, color: "navy" },
   seguridad: { icon: AlertTriangle, color: "orange" },
 };
+
+const quickAccessCategories = [
+  { id: "salud", label: "Salud", icon: "cat-salud.png", gradient: "from-[#E07A5F] to-[#BF1363]", shadow: "rgba(224, 122, 95, 0.5)" },
+  { id: "educacion", label: "Educación", icon: "cat-educacion.png", gradient: "from-[#F3A712] to-[#FF7F11]", shadow: "rgba(243, 167, 18, 0.5)" },
+  { id: "pobreza", label: "Pobreza", icon: "cat-pobreza.png", gradient: "from-[#BF1363] to-[#9a0f4f]", shadow: "rgba(191, 19, 99, 0.5)" },
+  { id: "seguridad", label: "Seguridad", icon: "cat-justicia.png", gradient: "from-[#3777FF] to-[#2959cc]", shadow: "rgba(55, 119, 255, 0.5)" },
+  { id: "inversion", label: "Inversión", icon: "cat-censo.png", gradient: "from-[#FF7F11] to-[#E07A5F]", shadow: "rgba(255, 127, 17, 0.5)" },
+  { id: "demografia", label: "Demografía", icon: "cat-estudiantes.png", gradient: "from-[#3777FF] to-[#1E9AD8]", shadow: "rgba(55, 119, 255, 0.4)" },
+];
 
 function formatValue(valor: string, unidad: string): string {
   if (unidad === "‰") return `${valor}‰`;
@@ -27,11 +36,9 @@ function formatValue(valor: string, unidad: string): string {
 export default function HomePage() {
   const { data, loading, source, metadata } = useIndicadores();
   
-  // Get the latest value for each category from real data
   const getLatestByCategory = (cat: string) => {
     const categoryData = data.filter(d => d.categoria === cat);
     if (categoryData.length === 0) return null;
-    // Return the first one (most recent since we order by periodo desc)
     return categoryData[0];
   };
   
@@ -43,213 +50,225 @@ export default function HomePage() {
   const seguridad = getLatestByCategory("seguridad");
 
   return (
-    <div className="space-y-10">
-      {/* Header Banner - Colorful DDNA Style */}
+    <div className="relative overflow-hidden">
+      {/* Decorative background elements */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {/* Large decorative circles */}
+        <div className="absolute -top-20 -right-20 w-96 h-96 rounded-full bg-gradient-to-br from-[#FF7F11]/10 to-[#F3A712]/10 blur-3xl" />
+        <div className="absolute top-1/2 -left-40 w-[500px] h-[500px] rounded-full bg-gradient-to-tr from-[#3777FF]/5 to-transparent blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 w-80 h-80 rounded-full bg-gradient-to-tl from-[#BF1363]/8 to-transparent blur-3xl" />
+        
+        {/* Floating dots pattern */}
+        <svg className="absolute top-20 left-10 opacity-30" width="120" height="120" viewBox="0 0 120 120">
+          <circle cx="10" cy="10" r="4" fill="#FF7F11" />
+          <circle cx="40" cy="20" r="3" fill="#F3A712" />
+          <circle cx="70" cy="10" r="5" fill="#3777FF" />
+          <circle cx="100" cy="25" r="3" fill="#BF1363" />
+          <circle cx="25" cy="50" r="4" fill="#E07A5F" />
+          <circle cx="60" cy="45" r="3" fill="#FF7F11" />
+          <circle cx="95" cy="55" r="4" fill="#F3A712" />
+          <circle cx="15" cy="85" r="3" fill="#3777FF" />
+          <circle cx="50" cy="80" r="5" fill="#BF1363" />
+          <circle cx="85" cy="90" r="3" fill="#E07A5F" />
+        </svg>
+        
+        <svg className="absolute bottom-40 right-20 opacity-25" width="100" height="100" viewBox="0 0 100 100">
+          <circle cx="15" cy="15" r="4" fill="#3777FF" />
+          <circle cx="50" cy="10" r="3" fill="#FF7F11" />
+          <circle cx="85" cy="20" r="5" fill="#F3A712" />
+          <circle cx="30" cy="50" r="3" fill="#BF1363" />
+          <circle cx="70" cy="55" r="4" fill="#E07A5F" />
+          <circle cx="10" cy="80" r="4" fill="#FF7F11" />
+          <circle cx="55" cy="85" r="3" fill="#3777FF" />
+          <circle cx="90" cy="75" r="4" fill="#F3A712" />
+        </svg>
+      </div>
+
+      {/* Hero Section - Dynamic diagonal design */}
       <section className="relative">
-        {/* Gradient background - orange to amber */}
-        <div className="bg-gradient-to-r from-[#FF7F11] via-[#F3A712] to-[#FF7F11] py-6 px-6 lg:px-8">
+        {/* Main gradient background with wave effect */}
+        <div className="relative bg-gradient-to-br from-[#FF7F11] via-[#F3A712] to-[#FF7F11] pt-8 pb-24 lg:pb-32 overflow-hidden">
+          {/* Diagonal stripe overlay */}
+          <div className="absolute inset-0 opacity-20">
+            <svg className="w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 100">
+              <defs>
+                <pattern id="diagonal-stripes" patternUnits="userSpaceOnUse" width="20" height="20" patternTransform="rotate(45)">
+                  <line x1="0" y1="0" x2="0" y2="20" stroke="#fff" strokeWidth="10" />
+                </pattern>
+              </defs>
+              <rect width="100" height="100" fill="url(#diagonal-stripes)" />
+            </svg>
+          </div>
           
-          {/* Rounded title container */}
-          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg p-6 inline-block">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-              {/* Logos */}
+          {/* Decorative circles */}
+          <div className="absolute top-10 right-[10%] w-32 h-32 rounded-full bg-white/10 backdrop-blur-sm" />
+          <div className="absolute bottom-10 right-[25%] w-20 h-20 rounded-full bg-white/15 backdrop-blur-sm" />
+          <div className="absolute top-1/3 left-[5%] w-16 h-16 rounded-full bg-white/10 backdrop-blur-sm" />
+          
+          {/* Main content */}
+          <div className="relative max-w-7xl mx-auto px-6 lg:px-8">
+            {/* Top bar with logos */}
+            <div className="flex items-center justify-between mb-12">
               <div className="flex items-center gap-4">
                 <Image
                   src="/logos/Cba.png"
                   alt="Gobierno de Córdoba"
-                  width={56}
-                  height={56}
-                  className="rounded-xl shadow-md"
+                  width={48}
+                  height={48}
+                  className="rounded-lg shadow-md"
                 />
                 <Image
                   src="/logos/LOGO DDNA_HORIZONTAL_COLOR.png"
                   alt="DDNA"
-                  width={200}
-                  height={56}
-                  className="object-contain"
+                  width={180}
+                  height={48}
+                  className="object-contain hidden sm:block"
                 />
               </div>
               
-              {/* Title */}
-              <div className="lg:ml-8">
-                <h1 className="font-display text-2xl lg:text-3xl text-[#00074E] tracking-tight">
-                  Tablero de Monitoreo
-                </h1>
-                <p className="font-body text-sm text-[#4D4D4D] mt-1">
-                  Defensoría de los Derechos de Niñas, Niños y Adolescentes
-                </p>
-              </div>
-              
-              {/* Meta info */}
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-[#4D4D4D]">
-                <div className="flex items-center gap-2">
-                  <span className="bg-[#F3A712]/20 text-[#00074E] px-3 py-1 rounded-full font-accent text-xs">
-                    {metadata?.fuente === "api" ? "API" : metadata?.fuente === "manual" ? "Manual" : (source === "supabase" ? "En vivo" : "Referencia")}
+              {/* Source badge */}
+              <div className="flex items-center gap-3">
+                <span className="bg-white/90 backdrop-blur-sm text-[#00074E] px-4 py-2 rounded-full font-accent text-sm shadow-lg flex items-center gap-2">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#22C55E] opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-[#22C55E]"></span>
                   </span>
-                </div>
-                {metadata?.ultimaActualizacion && (
-                  <span className="text-xs">
-                    Actualizado: {new Date(metadata.ultimaActualizacion).toLocaleDateString("es-AR", { day: "numeric", month: "short", year: "numeric" })}
-                  </span>
-                )}
+                  {metadata?.fuente === "api" ? "API" : metadata?.fuente === "manual" ? "Manual" : (source === "supabase" ? "En vivo" : "Referencia")}
+                </span>
               </div>
             </div>
+            
+            {/* Hero text with playful typography */}
+            <div className="text-center lg:text-left lg:max-w-2xl">
+              <h1 className="font-display text-4xl lg:text-5xl xl:text-6xl text-white leading-tight mb-4 drop-shadow-lg">
+                Tablero de{' '}
+                <span className="relative inline-block">
+                  <span className="relative z-10">Monitoreo</span>
+                  <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 200 12" fill="none">
+                    <path d="M2 8C50 2 150 2 198 8" stroke="white" strokeWidth="4" strokeLinecap="round" opacity="0.6"/>
+                  </svg>
+                </span>
+              </h1>
+              <p className="font-body text-lg lg:text-xl text-white/90 max-w-xl drop-shadow-md">
+                Defensoría de los Derechos de Niñas, Niños y Adolescentes de Córdoba
+              </p>
+              
+              {/* Decorative tagline */}
+              <div className="mt-6 inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-5 py-2">
+                <Sparkles className="w-4 h-4 text-white" />
+                <span className="font-accent text-sm text-white">Datos actualizados para proteger sus derechos</span>
+              </div>
+            </div>
+          </div>
+          
+          {/* Wave divider */}
+          <div className="absolute bottom-0 left-0 right-0">
+            <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
+              <path d="M0 120L60 110C120 100 240 80 360 70C480 60 600 60 720 65C840 70 960 80 1080 85C1200 90 1320 90 1380 90L1440 90V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0Z" fill="white"/>
+            </svg>
           </div>
         </div>
       </section>
 
-      {/* Quick Access Grid - Colorful DDNA Style */}
-      <section className="px-6 lg:px-8 py-6">
-        <h2 className="font-display text-xl text-[#00074E] mb-6 tracking-tight">
-          Acceso Rápido
-        </h2>
-        <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6 gap-6 lg:gap-8 justify-items-center">
-          {/* Inicio */}
-          <a 
-            href="/"
-            className="group flex flex-col items-center gap-3 no-underline"
-          >
-            <div 
-              className="w-24 h-24 lg:w-28 lg:h-28 rounded-2xl bg-gradient-to-br from-[#F3A712] to-[#FF7F11] flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl"
-              style={{ boxShadow: "0 4px 15px rgba(243, 167, 18, 0.4)" }}
-            >
-              <Image
-                src="/logos/Recurso 1@2x.png"
-                alt="Inicio"
-                width={64}
-                height={64}
-                className="w-14 h-14 lg:w-16 lg:h-16 object-contain brightness-0 invert"
-              />
+      {/* Quick Access Section - Playful circles */}
+      <section className="relative -mt-16 px-6 lg:px-8 pb-12">
+        <div className="max-w-7xl mx-auto">
+          {/* Section header with icon */}
+          <div className="flex items-center gap-3 mb-8">
+            <div className="bg-gradient-to-br from-[#FF7F11] to-[#F3A712] p-3 rounded-xl shadow-lg">
+              <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
             </div>
-            <span className="font-accent text-sm text-[#4D4D4D] text-center tracking-wide group-hover:text-[#FF7F11] transition-colors font-medium">
-              Inicio
-            </span>
-          </a>
+            <h2 className="font-display text-2xl lg:text-3xl text-[#00074E] tracking-tight">
+              Acceso Rápido
+            </h2>
+          </div>
+          
+          {/* Playful circular buttons */}
+          <div className="flex flex-wrap justify-center lg:justify-start gap-6 lg:gap-8">
+            {/* Home button */}
+            <Link href="/" className="group flex flex-col items-center gap-3 no-underline">
+              <div 
+                className="w-28 h-28 lg:w-32 lg:h-32 rounded-full bg-gradient-to-br from-[#F3A712] to-[#FF7F11] flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:shadow-2xl transform -rotate-3"
+                style={{ boxShadow: "0 8px 30px rgba(243, 167, 18, 0.5)" }}
+              >
+                <Image
+                  src="/logos/Recurso 1@2x.png"
+                  alt="Inicio"
+                  width={72}
+                  height={72}
+                  className="w-16 h-16 lg:w-20 lg:h-20 object-contain brightness-0 invert"
+                />
+              </div>
+              <span className="font-accent text-sm text-[#4D4D4D] text-center tracking-wide group-hover:text-[#FF7F11] transition-colors font-semibold">
+                Inicio
+              </span>
+            </Link>
 
-          {/* Salud */}
-          <a 
-            href="/?categoria=salud"
-            className="group flex flex-col items-center gap-3 no-underline"
-          >
-            <div 
-              className="w-24 h-24 lg:w-28 lg:h-28 rounded-2xl bg-gradient-to-br from-[#E07A5F] to-[#c45a3f] flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl"
-              style={{ boxShadow: "0 4px 15px rgba(224, 122, 95, 0.4)" }}
-            >
-              <Image
-                src="/logos/cat-salud.png"
-                alt="Salud"
-                width={64}
-                height={64}
-                className="w-14 h-14 lg:w-16 lg:h-16 object-contain brightness-0 invert"
-              />
-            </div>
-            <span className="font-accent text-sm text-[#4D4D4D] text-center tracking-wide group-hover:text-[#E07A5F] transition-colors font-medium">
-              Salud
-            </span>
-          </a>
-
-          {/* Educación */}
-          <a 
-            href="/?categoria=educacion"
-            className="group flex flex-col items-center gap-3 no-underline"
-          >
-            <div 
-              className="w-24 h-24 lg:w-28 lg:h-28 rounded-2xl bg-gradient-to-br from-[#F3A712] to-[#d4920f] flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl"
-              style={{ boxShadow: "0 4px 15px rgba(243, 167, 18, 0.4)" }}
-            >
-              <Image
-                src="/logos/cat-educacion.png"
-                alt="Educación"
-                width={64}
-                height={64}
-                className="w-14 h-14 lg:w-16 lg:h-16 object-contain brightness-0 invert"
-              />
-            </div>
-            <span className="font-accent text-sm text-[#4D4D4D] text-center tracking-wide group-hover:text-[#F3A712] transition-colors font-medium">
-              Educación
-            </span>
-          </a>
-
-          {/* Pobreza */}
-          <a 
-            href="/?categoria=pobreza"
-            className="group flex flex-col items-center gap-3 no-underline"
-          >
-            <div 
-              className="w-24 h-24 lg:w-28 lg:h-28 rounded-2xl bg-gradient-to-br from-[#BF1363] to-[#9a0f4f] flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl"
-              style={{ boxShadow: "0 4px 15px rgba(191, 19, 99, 0.4)" }}
-            >
-              <Image
-                src="/logos/cat-pobreza.png"
-                alt="Pobreza"
-                width={64}
-                height={64}
-                className="w-14 h-14 lg:w-16 lg:h-16 object-contain brightness-0 invert"
-              />
-            </div>
-            <span className="font-accent text-sm text-[#4D4D4D] text-center tracking-wide group-hover:text-[#BF1363] transition-colors font-medium">
-              Pobreza
-            </span>
-          </a>
-
-          {/* Seguridad */}
-          <a 
-            href="/?categoria=seguridad"
-            className="group flex flex-col items-center gap-3 no-underline"
-          >
-            <div 
-              className="w-24 h-24 lg:w-28 lg:h-28 rounded-2xl bg-gradient-to-br from-[#3777FF] to-[#2959cc] flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl"
-              style={{ boxShadow: "0 4px 15px rgba(55, 119, 255, 0.4)" }}
-            >
-              <Image
-                src="/logos/cat-justicia.png"
-                alt="Seguridad"
-                width={64}
-                height={64}
-                className="w-14 h-14 lg:w-16 lg:h-16 object-contain brightness-0 invert"
-              />
-            </div>
-            <span className="font-accent text-sm text-[#4D4D4D] text-center tracking-wide group-hover:text-[#3777FF] transition-colors font-medium">
-              Seguridad
-            </span>
-          </a>
-
-          {/* Inversión Social */}
-          <a 
-            href="/?categoria=inversion"
-            className="group flex flex-col items-center gap-3 no-underline"
-          >
-            <div 
-              className="w-24 h-24 lg:w-28 lg:h-28 rounded-2xl bg-gradient-to-br from-[#FF7F11] to-[#cc6608] flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl"
-              style={{ boxShadow: "0 4px 15px rgba(255, 127, 17, 0.4)" }}
-            >
-              <Image
-                src="/logos/cat-censo.png"
-                alt="Inversión Social"
-                width={64}
-                height={64}
-                className="w-14 h-14 lg:w-16 lg:h-16 object-contain brightness-0 invert"
-              />
-            </div>
-            <span className="font-accent text-sm text-[#4D4D4D] text-center tracking-wide group-hover:text-[#FF7F11] transition-colors font-medium">
-              Inversión
-            </span>
-          </a>
+            {/* Category buttons */}
+            {quickAccessCategories.map((cat, index) => (
+              <Link 
+                key={cat.id}
+                href={`/?categoria=${cat.id}`}
+                className="group flex flex-col items-center gap-3 no-underline"
+              >
+                <div 
+                  className={`w-28 h-28 lg:w-32 lg:h-32 rounded-full bg-gradient-to-br ${cat.gradient} flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:shadow-2xl transform ${index % 2 === 0 ? 'rotate-3' : '-rotate-2'}`}
+                  style={{ boxShadow: `0 8px 30px ${cat.shadow}` }}
+                >
+                  <Image
+                    src={`/logos/${cat.icon}`}
+                    alt={cat.label}
+                    width={72}
+                    height={72}
+                    className="w-16 h-16 lg:w-20 lg:h-20 object-contain brightness-0 invert"
+                  />
+                </div>
+                <span className={`font-accent text-sm text-[#4D4D4D] text-center tracking-wide group-hover:font-semibold transition-all duration-300 ${
+                  cat.id === 'salud' ? 'group-hover:text-[#E07A5F]' :
+                  cat.id === 'educacion' ? 'group-hover:text-[#F3A712]' :
+                  cat.id === 'pobreza' ? 'group-hover:text-[#BF1363]' :
+                  cat.id === 'seguridad' ? 'group-hover:text-[#3777FF]' :
+                  cat.id === 'inversion' ? 'group-hover:text-[#FF7F11]' :
+                  'group-hover:text-[#3777FF]'
+                }`}>
+                  {cat.label}
+                </span>
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* KPI Grid */}
-      <section className="px-6 lg:px-8">
-        <h2 className="font-display text-xl text-[#00074E] mb-4 tracking-tight">
-          Indicadores Clave
-        </h2>
+      {/* KPI Section */}
+      <section className="px-6 lg:px-8 py-8 relative">
+        {/* Section header */}
+        <div className="flex items-center gap-3 mb-6">
+          <div className="bg-gradient-to-br from-[#3777FF] to-[#1E9AD8] p-3 rounded-xl shadow-lg">
+            <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+          </div>
+          <div>
+            <h2 className="font-display text-2xl lg:text-3xl text-[#00074E] tracking-tight">
+              Indicadores Clave
+            </h2>
+            {metadata?.ultimaActualizacion && (
+              <p className="font-body text-sm text-[#4D4D4D]/70">
+                Actualizado: {new Date(metadata.ultimaActualizacion).toLocaleDateString("es-AR", { day: "numeric", month: "short", year: "numeric" })}
+              </p>
+            )}
+          </div>
+        </div>
+        
         {loading && source === "supabase" ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1E9AD8]" />
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FF7F11]" />
             <span className="ml-3 font-body text-[#4D4D4D]">Cargando indicadores...</span>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
             {/* Pobreza */}
             {pobreza ? (
               <KpiCard
@@ -313,7 +332,7 @@ export default function HomePage() {
               />
             )}
             
-            {/* Demografía (población adolescente) */}
+            {/* Demografía */}
             {demografia ? (
               <KpiCard
                 title={demografia.nombre || "Adolescentes"}
@@ -355,7 +374,7 @@ export default function HomePage() {
               />
             )}
             
-            {/* Inversión - buscar datos de presupuesto/ejecución */}
+            {/* Inversión */}
             {inversion ? (
               <KpiCard
                 title={inversion.nombre || "Inversión social"}
@@ -379,42 +398,57 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* Quick Stats */}
-      <section className="px-6 lg:px-8">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Población - navy accent */}
-          <div className="relative bg-white rounded-xl border border-[#E0E0E0] p-5 text-center overflow-hidden group hover:shadow-lg transition-shadow duration-300">
-            <div className="absolute inset-0 bg-gradient-to-b from-[#00074E]/5 to-transparent" />
-            <div className="absolute top-0 left-0 right-0 h-1 bg-[#00074E]" />
-            <p className="font-display text-4xl lg:text-5xl text-[#00074E] relative z-10">3.892.456</p>
-            <p className="font-accent text-xs text-[#4D4D4D] mt-3 tracking-wide relative z-10">Población total 0-17</p>
-          </div>
+      {/* Quick Stats - Playful design */}
+      <section className="px-6 lg:px-8 pb-12">
+        <div className="bg-gradient-to-br from-[#00074E] to-[#1a1a5e] rounded-3xl p-8 lg:p-10 relative overflow-hidden">
+          {/* Decorative elements */}
+          <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-[#FF7F11]/10 blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full bg-[#3777FF]/10 blur-3xl" />
           
-          {/* Salud - terracotta accent */}
-          <div className="relative bg-white rounded-xl border border-[#E0E0E0] p-5 text-center overflow-hidden group hover:shadow-lg transition-shadow duration-300">
-            <div className="absolute inset-0 bg-gradient-to-b from-[#E07A5F]/5 to-transparent" />
-            <div className="absolute top-0 left-0 right-0 h-1 bg-[#E07A5F]" />
-            <p className="font-display text-4xl lg:text-5xl text-[#E07A5F] relative z-10">847</p>
-            <p className="font-accent text-xs text-[#4D4D4D] mt-3 tracking-wide relative z-10">Centros de salud</p>
-          </div>
-          
-          {/* Educación - amber accent */}
-          <div className="relative bg-white rounded-xl border border-[#E0E0E0] p-5 text-center overflow-hidden group hover:shadow-lg transition-shadow duration-300">
-            <div className="absolute inset-0 bg-gradient-to-b from-[#F3A712]/5 to-transparent" />
-            <div className="absolute top-0 left-0 right-0 h-1 bg-[#F3A712]" />
-            <p className="font-display text-4xl lg:text-5xl text-[#F3A712] relative z-10">2.341</p>
-            <p className="font-accent text-xs text-[#4D4D4D] mt-3 tracking-wide relative z-10">Establecimientos educativos</p>
-          </div>
-          
-          {/* Vacunación - magenta accent */}
-          <div className="relative bg-white rounded-xl border border-[#E0E0E0] p-5 text-center overflow-hidden group hover:shadow-lg transition-shadow duration-300">
-            <div className="absolute inset-0 bg-gradient-to-b from-[#BF1363]/5 to-transparent" />
-            <div className="absolute top-0 left-0 right-0 h-1 bg-[#BF1363]" />
-            <p className="font-display text-4xl lg:text-5xl text-[#BF1363] relative z-10">95,1%</p>
-            <p className="font-accent text-xs text-[#4D4D4D] mt-3 tracking-wide relative z-10">Cobertura vacunal</p>
+          <div className="relative grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+            {/* Población */}
+            <div className="text-center group">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#3777FF] to-[#1E9AD8] flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <Users className="w-8 h-8 text-white" />
+              </div>
+              <p className="font-display text-3xl lg:text-4xl text-white mb-1">3.892.456</p>
+              <p className="font-accent text-xs lg:text-sm text-white/60 tracking-wide">Población 0-17 años</p>
+            </div>
+            
+            {/* Centros de salud */}
+            <div className="text-center group">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#E07A5F] to-[#BF1363] flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <Heart className="w-8 h-8 text-white" />
+              </div>
+              <p className="font-display text-3xl lg:text-4xl text-white mb-1">847</p>
+              <p className="font-accent text-xs lg:text-sm text-white/60 tracking-wide">Centros de salud</p>
+            </div>
+            
+            {/* Establecimientos educativos */}
+            <div className="text-center group">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#F3A712] to-[#FF7F11] flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <BookOpen className="w-8 h-8 text-white" />
+              </div>
+              <p className="font-display text-3xl lg:text-4xl text-white mb-1">2.341</p>
+              <p className="font-accent text-xs lg:text-sm text-white/60 tracking-wide">Establecimientos educativos</p>
+            </div>
+            
+            {/* Cobertura vacunal */}
+            <div className="text-center group">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#BF1363] to-[#9a0f4f] flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              </div>
+              <p className="font-display text-3xl lg:text-4xl text-white mb-1">95,1%</p>
+              <p className="font-accent text-xs lg:text-sm text-white/60 tracking-wide">Cobertura vacunal</p>
+            </div>
           </div>
         </div>
       </section>
+
+      {/* Footer decoration */}
+      <div className="h-8 bg-gradient-to-r from-[#FF7F11] via-[#F3A712] to-[#FF7F11]" />
     </div>
   );
 }
