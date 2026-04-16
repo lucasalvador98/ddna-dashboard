@@ -34,7 +34,7 @@ const DDNA_COLORS = {
 };
 
 export default function EducacionPage() {
-  const { data: chartData } = useChartData("educacion");
+  const { data: chartData, metadata } = useChartData("educacion");
   const escolarizacionData = chartData?.charts?.escolarizacion ?? placeholderChartData.educacion.charts.escolarizacion;
   const aprenderData = chartData?.charts?.aprender ?? placeholderChartData.educacion.charts.aprender;
 
@@ -83,6 +83,8 @@ export default function EducacionPage() {
         title="Tasa de Escolarización por Nivel"
         subtitle="Educación inicial, primaria y secundaria — Córdoba (2018-2024)"
         color="amber"
+        fuente={metadata?.fuente}
+        ultimaActualizacion={metadata?.ultimaActualizacion}
       >
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
@@ -173,6 +175,8 @@ export default function EducacionPage() {
         title="Resultados Aprender por Área"
         subtitle="Porcentaje de estudiantes por nivel de logro — Último período"
         color="amber"
+        fuente={metadata?.fuente}
+        ultimaActualizacion={metadata?.ultimaActualizacion}
       >
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">

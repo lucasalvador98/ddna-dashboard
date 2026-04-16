@@ -25,18 +25,22 @@ function formatValue(valor: string, unidad: string): string {
 }
 
 export default function HomePage() {
-  const { data, loading, source } = useIndicadores();
-
-  // Use real data if available, otherwise fallback to placeholders
-  const displayData = data.length > 0 ? data : kpisPlaceholder;
-
-  // Extract latest KPI per category
-  const pobreza = displayData.find((d) => d.categoria === "pobreza") || kpisPlaceholder.find((p) => p.categoria === "pobreza");
-  const salud = displayData.find((d) => d.categoria === "salud") || kpisPlaceholder.find((p) => p.categoria === "salud");
-  const educacion = displayData.find((d) => d.categoria === "educacion") || kpisPlaceholder.find((p) => p.categoria === "educacion");
-  const inversion = displayData.find((d) => d.categoria === "inversion") || kpisPlaceholder.find((p) => p.categoria === "inversion");
-  const demografia = displayData.find((d) => d.categoria === "demografia") || kpisPlaceholder.find((p) => p.categoria === "demografia");
-  const seguridad = displayData.find((d) => d.categoria === "seguridad") || kpisPlaceholder.find((p) => p.categoria === "seguridad");
+  const { data, loading, source, metadata } = useIndicadores();
+  
+  // Get the latest value for each category from real data
+  const getLatestByCategory = (cat: string) => {
+    const categoryData = data.filter(d => d.categoria === cat);
+    if (categoryData.length === 0) return null;
+    // Return the first one (most recent since we order by periodo desc)
+    return categoryData[0];
+  };
+  
+  const pobreza = getLatestByCategory("pobreza");
+  const salud = getLatestByCategory("salud");
+  const educacion = getLatestByCategory("educacion");
+  const inversion = getLatestByCategory("inversion");
+  const demografia = getLatestByCategory("demografia");
+  const seguridad = getLatestByCategory("seguridad");
 
   return (
     <div className="space-y-8">
@@ -79,13 +83,25 @@ export default function HomePage() {
             Defensoría de los Derechos de Niñas, Niños y Adolescentes — Provincia de Córdoba
           </p>
           
-          <div className="mt-6 flex flex-wrap gap-4">
-            <div className="flex items-center gap-2 font-body text-sm text-[#FFE2BF]">
-              Fuente: {source === "supabase" ? "Base de datos DDNA" : "Valores referenciales"}
+          <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+            <div className="flex items-center gap-2 text-[#FFE2BF]">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="font-body">
+                Fuente: {metadata?.fuente === "api" ? "API externa" : metadata?.fuente === "manual" ? "Carga manual" : (source === "supabase" ? "Base de datos DDNA" : "Valores referenciales")}
+              </span>
             </div>
-            <div className="font-body text-sm text-[#A7DBF9]">
-              Fuente: {source === "supabase" ? "Base de datos DDNA" : "Valores referenciales"}
-            </div>
+            {metadata?.ultimaActualizacion && (
+              <div className="flex items-center gap-2 text-[#A7DBF9]">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span className="font-body">
+                  Actualizado: {new Date(metadata.ultimaActualizacion).toLocaleDateString("es-AR", { day: "numeric", month: "short", year: "numeric" })}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -102,75 +118,129 @@ export default function HomePage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-            {pobreza && (
+            {/* Pobreza */}
+            {pobreza ? (
               <KpiCard
                 title={pobreza.nombre}
                 value={formatValue(pobreza.valor, pobreza.unidad || "%")}
-                subtitle={pobreza.subtitulo}
+                subtitle={pobreza.subtitulo || "Porcentaje de NNA bajo línea de pobreza"}
                 change={pobreza.cambio}
                 changeType={pobreza.cambioTipo}
                 icon={categoryConfig.pobreza.icon}
                 color={categoryConfig.pobreza.color}
               />
+            ) : (
+              <KpiCard
+                title="Pobreza infantil"
+                value="—"
+                subtitle="Sin datos disponibles"
+                icon={categoryConfig.pobreza.icon}
+                color={categoryConfig.pobreza.color}
+              />
             )}
             
-            {salud && (
+            {/* Salud */}
+            {salud ? (
               <KpiCard
-                title="Mortalidad infantil"
-                value={formatValue(salud.valor, "‰")}
-                subtitle="Tasa por cada mil nacidos vivos (Córdoba)"
+                title={salud.nombre || "Mortalidad infantil"}
+                value={formatValue(salud.valor, salud.unidad || "‰")}
+                subtitle={salud.subtitulo || "Tasa por cada mil nacidos vivos (Córdoba)"}
                 change={salud.cambio}
                 changeType={salud.cambioTipo}
                 icon={categoryConfig.salud.icon}
                 color={categoryConfig.salud.color}
               />
+            ) : (
+              <KpiCard
+                title="Mortalidad infantil"
+                value="—"
+                subtitle="Sin datos disponibles"
+                icon={categoryConfig.salud.icon}
+                color={categoryConfig.salud.color}
+              />
             )}
             
-            {educacion && (
+            {/* Educación */}
+            {educacion ? (
               <KpiCard
-                title="Escolarización"
-                value={formatValue(educacion.valor, "%")}
-                subtitle="Tasa neta de escolarización"
+                title={educacion.nombre || "Escolarización"}
+                value={formatValue(educacion.valor, educacion.unidad || "%")}
+                subtitle={educacion.subtitulo || "Tasa neta de escolarización"}
                 change={educacion.cambio}
                 changeType={educacion.cambioTipo}
                 icon={categoryConfig.educacion.icon}
                 color={categoryConfig.educacion.color}
               />
-            )}
-            
-            {inversion && (
+            ) : (
               <KpiCard
-                title="Inversión social"
-                value="$58.700 Md"
-                subtitle="Destinado a infancia y adolescencia"
-                change="+14,4%"
-                changeType="up"
-                icon={categoryConfig.inversion.icon}
-                color={categoryConfig.inversion.color}
+                title="Escolarización"
+                value="—"
+                subtitle="Sin datos disponibles"
+                icon={categoryConfig.educacion.icon}
+                color={categoryConfig.educacion.color}
               />
             )}
             
-            {demografia && (
+            {/* Demografía (población adolescente) */}
+            {demografia ? (
               <KpiCard
-                title="Adolescentes"
-                value={formatValue(demografia.valor, "hab")}
-                subtitle="Población de 12-17 años"
+                title={demografia.nombre || "Adolescentes"}
+                value={formatValue(demografia.valor, demografia.unidad || "hab")}
+                subtitle={demografia.subtitulo || "Población de 12-17 años"}
                 change={demografia.cambio}
                 changeType={demografia.cambioTipo}
                 icon={categoryConfig.demografia.icon}
                 color={categoryConfig.demografia.color}
               />
+            ) : (
+              <KpiCard
+                title="Adolescentes"
+                value="—"
+                subtitle="Sin datos disponibles"
+                icon={categoryConfig.demografia.icon}
+                color={categoryConfig.demografia.color}
+              />
             )}
             
-            {seguridad && (
+            {/* Seguridad */}
+            {seguridad ? (
               <KpiCard
-                title="Denuncias"
-                value={formatValue(seguridad.valor, "casos")}
-                subtitle="Registradas en el último período"
-                change="+537"
-                changeType="up"
+                title={seguridad.nombre || "Denuncias"}
+                value={formatValue(seguridad.valor, seguridad.unidad || "casos")}
+                subtitle={seguridad.subtitulo || "Registradas en el último período"}
+                change={seguridad.cambio}
+                changeType={seguridad.cambioTipo}
                 icon={categoryConfig.seguridad.icon}
                 color={categoryConfig.seguridad.color}
+              />
+            ) : (
+              <KpiCard
+                title="Denuncias"
+                value="—"
+                subtitle="Sin datos disponibles"
+                icon={categoryConfig.seguridad.icon}
+                color={categoryConfig.seguridad.color}
+              />
+            )}
+            
+            {/* Inversión - buscar datos de presupuesto/ejecución */}
+            {inversion ? (
+              <KpiCard
+                title={inversion.nombre || "Inversión social"}
+                value={formatValue(inversion.valor, inversion.unidad || "$")}
+                subtitle={inversion.subtitulo || "Destinado a infancia y adolescencia"}
+                change={inversion.cambio}
+                changeType={inversion.cambioTipo}
+                icon={categoryConfig.inversion.icon}
+                color={categoryConfig.inversion.color}
+              />
+            ) : (
+              <KpiCard
+                title="Inversión social"
+                value="—"
+                subtitle="Sin datos disponibles"
+                icon={categoryConfig.inversion.icon}
+                color={categoryConfig.inversion.color}
               />
             )}
           </div>

@@ -35,7 +35,7 @@ const DDNA_COLORS = {
 };
 
 export default function SeguridadPage() {
-  const { data: chartData } = useChartData("seguridad");
+  const { data: chartData, metadata } = useChartData("seguridad");
   const denunciasData = chartData?.charts?.denuncias ?? placeholderChartData.seguridad.charts.denuncias;
   const tipoData = chartData?.charts?.tipo ?? placeholderChartData.seguridad.charts.tipo;
 
@@ -82,6 +82,8 @@ export default function SeguridadPage() {
         title="Denuncias Registradas"
         subtitle="Serie histórica de denuncias — Córdoba (2019-2024)"
         color="blue"
+        fuente={metadata?.fuente}
+        ultimaActualizacion={metadata?.ultimaActualizacion}
       >
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
@@ -127,6 +129,8 @@ export default function SeguridadPage() {
         title="Distribución por Tipo de Denuncia"
         subtitle="Porcentaje según tipo de vulneración — Último período"
         color="blue"
+        fuente={metadata?.fuente}
+        ultimaActualizacion={metadata?.ultimaActualizacion}
       >
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
