@@ -197,8 +197,15 @@ apis:
         url: "/series/2.5/0.0.0"
       - serie: "Pobreza"
         url: "/series/2.6/0.0.0"
-    estado: "pendiente"
+    estado: "pendiente" # Requires network access - test with: curl https://api.datos.gob.ar/v1.5/series/2.6.json
 
   indec:
     url_base: "https://www.indec.gob.ar"
     estado: "pendiente"
+
+  ckan_gestion_abierta:
+    url_base: "https://datosgestionabierta.cba.gov.ar"
+    endpoints:
+      - dataset: "beneficios-sociales-para-reducir-las-desigualdades"
+        resource: "PAICOR"
+    estado: "funcionando" # Tested 16/04/2026 - CKAN API works
