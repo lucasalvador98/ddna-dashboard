@@ -45,17 +45,32 @@ export default function HomePage() {
   return (
     <div className="space-y-8">
       {/* Welcome Section */}
-      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#00074E] via-[#00074E] to-[#00074E] p-8 text-white">
-        <div className="absolute inset-0 opacity-10">
-          <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#00074E] via-[#00074E] to-[#0a0a5e] p-8 text-white">
+        {/* Animated gradient orbs */}
+        <div className="absolute inset-0 overflow-hidden">
+          {/* Amber accent orb - top right */}
+          <div 
+            className="absolute -top-20 -right-20 w-64 h-64 rounded-full opacity-20 animate-pulse"
+            style={{ background: "radial-gradient(circle, #F3A712 0%, transparent 70%)" }}
+          />
+          {/* Magenta accent orb - bottom left */}
+          <div 
+            className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full opacity-10 animate-pulse"
+            style={{ background: "radial-gradient(circle, #BF1363 0%, transparent 70%)", animationDelay: "1s" }}
+          />
+          {/* Grid pattern overlay */}
+          <svg className="absolute inset-0 w-full h-full opacity-[0.07]">
             <defs>
-              <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
-                <path d="M 10 0 L 0 0 0 10" fill="none" stroke="currentColor" strokeWidth="0.5"/>
+              <pattern id="heroGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-[#FFE2BF]" />
               </pattern>
             </defs>
-            <rect width="100" height="100" fill="url(#grid)"/>
+            <rect width="100%" height="100%" fill="url(#heroGrid)" />
           </svg>
         </div>
+        
+        {/* Amber accent strip */}
+        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#F3A712] via-[#BF1363] to-[#FF7F11]" />
         
         <div className="relative z-10">
           <div className="flex items-center gap-4 mb-4">
@@ -275,7 +290,7 @@ export default function HomePage() {
             <span className="ml-3 font-body text-[#4D4D4D]">Cargando indicadores...</span>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
             {/* Pobreza */}
             {pobreza ? (
               <KpiCard
@@ -407,21 +422,36 @@ export default function HomePage() {
 
       {/* Quick Stats */}
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl border border-[#E0E0E0] p-4 text-center">
-          <p className="font-display text-3xl text-[#00074E]">3.892.456</p>
-          <p className="font-accent text-xs text-[#4D4D4D] mt-2 tracking-wide">Población total 0-17</p>
+        {/* Población - navy accent */}
+        <div className="relative bg-white rounded-xl border border-[#E0E0E0] p-5 text-center overflow-hidden group hover:shadow-lg transition-shadow duration-300">
+          <div className="absolute inset-0 bg-gradient-to-b from-[#00074E]/5 to-transparent" />
+          <div className="absolute top-0 left-0 right-0 h-1 bg-[#00074E]" />
+          <p className="font-display text-4xl lg:text-5xl text-[#00074E] relative z-10">3.892.456</p>
+          <p className="font-accent text-xs text-[#4D4D4D] mt-3 tracking-wide relative z-10">Población total 0-17</p>
         </div>
-        <div className="bg-white rounded-xl border border-[#E0E0E0] p-4 text-center">
-          <p className="font-display text-3xl text-[#E07A5F]">847</p>
-          <p className="font-accent text-xs text-[#4D4D4D] mt-2 tracking-wide">Centros de salud</p>
+        
+        {/* Salud - terracotta accent */}
+        <div className="relative bg-white rounded-xl border border-[#E0E0E0] p-5 text-center overflow-hidden group hover:shadow-lg transition-shadow duration-300">
+          <div className="absolute inset-0 bg-gradient-to-b from-[#E07A5F]/5 to-transparent" />
+          <div className="absolute top-0 left-0 right-0 h-1 bg-[#E07A5F]" />
+          <p className="font-display text-4xl lg:text-5xl text-[#E07A5F] relative z-10">847</p>
+          <p className="font-accent text-xs text-[#4D4D4D] mt-3 tracking-wide relative z-10">Centros de salud</p>
         </div>
-        <div className="bg-white rounded-xl border border-[#E0E0E0] p-4 text-center">
-          <p className="font-display text-3xl text-[#F3A712]">2.341</p>
-          <p className="font-accent text-xs text-[#4D4D4D] mt-2 tracking-wide">Establecimientos educativos</p>
+        
+        {/* Educación - amber accent */}
+        <div className="relative bg-white rounded-xl border border-[#E0E0E0] p-5 text-center overflow-hidden group hover:shadow-lg transition-shadow duration-300">
+          <div className="absolute inset-0 bg-gradient-to-b from-[#F3A712]/5 to-transparent" />
+          <div className="absolute top-0 left-0 right-0 h-1 bg-[#F3A712]" />
+          <p className="font-display text-4xl lg:text-5xl text-[#F3A712] relative z-10">2.341</p>
+          <p className="font-accent text-xs text-[#4D4D4D] mt-3 tracking-wide relative z-10">Establecimientos educativos</p>
         </div>
-        <div className="bg-white rounded-xl border border-[#E0E0E0] p-4 text-center">
-          <p className="font-display text-3xl text-[#BF1363]">95,1%</p>
-          <p className="font-accent text-xs text-[#4D4D4D] mt-2 tracking-wide">Cobertura vacunal</p>
+        
+        {/* Vacunación - magenta accent */}
+        <div className="relative bg-white rounded-xl border border-[#E0E0E0] p-5 text-center overflow-hidden group hover:shadow-lg transition-shadow duration-300">
+          <div className="absolute inset-0 bg-gradient-to-b from-[#BF1363]/5 to-transparent" />
+          <div className="absolute top-0 left-0 right-0 h-1 bg-[#BF1363]" />
+          <p className="font-display text-4xl lg:text-5xl text-[#BF1363] relative z-10">95,1%</p>
+          <p className="font-accent text-xs text-[#4D4D4D] mt-3 tracking-wide relative z-10">Cobertura vacunal</p>
         </div>
       </section>
     </div>

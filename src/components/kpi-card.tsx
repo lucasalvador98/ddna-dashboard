@@ -61,7 +61,7 @@ export function KpiCard({
     <article
       className={clsx(
         "bg-white rounded-xl border border-[#E0E0E0] border-l-4 p-5",
-        "transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5",
+        "transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:shadow-lg",
         colors.border
       )}
     >
