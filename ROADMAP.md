@@ -138,5 +138,76 @@ SELECT categoria, COUNT(*) FROM indicadores GROUP BY categoria;
 
 ---
 
+## 🔴 PRIORIDAD: Rediseño Frontend (Nueva Sesión)
+
+### Análisis Realizado
+
+#### 1. Sitio Oficial DDNA: https://ddna.cba.gov.ar/
+El sitio oficial tiene:
+- **Colores**: Naranja (#FF7F11), Azul (#3777FF), Blanco
+- **Fuentes**: Epilogue (títulos), Caprasimo (display)
+- **Estructura**: Grid de accesos rápidos con íconos circulares
+- **Banner principal**: Gif animado con logo
+- **Navegación**: Menú horizontal con dropdowns
+
+#### 2. Recursos de Identidad (en Monitoreo/Recursos Identidad)
+- **Logos**: DDNA_HORIZONTAL_COLOR.png, DDNA_VERTICAL_COLOR.png, SIGLAS.png
+- **Fuentes**: Epilogue-VariableFont_wght.ttf, Caprasimo-Regular.ttf
+- **Paleta de colores**: Definida en Tema.json
+- **Elementos gráficos**: 7 recursos visuales
+
+---
+
+### Tareas para Rediseño
+
+#### A) Aplicar Identidad Visual DDNA
+- [ ] **A.1** Importar fuentes oficiales (Epilogue, Caprasimo) en el proyecto
+- [ ] **A.2** Actualizar tailwind.config.js con colores institucionales DDNA
+- [ ] **A.3** Agregar logos oficiales al header (horizontal y vertical)
+- [ ] **A.4** Crear componente de header/navbar estilo sitio oficial
+
+#### B) Rediseñar Página Principal
+- [ ] **B.1** Cambiar fondo azul sólido por diseño más dinámico (gradiente o imagen)
+- [ ] **B.2** Crear grid de acceso rápido estilo sitio oficial (círculos con íconos)
+- [ ] **B.3** Agregar banner principal animado o estático
+- [ ] **B.4** reorganizar KPIs en grid más visual
+
+#### C) Mejoras de Diseño
+- [ ] **C.1** Usar border-radius más suave en cards (similar al sitio)
+- [ ] **C.2** Agregar efectos hover en elementos interactivos
+- [ ] **C.3** Mejorar tipografía (tamaños, spacing)
+- [ ] **C.4** Añadir iconos más representativos por categoría
+
+#### D) Optimización (ya planned)
+- [ ] **D.1** Agregar lazy loading para páginas de categorías
+- [ ] **D.2** Añadir loading skeletons
+
+---
+
+## Notas de Diseño del Sitio Oficial
+
+```css
+/* Colores principales */
+--naranja: #FF7F11
+--azul: #3777FF
+--blanco: #FFFFFF
+
+/* Fuentes */
+font-family: 'Epilogue', sans-serif;  /* Texto */
+font-family: 'Caprasimo', display;    /* Títulos */
+
+/* Estilo de botones/links */
+border-radius: 50%  /* Círculos para acceso rápido */
+```
+
+### Archivos de Identidad a Usar
+- `Recursos Identidad/Fonts/Fonts/Epilogue-VariableFont_wght.ttf`
+- `Recursos Identidad/Fonts/Fonts/Caprasimo-Regular.ttf`
+- `Recursos Identidad/Elementos/LOGO DDNA_HORIZONTAL_COLOR.png`
+- `Recursos Identidad/Elementos/LOGO DDNA_VERTICAL_COLOR.png`
+- `Recursos Identidad/Elementos/SIGLAS.png`
+
+---
+
 *Última actualización: 2026-04-16*
-*Estado: Listo para continuar desarrollo*
+*Estado: Listo para sesión de rediseño*
