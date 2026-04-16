@@ -138,7 +138,7 @@ html {
 }
 
 body {
-  background-color: var(--ddna-background);
+  background-color: #FFFFFF;
   color: var(--ddna-text);
   font-family: var(--font-epilogue), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
