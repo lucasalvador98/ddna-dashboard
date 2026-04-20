@@ -102,7 +102,7 @@ def generate_upsert_sql(
     # Escribir archivo
     content = "\n".join(lines)
     filepath.write_text(content, encoding="utf-8")
-    print(f"✅ SQL generado: {filepath} ({len(records)} registros, {len(indicadores_unicos)} indicadores)")
+    print(f"[OK] SQL generado: {filepath} ({len(records)} registros, {len(indicadores_unicos)} indicadores)")
 
     return filepath
 
@@ -149,21 +149,13 @@ def generate_combined_sql(
     lines.append("-- ============================================================")
     for key, ind in indicadores_unicos.items():
         ind_id = _deterministic_uuid(ind["nombre"], ind["categoria"])
+        nombre = ind["nombre"]
+        categoria = ind["categoria"]
+        descripcion = f"Datos de {nombre}"
         lines.append(
             f"INSERT INTO indicadores (id, categoria, nombre, descripcion, unidad, frecuencia_actualizacion, orden, activo)\n"
-            f"VALUES (\n"
-            f"  '{ind_id}',\n"
-            f"  '{ind['categoria']}',\n"
-            f"  {sql_escape(ind['nombre'])},\n"
-            f"  {sql_escape(f'Datos de {ind[\"nombre\"]}')},\n"
-            f"  {sql_escape(ind['unidad'])},\n"
-            f"  'anual',\n"
-            f"  0,\n"
-            f"  true\n"
-            f")\n"
-            f"ON CONFLICT (id) DO UPDATE SET\n"
-            f"  nombre = EXCLUDED.nombre,\n"
-            f"  unidad = EXCLUDED.unidad;"
+            f"VALUES ('{ind_id}', '{categoria}', {sql_escape(nombre)}, {sql_escape(descripcion)}, {sql_escape(ind['unidad'])}, 'anual', 0, true)\n"
+            f"ON CONFLICT (id) DO UPDATE SET nombre = EXCLUDED.nombre, unidad = EXCLUDED.unidad;"
         )
         lines.append("")
 
@@ -174,40 +166,34 @@ def generate_combined_sql(
         lines.append(f"-- DATOS: {category.upper()} ({len(records)} registros)")
         lines.append("-- ============================================================")
         for rec in records:
-            ind_id = _deterministic_uuid(rec["indicador_nombre"], rec["categoria"])
-            dato_id = _deterministic_uuid(
-                f"{rec['indicador_nombre']}:{rec['categoria']}:{rec['periodo']}:{rec['region']}"
-            )
+            ind_nombre = rec["indicador_nombre"]
+            cat = rec["categoria"]
+            periodo = rec["periodo"]
+            region = rec["region"]
+            valor = rec["valor"]
+            ind_id = _deterministic_uuid(ind_nombre, cat)
+            dato_id = _deterministic_uuid(f"{ind_nombre}:{cat}:{periodo}:{region}")
             desglose = rec.get("desglose", "{}")
             if isinstance(desglose, dict):
                 desglose = json.dumps(desglose)
 
             lines.append(
                 f"INSERT INTO datos_indicadores (id, indicador_id, valor, periodo, region, desglose)\n"
-                f"VALUES (\n"
-                f"  '{dato_id}',\n"
-                f"  '{ind_id}',\n"
-                f"  {rec['valor']},\n"
-                f"  {sql_escape(rec['periodo'])},\n"
-                f"  {sql_escape(rec['region'])},\n"
-                f"  {sql_escape(desglose)}::jsonb\n"
-                f")\n"
-                f"ON CONFLICT (id) DO UPDATE SET\n"
-                f"  valor = EXCLUDED.valor,\n"
-                f"  desglose = EXCLUDED.desglose;"
+                f"VALUES ('{dato_id}', '{ind_id}', {valor}, {sql_escape(periodo)}, {sql_escape(region)}, {sql_escape(desglose)}::jsonb)\n"
+                f"ON CONFLICT (id) DO UPDATE SET valor = EXCLUDED.valor, desglose = EXCLUDED.desglose;"
             )
             lines.append("")
 
     content = "\n".join(lines)
     filepath.write_text(content, encoding="utf-8")
-    print(f"✅ SQL combinado generado: {filepath} ({len(all_records_flat)} registros totales)")
+    print(f"[OK] SQL combinado generado: {filepath} ({len(all_records_flat)} registros totales)")
     return filepath
 
 
 def _deterministic_uuid(*args: str) -> str:
     """Genera un UUID5 determinista a partir de strings para IDs reproducibles."""
     import hashlib
-    namespace = uuid.UUID("ddna-dashboard-0000-0000-000000000000")
+    namespace = uuid.UUID("6ba7b810-9dad-11d1-80b4-00c04fd430c8")  # URL namespace
     combined = "|".join(str(a) for a in args)
     return str(uuid.uuid5(namespace, combined))
 

@@ -94,7 +94,7 @@ def cmd_transform(args: argparse.Namespace) -> None:
         )
         logger.info("JSON guardado: %s", json_path)
 
-    print(f"\n✅ Transformación completa: {total} registros en {len(all_records)} categorías")
+    print(f"\n[OK] Transformacion completa: {total} registros en {len(all_records)} categorias")
 
     # Guardar resumen combinado
     summary_path = OUTPUT_DIR / "transform_summary.json"
@@ -106,7 +106,7 @@ def cmd_transform(args: argparse.Namespace) -> None:
         json.dumps(summary, indent=2, ensure_ascii=False),
         encoding="utf-8",
     )
-    print(f"📊 Resumen: {json.dumps(summary, ensure_ascii=False)}")
+    print(f"[INFO] Resumen: {json.dumps(summary, ensure_ascii=False)}")
 
 
 def cmd_load(args: argparse.Namespace) -> None:
@@ -114,7 +114,7 @@ def cmd_load(args: argparse.Namespace) -> None:
     # Buscar archivos JSON transformados
     json_files = list(OUTPUT_DIR.glob("*_transformed.json"))
     if not json_files:
-        print("❌ No hay archivos transformados. Ejecute 'transform' primero.")
+        print("[ERROR] No hay archivos transformados. Ejecute 'transform' primero.")
         return
 
     all_records: dict[str, list] = {}
@@ -122,17 +122,17 @@ def cmd_load(args: argparse.Namespace) -> None:
         category = json_file.stem.replace("_transformed", "")
         records = json.loads(json_file.read_text(encoding="utf-8"))
         all_records[category] = records
-        print(f"📂 Cargados {len(records)} registros de {category}")
+        print(f"[LOAD] Cargados {len(records)} registros de {category}")
 
     if args.method == "sql":
         # Generar SQL por categoría
         for category, records in all_records.items():
             path = generate_upsert_sql(records, category)
-            print(f"  📄 SQL de {category}: {path}")
+            print(f"  [SQL] SQL de {category}: {path}")
 
         # Generar SQL combinado
         combined_path = generate_combined_sql(all_records)
-        print(f"\n✅ SQL combinado: {combined_path}")
+        print(f"\n[OK] SQL combinado: {combined_path}")
 
     elif args.method == "api":
         # Cargar vía API
@@ -145,23 +145,23 @@ def cmd_load(args: argparse.Namespace) -> None:
 
             confirm = input("\n¿Continuar con la carga? (sí/no): ")
             if confirm.lower() not in ("sí", "si", "s", "yes", "y"):
-                print("❌ Carga cancelada.")
+                print("[ERROR] Carga cancelada.")
                 return
 
             total_inserted = 0
             for category, records in all_records.items():
                 inserted = loader.insert_datos(records)
                 total_inserted += inserted
-                print(f"  ✅ {category}: {inserted}/{len(records)} registros insertados")
+                print(f"  [OK] {category}: {inserted}/{len(records)} registros insertados")
 
-            print(f"\n✅ Total insertados: {total_inserted}")
+            print(f"\n[OK] Total insertados: {total_inserted}")
 
         except ValueError as e:
-            print(f"❌ Error: {e}")
+            print(f"[ERROR] Error: {e}")
             print("💡 Use --method sql para generar SQL y ejecutarlo manualmente en Supabase SQL Editor.")
 
     else:
-        print(f"❌ Método no reconocido: {args.method}. Use 'sql' o 'api'.")
+        print(f"[ERROR] Método no reconocido: {args.method}. Use 'sql' o 'api'.")
 
 
 def cmd_etl(args: argparse.Namespace) -> None:

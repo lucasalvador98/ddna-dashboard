@@ -6,8 +6,10 @@ def clean_column_names(df):
     return df
 
 def find_data_files(category, data_files):
-    """Placeholder: return empty list."""
-    return []
+    """Return list of existing files for a category."""
+    files = data_files.get(category, [])
+    existing = [f for f in files if f.exists()]
+    return existing
 
 def read_excel_file(path: str):
     """Return a dict of sheet name to DataFrame or fallback data."""

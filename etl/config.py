@@ -28,25 +28,24 @@ DATA_FILES: dict[str, list[Path]] = {
         RAW_DATA_DIR / "deis" / "datosDeis-2024-07-26 (3).xlsx",
         RAW_DATA_DIR / "deis" / "Mortalidad infantil Nacion-Provincia.xlsx",
         RAW_DATA_DIR / "deis" / "Edad_Madre 2022.xlsx",
-        RAW_DATA_DIR / "censo-2022" / "Cobertura_Salud-Censo.xlsx",
+        RAW_DATA_DIR / "censo-2022" / "salud" / "Cobertura_Salud-Censo.xlsx",
     ],
     "educacion": [
-        RAW_DATA_DIR / "censo-2022" / "Educacion por nivel.xlsx",
-        RAW_DATA_DIR / "censo-2022" / "Educacion por edades.xlsx",
-        RAW_DATA_DIR / "aprender" / "Educacion Provincia.xlsx",
+        RAW_DATA_DIR / "censo-2022" / "educacion" / "Educacion por nivel.xlsx",
+        RAW_DATA_DIR / "censo-2022" / "educacion" / "Educacion por edades.xlsx",
+        RAW_DATA_DIR / "educacion" / "Educacion Provincia.xlsx",
+        RAW_DATA_DIR / "aprender" / "aprender 2024.xlsx",
     ],
     "pobreza": [
-        RAW_DATA_DIR / "pobreza" / "cuadros_informe_pobreza_09_24 (1).xls",
-        RAW_DATA_DIR / "pobreza" / "Encoprac 16 a 24 años.xlsx",
-        RAW_DATA_DIR / "pobreza" / "cuadros_encoprac_2022.xlsx",
+        RAW_DATA_DIR / "pobreza" / "cuadros_informe_pobreza_09_24 (1).xlsx",
     ],
     "seguridad": [
         RAW_DATA_DIR / "justicia" / "Justicia_cba_2022.xlsx",
     ],
     "demografia": [
-        RAW_DATA_DIR / "censo-2022" / "censo poblacion.xlsx",
+        RAW_DATA_DIR / "censo-2022" / "demografia" / "censo poblacion.xlsx",
     ],
-    "inversion": [],  # Sin archivos aún
+    "inversion": [],  # Sin archivos aun
 }
 
 # ── Unidades permitidas ──
