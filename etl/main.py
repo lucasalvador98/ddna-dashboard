@@ -31,6 +31,7 @@ from etl.transform.educacion import transform_educacion
 from etl.transform.pobreza import transform_pobreza
 from etl.transform.seguridad import transform_seguridad
 from etl.transform.demografia import transform_demografia
+from etl.transform.inversion import transform_inversion
 from etl.load.sql_generator import generate_upsert_sql, generate_combined_sql
 from etl.load.supabase_loader import SupabaseLoader
 
@@ -47,6 +48,7 @@ TRANSFORMERS = {
     "pobreza": transform_pobreza,
     "seguridad": transform_seguridad,
     "demografia": transform_demografia,
+    "inversion": transform_inversion,
 }
 
 

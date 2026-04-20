@@ -29,12 +29,19 @@ DATA_FILES: dict[str, list[Path]] = {
         RAW_DATA_DIR / "deis" / "Mortalidad infantil Nacion-Provincia.xlsx",
         RAW_DATA_DIR / "deis" / "Edad_Madre 2022.xlsx",
         RAW_DATA_DIR / "censo-2022" / "salud" / "Cobertura_Salud-Censo.xlsx",
+        RAW_DATA_DIR / "salud_adolescente" / "salud adolescente deis.xlsx",
     ],
     "educacion": [
         RAW_DATA_DIR / "censo-2022" / "educacion" / "Educacion por nivel.xlsx",
         RAW_DATA_DIR / "censo-2022" / "educacion" / "Educacion por edades.xlsx",
         RAW_DATA_DIR / "educacion" / "Educacion Provincia.xlsx",
+        RAW_DATA_DIR / "educacion" / "Datos escolarizacion.xlsx",
         RAW_DATA_DIR / "aprender" / "aprender 2024.xlsx",
+        RAW_DATA_DIR / "anuario_educacion" / "2.1. RESUMEN 2024.xlsx",
+        RAW_DATA_DIR / "anuario_educacion" / "2.2. INICIAL 2024.xlsx",
+        RAW_DATA_DIR / "anuario_educacion" / "2.3. PRIMARIO 2024.xlsx",
+        RAW_DATA_DIR / "anuario_educacion" / "2.4. SECUNDARIO 2024.xlsx",
+        RAW_DATA_DIR / "anuario_educacion" / "2.5. SUPERIOR 2024.xlsx",
     ],
     "pobreza": [
         RAW_DATA_DIR / "pobreza" / "cuadros_informe_pobreza_09_24 (1).xlsx",
@@ -45,7 +52,9 @@ DATA_FILES: dict[str, list[Path]] = {
     "demografia": [
         RAW_DATA_DIR / "censo-2022" / "demografia" / "censo poblacion.xlsx",
     ],
-    "inversion": [],  # Sin archivos aun
+    "inversion": [
+        RAW_DATA_DIR / "inversion" / "BASE DE DATOS.xlsx",
+    ],
 }
 
 # ── Unidades permitidas ──
