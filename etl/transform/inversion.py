@@ -17,8 +17,6 @@ logger = logging.getLogger(__name__)
 def transform_inversion() -> list[dict[str, Any]]:
     """
     Transforma los archivos de inversion social en registros de datos_indicadores.
-
-    Retorna lista de dicts con: indicador_nombre, categoria, valor, periodo, region, desglose, unidad.
     """
     files = find_data_files("inversion", DATA_FILES)
     if not files:
@@ -43,7 +41,6 @@ def transform_inversion() -> list[dict[str, Any]]:
             if df.empty:
                 continue
 
-            # Transformar datos de inversion
             records.extend(_transform_inversion(df, filepath.name, sheet_name))
 
     logger.info("Transformacion de inversion completa: %d registros", len(records))
@@ -51,82 +48,85 @@ def transform_inversion() -> list[dict[str, Any]]:
 
 
 def _transform_inversion(df, filename, sheet_name):
-    """Transforma un DataFrame de inversion."""
+    """Transforma un DataFrame de inversion social."""
     records = []
-
-    # Buscar columnas relevantes
     cols = list(df.columns)
-    logger.info("Columnas en %s / %s: %s", filename, sheet_name, cols)
+    logger.info("Columnas en %s / %s (%d cols)", filename, sheet_name, len(cols))
 
-    # Buscar columnas de año/ejercicio, concepto, monto, etc.
-    # Normalizar nombres de columnas
+    # Map columns de Presupuesto/Gestion
     col_map = {}
     for col in cols:
-        col_lower = col.lower().strip()
-        if any(kw in col_lower for kw in ["ejercicio", "año", "year", "periodo"]):
-            col_map["periodo"] = col
-        elif any(kw in col_lower for kw in ["concepto", "descripcion", "programa", "jurisdiccion"]):
-            col_map["concepto"] = col
-        elif any(kw in col_lower for kw in ["monto", "importe", "monto ejecutado", "presupuesto", "monto inicial"]):
-            col_map["monto"] = col
-        elif any(kw in col_lower for kw in [" Areas", "area", "secretaria", "area"]):
-            col_map["area"] = col
-        elif any(kw in col_lower for kw in ["destino", "poblacion", "niños", "nna", "infancia"]):
-            col_map["destino"] = col
+        col_lower = col.lower().strip().replace("ñ", "n").replace("á", "a").replace("é", "e").replace("í", "i").replace("ó", "o").replace("ú", "u")
+        if "año" in col_lower:
+            col_map["año"] = col
+        elif "programa" in col_lower:
+            col_map["programa"] = col
+        elif "jurisdiccion" in col_lower:
+            col_map["jurisdiccion"] = col
+        elif "devengado" in col_lower:
+            col_map["devengado"] = col
+        elif "pagado" in col_lower:
+            col_map["pagado"] = col
+        elif "compromiso" in col_lower:
+            col_map["compromiso"] = col
+        elif "presupuesto vigente" in col_lower:
+            col_map["presupuesto"] = col
+        elif "ponderador" in col_lower:
+            col_map["ponderador"] = col
+        elif "categoria" in col_lower:
+            col_map["categoria"] = col
+        elif "subcategoria" in col_lower:
+            col_map["subcategoria"] = col
 
-    periodo_col = col_map.get("periodo")
-    concepto_col = col_map.get("concepto")
-    monto_col = col_map.get("monto")
-    area_col = col_map.get("area")
+    año_col = col_map.get("año")
+    prog_col = col_map.get("programa")
+    jur_col = col_map.get("jurisdiccion")
+    dev_col = col_map.get("devengado")
+    pag_col = col_map.get("pagado")
+    cat_col = col_map.get("categoria")
+    subcat_col = col_map.get("subcategoria")
 
-    if not monto_col:
-        logger.warning("No se encontro columna de monto en %s / %s", filename, sheet_name)
-        # Intentar procesar como tabla simple
+    # Si tenemos columnas, procesar
+    if dev_col or pag_col:
         for _, row in df.iterrows():
             if row.isna().all():
                 continue
-            # Tomar primera columna como indicador, segunda como valor
-            vals = [v for v in row.values if pd.notna(v)]
-            if len(vals) >= 2:
-                records.append({
-                    "indicador_nombre": str(vals[0])[:100],
-                    "categoria": "inversion",
-                    "valor": _extract_number(vals[1]),
-                    "periodo": "2024",
-                    "region": "Córdoba",
-                    "unidad": "Md",
-                    "desglose": "{}",
-                })
-        return records
 
-    # Procesar como tabla de inversion estructurada
-    for _, row in df.iterrows():
-        if row.isna().all():
-            continue
+            año = str(int(row[año_col])) if año_col and pd.notna(row[año_col]) else "2024"
+            programa = str(row[prog_col]) if prog_col and pd.notna(row[prog_col]) else "Sin programa"
+            jurisdiccion = str(row[jur_col]) if jur_col and pd.notna(row[jur_col]) else "Córdoba"
 
-        periodo = str(row.get(periodo_col, "2024")) if periodo_col else "2024"
-        concepto = str(row.get(concepto_col)) if concepto_col else "Inversion social"
-        monto = _extract_number(row.get(monto_col)) if monto_col else 0
+            devengado = _extract_number(row[dev_col]) if dev_col and pd.notna(row[dev_col]) else 0
+            pagado = _extract_number(row[pag_col]) if pag_col and pd.notna(row[pag_col]) else 0
 
-        if monto is None or monto == 0:
-            continue
+            # Solo guardar si tienen valores > 0
+            if devengado is None and pagado is None:
+                continue
+            valor = devengado if devengado else pagado
+            if valor == 0:
+                continue
 
-        desglose = {}
-        if area_col:
-            desglose["area"] = str(row.get(area_col))
-        if concepto_col:
-            desglose["concepto"] = str(row.get(concepto_col))
+            desglose = {
+                "programa": programa[:100],
+                "jurisdiccion": jurisdiccion[:100],
+            }
+            if cat_col and pd.notna(row[cat_col]):
+                desglose["categoria"] = str(row[cat_col])[:50]
+            if subcat_col and pd.notna(row[subcat_col]):
+                desglose["subcategoria"] = str(row[subcat_col])[:50]
 
-        records.append({
-            "indicador_nombre": "Inversion social en infancia",
-            "categoria": "inversion",
-            "valor": monto,
-            "periodo": str(periodo)[:4],
-            "region": "Córdoba",
-            "unidad": "Md",
-            "desglose": json.dumps(desglose),
-        })
+            records.append({
+                "indicador_nombre": "Inversion social en infancia",
+                "categoria": "inversion",
+                "valor": valor,
+                "periodo": año,
+                #region": "Córdoba",  # Usamos jurisdiccion como region
+                "region": jurisdiccion[:50] if jurisdiccion else "Córdoba",
+                "unidad": "Md",
+                "desglose": json.dumps(desglose),
+            })
 
+    logger.info(" Transformados %d registros de inversion", len(records))
     return records
 
 
@@ -138,7 +138,6 @@ def _extract_number(val):
     if isinstance(val, (int, float)):
         return float(val)
 
-    # String: remover simbolos de moneda, espacios, etc.
     val_str = str(val).strip()
     val_str = val_str.replace("$", "").replace(".", "").replace(",", ".").replace(" ", "")
 

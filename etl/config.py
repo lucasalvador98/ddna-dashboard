@@ -53,7 +53,7 @@ DATA_FILES: dict[str, list[Path]] = {
         RAW_DATA_DIR / "censo-2022" / "demografia" / "censo poblacion.xlsx",
     ],
     "inversion": [
-        RAW_DATA_DIR / "inversion" / "BASE DE DATOS.xlsx",
+        RAW_DATA_DIR / "inversion" / "BASE DE DATOS ANDRES VERIFICAR SI ESTA OK.xlsx",
     ],
 }
 
