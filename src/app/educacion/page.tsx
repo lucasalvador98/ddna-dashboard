@@ -164,7 +164,7 @@ export default function EducacionPage() {
                   border: "1px solid #E0E0E0",
                   borderRadius: "8px",
                 }}
-                formatter={(value: number) => [`${value}%`, "Tasa"]}
+                formatter={(value) => [`${value ?? 0}%`, "Tasa"]}
               />
               <Legend />
               <Line

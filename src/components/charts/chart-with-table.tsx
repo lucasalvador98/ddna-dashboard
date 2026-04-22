@@ -207,7 +207,7 @@ export function SimpleLineChart({
         <YAxis
           tick={{ fill: "#4D4D4D", fontSize: 12 }}
           tickLine={{ stroke: "#E0E0E0" }}
-          tickFormatter={(v) => `${v}${unit}`}
+          tickFormatter={(v: number | string) => `${v ?? 0}${unit}`}
         />
         <Tooltip
           contentStyle={{
@@ -215,7 +215,7 @@ export function SimpleLineChart({
             border: "1px solid #E0E0E0",
             borderRadius: "8px",
           }}
-          formatter={(value: number) => [`${value}${unit}`, "Valor"]}
+          formatter={(value: number | string) => [`${value ?? 0}${unit}`, "Valor"]}
         />
         <Line
           type="monotone"
@@ -270,7 +270,7 @@ export function SimpleBarChart({
         <YAxis
           tick={{ fill: "#4D4D4D", fontSize: 12 }}
           tickLine={{ stroke: "#E0E0E0" }}
-          tickFormatter={(v) => `${v}${unit}`}
+          tickFormatter={(v: number | string) => `${v ?? 0}${unit}`}
         />
         <Tooltip
           contentStyle={{
@@ -278,7 +278,7 @@ export function SimpleBarChart({
             border: "1px solid #E0E0E0",
             borderRadius: "8px",
           }}
-          formatter={(value: number) => [`${value}${unit}`, "Valor"]}
+          formatter={(value: number | string) => [`${value ?? 0}${unit}`, "Valor"]}
         />
         <Bar dataKey="value" fill={color} radius={[4, 4, 0, 0]} />
       </BarChart>

@@ -102,7 +102,7 @@ export default function SeguridadPage() {
               <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" horizontal={false} />
               <XAxis type="number" tick={{ fill: "#4D4D4D", fontSize: 12 }} />
               <YAxis type="category" dataKey="name" tick={{ fill: "#4D4D4D", fontSize: 11 }} width={90} />
-              <Tooltip contentStyle={{ backgroundColor: "#FFF", border: "1px solid #E0E0E0", borderRadius: "8px" }} formatter={(v: number) => [v.toLocaleString("es-AR"), "Casos"]} />
+              <Tooltip contentStyle={{ backgroundColor: "#FFF", border: "1px solid #E0E0E0", borderRadius: "8px" }} formatter={(v) => [v?.toLocaleString("es-AR") ?? 0, "Casos"]} />
               <Bar dataKey="value" fill="#3777FF" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -129,13 +129,13 @@ export default function SeguridadPage() {
                 outerRadius={100}
                 paddingAngle={2}
                 dataKey="value"
-                label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                label={({ name, percent }) => `${name} (${((percent ?? 0) * 100).toFixed(0)}%)`}
               >
                 {distribucionData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(v: number) => [v.toLocaleString("es-AR"), "Casos"]} />
+              <Tooltip formatter={(v) => [v?.toLocaleString("es-AR") ?? 0, "Casos"]} />
             </PieChart>
           </ResponsiveContainer>
         </div>

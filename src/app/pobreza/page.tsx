@@ -77,7 +77,7 @@ export default function PobrezaPage() {
   const pobrezaData = getPobrezaSeries();
   
   const latest = pobrezaData.length > 0 ? pobrezaData[pobrezaData.length - 1] : null;
-  const cambio = pobrezaData.length >= 2 
+  const cambio = pobrezaData.length >= 2 && latest
     ? (latest.pobreza - pobrezaData[pobrezaData.length - 2].pobreza).toFixed(1)
     : null;
 
@@ -133,7 +133,7 @@ export default function PobrezaPage() {
               <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
               <XAxis dataKey="periodo" tick={{ fill: "#4D4D4D", fontSize: 12 }} />
               <YAxis tick={{ fill: "#4D4D4D", fontSize: 12 }} domain={[0, 60]} tickFormatter={(v) => `${v}%`} />
-              <Tooltip contentStyle={{ backgroundColor: "#FFF", border: "1px solid #E0E0E0", borderRadius: "8px" }} formatter={(v: number) => [`${v}%`, ""]} />
+              <Tooltip contentStyle={{ backgroundColor: "#FFF", border: "1px solid #E0E0E0", borderRadius: "8px" }} formatter={(v) => [`${v ?? 0}%`, ""]} />
               <Legend />
               <Line type="monotone" dataKey="pobreza" stroke={COLORS.magenta} strokeWidth={2} dot={{ fill: COLORS.magenta, r: 4 }} name="Pobreza" />
               <Line type="monotone" dataKey="indigencia" stroke={COLORS.orange} strokeWidth={2} dot={{ fill: COLORS.orange, r: 4 }} name="Indigencia" />

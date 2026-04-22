@@ -94,14 +94,14 @@ export default function InversionPage() {
         />
         <KpiCard
           title="Inversión en Educación"
-          value={`$${((inversionArea.find(d => d.name === "Educación")?.value || 0 / 1000).toFixed(1)} MM`}
+          value={`$${((inversionArea.find(d => d.name === "Educación")?.value || 0) / 1000).toFixed(1)} MM`}
           subtitle="Millones de pesos"
           icon={TrendingUp}
           color="amber"
         />
         <KpiCard
           title="Inversión en Salud"
-          value={`$${((inversionArea.find(d => d.name === "Salud")?.value || 0 / 1000).toFixed(1)} MM`}
+          value={`$${((inversionArea.find(d => d.name === "Salud")?.value || 0) / 1000).toFixed(1)} MM`}
           subtitle="Millones de pesos"
           icon={Coins}
           color="blue"
@@ -125,7 +125,7 @@ export default function InversionPage() {
               <YAxis type="category" dataKey="name" tick={{ fill: "#4D4D4D", fontSize: 11 }} width={90} />
               <Tooltip 
                 contentStyle={{ backgroundColor: "#FFF", border: "1px solid #E0E0E0", borderRadius: "8px" }} 
-                formatter={(v: number) => [`$${v.toLocaleString("es-AR")}`, "Inversión"]}
+                formatter={(v) => [`${v?.toLocaleString("es-AR") ?? 0}`, "Inversión"]}
               />
               <Bar dataKey="value" fill={COLORS.terracotta} radius={[0, 4, 4, 0]} />
             </BarChart>
@@ -150,7 +150,7 @@ export default function InversionPage() {
               <YAxis tick={{ fill: "#4D4D4D", fontSize: 12 }} tickFormatter={(v) => `$${v / 1000}M`} />
               <Tooltip 
                 contentStyle={{ backgroundColor: "#FFF", border: "1px solid #E0E0E0", borderRadius: "8px" }}
-                formatter={(v: number) => [`$${v.toLocaleString("es-AR")}`, "Inversión"]}
+                formatter={(v) => [`${v?.toLocaleString("es-AR") ?? 0}`, "Inversión"]}
               />
               <Line type="monotone" dataKey="valor" stroke={COLORS.terracotta} strokeWidth={2} dot={{ fill: COLORS.terracotta, r: 4 }} name="Inversión Total" />
             </LineChart>
