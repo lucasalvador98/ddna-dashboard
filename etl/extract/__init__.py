@@ -1,15 +1,13 @@
 """Módulo de extracción de datos para el ETL DDNA."""
 from .read_excel import read_excel, _import_pandas
 
-def clean_column_names(df):
-    """Placeholder: return df unchanged."""
-    return df
 
-def find_data_files(category, data_files):
+def find_data_files(category: str, data_files_map) -> list:
     """Return list of existing files for a category."""
-    files = data_files.get(category, [])
+    files = data_files_map.get(category, [])
     existing = [f for f in files if f.exists()]
     return existing
+
 
 def read_excel_file(path: str, sheet_name: str = None):
     """Return a dict of sheet name to DataFrame or fallback data."""
@@ -17,7 +15,7 @@ def read_excel_file(path: str, sheet_name: str = None):
     if pd is None:
         # Use fallback
         return read_excel(path)
-    
+
     try:
         # Try to read with specific sheet name
         if sheet_name:
@@ -33,3 +31,11 @@ def read_excel_file(path: str, sheet_name: str = None):
     except Exception as e:
         print(f"read_excel_file error: {e}")
         return read_excel(path)
+
+
+def clean_column_names(df):
+    """Placeholder: return df unchanged."""
+    return df
+
+
+__all__ = ['read_excel', 'read_excel_file', 'find_data_files', 'clean_column_names']

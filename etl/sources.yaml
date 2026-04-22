@@ -1,0 +1,211 @@
+# Configuración de fuentes de datos para ETL DDNA
+# Este archivo define las fuentes de datos utilizadas por el pipeline
+
+fuentes:
+  # ============================================================
+  # SALUD
+  # ============================================================
+  mortalidad_infantil:
+    tipo: "manual"
+    archivo: "deis/Mortalidad infantil Nacion-Provincia.xlsx"
+    hoja: "Sheet1"
+    indicador: "Mortalidad infantil"
+    categoria: "salud"
+    unidad: "‰"
+    frecuencia: "anual"
+    fuente_oficial: "DEIS - Dirección de Estadísticas e Información de Salud"
+    url_oficial: "https://www.deis.msal.gov.ar"
+    ultima_actualizacion: "2026-04-15"
+    estado: "cargado"
+
+  cobertura_vacunal:
+    tipo: "manual"
+    archivo: "deis/datosDeis-2024-07-26 (3).xlsx"
+    hoja: "Datos"
+    indicador: "Cobertura vacunal"
+    categoria: "salud"
+    unidad: "%"
+    frecuencia: "anual"
+    fuente_oficial: "DEIS"
+    url_oficial: "https://www.deis.msal.gov.ar"
+    ultima_actualizacion: null
+    estado: "pendiente"
+
+  edad_madre:
+    tipo: "manual"
+    archivo: "deis/Edad_Madre 2022.xlsx"
+    indicador: "Nacimientos por edad de la madre"
+    categoria: "salud"
+    unidad: "casos"
+    frecuencia: "anual"
+    fuente_oficial: "DEIS"
+    ultima_actualizacion: null
+    estado: "pendiente"
+
+  cobertura_salud_censo:
+    tipo: "manual"
+    archivo: "censo-2022/Cobertura_Salud-Censo.xlsx"
+    indicador: "Cobertura de salud"
+    categoria: "salud"
+    unidad: "%"
+    frecuencia: "ad_hoc"
+    fuente_oficial: "Censo Nacional 2022"
+    ultima_actualizacion: null
+    estado: "pendiente"
+
+  # ============================================================
+  # EDUCACIÓN
+  # ============================================================
+  escolarizacion_nivel:
+    tipo: "manual"
+    archivo: "censo-2022/Educacion por nivel.xlsx"
+    indicador: "Escolarización por nivel"
+    categoria: "educacion"
+    unidad: "%"
+    frecuencia: "ad_hoc"
+    fuente_oficial: "Censo Nacional 2022"
+    ultima_actualizacion: null
+    estado: "pendiente"
+
+  escolarizacion_edad:
+    tipo: "manual"
+    archivo: "censo-2022/Educacion por edades.xlsx"
+    indicador: "Escolarización por edad"
+    categoria: "educacion"
+    unidad: "%"
+    frecuencia: "ad_hoc"
+    fuente_oficial: "Censo Nacional 2022"
+    ultima_actualizacion: null
+    estado: "pendiente"
+
+  resultados_aprender:
+    tipo: "manual"
+    archivo: "aprender/Educacion Provincia.xlsx"
+    indicador: "Resultados evaluaciones Aprender"
+    categoria: "educacion"
+    unidad: "puntos"
+    frecuencia: "anual"
+    fuente_oficial: "Ministerio de Educación"
+    url_oficial: "https://aprender.aulasvirtuales.educacion.gob.ar"
+    ultima_actualizacion: null
+    estado: "pendiente"
+
+  # ============================================================
+  # POBREZA
+  # ============================================================
+  pobreza_indigencia:
+    tipo: "manual"
+    archivo: "pobreza/cuadros_informe_pobreza_09_24 (1).xls"
+    hoja: "Pobreza"
+    indicador: "Pobreza infantil"
+    categoria: "pobreza"
+    unidad: "%"
+    frecuencia: "semestral"
+    fuente_oficial: "INDEC"
+    url_oficial: "https://www.indec.gob.ar"
+    ultima_actualizacion: null
+    estado: "pendiente"
+
+  indigencia_infantil:
+    tipo: "manual"
+    archivo: "pobreza/cuadros_informe_pobreza_09_24 (1).xls"
+    hoja: "pobreza 0 a 17"
+    indicador: "Indigencia infantil"
+    categoria: "pobreza"
+    unidad: "%"
+    frecuencia: "semestral"
+    fuente_oficial: "INDEC"
+    ultima_actualizacion: null
+    estado: "pendiente"
+
+  consumo_encoprac:
+    tipo: "manual"
+    archivo: "pobreza/cuadros_encoprac_2022.xlsx"
+    indicador: "Indicador de consumo"
+    categoria: "pobreza"
+    unidad: "%"
+    frecuencia: "anual"
+    fuente_oficial: "ENCOPRAC - UCA"
+    ultima_actualizacion: null
+    estado: "pendiente"
+
+  consumo_jovenes:
+    tipo: "manual"
+    archivo: "pobreza/Encoprac 16 a 24 años.xlsx"
+    indicador: "Consumo de sustancias"
+    categoria: "pobreza"
+    unidad: "%"
+    frecuencia: "anual"
+    fuente_oficial: "ENCOPRAC - UCA"
+    ultima_actualizacion: null
+    estado: "pendiente"
+
+  # ============================================================
+  # SEGURIDAD
+  # ============================================================
+  denuncias_delitos:
+    tipo: "manual"
+    archivo: "justicia/Justicia_cba_2022.xlsx"
+    indicador: "Denuncias registradas"
+    categoria: "seguridad"
+    unidad: "casos"
+    frecuencia: "anual"
+    fuente_oficial: "Ministerio Público de Córdoba"
+    url_oficial: "https://www.mpcordoba.gob.ar"
+    ultima_actualizacion: null
+    estado: "pendiente"
+
+  # ============================================================
+  # DEMOGRAFÍA
+  # ============================================================
+  poblacion_censo:
+    tipo: "manual"
+    archivo: "censo-2022/censo poblacion.xlsx"
+    indicador: "Población por grupo"
+    categoria: "demografia"
+    unidad: "hab"
+    frecuencia: "ad_hoc"
+    fuente_oficial: "Censo Nacional 2022"
+    url_oficial: "https://www.indec.gob.ar/censo2022"
+    ultima_actualizacion: null
+    estado: "pendiente"
+
+  # ============================================================
+  # INVERSIÓN
+  # ============================================================
+  presupuesto_inversion:
+    tipo: "manual"
+    archivo: "Inversion/BASE DE DATOS.xlsx"
+    hoja: "BASE DE DATOS"
+    indicador: "Inversión social en infancia"
+    categoria: "inversion"
+    unidad: "Md"
+    frecuencia: "anual"
+    fuente_oficial: "Ministerio de Finanzas Córdoba"
+    ruta_oficial: "E:/Backup Luca/DDNA/01. Monitoreo/TABLEROS Y BASES/Inversion/BASE DE DATOS.xlsx"
+    ultima_actualizacion: "2026-04-16"
+    estado: "cargado"
+
+# ============================================================
+# CONFIGURACIÓN DE APIs (FUTURO)
+# ============================================================
+apis:
+  datos_gob_ar:
+    url_base: "https://api.datos.gob.ar"
+    endpoints:
+      - serie: "IPC"
+        url: "/series/2.5/0.0.0"
+      - serie: "Pobreza"
+        url: "/series/2.6/0.0.0"
+    estado: "pendiente" # Requires network access - test with: curl https://api.datos.gob.ar/v1.5/series/2.6.json
+
+  indec:
+    url_base: "https://www.indec.gob.ar"
+    estado: "pendiente"
+
+  ckan_gestion_abierta:
+    url_base: "https://datosgestionabierta.cba.gov.ar"
+    endpoints:
+      - dataset: "beneficios-sociales-para-reducir-las-desigualdades"
+        resource: "PAICOR"
+    estado: "funcionando" # Tested 16/04/2026 - CKAN API works

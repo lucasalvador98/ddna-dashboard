@@ -167,27 +167,28 @@ src/
 - [x] Identidad visual completa (Caprasimo + DK Lemon fonts, Recurso 1-7 icons, Tema.json palette)
 - [x] Home page con KPIs conectados a Supabase + fallback placeholder
 - [x] 6 secciones temáticas con gráficos Recharts (salud, educación, pobreza, seguridad, inversión, fuentes)
-- [x] Supabase: esquema con 4 tablas (`indicadores`, `datos_indicadores`, `fuentes_datos`, `uploads`)
+- [x] Supabase: tabla `indicadores` (schema simplificado con valores embebidos, 1667 registros)
 - [x] 11+ indicadores seedeados con datos históricos (2018-2024)
 - [x] API REST: `/api/health`, `/api/indicadores`, `/api/fuentes`, `/api/upload`
 - [x] Catálogo de fuentes con badges por categoría
 - [x] Interfaz de carga CSV para admins (`/admin`)
 - [x] Scripts ETL Python para datos Excel (`etl/`)
-- [x] Carga de datos reales desde Excel (usar ETL: `python etl/main.py etl --all`)
+- [x] ETL completo: salud (145), educacion (1056), pobreza (48), seguridad (7), demografia (411)
+- [x] Carga de datos reales desde Excel a Supabase (1667 registros)
 - [x] Deploy en Vercel — **https://ddna-dashboard.vercel.app/**
 
 ---
 
-## Contenido en Supabase
+## Contenido en Supabase (al 15/04/2026)
 
 | Categoría | Registros |
 |----------|-----------|
-| Salud | 27 (Mortalidad infantil 2005-2024, Cobertura vacunal) |
-| Pobreza | 20 |
-| Educación | 23 |
-| Seguridad | 10 |
-| Inversión | 12 |
-| Demografía | 5 |
+| Salud | 145 (Mortalidad infantil, DEIS) |
+| Educación | 1056 (Aprender + Censo 2022) |
+| Pobreza | 48 (INDEC + ENCOPRAC) |
+| Seguridad | 7 (Ministerio Público Córdoba) |
+| Demografía | 411 (Censo 2022 + DEIS) |
+| **Total** | **1667** |
 
 ---
 

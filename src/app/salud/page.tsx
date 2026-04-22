@@ -34,7 +34,7 @@ const DDNA_COLORS = {
 };
 
 export default function SaludPage() {
-  const { data: chartData } = useChartData("salud");
+  const { data: chartData, metadata } = useChartData("salud");
   const mortalidadData = chartData?.charts?.mortalidad ?? placeholderChartData.salud.charts.mortalidad;
   const vacunalData = chartData?.charts?.vacunal ?? placeholderChartData.salud.charts.vacunal;
 
@@ -65,7 +65,7 @@ export default function SaludPage() {
           change="+2,3 pp"
           changeType="up"
           icon={Syringe}
-          color="blue"
+          color="terracotta"
         />
         <KpiCard
           title="Nacimientos"
@@ -81,6 +81,8 @@ export default function SaludPage() {
         title="Tasa de Mortalidad Infantil"
         subtitle="Por cada mil nacidos vivos — Córdoba vs Argentina (2018-2024)"
         color="terracotta"
+        fuente={metadata?.fuente}
+        ultimaActualizacion={metadata?.ultimaActualizacion}
       >
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
@@ -145,6 +147,8 @@ export default function SaludPage() {
         title="Cobertura Vacunal por Vacuna"
         subtitle="Porcentaje de esquemas completos — Último período disponible"
         color="terracotta"
+        fuente={metadata?.fuente}
+        ultimaActualizacion={metadata?.ultimaActualizacion}
       >
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
@@ -176,7 +180,7 @@ export default function SaludPage() {
               />
               <Bar
                 dataKey="cobertura"
-                fill={DDNA_COLORS.blue}
+                fill={DDNA_COLORS.terracotta}
                 radius={[0, 4, 4, 0]}
                 barSize={32}
               />

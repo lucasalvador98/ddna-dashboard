@@ -35,7 +35,7 @@
   --ddna-success: #22C55E;
   --ddna-warning: #F59E0B;
   --ddna-error: #EF4444;
-  --ddna-info: #3B82F6;
+  --ddna-info: #F3A712;
 
   /* Extended Data Colors from Tema.json */
   --ddna-data-1: #F3A712;   /* Amber */
@@ -138,11 +138,12 @@ html {
 }
 
 body {
-  background-color: var(--ddna-background);
+  background: linear-gradient(135deg, #FFF8F2 0%, #FFF0E6 50%, #FFE8CC 100%);
   color: var(--ddna-text);
   font-family: var(--font-epilogue), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
 }
 
 /* Font utility classes */

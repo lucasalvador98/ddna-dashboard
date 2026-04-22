@@ -10,7 +10,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from etl.config import OUTPUT_DIR
+from config import OUTPUT_DIR
 
 # ── Indicadores seed conocidos ──
 # Para lookups por nombre+categoria en lugar de UUIDs hardcodeados
@@ -177,9 +177,10 @@ def generate_combined_sql(
             if isinstance(desglose, dict):
                 desglose = json.dumps(desglose)
 
+            desglose_escaped = sql_escape(desglose)
             lines.append(
                 f"INSERT INTO datos_indicadores (id, indicador_id, valor, periodo, region, desglose)\n"
-                f"VALUES ('{dato_id}', '{ind_id}', {valor}, {sql_escape(periodo)}, {sql_escape(region)}, {sql_escape(desglose)}::jsonb)\n"
+                f"VALUES ('{dato_id}', '{ind_id}', {valor}, {sql_escape(periodo)}, {sql_escape(region)}, {desglose_escaped}::jsonb)\n"
                 f"ON CONFLICT (id) DO UPDATE SET valor = EXCLUDED.valor, desglose = EXCLUDED.desglose;"
             )
             lines.append("")

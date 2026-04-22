@@ -5,7 +5,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface NavItem {
   label: string;
@@ -20,9 +19,19 @@ const navItems: NavItem[] = [
   { label: "Educación", href: "/educacion", iconSrc: "/logos/Recurso 3@2x.png", iconAlt: "Educación" },
   { label: "Pobreza", href: "/pobreza", iconSrc: "/logos/Recurso 4@2x.png", iconAlt: "Pobreza" },
   { label: "Seguridad", href: "/seguridad", iconSrc: "/logos/Recurso 5@2x.png", iconAlt: "Seguridad" },
-  { label: "Inversión Social", href: "/inversion", iconSrc: "/logos/Recurso 6@2x.png", iconAlt: "Inversión Social" },
-  { label: "Fuentes de Datos", href: "/fuentes", iconSrc: "/logos/Recurso 7@2x.png", iconAlt: "Fuentes de Datos" },
+  { label: "Inversión", href: "/inversion", iconSrc: "/logos/Recurso 6@2x.png", iconAlt: "Inversión Social" },
+  { label: "Fuentes", href: "/fuentes", iconSrc: "/logos/Recurso 7@2x.png", iconAlt: "Fuentes de Datos" },
 ];
+
+// Section colors for active states
+const sectionColors: Record<string, string> = {
+  "/": "#F3A712",      // Inicio - amber
+  "/salud": "#E07A5F", // Salud - terracotta
+  "/educacion": "#F3A712", // Educación - amber
+  "/pobreza": "#BF1363", // Pobreza - magenta
+  "/seguridad": "#3777FF", // Seguridad - blue
+  "/inversion": "#FF7F11", // Inversión - orange
+};
 
 export function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -31,53 +40,30 @@ export function Sidebar() {
   return (
     <aside
       className={clsx(
-        "hidden md:flex flex-col bg-[#00074E] text-white transition-all duration-300 ease-in-out relative overflow-hidden",
-        isCollapsed ? "w-20" : "w-64"
+        "hidden md:flex flex-col bg-white border-r border-[#E0E0E0] transition-all duration-300 ease-in-out relative",
+        isCollapsed ? "w-20" : "w-56"
       )}
     >
-      {/* Subtle gradient overlay for depth */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#00074E] via-[#00074E] to-[#1a1a5e] pointer-events-none" />
-      
-      {/* Decorative corner accent */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-[#3777FF]/10 to-transparent pointer-events-none" />
+      {/* Gradient accent strip at top */}
+      <div className="h-1.5 bg-gradient-to-r from-[#FF7F11] via-[#F3A712] to-[#FF7F11]" />
       
       {/* Logo Area */}
-      <div className="relative z-10 flex items-center justify-between p-4 border-b border-[#3777FF]/30">
-        {!isCollapsed && (
-          <div className="flex items-center gap-2">
-            <Image
-              src="/logos/Cba.png"
-              alt="Gobierno de Córdoba"
-              width={32}
-              height={32}
-              className="rounded-sm"
-            />
-            <Image
-              src="/logos/LOGO DDNA_HORIZONTAL_COLOR.png"
-              alt="DDNA"
-              width={140}
-              height={32}
-              className="object-contain"
-              style={{ filter: "brightness(0) invert(1)" }}
-            />
-          </div>
-        )}
-        {isCollapsed && (
-          <Image
-            src="/logos/Cba.png"
-            alt="Córdoba"
-            width={32}
-            height={32}
-            className="rounded-sm mx-auto"
-          />
-        )}
+      <div className="flex items-center justify-center p-4 border-b border-[#E0E0E0]">
+        <Image
+          src="/logos/LOGO DDNA_HORIZONTAL_COLOR.png"
+          alt="DDNA"
+          width={isCollapsed ? 40 : 160}
+          height={40}
+          className="object-contain"
+        />
       </div>
 
       {/* Navigation */}
-      <nav className="relative z-10 flex-1 py-4">
-        <ul className="space-y-1 px-2">
+      <nav className="flex-1 py-4">
+        <ul className="space-y-1 px-3">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
+            const activeColor = sectionColors[item.href] || "#F3A712";
 
             return (
               <li key={item.href}>
@@ -85,11 +71,15 @@ export function Sidebar() {
                   href={item.href}
                   className={clsx(
                     "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200",
-                    "hover:bg-[#3777FF]/20",
                     isActive
-                      ? "bg-[#3777FF] text-white shadow-md"
-                      : "text-[#A7DBF9] hover:text-white"
+                      ? "font-medium shadow-sm"
+                      : "hover:bg-gray-50"
                   )}
+                  style={isActive ? {
+                    backgroundColor: `${activeColor}15`,
+                    borderLeft: `3px solid ${activeColor}`,
+                    paddingLeft: '9px'
+                  } : undefined}
                   title={isCollapsed ? item.label : undefined}
                 >
                   <div className={clsx(
@@ -103,16 +93,18 @@ export function Sidebar() {
                       height={24}
                       className={clsx(
                         "object-contain",
-                        isActive ? "brightness-0 invert" : "brightness-0 invert opacity-70 hover:opacity-100"
+                        isActive ? "" : "opacity-60"
                       )}
+                      style={isActive ? { filter: `brightness(0) saturate(100%) invert(41%) saturate(3000%) hue-rotate(340deg) brightness(100%)` } : undefined}
                     />
                   </div>
                   {!isCollapsed && (
                     <span 
                       className={clsx(
                         "font-accent text-sm tracking-wide",
-                        isActive ? "font-medium" : ""
+                        isActive ? "font-medium" : "text-[#4D4D4D]"
                       )}
+                      style={isActive ? { color: activeColor } : undefined}
                     >
                       {item.label}
                     </span>
@@ -125,35 +117,28 @@ export function Sidebar() {
       </nav>
 
       {/* Collapse Toggle */}
-      <div className="relative z-10 p-4 border-t border-[#3777FF]/30">
+      <div className="p-4 border-t border-[#E0E0E0]">
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           className={clsx(
-            "flex items-center gap-2 text-[#A7DBF9] hover:text-white transition-colors",
-            "mx-auto",
-            isCollapsed ? "px-2 py-2" : "px-3 py-2"
+            "w-full flex items-center justify-center gap-2 text-[#4D4D4D] hover:text-[#FF7F11] transition-colors py-2 rounded-lg hover:bg-gray-50",
           )}
           aria-label={isCollapsed ? "Expandir menú" : "Colapsar menú"}
         >
           {isCollapsed ? (
-            <ChevronRight className="w-5 h-5" />
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+            </svg>
           ) : (
             <>
-              <ChevronLeft className="w-5 h-5" />
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+              </svg>
               <span className="font-accent text-sm">Colapsar</span>
             </>
           )}
         </button>
       </div>
-
-      {/* Version */}
-      {!isCollapsed && (
-        <div className="relative z-10 px-4 pb-4">
-          <p className="font-accent text-xs text-[#A7DBF9]/60 text-center">
-            v0.1.0
-          </p>
-        </div>
-      )}
     </aside>
   );
 }

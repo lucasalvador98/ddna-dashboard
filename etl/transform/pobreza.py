@@ -47,23 +47,32 @@ def transform_pobreza() -> list[dict[str, Any]]:
     return records
 
 
-def _extract_years_from_columns(df: pd.DataFrame) -> list[str]:
-    """Extrae años de los nombres de columnas."""
-    years: list[str] = []
+def _extract_years_from_columns(df: pd.DataFrame) -> dict[str, str]:
+    """Extrae años de los nombres de columnas.
+
+    Retorna dict {año: nombre_columna} para poder obtener valores con row.get().
+
+    Maneja dos formatos:
+    - Año directo: "2016", "2017" -> {"2016": "2016", ...}
+    - Semestre: "2do. semestre 2016", "1er. semestre 2017" -> {"2016": "2do. semestre 2016", ...}
+    """
+    import re
+    year_to_col: dict[str, str] = {}
     for col in df.columns:
-        try:
-            year = int(str(col).strip())
-            if 1990 <= year <= 2100:
-                years.append(str(year))
-        except (ValueError, TypeError):
-            continue
-    return years
+        col_str = str(col).strip()
+        # Buscar año de 4 dígitos en cualquier posición
+        match = re.search(r'(\d{4})', col_str)
+        if match:
+            year = match.group(1)
+            if 1990 <= int(year) <= 2100 and year not in year_to_col:
+                year_to_col[year] = col_str
+    return year_to_col
 
 
 def _transform_pobreza_indicadores(df: pd.DataFrame, filename: str, sheet: str) -> list[dict[str, Any]]:
     """Transforma datos de pobreza e indigencia del INDEC."""
     records: list[dict[str, Any]] = []
-    years = _extract_years_from_columns(df)
+    year_to_col = _extract_years_from_columns(df)
 
     # Buscar columna de región o tipo de dato
     label_col: str | None = None
@@ -76,19 +85,19 @@ def _transform_pobreza_indicadores(df: pd.DataFrame, filename: str, sheet: str) 
     # Si no hay columna de label, buscar la primera columna no-numérica
     if not label_col:
         for col in df.columns:
-            if col not in years and df[col].dtype == object:
+            if col not in year_to_col.values() and df[col].dtype == object:
                 label_col = col
                 break
 
-    if label_col and years:
+    if label_col and year_to_col:
         for _, row in df.iterrows():
             label = str(row[label_col]).strip() if pd.notna(row[label_col]) else ""
             es_pobreza = "pobreza" in label.lower() and "indigencia" not in label.lower()
             es_indigencia = "indigencia" in label.lower()
             nombre_indicador = "Pobreza infantil" if es_pobreza else ("Indigencia infantil" if es_indigencia else label)
 
-            for year in years:
-                valor = row.get(year)
+            for year, col_name in year_to_col.items():
+                valor = row.get(col_name)
                 if pd.notna(valor):
                     try:
                         valor_float = float(valor)
@@ -114,7 +123,7 @@ def _transform_pobreza_indicadores(df: pd.DataFrame, filename: str, sheet: str) 
 def _transform_encoprac(df: pd.DataFrame, filename: str, sheet: str) -> list[dict[str, Any]]:
     """Transforma datos de encuestas de consumo (ENCOPRAC)."""
     records: list[dict[str, Any]] = []
-    years = _extract_years_from_columns(df)
+    year_to_col = _extract_years_from_columns(df)
 
     label_col: str | None = None
     for col in df.columns:
@@ -123,11 +132,11 @@ def _transform_encoprac(df: pd.DataFrame, filename: str, sheet: str) -> list[dic
             label_col = col
             break
 
-    if label_col and years:
+    if label_col and year_to_col:
         for _, row in df.iterrows():
             label = str(row[label_col]).strip() if pd.notna(row[label_col]) else ""
-            for year in years:
-                valor = row.get(year)
+            for year, col_name in year_to_col.items():
+                valor = row.get(col_name)
                 if pd.notna(valor):
                     try:
                         valor_float = float(valor)
@@ -149,23 +158,23 @@ def _transform_encoprac(df: pd.DataFrame, filename: str, sheet: str) -> list[dic
 def _transform_generico(df: pd.DataFrame, filename: str, sheet: str) -> list[dict[str, Any]]:
     """Transformación genérica para datos de pobreza."""
     records: list[dict[str, Any]] = []
-    years = _extract_years_from_columns(df)
+    year_to_col = _extract_years_from_columns(df)
 
-    if not years:
+    if not year_to_col:
         return records
 
     # Tomar primera columna no-numérica como label
     label_col: str | None = None
     for col in df.columns:
-        if col not in years and df[col].dtype == object:
+        if col not in year_to_col.values() and df[col].dtype == object:
             label_col = col
             break
 
     if label_col:
         for _, row in df.iterrows():
             label = str(row[label_col]).strip() if pd.notna(row[label_col]) else ""
-            for year in years:
-                valor = row.get(year)
+            for year, col_name in year_to_col.items():
+                valor = row.get(col_name)
                 if pd.notna(valor):
                     try:
                         valor_float = float(valor)

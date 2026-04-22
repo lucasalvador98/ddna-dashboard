@@ -34,7 +34,7 @@ const DDNA_COLORS = {
 };
 
 export default function PobrezaPage() {
-  const { data: chartData } = useChartData("pobreza");
+  const { data: chartData, metadata } = useChartData("pobreza");
   const pobrezaData = chartData?.charts?.pobreza ?? placeholderChartData.pobreza.charts.pobreza;
   const brechaData = chartData?.charts?.brecha ?? placeholderChartData.pobreza.charts.brecha;
 
@@ -81,6 +81,8 @@ export default function PobrezaPage() {
         title="Evolución de la Pobreza e Indigencia Infantil"
         subtitle="Porcentaje de NNA bajo líneas de pobreza e indigencia — Córdoba (2018-2024)"
         color="magenta"
+        fuente={metadata?.fuente}
+        ultimaActualizacion={metadata?.ultimaActualizacion}
       >
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
@@ -145,6 +147,8 @@ export default function PobrezaPage() {
         title="Brecha de Pobreza por Grupo Etario"
         subtitle="Comparación de pobreza infantil vs pobreza general por edad"
         color="magenta"
+        fuente={metadata?.fuente}
+        ultimaActualizacion={metadata?.ultimaActualizacion}
       >
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
