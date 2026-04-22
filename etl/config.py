@@ -18,8 +18,8 @@ SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 
 # ── Rutas ──
 BASE_DIR = Path(__file__).resolve().parent
-# Datos originales en carpeta DDNA original
-RAW_DATA_DIR = Path("E:/Backup Luca/DDNA/datos/raw")
+# Datos locales en la carpeta del proyecto
+RAW_DATA_DIR = BASE_DIR.parent / "datos" / "raw"
 OUTPUT_DIR = BASE_DIR / "output"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -36,13 +36,8 @@ DATA_FILES: dict[str, list[Path]] = {
         RAW_DATA_DIR / "censo-2022" / "educacion" / "Educacion por nivel.xlsx",
         RAW_DATA_DIR / "censo-2022" / "educacion" / "Educacion por edades.xlsx",
         RAW_DATA_DIR / "educacion" / "Educacion Provincia.xlsx",
-        RAW_DATA_DIR / "educacion" / "Datos escolarizacion.xlsx",
+        RAW_DATA_DIR / "educacion" / "Datos escolarización.xlsx",
         RAW_DATA_DIR / "aprender" / "aprender 2024.xlsx",
-        RAW_DATA_DIR / "anuario_educacion" / "2.1. RESUMEN 2024.xlsx",
-        RAW_DATA_DIR / "anuario_educacion" / "2.2. INICIAL 2024.xlsx",
-        RAW_DATA_DIR / "anuario_educacion" / "2.3. PRIMARIO 2024.xlsx",
-        RAW_DATA_DIR / "anuario_educacion" / "2.4. SECUNDARIO 2024.xlsx",
-        RAW_DATA_DIR / "anuario_educacion" / "2.5. SUPERIOR 2024.xlsx",
     ],
     "pobreza": [
         RAW_DATA_DIR / "pobreza" / "cuadros_informe_pobreza_09_24 (1).xlsx",
@@ -54,7 +49,7 @@ DATA_FILES: dict[str, list[Path]] = {
         RAW_DATA_DIR / "censo-2022" / "demografia" / "censo poblacion.xlsx",
     ],
     "inversion": [
-        RAW_DATA_DIR / "inversion" / "BASE DE DATOS ANDRES VERIFICAR SI ESTA OK.xlsx",
+        RAW_DATA_DIR / "inversion" / "BASE DE DATOS.xlsx",
     ],
 }
 

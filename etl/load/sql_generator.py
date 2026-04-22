@@ -66,35 +66,30 @@ def generate_upsert_sql(
     lines.append(f"-- ============================================================")
     lines.append("")
 
-    # ── 1. Asegurar indicadores ──
+# ── 1. Asegurar indicadores (dummy rows) ──
     if indicadores_unicos:
-        lines.append("-- Asegurar que los indicadores existen")
+        lines.append("-- Asegurar que los indicadores existen (metadata)")
         for key, ind in indicadores_unicos.items():
             ind_id = _deterministic_uuid(ind["nombre"], ind["categoria"])
             nom = ind["nombre"]
-            cat = ind["categoria"]
-            desc = f"Datos de {nom}"
             lines.append(
-                f"INSERT INTO indicadores (id, categoria, nombre, descripcion, unidad, frecuencia_actualizacion, orden, activo)\n"
-                f"VALUES ('{ind_id}', '{cat}', {sql_escape(nom)}, {sql_escape(desc)}, {sql_escape(ind['unidad'])}, 'anual', 0, true)\n"
-                f"ON CONFLICT (id) DO UPDATE SET nombre = EXCLUDED.nombre, unidad = EXCLUDED.unidad;"
+                f"INSERT INTO indicadores (id, indicador_nombre, categoria, valor, unidad, periodo, region, desglose, fuente)\n"
+                f"VALUES ('{ind_id}', {sql_escape(nom)}, {sql_escape(ind['categoria'])}, 0, {sql_escape(ind['unidad'])}, 'N/A', 'Córdoba', '{{}}'::jsonb, 'etl');"
             )
-            lines.append("")
+        lines.append("")
 
     # ── 2. Insertar datos ──
     lines.append(f"-- Datos de indicadores ({len(records)} registros)")
     for rec in records:
-        ind_id = _deterministic_uuid(rec["indicador_nombre"], rec["categoria"])
-        dato_id = _deterministic_uuid(
-            f"{rec['indicador_nombre']}:{rec['categoria']}:{rec['periodo']}:{rec['region']}"
-        )
+        # Incluir periodo y region en el ID para hacerlo único
+        ind_id = _deterministic_uuid(rec["indicador_nombre"], rec["categoria"], str(rec.get("periodo", "")), str(rec.get("region", "")))
         desglose = rec.get("desglose", "{}")
         if isinstance(desglose, dict):
             desglose = json.dumps(desglose)
 
         lines.append(
-            f"INSERT INTO datos_indicadores (id, indicador_id, valor, periodo, region, desglose)\n"
-            f"VALUES ('{dato_id}', '{ind_id}', {rec['valor']}, {sql_escape(rec['periodo'])}, {sql_escape(rec['region'])}, {sql_escape(desglose)}::jsonb)\n"
+            f"INSERT INTO indicadores (id, indicador_nombre, categoria, valor, unidad, periodo, region, desglose, fuente)\n"
+            f"VALUES ('{ind_id}', {sql_escape(rec['indicador_nombre'])}, {sql_escape(rec['categoria'])}, {rec['valor']}, {sql_escape(rec.get('unidad', 'casos'))}, {sql_escape(rec['periodo'])}, {sql_escape(rec['region'])}, {sql_escape(desglose)}::jsonb, 'etl')\n"
             f"ON CONFLICT (id) DO UPDATE SET valor = EXCLUDED.valor, desglose = EXCLUDED.desglose;"
         )
         lines.append("")
@@ -153,9 +148,9 @@ def generate_combined_sql(
         categoria = ind["categoria"]
         descripcion = f"Datos de {nombre}"
         lines.append(
-            f"INSERT INTO indicadores (id, categoria, nombre, descripcion, unidad, frecuencia_actualizacion, orden, activo)\n"
-            f"VALUES ('{ind_id}', '{categoria}', {sql_escape(nombre)}, {sql_escape(descripcion)}, {sql_escape(ind['unidad'])}, 'anual', 0, true)\n"
-            f"ON CONFLICT (id) DO UPDATE SET nombre = EXCLUDED.nombre, unidad = EXCLUDED.unidad;"
+            f"INSERT INTO indicadores (id, indicador_nombre, categoria, valor, unidad, periodo, region, desglose, fuente)\n"
+            f"VALUES ('{ind_id}', {sql_escape(nombre)}, {sql_escape(categoria)}, 0, {sql_escape(ind['unidad'])}, 'N/A', 'Córdoba', '{{}}'::jsonb, 'etl')\n"
+            f"ON CONFLICT (id) DO UPDATE SET indicador_nombre = EXCLUDED.indicador_nombre;"
         )
         lines.append("")
 
@@ -171,16 +166,16 @@ def generate_combined_sql(
             periodo = rec["periodo"]
             region = rec["region"]
             valor = rec["valor"]
-            ind_id = _deterministic_uuid(ind_nombre, cat)
-            dato_id = _deterministic_uuid(f"{ind_nombre}:{cat}:{periodo}:{region}")
+            # Incluir periodo y region en el ID para unicidad
+            ind_id = _deterministic_uuid(ind_nombre, cat, str(periodo), str(region))
             desglose = rec.get("desglose", "{}")
             if isinstance(desglose, dict):
                 desglose = json.dumps(desglose)
 
             desglose_escaped = sql_escape(desglose)
             lines.append(
-                f"INSERT INTO datos_indicadores (id, indicador_id, valor, periodo, region, desglose)\n"
-                f"VALUES ('{dato_id}', '{ind_id}', {valor}, {sql_escape(periodo)}, {sql_escape(region)}, {desglose_escaped}::jsonb)\n"
+                f"INSERT INTO indicadores (id, indicador_nombre, categoria, valor, unidad, periodo, region, desglose, fuente)\n"
+                f"VALUES ('{ind_id}', {sql_escape(ind_nombre)}, {sql_escape(cat)}, {valor}, {sql_escape(rec.get('unidad', 'casos'))}, {sql_escape(periodo)}, {sql_escape(region)}, {desglose_escaped}::jsonb, 'etl')\n"
                 f"ON CONFLICT (id) DO UPDATE SET valor = EXCLUDED.valor, desglose = EXCLUDED.desglose;"
             )
             lines.append("")

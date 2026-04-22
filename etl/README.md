@@ -76,6 +76,46 @@ etl/
 
 ---
 
+## Carga Masiva a Supabase — Chunks SQL
+
+Estado al 22/04/2026: **6,681 INSERTs** generados en `etl/output/chunks/` (134 archivos × ~50 INSERTs c/u).
+Pendiente de ejecutar a Supabase.
+
+### Archivos generados
+
+```
+etl/output/ddna_all_data_20260422_120653.sql   # Original: 26,757 líneas, 6,681 INSERTs
+etl/output/chunks/chunk_0000.sql            # Chunk 0 (50 INSERTs, 22 KB)
+etl/output/chunks/chunk_0001.sql            # Chunk 1 (50 INSERTs, 25 KB)
+...
+etl/output/chunks/chunk_0133.sql            # Chunk 133 (31 INSERTs, 13 KB)
+```
+
+### Script de división
+
+`etl/scripts/split_sql.py` — divide el SQL original en chunks de 50 INSERTs.
+
+```bash
+python etl/scripts/split_sql.py   # Genera chunks en etl/output/chunks/
+```
+
+### Procedimiento para continuar la carga
+
+1. Limpiar tabla:
+   ```sql
+   DELETE FROM indicadores WHERE id LIKE 'e07d4ee9%' OR id LIKE '9ecb2fb6%'; -- definiciones base
+   ```
+2. Ejecutar chunks en orden (0 a 133) vía Supabase MCP o SQL Editor:
+   ```bash
+   # Cada chunk ~25KB → ejecutar en Supabase SQL Editor o via supabase_execute_sql MCP
+   # Chunk 0 ya probado → sintaxis OK
+   ```
+3. Verificar conteo:
+   ```sql
+   SELECT COUNT(*) as total, categoria FROM indicadores GROUP BY categoria ORDER BY categoria;
+   -- Meta: 6,681+ registros
+   ```
+
 ## Uso
 
 ### Script Principal (`main.py`)

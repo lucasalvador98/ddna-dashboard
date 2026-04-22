@@ -1,174 +1,148 @@
 "use client";
 
-import { Shield, AlertTriangle, TrendingUp, BarChart3 } from "lucide-react";
-import { KpiCard } from "@/components/kpi-card";
+import { Shield, AlertTriangle, TrendingUp } from "lucide-react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 import { SectionHeader } from "@/components/section-header";
-import { ChartCard } from "@/components/charts/chart-card";
-import { useChartData } from "@/lib/use-chart-data";
-import { placeholderChartData } from "@/lib/chart-data";
-import {
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
+import { KpiCard } from "@/components/kpi-card";
+import { ChartWithTable } from "@/components/charts/chart-with-table";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
-// Tema.json dataColors palette for consistent branding
-const DDNA_COLORS = {
-  amber: "#F3A712",
-  magenta: "#BF1363",
-  orange: "#FF7F11",
-  cream: "#FFE2BF",
-  blue: "#3777FF",
-  navy: "#00074E",
-  mauve: "#A66999",
-  teal: "#3599B8",
-  cyan: "#4AC5BB",
-  terracotta: "#E07A5F",
-};
+const COLORS = ["#3777FF", "#BF1363", "#F3A712", "#E07A5F", "#3599B8", "#A66999"];
+
+interface IndicadorData {
+  id: string;
+  indicador_nombre: string;
+  valor: number;
+  unidad: string;
+  periodo: string;
+  region: string;
+  desglose: Record<string, any> | null;
+}
 
 export default function SeguridadPage() {
-  const { data: chartData, metadata } = useChartData("seguridad");
-  const denunciasData = chartData?.charts?.denuncias ?? placeholderChartData.seguridad.charts.denuncias;
-  const tipoData = chartData?.charts?.tipo ?? placeholderChartData.seguridad.charts.tipo;
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<IndicadorData[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchData() {
+      const { data: indicadores, error } = await supabase
+        .from("indicadores")
+        .select("id, indicador_nombre, valor, unidad, periodo, region, desglose")
+        .eq("categoria", "seguridad")
+        .order("valor", { ascending: false });
+
+      if (error) setError(error.message);
+      else setData(indicadores || []);
+      setLoading(false);
+    }
+    fetchData();
+  }, []);
+
+  // Distribución por tipo de denuncia
+  const getDistribucion = () => {
+    return data
+      .filter(d => d.indicador_nombre.toLowerCase().includes("casos"))
+      .map(d => ({
+        name: d.indicador_nombre.replace("Casos de ", ""),
+        value: Number(d.valor) || 0,
+      }))
+      .sort((a, b) => b.value - a.value);
+  };
+
+  const distribucionData = getDistribucion();
+  const total = distribucionData.reduce((sum, d) => sum + d.value, 0);
 
   return (
     <div className="space-y-6">
       <SectionHeader
         icon={Shield}
         title="Indicadores de Seguridad"
-        description="Seguimiento de denuncias, intervenciones y medidas de protección de derechos de NNA"
+        description="Denuncias y casos en el sistema de justicia"
         color="blue"
       />
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <KpiCard
-          title="Total denuncias"
-          value="3.102"
-          subtitle="Denuncias registradas en el último período"
-          change="+255"
-          changeType="up"
-          icon={AlertTriangle}
+          title="Total casos"
+          value={total > 0 ? total.toLocaleString("es-AR") : "—"}
+          subtitle="Casos registrados en el sistema"
+          icon={Shield}
           color="blue"
         />
         <KpiCard
-          title="Variación interanual"
-          value="+9,0%"
-          subtitle="Aumento respecto al período anterior"
-          change="+1,2 pp"
-          changeType="up"
-          icon={TrendingUp}
+          title="Violencia Familiar"
+          value={distribucionData.find(d => d.name === "Violencia Familiar")?.value.toLocaleString("es-AR") || "—"}
+          subtitle="Denuncias por violencia familiar"
+          icon={AlertTriangle}
           color="magenta"
         />
         <KpiCard
-          title="Tasa por 10.000"
-          value="23,4"
-          subtitle="Denuncias cada 10.000 habitantes menores"
-          icon={BarChart3}
-          color="navy"
+          title="Niñez y Adolescencia"
+          value={distribucionData.find(d => d.name === "Niñez")?.value.toLocaleString("es-AR") || "—"}
+          subtitle="Casos de niños, niñas y adolescentes"
+          icon={Shield}
+          color="orange"
         />
       </div>
 
-      {/* Denuncias Line Chart */}
-      <ChartCard
-        title="Denuncias Registradas"
-        subtitle="Serie histórica de denuncias — Córdoba (2019-2024)"
+      <ChartWithTable
+        title="Casos por Tipo"
+        subtitle="Distribución de casos en el sistema de justicia"
         color="blue"
-        fuente={metadata?.fuente}
-        ultimaActualizacion={metadata?.ultimaActualizacion}
+        fuente="Ministerio Público Córdoba"
+        data={distribucionData.map(d => ({ tipo: d.name, casos: d.value }))}
+        dataKey="casos"
+        xAxisKey="tipo"
       >
-        <div className="h-80">
+        <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart
-              data={denunciasData}
-              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
-              <XAxis
-                dataKey="year"
-                tick={{ fill: "#4D4D4D", fontSize: 12 }}
-                tickLine={{ stroke: "#E0E0E0" }}
-              />
-              <YAxis
-                tick={{ fill: "#4D4D4D", fontSize: 12 }}
-                tickLine={{ stroke: "#E0E0E0" }}
-                domain={[1000, 3500]}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#FFF",
-                  border: "1px solid #E0E0E0",
-                  borderRadius: "8px",
-                }}
-                formatter={(value) => [Number(value).toLocaleString(), "Denuncias"]}
-              />
-              <Line
-                type="monotone"
-                dataKey="cantidad"
-                stroke={DDNA_COLORS.blue}
-                strokeWidth={3}
-                dot={{ fill: DDNA_COLORS.blue, strokeWidth: 2, r: 5 }}
-                activeDot={{ r: 7, fill: DDNA_COLORS.blue }}
-                name="Denuncias"
-              />
-            </LineChart>
+            <BarChart data={distribucionData} layout="vertical" margin={{ top: 10, right: 30, left: 100, bottom: 10 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" horizontal={false} />
+              <XAxis type="number" tick={{ fill: "#4D4D4D", fontSize: 12 }} />
+              <YAxis type="category" dataKey="name" tick={{ fill: "#4D4D4D", fontSize: 11 }} width={90} />
+              <Tooltip contentStyle={{ backgroundColor: "#FFF", border: "1px solid #E0E0E0", borderRadius: "8px" }} formatter={(v: number) => [v.toLocaleString("es-AR"), "Casos"]} />
+              <Bar dataKey="value" fill="#3777FF" radius={[0, 4, 4, 0]} />
+            </BarChart>
           </ResponsiveContainer>
         </div>
-      </ChartCard>
+      </ChartWithTable>
 
-      {/* Distribución Pie Chart */}
-      <ChartCard
-        title="Distribución por Tipo de Denuncia"
-        subtitle="Porcentaje según tipo de vulneración — Último período"
+      <ChartWithTable
+        title="Distribución Porcentual"
+        subtitle="Porcentaje de casos por tipo"
         color="blue"
-        fuente={metadata?.fuente}
-        ultimaActualizacion={metadata?.ultimaActualizacion}
+        fuente="Ministerio Público Córdoba"
+        data={distribucionData.map(d => ({ tipo: d.name, porcentaje: total > 0 ? ((d.value / total) * 100).toFixed(1) : 0 }))}
+        dataKey="porcentaje"
+        xAxisKey="tipo"
       >
-        <div className="h-80">
+        <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
-                data={tipoData}
+                data={distribucionData}
                 cx="50%"
                 cy="50%"
-                labelLine={false}
-                label={({ name, percent }: { name?: string; percent?: number }) =>
-                  `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`
-                }
+                innerRadius={60}
                 outerRadius={100}
-                fill="#8884d8"
+                paddingAngle={2}
                 dataKey="value"
+                label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
               >
-                {tipoData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={String(entry.color)} />
+                {distribucionData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#FFF",
-                  border: "1px solid #E0E0E0",
-                  borderRadius: "8px",
-                }}
-                formatter={(value) => [Number(value).toLocaleString(), "Cantidad"]}
-              />
-              <Legend
-                wrapperStyle={{ paddingTop: "20px" }}
-                formatter={(value) => (
-                  <span style={{ color: "#4D4D4D" }}>{value}</span>
-                )}
-              />
+              <Tooltip formatter={(v: number) => [v.toLocaleString("es-AR"), "Casos"]} />
             </PieChart>
           </ResponsiveContainer>
         </div>
-      </ChartCard>
+      </ChartWithTable>
+
+      {loading && <div className="py-12 text-center text-gray-500">Cargando...</div>}
+      {error && <div className="bg-red-50 p-4 rounded text-red-700">Error: {error}</div>}
     </div>
   );
 }
