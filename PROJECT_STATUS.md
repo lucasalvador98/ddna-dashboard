@@ -59,12 +59,15 @@
 - 20 dataColors de Tema.json como CSS variables para gráficos
 - Tipografía consistente: .font-display (Caprasimo), .font-accent (DK Lemon), .font-body (Epilogue)
 
-### 9. ETL Python
+### 9. ETL Python (documentado en etl/README.md)
 - `etl/` — Pipeline completo para cargar datos desde Excel
 - Fases: `inspect` → `transform` → `load`
 - Transformadores por categoría: salud, educación, pobreza, seguridad, demografía
 - SQL generator con UPSERT y UUIDs deterministas
 - CLI: `python main.py etl --all`
+- Scripts especializados: `load_paicor.py`, `load_inversion.py`
+- Catálogo de fuentes: `sources.yaml`
+- Inspector interactivo: `etl_inspect.py`
 
 ### 10. Deploy en Vercel
 - **Live: https://ddna-dashboard.vercel.app/**
