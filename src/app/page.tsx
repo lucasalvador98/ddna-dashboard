@@ -17,12 +17,12 @@ const categoryConfig: Record<string, { icon: React.ComponentType<{ className?: s
 };
 
 const quickAccessCategories = [
-  { id: "salud", label: "Salud", icon: "cat-salud.png", bg: "bg-[#E07A5F]" },
-  { id: "educacion", label: "Educación", icon: "cat-educacion.png", bg: "bg-[#F3A712]" },
-  { id: "pobreza", label: "Pobreza", icon: "cat-pobreza.png", bg: "bg-[#BF1363]" },
-  { id: "seguridad", label: "Seguridad", icon: "cat-justicia.png", bg: "bg-[#3777FF]" },
-  { id: "inversion", label: "Inversión", icon: "cat-censo.png", bg: "bg-[#FF7F11]" },
-  { id: "demografia", label: "Demografía", icon: "cat-estudiantes.png", bg: "bg-[#1E9AD8]" },
+  { id: "salud", label: "Salud", href: "/salud", icon: "cat-salud.png", bg: "bg-[#E07A5F]" },
+  { id: "educacion", label: "Educación", href: "/educacion", icon: "cat-educacion.png", bg: "bg-[#F3A712]" },
+  { id: "pobreza", label: "Pobreza", href: "/pobreza", icon: "cat-pobreza.png", bg: "bg-[#BF1363]" },
+  { id: "seguridad", label: "Seguridad", href: "/seguridad", icon: "cat-justicia.png", bg: "bg-[#3777FF]" },
+  { id: "inversion", label: "Inversión", href: "/inversion", icon: "cat-censo.png", bg: "bg-[#FF7F11]" },
+  { id: "demografia", label: "Demografía", href: "/demografia", icon: "cat-estudiantes.png", bg: "bg-[#1E9AD8]" },
 ];
 
 function formatValue(valor: string, unidad: string): string {
@@ -108,7 +108,7 @@ export default function HomePage() {
             {quickAccessCategories.map((cat) => (
               <Link 
                 key={cat.id}
-                href={`/?categoria=${cat.id}`}
+                href={cat.href}
                 className="group flex flex-col items-center"
               >
                 <div 
