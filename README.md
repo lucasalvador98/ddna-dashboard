@@ -192,6 +192,119 @@ src/
 
 ---
 
+## ETL — Pipeline de Datos
+
+El dashboard funciona con datos que se ingestan desde archivos Excel/CSV through un pipeline de **Extracción → Transformación → Carga (ETL)** implementado en Python.
+
+### Flujo completo
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           PIPELINE ETL DDNA                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  ┌──────────┐     ┌──────────────┐     ┌─────────────┐     ┌──────────────┐
+  │   RAW    │     │   EXTRACT    │     │  TRANSFORM │     │    LOAD      │
+  │  DATA    │────▶│   (Excel)    │────▶│  (Python)   │────▶│  (Supabase)  │
+  └──────────┘     └──────────────┘     └─────────────┘     └──────────────┘
+                                                                             
+  datos/raw/         read_excel.py        salud.py          sql_generator.py  
+  - DEIS.xlsx        + fallback           + demografia.py    + supabase_loader
+  - INDEC.csv         openpyxl            + educacion.py     
+  - Aprender.xlsx     cuando no            + pobreza.py       
+                      hay pandas           + seguridad.py    
+
+  Output:             Limpieza/            datos_indicadores
+  datos/raw/          normalización        indicadores
+  - deis/             → JSON                fuentes_datos
+  - censo-2022/       → output/
+  - pobreza/
+```
+
+### Comandos
+
+| Comando | Descripción |
+|---------|-------------|
+| `python -m etl.main transform --category salud` | Transforma solo la categoría "salud" |
+| `python -m etl.main transform --all` | Transforma todas las categorías |
+| `python -m etl.main load --method sql` | Genera archivos SQL en `etl/output/` |
+| `python -m etl.main load --method api` | Carga directo a Supabase (requiere SERVICE_ROLE_KEY) |
+| `python -m etl.main etl --all` | Pipeline completo (transform + load) |
+
+### Estructura de datos crudos
+
+```
+datos/raw/
+├── deis/
+│   ├── datosDeis-2024-07-26.xlsx
+│   ├── Mortalidad infantil Nacion-Provincia.xlsx
+│   └── Edad_Madre 2022.xlsx
+├── censo-2022/
+│   ├── Educacion por nivel.xlsx
+│   ├── Educacion por edades.xlsx
+│   ├── censo poblacion.xlsx
+│   └── Cobertura_Salud-Censo.xlsx
+├── pobreza/
+│   ├── cuadros_informe_pobreza_09_24.xlsx
+│   └── ...
+├── aprender/
+│   └── aprender 2024.xlsx
+├── justicia/
+│   └── Justicia_cba_2022.xlsx
+└── ...
+```
+
+### Configuración
+
+Los archivos se mapean en `etl/config.py`:
+
+```python
+DATA_FILES = {
+    "salud": [
+        RAW_DATA_DIR / "deis" / "datosDeis-2024-07-26.xlsx",
+        RAW_DATA_DIR / "deis" / "Mortalidad infantil Nacion-Provincia.xlsx",
+        ...
+    ],
+    "educacion": [...],
+    "pobreza": [...],
+}
+```
+
+### Transformadores
+
+Cada categoría tiene su propio transformador en `etl/transform/`:
+
+| Archivo | Categoría |
+|---------|-----------|
+| `salud.py` | Mortalidad infantil, cobertura vacunal, edad madre |
+| `educacion.py` | Escolarización, aprender, abandono |
+| `pobreza.py` | Pobreza e indigencia, brecha |
+| `seguridad.py` | Denuncias, justicia |
+| `demografia.py` | Población, estructura |
+
+Cada transformador:
+1. Lee los Excel correspondientes usando `read_excel()`
+2. Limpia y normaliza columnas
+3. Genera registros para `datos_indicadores`
+4. Guarda JSON en `etl/output/{categoria}_transformed.json`
+
+### Cargar a Supabase
+
+**Opción 1 — SQL (recomendado para testing):**
+```bash
+python -m etl.main load --method sql
+```
+Genera archivos `.sql` en `etl/output/`. Copiar y pegar en el SQL Editor de Supabase.
+
+**Opción 2 — API (para producción):**
+```bash
+export SUPABASE_SERVICE_ROLE_KEY="tu-key"
+python -m etl.main load --method api
+```
+Sube directo a Supabase. Requiere `SERVICE_ROLE_KEY`.
+
+---
+
 ## Scripts disponibles
 
 ```bash

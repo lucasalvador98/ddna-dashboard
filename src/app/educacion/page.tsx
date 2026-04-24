@@ -1,122 +1,163 @@
 "use client";
 
-import { BookOpen, GraduationCap, AlertCircle, Trophy } from "lucide-react";
-import { KpiCard } from "@/components/kpi-card";
+import { BookOpen, GraduationCap, Users, TrendingDown, TrendingUp } from "lucide-react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 import { SectionHeader } from "@/components/section-header";
-import { ChartCard } from "@/components/charts/chart-card";
-import { useChartData } from "@/lib/use-chart-data";
-import { placeholderChartData } from "@/lib/chart-data";
+import { KpiCard } from "@/components/kpi-card";
+import { ChartWithTable } from "@/components/charts/chart-with-table";
 import {
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
+  Legend,
+  BarChart,
+  Bar,
 } from "recharts";
 
-// Tema.json dataColors palette for consistent branding
-const DDNA_COLORS = {
+// Colores DDNA
+const COLORS = {
   amber: "#F3A712",
-  magenta: "#BF1363",
-  orange: "#FF7F11",
-  cream: "#FFE2BF",
   blue: "#3777FF",
-  navy: "#00074E",
-  mauve: "#A66999",
-  teal: "#3599B8",
-  cyan: "#4AC5BB",
+  magenta: "#BF1363",
   terracotta: "#E07A5F",
 };
 
+interface IndicadorData {
+  id: string;
+  indicador_nombre: string;
+  valor: number;
+  unidad: string;
+  periodo: string;
+  region: string;
+  desglose: Record<string, any> | null;
+}
+
 export default function EducacionPage() {
-  const { data: chartData, metadata } = useChartData("educacion");
-  const escolarizacionData = chartData?.charts?.escolarizacion ?? placeholderChartData.educacion.charts.escolarizacion;
-  const aprenderData = chartData?.charts?.aprender ?? placeholderChartData.educacion.charts.aprender;
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<IndicadorData[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  // Cargar datos
+  useEffect(() => {
+    async function fetchData() {
+      const { data: indicadores, error } = await supabase
+        .from("indicadores")
+        .select("id, indicador_nombre, valor, unidad, periodo, region, desglose")
+        .eq("categoria", "educacion")
+        .order("periodo", { ascending: true });
+
+      if (error) {
+        setError(error.message);
+      } else {
+        setData(indicadores || []);
+      }
+      setLoading(false);
+    }
+    fetchData();
+  }, []);
+
+  //time series por nivel educativo
+  const getAsistenciaEducativa = () => {
+    // Filtrar solo "Tasa de asistencia educativa" que tiene valores reales en %
+    const asistencia = data.filter((d) => 
+      d.indicador_nombre === "Tasa de asistencia educativa"
+    );
+    
+    // Mapear datos para gráfico por edad
+    return asistencia
+      .map((d) => ({
+        edad: d.desglose?.edad ?? 0,
+        edadLabel: `${d.desglose?.edad ?? 0} años`,
+        valor: Number(d.valor) || 0,
+        asistentes: d.desglose?.asistentes || 0,
+        poblacion: d.desglose?.poblacion_total || 0,
+      }))
+      .sort((a, b) => a.edad - b.edad);
+  };
+
+  const asistenciaData = getAsistenciaEducativa();
+  
+  // Últimos valores (año más reciente)
+  const tasaPromedio = asistenciaData.length > 0 
+    ? asistenciaData.reduce((sum, d) => sum + d.valor, 0) / asistenciaData.length
+    : 0;
+  
+  const tasaInicial = asistenciaData.filter((d) => d.edad >= 3 && d.edad <= 5)
+    .reduce((sum, d) => sum + d.valor, 0) / 
+    (asistenciaData.filter((d) => d.edad >= 3 && d.edad <= 5).length || 1);
+  
+  const tasaPrimaria = asistenciaData.filter((d) => d.edad >= 6 && d.edad <= 12)
+    .reduce((sum, d) => sum + d.valor, 0) / 
+    (asistenciaData.filter((d) => d.edad >= 6 && d.edad <= 12).length || 1);
+  
+  const tasaSecundaria = asistenciaData.filter((d) => d.edad >= 13 && d.edad <= 17)
+    .reduce((sum, d) => sum + d.valor, 0) / 
+    (asistenciaData.filter((d) => d.edad >= 13 && d.edad <= 17).length || 1);
 
   return (
     <div className="space-y-6">
       <SectionHeader
         icon={BookOpen}
         title="Indicadores de Educación"
-        description="Monitoreo de indicadores educativos: escolarización, abandono, repitencia y logros de aprendizaje"
+        description="Seguimiento de matriculación y resultados educativos en Córdoba"
         color="amber"
       />
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <KpiCard
-          title="Escolarización total"
-          value="89,1%"
-          subtitle="Tasa neta de escolarización combinada"
-          change="+2,3 pp"
-          changeType="up"
+          title="Tasa Promedio"
+          value={tasaPromedio > 0 ? `${tasaPromedio.toFixed(1)}%` : "—"}
+          subtitle="Asistencia educativa promedio (0-17 años)"
           icon={GraduationCap}
           color="amber"
         />
+        
         <KpiCard
-          title="Abandono escolar"
-          value="3,2%"
-          subtitle="Tasa de abandono en secundario"
-          change="-0,8 pp"
-          changeType="down"
-          icon={AlertCircle}
-          color="magenta"
+          title="Educación Inicial"
+          value={tasaInicial > 0 ? `${tasaInicial.toFixed(1)}%` : "—"}
+          subtitle="Niños de 3-5 años"
+          icon={BookOpen}
+          color="blue"
         />
+        
         <KpiCard
-          title="Resultados Aprender"
-          value="55,8%"
-          subtitle="Nivel satisfactorio en ciencias"
-          change="+4,2 pp"
-          changeType="up"
-          icon={Trophy}
-          color="amber"
+          title="Educación Secundaria"
+          value={tasaSecundaria > 0 ? `${tasaSecundaria.toFixed(1)}%` : "—"}
+          subtitle="Jóvenes de 13-17 años"
+          icon={Users}
+          color="magenta"
         />
       </div>
 
-      {/* Escolarización Area Chart */}
-      <ChartCard
-        title="Tasa de Escolarización por Nivel"
-        subtitle="Educación inicial, primaria y secundaria — Córdoba (2018-2024)"
+      {/* Gráfico: Tasa de Asistencia Educativa por Edad */}
+      <ChartWithTable
+        title="Tasa de Asistencia Educativa por Edad"
+        subtitle="Porcentaje de población que asiste a establecimientos educativos (Córdoba, 2022)"
         color="amber"
-        fuente={metadata?.fuente}
-        ultimaActualizacion={metadata?.ultimaActualizacion}
+        fuente="Censo Nacional 2022"
+        data={asistenciaData}
+        dataKey="valor"
+        xAxisKey="edadLabel"
       >
-        <div className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart
-              data={escolarizacionData}
-              margin={{ top: 10, right: 30, left: 20, bottom: 0 }}
-            >
-              <defs>
-                <linearGradient id="colorInicial" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={DDNA_COLORS.amber} stopOpacity={0.3} />
-                  <stop offset="95%" stopColor={DDNA_COLORS.amber} stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="colorPrimario" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={DDNA_COLORS.blue} stopOpacity={0.3} />
-                  <stop offset="95%" stopColor={DDNA_COLORS.blue} stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="colorSecundario" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={DDNA_COLORS.magenta} stopOpacity={0.3} />
-                  <stop offset="95%" stopColor={DDNA_COLORS.magenta} stopOpacity={0} />
-                </linearGradient>
-              </defs>
+        <div className="h-72">
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={asistenciaData} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
               <XAxis
-                dataKey="year"
-                tick={{ fill: "#4D4D4D", fontSize: 12 }}
-                tickLine={{ stroke: "#E0E0E0" }}
+                dataKey="edadLabel"
+                tick={{ fill: "#4D4D4D", fontSize: 11 }}
+                interval={2}
               />
               <YAxis
                 tick={{ fill: "#4D4D4D", fontSize: 12 }}
-                tickLine={{ stroke: "#E0E0E0" }}
-                domain={[70, 100]}
-                tickFormatter={(value) => `${value}%`}
+                domain={[0, 100]}
+                tickFormatter={(v) => `${v}%`}
               />
               <Tooltip
                 contentStyle={{
@@ -124,122 +165,56 @@ export default function EducacionPage() {
                   border: "1px solid #E0E0E0",
                   borderRadius: "8px",
                 }}
-                formatter={(value) => [`${value}%`, ""]}
-              />
-              <Legend
-                wrapperStyle={{ paddingTop: "20px" }}
-                formatter={(value) => (
-                  <span style={{ color: "#4D4D4D" }}>
-                    {value === "inicial"
-                      ? "Inicial"
-                      : value === "primario"
-                      ? "Primario"
-                      : "Secundario"}
-                  </span>
-                )}
-              />
-              <Area
-                type="monotone"
-                dataKey="inicial"
-                stroke={DDNA_COLORS.amber}
-                strokeWidth={2}
-                fillOpacity={1}
-                fill="url(#colorInicial)"
-                name="Inicial"
-              />
-              <Area
-                type="monotone"
-                dataKey="primario"
-                stroke={DDNA_COLORS.blue}
-                strokeWidth={2}
-                fillOpacity={1}
-                fill="url(#colorPrimario)"
-                name="Primario"
-              />
-              <Area
-                type="monotone"
-                dataKey="secundario"
-                stroke={DDNA_COLORS.magenta}
-                strokeWidth={2}
-                fillOpacity={1}
-                fill="url(#colorSecundario)"
-                name="Secundario"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      </ChartCard>
-
-      {/* Resultados Aprender Bar Chart */}
-      <ChartCard
-        title="Resultados Aprender por Área"
-        subtitle="Porcentaje de estudiantes por nivel de logro — Último período"
-        color="amber"
-        fuente={metadata?.fuente}
-        ultimaActualizacion={metadata?.ultimaActualizacion}
-      >
-        <div className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={aprenderData}
-              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
-              <XAxis
-                dataKey="area"
-                tick={{ fill: "#4D4D4D", fontSize: 12 }}
-                tickLine={{ stroke: "#E0E0E0" }}
-              />
-              <YAxis
-                tick={{ fill: "#4D4D4D", fontSize: 12 }}
-                tickLine={{ stroke: "#E0E0E0" }}
-                tickFormatter={(value) => `${value}%`}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#FFF",
-                  border: "1px solid #E0E0E0",
-                  borderRadius: "8px",
-                }}
-                formatter={(value) => [`${value}%`, ""]}
-              />
-              <Legend
-                wrapperStyle={{ paddingTop: "20px" }}
-                formatter={(value) => (
-                  <span style={{ color: "#4D4D4D" }}>
-                    {value === "satisfactorio"
-                      ? "Satisfactorio"
-                      : value === "básico"
-                      ? "Básico"
-                      : "Debajo del básico"}
-                  </span>
-                )}
+                formatter={(value, name, props) => [
+                  `${value}%`,
+                  props.payload.edadLabel,
+                ]}
+                labelFormatter={(label) => label}
               />
               <Bar
-                dataKey="satisfactorio"
-                stackId="a"
-                fill="#22C55E"
-                radius={[0, 0, 0, 0]}
-                name="Satisfactorio"
-              />
-              <Bar
-                dataKey="básico"
-                stackId="a"
-                fill={DDNA_COLORS.amber}
-                radius={[0, 0, 0, 0]}
-                name="Básico"
-              />
-              <Bar
-                dataKey="debajo"
-                stackId="a"
-                fill={DDNA_COLORS.terracotta}
+                dataKey="valor"
+                fill={COLORS.amber}
+                name="Tasa de Asistencia"
                 radius={[4, 4, 0, 0]}
-                name="Debajo del básico"
               />
             </BarChart>
           </ResponsiveContainer>
         </div>
-      </ChartCard>
+      </ChartWithTable>
+
+      {/* Placeholder para Resultados Aprender */}
+      <ChartWithTable
+        title="Resultados Aprender"
+        subtitle="Evaluaciones de calidad educativa por área"
+        color="amber"
+        fuente="Ministerio de Educación"
+        data={[]}
+        dataKey="valor"
+        xAxisKey="area"
+      >
+        <div className="h-72 flex items-center justify-center text-gray-400">
+          <p>Datos de evaluaciones Aprender en desarrollo</p>
+        </div>
+      </ChartWithTable>
+
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#F3A712]" />
+          <span className="ml-3 font-body text-gray-500">Cargando datos...</span>
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+          Error al cargar datos: {error}
+        </div>
+      )}
+
+      {data.length === 0 && !loading && (
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
+          <p className="text-gray-500">No hay datos de educación disponibles</p>
+        </div>
+      )}
     </div>
   );
 }

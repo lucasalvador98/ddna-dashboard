@@ -129,6 +129,20 @@ SELECT categoria, COUNT(*) FROM indicadores GROUP BY categoria;
 
 ---
 
+## Estado del ETL (22/04/2026)
+
+**✅ DOCUMENTADO COMPLETO** en `etl/README.md`:
+
+- CLI principal (`main.py`) — inspect, transform, load, etl
+- Scripts especializados — `load_paicor.py`, `load_inversion.py`
+- Catálogo de fuentes — `sources.yaml`
+- Inspector interactivo — `etl_inspect.py`
+- Esquema de DB documentado
+- Troubleshooting incluido
+- 1667 registros cargados a Supabase
+
+---
+
 ## Notas Técnicas
 
 - **Stack**: Next.js 16, React 19, TypeScript, Tailwind v4, Supabase

@@ -1,271 +1,166 @@
 "use client";
 
-import { Coins, TrendingUp, Percent, BarChart3 } from "lucide-react";
-import { KpiCard } from "@/components/kpi-card";
+import { Coins, TrendingUp } from "lucide-react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 import { SectionHeader } from "@/components/section-header";
-import { ChartCard } from "@/components/charts/chart-card";
-import { useChartData } from "@/lib/use-chart-data";
-import { usePaicor } from "@/lib/use-paicor";
-import { placeholderChartData } from "@/lib/chart-data";
-import {
-  ComposedChart,
-  Bar,
-  Line,
-  LineChart,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
+import { KpiCard } from "@/components/kpi-card";
+import { ChartWithTable } from "@/components/charts/chart-with-table";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
-// Tema.json dataColors palette for consistent branding
-const DDNA_COLORS = {
-  amber: "#F3A712",
-  magenta: "#BF1363",
-  orange: "#FF7F11",
-  cream: "#FFE2BF",
-  blue: "#3777FF",
-  navy: "#00074E",
-  mauve: "#A66999",
-  teal: "#3599B8",
-  cyan: "#4AC5BB",
+const COLORS = {
   terracotta: "#E07A5F",
+  amber: "#F3A712",
+  blue: "#3777FF",
+  magenta: "#BF1363",
 };
 
-export default function InversionPage() {
-  const { data: chartData, metadata } = useChartData("inversion");
-  const inversionData = chartData?.charts?.inversion ?? placeholderChartData.inversion.charts.inversion;
-  const presupuestoData = chartData?.charts?.presupuesto ?? placeholderChartData.inversion.charts.presupuesto;
+interface IndicadorData {
+  id: string;
+  indicador_nombre: string;
+  valor: number;
+  unidad: string;
+  periodo: string;
+  region: string;
+  desglose: Record<string, any> | null;
+}
 
-  // PAICOR data (beneficiaries by department)
-  const { chartData: paicorChartData, loading: paicorLoading, metadata: paicorMetadata } = usePaicor();
+export default function InversionPage() {
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<IndicadorData[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchData() {
+      const { data: indicadores, error } = await supabase
+        .from("indicadores")
+        .select("id, indicador_nombre, valor, unidad, periodo, region, desglose")
+        .eq("categoria", "inversion")
+        .order("periodo", { ascending: true });
+
+      if (error) setError(error.message);
+      else setData(indicadores || []);
+      setLoading(false);
+    }
+    fetchData();
+  }, []);
+
+  // Inversión por área/categoría (último año)
+  const getInversionPorArea = () => {
+    const porArea = new Map<string, number>();
+    for (const d of data) {
+      const area = d.desglose?.categoria || "Sin categoría";
+      porArea.set(area, (porArea.get(area) || 0) + Number(d.valor));
+    }
+    return Array.from(porArea.entries())
+      .map(([name, value]) => ({ name, value: Math.round(value) }))
+      .sort((a, b) => b.value - a.value);
+  };
+
+  // Inversión por organismo (top 10)
+  const getInversionPorOrganismo = () => {
+    const porOrganismo = new Map<string, number>();
+    for (const d of data) {
+      const org = d.desglose?.organismo || "Sin organismo";
+      porOrganismo.set(org, (porOrganismo.get(org) || 0) + Number(d.valor));
+    }
+    return Array.from(porOrganismo.entries())
+      .map(([name, value]) => ({ name, value: Math.round(value) }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10); // Top 10
+  };
+
+  const inversionArea = getInversionPorArea();
+  const inversionOrganismo = getInversionPorOrganismo();
+  
+  const total = inversionArea.reduce((sum, d) => sum + d.value, 0);
 
   return (
     <div className="space-y-6">
       <SectionHeader
         icon={Coins}
-        title="Inversión Social"
-        description="Análisis del presupuesto destinado a políticas públicas para la infancia y adolescencia"
-        color="orange"
+        title="Indicadores de Inversión"
+        description="Inversión social en infancia y adolescencia en Córdoba"
+        color="terracotta"
       />
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <KpiCard
-          title="Inversión total"
-          value="$51.110 M"
-          subtitle="Miles de millones de pesos — 2024"
-          change="+8,2%"
-          changeType="up"
+          title="Inversión total 2024"
+          value={`$${(total / 1000).toFixed(1)} MM`}
+          subtitle="Millones de pesos en inversión social"
           icon={Coins}
-          color="orange"
+          color="terracotta"
         />
         <KpiCard
-          title="% Presupuesto"
-          value="23,5%"
-          subtitle="Del presupuesto total a infancia"
-          change="+0,7 pp"
-          changeType="up"
-          icon={Percent}
+          title="En Educación"
+          value={`$${((inversionArea.find(d => d.name === "Educación")?.value || 0) / 1000).toFixed(1)} MM`}
+          subtitle="Millones de pesos"
+          icon={TrendingUp}
           color="amber"
         />
         <KpiCard
-          title="Variación real"
-          value="+12,4%"
-          subtitle="Crecimiento real vs inflación"
-          change="+3,1 pp"
-          changeType="up"
-          icon={TrendingUp}
-          color="orange"
+          title="En Salud"
+          value={`$${((inversionArea.find(d => d.name === "Salud")?.value || 0) / 1000).toFixed(1)} MM`}
+          subtitle="Millones de pesos"
+          icon={Coins}
+          color="blue"
         />
       </div>
 
-      {/* Inversión Stacked Bar Chart */}
-      <ChartCard
-        title="Inversión Social en Infancia por Área"
-        subtitle="Millones de pesos constantes — Córdoba (2018-2024)"
-        color="orange"
-        fuente={metadata?.fuente}
-        ultimaActualizacion={metadata?.ultimaActualizacion}
+      <ChartWithTable
+        title="Inversión por Área"
+        subtitle="Distribución de inversión social por área (último período)"
+        color="terracotta"
+        fuente="Ministerio de Finanzas Córdoba"
+        data={inversionArea.map(d => ({ area: d.name, inversion: d.value }))}
+        dataKey="inversion"
+        xAxisKey="area"
       >
-        <div className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart
-              data={inversionData}
-              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
-              <XAxis
-                dataKey="year"
-                tick={{ fill: "#4D4D4D", fontSize: 12 }}
-                tickLine={{ stroke: "#E0E0E0" }}
+        <div className="h-72">
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={inversionArea} layout="vertical" margin={{ top: 10, right: 30, left: 100, bottom: 10 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" horizontal={false} />
+              <XAxis type="number" tick={{ fill: "#4D4D4D", fontSize: 12 }} tickFormatter={(v) => `$${v / 1000}M`} />
+              <YAxis type="category" dataKey="name" tick={{ fill: "#4D4D4D", fontSize: 11 }} width={90} />
+              <Tooltip 
+                contentStyle={{ backgroundColor: "#FFF", border: "1px solid #E0E0E0", borderRadius: "8px" }} 
+                formatter={(v) => [`${v?.toLocaleString("es-AR") ?? 0}`, "Inversión"]}
               />
-              <YAxis
-                tick={{ fill: "#4D4D4D", fontSize: 12 }}
-                tickLine={{ stroke: "#E0E0E0" }}
-                tickFormatter={(value) => `$${value / 1000}k`}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#FFF",
-                  border: "1px solid #E0E0E0",
-                  borderRadius: "8px",
-                }}
-                formatter={(value) => [`$${Number(value).toLocaleString()}M`, ""]}
-              />
-              <Legend
-                wrapperStyle={{ paddingTop: "20px" }}
-                formatter={(value) => (
-                  <span style={{ color: "#4D4D4D" }}>
-                    {value === "educacion"
-                      ? "Educación"
-                      : value === "salud"
-                      ? "Salud"
-                      : value === "proteccion"
-                      ? "Protección"
-                      : "Desarrollo"}
-                  </span>
-                )}
-              />
-              <Bar
-                dataKey="educacion"
-                stackId="a"
-                fill={DDNA_COLORS.amber}
-                name="Educación"
-              />
-              <Bar
-                dataKey="salud"
-                stackId="a"
-                fill={DDNA_COLORS.blue}
-                name="Salud"
-              />
-              <Bar
-                dataKey="proteccion"
-                stackId="a"
-                fill={DDNA_COLORS.magenta}
-                name="Protección"
-              />
-              <Bar
-                dataKey="desarrollo"
-                stackId="a"
-                fill={DDNA_COLORS.terracotta}
-                radius={[4, 4, 0, 0]}
-                name="Desarrollo"
-              />
-            </ComposedChart>
+              <Bar dataKey="value" fill={COLORS.terracotta} radius={[0, 4, 4, 0]} />
+            </BarChart>
           </ResponsiveContainer>
         </div>
-      </ChartCard>
+      </ChartWithTable>
 
-      {/* Presupuesto Line Chart */}
-      <ChartCard
-        title="Evolución del % del Presupuesto Destinado a Infancia"
-        subtitle="Porcentaje sobre presupuesto total — Córdoba (2018-2024)"
-        color="orange"
-        fuente={metadata?.fuente}
-        ultimaActualizacion={metadata?.ultimaActualizacion}
+      <ChartWithTable
+        title="Top 10 Organismos por Inversión"
+        subtitle="Principales organismos ejecutores de inversión social en infancia (2024)"
+        color="terracotta"
+        fuente="Ministerio de Finanzas Córdoba"
+        data={inversionOrganismo.map(d => ({ organismo: d.name, inversion: d.value }))}
+        dataKey="inversion"
+        xAxisKey="organismo"
       >
-        <div className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart
-              data={presupuestoData}
-              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-            >
+        <div className="h-72">
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={inversionOrganismo} margin={{ top: 10, right: 30, left: 10, bottom: 60 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
-              <XAxis
-                dataKey="year"
-                tick={{ fill: "#4D4D4D", fontSize: 12 }}
-                tickLine={{ stroke: "#E0E0E0" }}
+              <XAxis dataKey="name" tick={{ fill: "#4D4D4D", fontSize: 10 }} angle={-35} textAnchor="end" interval={0} />
+              <YAxis tick={{ fill: "#4D4D4D", fontSize: 12 }} tickFormatter={(v) => `$${v / 1000}M`} />
+              <Tooltip 
+                contentStyle={{ backgroundColor: "#FFF", border: "1px solid #E0E0E0", borderRadius: "8px" }}
+                formatter={(v) => [`${v?.toLocaleString("es-AR") ?? 0}`, "Inversión"]}
               />
-              <YAxis
-                tick={{ fill: "#4D4D4D", fontSize: 12 }}
-                tickLine={{ stroke: "#E0E0E0" }}
-                domain={[15, 25]}
-                tickFormatter={(value) => `${value}%`}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#FFF",
-                  border: "1px solid #E0E0E0",
-                  borderRadius: "8px",
-                }}
-                formatter={(value) => [`${value}%`, ""]}
-              />
-              <Line
-                type="monotone"
-                dataKey="porcentaje"
-                stroke={DDNA_COLORS.orange}
-                strokeWidth={3}
-                dot={{ fill: DDNA_COLORS.orange, strokeWidth: 2, r: 5 }}
-                activeDot={{ r: 7, fill: DDNA_COLORS.orange }}
-                name="% Presupuesto"
-              />
-            </LineChart>
+              <Bar dataKey="value" fill={COLORS.terracotta} radius={[4, 4, 0, 0]} />
+            </BarChart>
           </ResponsiveContainer>
         </div>
-      </ChartCard>
+      </ChartWithTable>
 
-      {/* PAICOR Bar Chart */}
-      <ChartCard
-        title="PAICOR - Beneficiarios por Departamento"
-        subtitle="Programa de Asistencia Integral de Córdoba (2018)"
-        color="blue"
-        fuente={paicorMetadata?.fuente}
-        ultimaActualizacion={paicorMetadata?.ultimaActualizacion}
-      >
-        {paicorLoading ? (
-          <div className="h-80 flex items-center justify-center">
-            <span className="text-gray-500">Cargando datos...</span>
-          </div>
-        ) : paicorChartData ? (
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart
-                data={paicorChartData.labels.map((label, idx) => ({
-                  departamento: label,
-                  beneficiaries: paicorChartData.datasets[0].data[idx],
-                }))}
-                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
-                <XAxis
-                  dataKey="departamento"
-                  tick={{ fill: "#4D4D4D", fontSize: 10 }}
-                  tickLine={{ stroke: "#E0E0E0" }}
-                  angle={-45}
-                  textAnchor="end"
-                  height={80}
-                />
-                <YAxis
-                  tick={{ fill: "#4D4D4D", fontSize: 12 }}
-                  tickLine={{ stroke: "#E0E0E0" }}
-                  tickFormatter={(value) => value.toLocaleString()}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#FFF",
-                    border: "1px solid #E0E0E0",
-                    borderRadius: "8px",
-                  }}
-                  formatter={(value) => [Number(value).toLocaleString(), "Beneficiarios"]}
-                />
-                <Bar
-                  dataKey="beneficiarios"
-                  fill={DDNA_COLORS.blue}
-                  name="Beneficiarios"
-                  radius={[4, 4, 0, 0]}
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-        ) : (
-          <div className="h-80 flex items-center justify-center">
-            <span className="text-gray-500">No hay datos disponibles</span>
-          </div>
-        )}
-      </ChartCard>
+      {loading && <div className="py-12 text-center text-gray-500">Cargando...</div>}
+      {error && <div className="bg-red-50 p-4 rounded text-red-700">Error: {error}</div>}
+      {data.length === 0 && !loading && <div className="bg-gray-50 p-8 rounded text-center text-gray-500">Sin datos disponibles</div>}
     </div>
   );
 }

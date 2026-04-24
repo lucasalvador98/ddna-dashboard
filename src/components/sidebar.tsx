@@ -21,17 +21,9 @@ const navItems: NavItem[] = [
   { label: "Seguridad", href: "/seguridad", iconSrc: "/logos/Recurso 5@2x.png", iconAlt: "Seguridad" },
   { label: "Inversión", href: "/inversion", iconSrc: "/logos/Recurso 6@2x.png", iconAlt: "Inversión Social" },
   { label: "Fuentes", href: "/fuentes", iconSrc: "/logos/Recurso 7@2x.png", iconAlt: "Fuentes de Datos" },
+  { label: "Repositorio", href: "/repositorio", iconSrc: "/logos/Recurso 7@2x.png", iconAlt: "Repositorio DDNA" },
+  { label: "APIs Externas", href: "/apis", iconSrc: "/logos/Recurso 7@2x.png", iconAlt: "APIs Externas" },
 ];
-
-// Section colors for active states
-const sectionColors: Record<string, string> = {
-  "/": "#F3A712",      // Inicio - amber
-  "/salud": "#E07A5F", // Salud - terracotta
-  "/educacion": "#F3A712", // Educación - amber
-  "/pobreza": "#BF1363", // Pobreza - magenta
-  "/seguridad": "#3777FF", // Seguridad - blue
-  "/inversion": "#FF7F11", // Inversión - orange
-};
 
 export function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -54,33 +46,28 @@ export function Sidebar() {
           alt="DDNA"
           width={isCollapsed ? 40 : 160}
           height={40}
+          style={{ height: "auto" }}
           className="object-contain"
         />
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 py-4">
-        <ul className="space-y-1 px-3">
+        <ul className="space-y-1 px-2">
           {navItems.map((item) => {
-            const isActive = pathname === item.href;
-            const activeColor = sectionColors[item.href] || "#F3A712";
-
+            const isActive = pathname === item.href || 
+              (item.href !== "/" && pathname.startsWith(item.href));
+            
             return (
               <li key={item.href}>
                 <Link
                   href={item.href}
                   className={clsx(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200",
+                    "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
                     isActive
-                      ? "font-medium shadow-sm"
-                      : "hover:bg-gray-50"
+                      ? "bg-[#BF1363]/10 text-[#BF1363]"
+                      : "text-[#4D4D4D] hover:bg-gray-100"
                   )}
-                  style={isActive ? {
-                    backgroundColor: `${activeColor}15`,
-                    borderLeft: `3px solid ${activeColor}`,
-                    paddingLeft: '9px'
-                  } : undefined}
-                  title={isCollapsed ? item.label : undefined}
                 >
                   <div className={clsx(
                     "flex-shrink-0 w-6 h-6 relative",
@@ -91,11 +78,11 @@ export function Sidebar() {
                       alt={item.iconAlt}
                       width={24}
                       height={24}
+                      style={{ width: "auto", height: "auto" }}
                       className={clsx(
                         "object-contain",
                         isActive ? "" : "opacity-60"
                       )}
-                      style={isActive ? { filter: `brightness(0) saturate(100%) invert(41%) saturate(3000%) hue-rotate(340deg) brightness(100%)` } : undefined}
                     />
                   </div>
                   {!isCollapsed && (
@@ -104,7 +91,6 @@ export function Sidebar() {
                         "font-accent text-sm tracking-wide",
                         isActive ? "font-medium" : "text-[#4D4D4D]"
                       )}
-                      style={isActive ? { color: activeColor } : undefined}
                     >
                       {item.label}
                     </span>
@@ -116,29 +102,31 @@ export function Sidebar() {
         </ul>
       </nav>
 
-      {/* Collapse Toggle */}
-      <div className="p-4 border-t border-[#E0E0E0]">
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className={clsx(
-            "w-full flex items-center justify-center gap-2 text-[#4D4D4D] hover:text-[#FF7F11] transition-colors py-2 rounded-lg hover:bg-gray-50",
-          )}
-          aria-label={isCollapsed ? "Expandir menú" : "Colapsar menú"}
+      {/* Collapse toggle */}
+      <button
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className="absolute -right-3 top-20 w-6 h-6 bg-white border border-[#E0E0E0] rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:border-gray-300 transition-colors shadow-sm"
+        aria-label={isCollapsed ? "Expandir sidebar" : "Colapsar sidebar"}
+      >
+        <svg
+          className={clsx("w-3 h-3 transition-transform", isCollapsed ? "rotate-180" : "")}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
         >
-          {isCollapsed ? (
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-            </svg>
-          ) : (
-            <>
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-              </svg>
-              <span className="font-accent text-sm">Colapsar</span>
-            </>
-          )}
-        </button>
-      </div>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+
+      {/* Version/footer */}
+      {!isCollapsed && (
+        <div className="p-4 border-t border-[#E0E0E0]">
+          <p className="font-accent text-xs text-gray-400 text-center">
+            DDNA Dashboard v1.0
+          </p>
+        </div>
+      )}
     </aside>
   );
 }

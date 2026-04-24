@@ -19,19 +19,63 @@ def _import_pandas():
         return None
 
 def _fallback_read_excel(path: str):
+    """Read specific sheets from Excel file - prioritize BASE DE DATOS."""
     try:
         from openpyxl import load_workbook
-        wb = load_workbook(path, read_only=True, data_only=True)
-        ws = wb.active
-        rows = list(ws.iter_rows(values_only=True))
-        if not rows:
-            return []
-        header = rows[0]
-        data = [dict(zip(header, row)) for row in rows[1:]]
-        return data
+        from pandas import DataFrame
+        # data_only=True para obtener valores en lugar de formulas
+        wb = load_workbook(path, data_only=True)
+        
+        result = {}
+        # Prefer BASE DE DATOS sheet, otherwise first non-empty sheet
+        prefer_sheets = ['BASE DE DATOS', 'BASE DE DATOS', '2023', '2022', '2021']
+        
+        for prefer in prefer_sheets:
+            if prefer in wb.sheetnames:
+                ws = wb[prefer]
+                if ws.max_row > 5:
+                    rows = list(ws.iter_rows(values_only=True))
+                    # Skip empty rows at start
+                    start = 0
+                    for i, row in enumerate(rows):
+                        if any(row):
+                            start = i
+                            break
+                    if start < len(rows):
+                        header = rows[start]
+                        data = []
+                        for row in rows[start+1:]:
+                            if any(row):
+                                data.append(dict(zip(header, row)))
+                        if data:
+                            result[prefer] = DataFrame(data)
+                            break
+        
+        # If no prefered sheet found, load all
+        if not result:
+            for sheet_name in wb.sheetnames:
+                ws = wb[sheet_name]
+                if ws.max_row < 5:
+                    continue
+                rows = list(ws.iter_rows(values_only=True))
+                start = 0
+                for i, row in enumerate(rows):
+                    if any(row):
+                        start = i
+                        break
+                if start < len(rows):
+                    header = rows[start]
+                    data = []
+                    for row in rows[start+1:]:
+                        if any(row):
+                            data.append(dict(zip(header, row)))
+                    if data:
+                        result[sheet_name] = DataFrame(data)
+        
+        return result if result else {"Sheet1": DataFrame()}
     except Exception as fe:
         print(f"[ETL] openpyxl fallback failed: {fe}")
-        return []
+        return {"Sheet1": DataFrame()}
 
 def read_excel(path: str):
     """Read an Excel file and return a dict of sheet names to DataFrames or fallback lists.
