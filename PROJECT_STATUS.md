@@ -79,7 +79,7 @@
 ## Pending 🔲
 
 ### Roadmap propuesto (abril 2026)
-- **ETL real de Excel/CSV** — ✅ HECHO (15/04/2026): Todos los transformadores completados y datos cargados a Supabase (1667 registros).
+- **ETL real de Excel/CSV** — ✅ HECHO (24/04/2026): Datos cargados a Supabase (6748 registros). Pendiente: demografia (0), salud (actualizar 2022→2024), Encuestas 2024, anuario educacion, visualizador 2025.
 - **Automatización**: Añadir GitHub Action que ejecute `python etl/main.py etl --all` diariamente.
 - **Upload CSV**: Mejorar la interfaz de carga con mapeo dinámico de columnas y validación previa.
 - **Dashboard UI**: Migrar componentes de Recharts a versiones más modernas o a Plotly cuando se requieran visualizaciones avanzadas (mapas, diagramas).
@@ -90,16 +90,17 @@
 
 ---
 
-## Datos en Supabase (al 15/04/2026)
+## Datos en Supabase (al 24/04/2026)
 
-| Categoría | Registros | Notas |
-|----------|----------|-------|
-| Salud | 145 | Mortalidad infantil + DEIS |
-| Educación | 1056 | Aprender + Censo 2022 |
-| Pobreza | 48 | INDEC + ENCOPRAC |
-| Seguridad | 7 | Ministerio Público Córdoba |
-| Demografía | 411 | Censo 2022 + DEIS |
-| **Total** | **1667** | |
+| Categoría | Registros | Período | Notas |
+|----------|----------|---------|-------|
+| educacion | 397 | 2024 | Aprender + Censo |
+| inversion | 6164 | 2024 | Presupuesto ejecutado |
+| pobreza | 36 | 2024 | INDEC + ENCOPRAC |
+| salud | 144 | 2022 | Mortalidad infantil + DEIS |
+| seguridad | 7 | 2022 | Ministerio Público Córdoba |
+| demografia | 0 | — | Sin datos cargados |
+| **Total** | **6748** | | |
 
 ### Método de carga
 - ETL: `python etl/main.py transform --category <cat>` → genera JSONs en `etl/output/`
@@ -204,15 +205,16 @@ CREATE TABLE indicadores (
 );
 ```
 
-### Datos cargados (1667 registros)
+### Datos cargados (6748 registros al 24/04/2026)
 
 | Categoría | Registros | Fuente |
 |----------|-----------|--------|
-| educacion | 1056 | Aprender + Censo 2022 |
-| demografia | 411 | Censo 2022 + DEIS |
-| salud | 145 | Mortalidad infantil + DEIS |
-| pobreza | 48 | INDEC + ENCOPRAC |
+| educacion | 397 | Aprender + Censo |
+| inversion | 6164 | Presupuesto ejecutado |
+| pobreza | 36 | INDEC + ENCOPRAC |
+| salud | 144 | Mortalidad infantil + DEIS |
 | seguridad | 7 | Ministerio Público Córdoba |
+| demografia | 0 | Sin cargar |
 
 ### Columna `desglose` (JSONB)
 
@@ -354,13 +356,31 @@ curl http://localhost:3000/api/fuentes
 
 ---
 
+### 工作会话 — Abril 2026 (24/04/2026 — consolidación)
+
+#### Completado ✅
+- **Merge fuentes + apis**: Unificados en `/fuentes/page.tsx` con tabs. Sidebar y header actualizados. Commit `6594f7f`.
+- **Limpieza repositorio**: 10 scripts ETL movidos de raíz a `etl/scripts/`. Commits `a14d037` + `0c3f955`.
+- **Datos verificados**: 6748 registros en Supabase (educacion 397, inversion 6164, pobreza 36, salud 144, seguridad 7, demografia 0).
+
+#### Pendiente 🔲
+1. **demografia** — 0 registros. Cargar desde `censo poblacion.xlsx`
+2. **salud** — datos solo a 2022. Actualizar con `datosDeis-2024-07-26.xlsx`
+3. **Encuestas 2024** — 3 archivos sin cargar
+4. **educacion** — ~9 archivos anuario 2024 sin cargar
+5. **inversion** — `BASE DE DATOS VISUALIZADOR al PTO 2025.xlsx` (2.5MB) sin cargar
+6. **Proteccion Digital** — docx sin procesar
+7. **Consumo_2022.csv** — sin cargar
+
+---
+
 ### Acceso
 
 | Recurso | URL |
 |---------|-----|
 | Dashboard | https://ddna-dashboard.vercel.app/ |
 | Supabase | https://supabase.com/dashboard/project/ppyyqrvirjqmfpqaqnxy |
-| APIs externas | `/apis` (en local) |
+| APIs externas | `/fuentes` (tab "APIs Externas") |
 | Repositorio | `/repositorio` (en local) |
 
 ### Credenciales (.env.local)
