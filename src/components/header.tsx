@@ -14,7 +14,7 @@ const routeTitles: Record<string, string> = {
   "/pobreza": "Indicadores de Pobreza",
   "/seguridad": "Indicadores de Seguridad",
   "/inversion": "Inversión Social",
-  "/fuentes": "Catálogo de Fuentes de Datos",
+  "/fuentes": "Catálogo de Fuentes y APIs",
 };
 
 export function Header() {

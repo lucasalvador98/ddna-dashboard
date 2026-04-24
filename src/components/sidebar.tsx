@@ -22,7 +22,7 @@ const navItems: NavItem[] = [
   { label: "Inversión", href: "/inversion", iconSrc: "/logos/Recurso 6@2x.png", iconAlt: "Inversión Social" },
   { label: "Fuentes", href: "/fuentes", iconSrc: "/logos/Recurso 7@2x.png", iconAlt: "Fuentes de Datos" },
   { label: "Repositorio", href: "/repositorio", iconSrc: "/logos/Recurso 7@2x.png", iconAlt: "Repositorio DDNA" },
-  { label: "APIs Externas", href: "/apis", iconSrc: "/logos/Recurso 7@2x.png", iconAlt: "APIs Externas" },
+  
 ];
 
 export function Sidebar() {
