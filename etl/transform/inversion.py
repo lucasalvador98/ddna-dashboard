@@ -106,9 +106,12 @@ def _transform_inversion(df, filename, sheet_name):
             if valor == 0:
                 continue
 
+            # Convertir a millones (Md) - los valores originales están en pesos
+            valor_md = valor / 1_000_000
+
             desglose = {
                 "programa": programa[:100],
-                "jurisdiccion": jurisdiccion[:100],
+                "organismo": jurisdiccion[:100] if jurisdiccion else "Sin organismo",
             }
             if cat_col and pd.notna(row[cat_col]):
                 desglose["categoria"] = str(row[cat_col])[:50]
@@ -118,10 +121,9 @@ def _transform_inversion(df, filename, sheet_name):
             records.append({
                 "indicador_nombre": "Inversion social en infancia",
                 "categoria": "inversion",
-                "valor": valor,
+                "valor": valor_md,
                 "periodo": año,
-                #region": "Córdoba",  # Usamos jurisdiccion como region
-                "region": jurisdiccion[:50] if jurisdiccion else "Córdoba",
+                "region": "Córdoba",
                 "unidad": "Md",
                 "desglose": json.dumps(desglose),
             })

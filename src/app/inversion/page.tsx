@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { SectionHeader } from "@/components/section-header";
 import { KpiCard } from "@/components/kpi-card";
 import { ChartWithTable } from "@/components/charts/chart-with-table";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 const COLORS = {
   terracotta: "#E07A5F",
@@ -45,11 +45,11 @@ export default function InversionPage() {
     fetchData();
   }, []);
 
-  // Inversión por área (último año)
+  // Inversión por área/categoría (último año)
   const getInversionPorArea = () => {
     const porArea = new Map<string, number>();
     for (const d of data) {
-      const area = d.desglose?.area || "General";
+      const area = d.desglose?.categoria || "Sin categoría";
       porArea.set(area, (porArea.get(area) || 0) + Number(d.valor));
     }
     return Array.from(porArea.entries())
@@ -57,22 +57,22 @@ export default function InversionPage() {
       .sort((a, b) => b.value - a.value);
   };
 
-  // Evolución histórica
-  const getEvolucion = () => {
-    const porPeriodo = new Map<string, number>();
+  // Inversión por organismo (top 10)
+  const getInversionPorOrganismo = () => {
+    const porOrganismo = new Map<string, number>();
     for (const d of data) {
-      const periodo = d.periodo;
-      porPeriodo.set(periodo, (porPeriodo.get(periodo) || 0) + Number(d.valor));
+      const org = d.desglose?.organismo || "Sin organismo";
+      porOrganismo.set(org, (porOrganismo.get(org) || 0) + Number(d.valor));
     }
-    return Array.from(porPeriodo.entries())
-      .map(([periodo, valor]) => ({ periodo, valor: Math.round(valor) }))
-      .sort((a, b) => a.periodo.localeCompare(b.periodo));
+    return Array.from(porOrganismo.entries())
+      .map(([name, value]) => ({ name, value: Math.round(value) }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10); // Top 10
   };
 
   const inversionArea = getInversionPorArea();
-  const evolucion = getEvolucion();
+  const inversionOrganismo = getInversionPorOrganismo();
   
-  const latest = evolucion.length > 0 ? evolucion[evolucion.length - 1] : null;
   const total = inversionArea.reduce((sum, d) => sum + d.value, 0);
 
   return (
@@ -86,21 +86,21 @@ export default function InversionPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <KpiCard
-          title="Inversión total"
-          value={latest ? `$${(latest.valor / 1000).toFixed(1)} MM` : "—"}
-          subtitle={`Millones de pesos - ${latest?.periodo || ""}`}
+          title="Inversión total 2024"
+          value={`$${(total / 1000).toFixed(1)} MM`}
+          subtitle="Millones de pesos en inversión social"
           icon={Coins}
           color="terracotta"
         />
         <KpiCard
-          title="Inversión en Educación"
+          title="En Educación"
           value={`$${((inversionArea.find(d => d.name === "Educación")?.value || 0) / 1000).toFixed(1)} MM`}
           subtitle="Millones de pesos"
           icon={TrendingUp}
           color="amber"
         />
         <KpiCard
-          title="Inversión en Salud"
+          title="En Salud"
           value={`$${((inversionArea.find(d => d.name === "Salud")?.value || 0) / 1000).toFixed(1)} MM`}
           subtitle="Millones de pesos"
           icon={Coins}
@@ -118,7 +118,7 @@ export default function InversionPage() {
         xAxisKey="area"
       >
         <div className="h-72">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height={280}>
             <BarChart data={inversionArea} layout="vertical" margin={{ top: 10, right: 30, left: 100, bottom: 10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" horizontal={false} />
               <XAxis type="number" tick={{ fill: "#4D4D4D", fontSize: 12 }} tickFormatter={(v) => `$${v / 1000}M`} />
@@ -134,26 +134,26 @@ export default function InversionPage() {
       </ChartWithTable>
 
       <ChartWithTable
-        title="Evolución de la Inversión"
-        subtitle="Inversión social total a lo largo de los años"
+        title="Top 10 Organismos por Inversión"
+        subtitle="Principales organismos ejecutores de inversión social en infancia (2024)"
         color="terracotta"
         fuente="Ministerio de Finanzas Córdoba"
-        data={evolucion}
-        dataKey="valor"
-        xAxisKey="periodo"
+        data={inversionOrganismo.map(d => ({ organismo: d.name, inversion: d.value }))}
+        dataKey="inversion"
+        xAxisKey="organismo"
       >
         <div className="h-72">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={evolucion} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={inversionOrganismo} margin={{ top: 10, right: 30, left: 10, bottom: 60 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
-              <XAxis dataKey="periodo" tick={{ fill: "#4D4D4D", fontSize: 12 }} />
+              <XAxis dataKey="name" tick={{ fill: "#4D4D4D", fontSize: 10 }} angle={-35} textAnchor="end" interval={0} />
               <YAxis tick={{ fill: "#4D4D4D", fontSize: 12 }} tickFormatter={(v) => `$${v / 1000}M`} />
               <Tooltip 
                 contentStyle={{ backgroundColor: "#FFF", border: "1px solid #E0E0E0", borderRadius: "8px" }}
                 formatter={(v) => [`${v?.toLocaleString("es-AR") ?? 0}`, "Inversión"]}
               />
-              <Line type="monotone" dataKey="valor" stroke={COLORS.terracotta} strokeWidth={2} dot={{ fill: COLORS.terracotta, r: 4 }} name="Inversión Total" />
-            </LineChart>
+              <Bar dataKey="value" fill={COLORS.terracotta} radius={[4, 4, 0, 0]} />
+            </BarChart>
           </ResponsiveContainer>
         </div>
       </ChartWithTable>

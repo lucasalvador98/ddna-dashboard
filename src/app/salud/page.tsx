@@ -61,11 +61,11 @@ export default function SaludPage() {
     fetchData();
   }, []);
 
-  // Agrupar datos por indicador
-  const getTimeSeries = (nombreParcial: string) => {
+// Agrupar datos por indicador para time series
+  const getTimeSeries = (nombreIndicador: string) => {
     return data
-      .filter((d) => d.indicador_nombre.toLowerCase().includes(nombreParcial.toLowerCase()))
-      .map((d) => ({
+      .filter((d) => d.indicador_nombre === nombreIndicador)
+      .map(d => ({
         periodo: d.periodo,
         valor: Number(d.valor) || 0,
         region: d.region,
@@ -73,13 +73,38 @@ export default function SaludPage() {
       .sort((a, b) => a.periodo.localeCompare(b.periodo));
   };
 
-  // Mortalidad infantil time series
-  const mortalidadData = getTimeSeries("mortalidad");
+  // Mortalidad infantil time series (TMI Córdoba - métrica principal)
+  const mortalidadData = getTimeSeries("Mortalidad infantil (TMI Cba)");
+  
+  // Otras series para gráfico comparativo
+  const mortalidadComparativa = () => {
+    const series = ["Mortalidad infantil (TMI Cba)", "Mortalidad infantil (TMI)"]
+      .map(nombre => ({
+        nombre,
+        data: getTimeSeries(nombre),
+      }))
+      .filter(s => s.data.length > 0);
+    
+    if (series.length === 0) return [];
+    
+    // Combinar por periodo
+    const periodos = [...new Set(series.flatMap(s => s.data.map(d => d.periodo)))];
+    return periodos
+      .map(periodo => {
+        const row: Record<string, any> = { periodo };
+        for (const s of series) {
+          row[s.nombre.replace("Mortalidad infantil (", "").replace(")", "")] = 
+            s.data.find(d => d.periodo === periodo)?.valor || null;
+        }
+        return row;
+      })
+      .sort((a, b) => a.periodo.localeCompare(b.periodo));
+  };
   
   // Cobertura vacunal
   const coberturaData = data
     .filter((d) => d.indicador_nombre.toLowerCase().includes("cobertura"))
-    .map((d) => ({
+    .map(d => ({
       name: d.desglose?.vacuna || d.desglose?.tipo || "General",
       value: Number(d.valor) || 0,
     }));
@@ -119,9 +144,9 @@ export default function SaludPage() {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <KpiCard
-          title="Mortalidad infantil"
+          title="Mortalidad infantil Córdoba"
           value={latestMortalidad ? `${latestMortalidad.valor}‰` : "—"}
-          subtitle={`Tasa por mil nacidos vivos - Córdoba ${latestMortalidad?.periodo || ""}`}
+          subtitle={`TMI - Córdoba ${latestMortalidad?.periodo || ""}`}
           change={cambioMortalidad ? `${cambioMortalidad.value}‰` : undefined}
           changeType={cambioMortalidad?.tipo as "up" | "down" | undefined}
           icon={Baby}
@@ -148,16 +173,16 @@ export default function SaludPage() {
       {/* Gráfico 1: Mortalidad Infantil */}
       <ChartWithTable
         title="Tasa de Mortalidad Infantil"
-        subtitle="Evolución histórica (por cada mil nacidos vivos)"
+        subtitle="Evolución histórica - Comparación Córdoba vs Total Nacional (por cada mil nacidos vivos)"
         color="terracotta"
         fuente="DEIS - Dirección de Estadísticas e Información de Salud"
-        data={mortalidadData}
+        data={mortalidadComparativa()}
         dataKey="valor"
         xAxisKey="periodo"
       >
         <div className="h-72">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={mortalidadData} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
+          <ResponsiveContainer width="100%" height={280}>
+            <LineChart data={mortalidadComparativa()} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
               <XAxis
                 dataKey="periodo"
@@ -174,16 +199,27 @@ export default function SaludPage() {
                   border: "1px solid #E0E0E0",
                   borderRadius: "8px",
                 }}
-                formatter={(value) => [`${value ?? 0}‰`, "Tasa"]}
+                formatter={(value, name) => [`${value ?? 0}‰`, name]}
               />
+              <Legend />
               <Line
                 type="monotone"
-                dataKey="valor"
+                dataKey="TMI Cba"
                 stroke={COLORS.terracotta}
                 strokeWidth={2}
                 dot={{ fill: COLORS.terracotta, r: 4 }}
-                activeDot={{ r: 6 }}
                 name="Córdoba"
+                connectNulls
+              />
+              <Line
+                type="monotone"
+                dataKey="TMI"
+                stroke={COLORS.blue}
+                strokeWidth={2}
+                dot={{ fill: COLORS.blue, r: 4 }}
+                name="Nacional"
+                strokeDasharray="5 5"
+                connectNulls
               />
             </LineChart>
           </ResponsiveContainer>
@@ -201,7 +237,7 @@ export default function SaludPage() {
         xAxisKey="name"
       >
         <div className="h-72">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height={280}>
             <BarChart data={coberturaData} layout="vertical" margin={{ top: 10, right: 30, left: 80, bottom: 10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" horizontal={false} />
               <XAxis

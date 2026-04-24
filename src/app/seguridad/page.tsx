@@ -97,7 +97,7 @@ export default function SeguridadPage() {
         xAxisKey="tipo"
       >
         <div className="h-72">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height={280}>
             <BarChart data={distribucionData} layout="vertical" margin={{ top: 10, right: 30, left: 100, bottom: 10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" horizontal={false} />
               <XAxis type="number" tick={{ fill: "#4D4D4D", fontSize: 12 }} />
@@ -119,7 +119,7 @@ export default function SeguridadPage() {
         xAxisKey="tipo"
       >
         <div className="h-72">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height={280}>
             <PieChart>
               <Pie
                 data={distribucionData}

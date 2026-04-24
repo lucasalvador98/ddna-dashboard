@@ -62,42 +62,42 @@ export default function EducacionPage() {
   }, []);
 
   //time series por nivel educativo
-  const getEscolarizacion = () => {
-    const escolarizacion = data.filter((d) => 
-      d.indicador_nombre.toLowerCase().includes("escolarización")
+  const getAsistenciaEducativa = () => {
+    // Filtrar solo "Tasa de asistencia educativa" que tiene valores reales en %
+    const asistencia = data.filter((d) => 
+      d.indicador_nombre === "Tasa de asistencia educativa"
     );
     
-    // Agrupar por periodo y nivel
-    const porPeriodo = new Map<string, Record<string, number>>();
-    
-    for (const d of escolarizacion) {
-      const nivel = d.desglose?.nivel || "General";
-      const periodo = d.periodo;
-      
-      if (!porPeriodo.has(periodo)) {
-        porPeriodo.set(periodo, {});
-      }
-      porPeriodo.get(periodo)![nivel] = Number(d.valor) || 0;
-    }
-    
-    return Array.from(porPeriodo.entries())
-      .map(([periodo, valores]) => ({
-        periodo,
-        ...valores,
+    // Mapear datos para gráfico por edad
+    return asistencia
+      .map((d) => ({
+        edad: d.desglose?.edad ?? 0,
+        edadLabel: `${d.desglose?.edad ?? 0} años`,
+        valor: Number(d.valor) || 0,
+        asistentes: d.desglose?.asistentes || 0,
+        poblacion: d.desglose?.poblacion_total || 0,
       }))
-      .sort((a, b) => a.periodo.localeCompare(b.periodo));
+      .sort((a, b) => a.edad - b.edad);
   };
 
-  const escolarizacionData = getEscolarizacion();
+  const asistenciaData = getAsistenciaEducativa();
   
-  // Últimos valores
-  const latestData = data.length > 0 
-    ? data.filter((d) => d.desglose?.nivel === "inicial")
-    : [];
+  // Últimos valores (año más reciente)
+  const tasaPromedio = asistenciaData.length > 0 
+    ? asistenciaData.reduce((sum, d) => sum + d.valor, 0) / asistenciaData.length
+    : 0;
   
-  const latestInicial = latestData.length > 0 
-    ? latestData[latestData.length - 1] 
-    : null;
+  const tasaInicial = asistenciaData.filter((d) => d.edad >= 3 && d.edad <= 5)
+    .reduce((sum, d) => sum + d.valor, 0) / 
+    (asistenciaData.filter((d) => d.edad >= 3 && d.edad <= 5).length || 1);
+  
+  const tasaPrimaria = asistenciaData.filter((d) => d.edad >= 6 && d.edad <= 12)
+    .reduce((sum, d) => sum + d.valor, 0) / 
+    (asistenciaData.filter((d) => d.edad >= 6 && d.edad <= 12).length || 1);
+  
+  const tasaSecundaria = asistenciaData.filter((d) => d.edad >= 13 && d.edad <= 17)
+    .reduce((sum, d) => sum + d.valor, 0) / 
+    (asistenciaData.filter((d) => d.edad >= 13 && d.edad <= 17).length || 1);
 
   return (
     <div className="space-y-6">
@@ -111,51 +111,52 @@ export default function EducacionPage() {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <KpiCard
-          title="Escolarización inicial"
-          value={latestInicial ? `${latestInicial.valor}%` : "—"}
-          subtitle="Niños de 3-5 años en Jardín/Guardería"
+          title="Tasa Promedio"
+          value={tasaPromedio > 0 ? `${tasaPromedio.toFixed(1)}%` : "—"}
+          subtitle="Asistencia educativa promedio (0-17 años)"
           icon={GraduationCap}
           color="amber"
         />
         
         <KpiCard
-          title="Escolarización primario"
-          value="99,8%"
-          subtitle="Niños de 6-12 años"
+          title="Educación Inicial"
+          value={tasaInicial > 0 ? `${tasaInicial.toFixed(1)}%` : "—"}
+          subtitle="Niños de 3-5 años"
           icon={BookOpen}
           color="blue"
         />
         
         <KpiCard
-          title="Escolarización secundario"
-          value="90,0%"
+          title="Educación Secundaria"
+          value={tasaSecundaria > 0 ? `${tasaSecundaria.toFixed(1)}%` : "—"}
           subtitle="Jóvenes de 13-17 años"
           icon={Users}
           color="magenta"
         />
       </div>
 
-      {/* Gráfico 1: Escolarización por nivel */}
+      {/* Gráfico: Tasa de Asistencia Educativa por Edad */}
       <ChartWithTable
-        title="Tasa de Escolarización por Nivel Educativo"
-        subtitle="Evolución histórica por nivel (2018-2024)"
+        title="Tasa de Asistencia Educativa por Edad"
+        subtitle="Porcentaje de población que asiste a establecimientos educativos (Córdoba, 2022)"
         color="amber"
-        fuente="Censo Nacional 2022 / Ministerio de Educación"
-        data={escolarizacionData}
+        fuente="Censo Nacional 2022"
+        data={asistenciaData}
         dataKey="valor"
-        xAxisKey="periodo"
+        xAxisKey="edadLabel"
       >
         <div className="h-72">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={escolarizacionData} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={asistenciaData} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
               <XAxis
-                dataKey="periodo"
-                tick={{ fill: "#4D4D4D", fontSize: 12 }}
+                dataKey="edadLabel"
+                tick={{ fill: "#4D4D4D", fontSize: 11 }}
+                interval={2}
               />
               <YAxis
                 tick={{ fill: "#4D4D4D", fontSize: 12 }}
-                domain={[70, 105]}
+                domain={[0, 100]}
                 tickFormatter={(v) => `${v}%`}
               />
               <Tooltip
@@ -164,34 +165,19 @@ export default function EducacionPage() {
                   border: "1px solid #E0E0E0",
                   borderRadius: "8px",
                 }}
-                formatter={(value) => [`${value ?? 0}%`, "Tasa"]}
+                formatter={(value, name, props) => [
+                  `${value}%`,
+                  props.payload.edadLabel,
+                ]}
+                labelFormatter={(label) => label}
               />
-              <Legend />
-              <Line
-                type="monotone"
-                dataKey="inicial"
-                stroke={COLORS.amber}
-                strokeWidth={2}
-                dot={{ fill: COLORS.amber, r: 4 }}
-                name="Inicial"
+              <Bar
+                dataKey="valor"
+                fill={COLORS.amber}
+                name="Tasa de Asistencia"
+                radius={[4, 4, 0, 0]}
               />
-              <Line
-                type="monotone"
-                dataKey="primario"
-                stroke={COLORS.blue}
-                strokeWidth={2}
-                dot={{ fill: COLORS.blue, r: 4 }}
-                name="Primario"
-              />
-              <Line
-                type="monotone"
-                dataKey="secundario"
-                stroke={COLORS.magenta}
-                strokeWidth={2}
-                dot={{ fill: COLORS.magenta, r: 4 }}
-                name="Secundario"
-              />
-            </LineChart>
+            </BarChart>
           </ResponsiveContainer>
         </div>
       </ChartWithTable>

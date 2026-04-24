@@ -90,6 +90,7 @@ export function Header() {
             alt="Córdoba"
             width={28}
             height={28}
+            style={{ height: "auto" }}
             className="rounded-sm"
           />
           <Image
@@ -97,6 +98,7 @@ export function Header() {
             alt="DDNA"
             width={100}
             height={24}
+            style={{ height: "auto" }}
             className="object-contain"
           />
         </div>

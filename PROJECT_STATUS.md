@@ -293,3 +293,80 @@ curl http://localhost:3000/api/fuentes
 4. **Leer este archivo** (`PROJECT_STATUS.md`) completo
 5. **Prioridad inmediata**: Implementar `useChartData()` y conectar las 6 secciones a Supabase
 6. **Luego**: Scripts ETL Python para cargar datos reales desde `datos/raw/`
+
+---
+
+## 工作会话 — Abril 2026 (etl-improvements)
+
+### Completado ✅
+
+#### 1. APIs Externas conectadas
+- **`/api/external`** — Endpoint unificado para explorar APIs públicas:
+  - `datos.gob.ar` — Catálogo CKAN nacional (educación, salud, NNyA, trabajo)
+  - `datosgestionabierta.cba.gov.ar` — Catálogo CKAN provincial Córdoba
+  - `senaf` — CSVs directos de programas de infancia (2 datasets)
+  - `indec` — Información sobre FTP, Shiny, microdatos
+  - `contextual` — Indicadores no-NNyA (IPC, empleo juvenil, NBI)
+
+#### 2. Repositorio DDNA
+- **Bucket Storage**: `ddna-repositorio` en Supabase
+- **Tabla**: `repositorio` con metadata de archivos (16 archivos)
+- **Página**: `/repositorio` — Explorar y subir archivos propios
+- **Upload**: `/api/repositorio/upload` — Para subir archivos desde el dashboard
+
+#### 3. Páginas nuevas
+- `/apis` — Explorador de APIs externas conectadas
+- `/repositorio` — Repositorio de archivos propios de la Defensoría
+
+#### 4. Fixes de frontend
+- `educacion`: Bar chart por edad (no time series) — la DB no tiene serie temporal de escolarización
+- `inversion`: Bar chart por organismo (no time series) — todo 2024, sin evolución
+- `pobreza`: Filtro por tipo "Personas" (evita duplicados)
+- `salud`: Exact match en indicadores (evita data collision de 8 series mezcladas)
+- Sidebar: Fix advertencia Image (`style={{ height: "auto" }}`)
+- Quick Access: Removida (no funcionaba bien)
+- Build: Todos los warnings resueltos
+
+#### 5. Documentación actualizada
+- `docs/FUENTES.md` — Catálogo completo de APIs y fuentes de datos
+
+---
+
+### Pendiente / Próxima sesión 🔲
+
+1. **Subir archivos faltantes al repositorio**:
+   - `Encuesta adultos y NyN 12 a 18 Años 2024 (Responses).xlsx`
+   - `Encuesta adultos y NyN 12 a 18 Años 2024 Sec oscar (Responses).xlsx`
+   - `Datos Proteccion Digital.docx`
+
+2. **ETL para nuevos datos**:
+   - Extraer datos de los PDFs del repositorio
+   - Integrar al dashboard (cargar a Supabase vía API)
+
+3. **Agente externo para bibliografía**:
+   - Conectar con repositorio
+   - Query a PDFs mediante IA
+
+4. **Mejoras visuales**:
+   - Tooltips en gráficos
+   - Animaciones suaves
+   - Responsive en móvil
+
+---
+
+### Acceso
+
+| Recurso | URL |
+|---------|-----|
+| Dashboard | https://ddna-dashboard.vercel.app/ |
+| Supabase | https://supabase.com/dashboard/project/ppyyqrvirjqmfpqaqnxy |
+| APIs externas | `/apis` (en local) |
+| Repositorio | `/repositorio` (en local) |
+
+### Credenciales (.env.local)
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://TU_PROYECTO.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+```

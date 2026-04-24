@@ -7,23 +7,14 @@ import { KpiCard } from "@/components/kpi-card";
 import { useIndicadores } from "@/lib/hooks";
 import type { CategoriaIndicador } from "@/lib/supabase";
 
-const categoryConfig: Record<string, { icon: React.ComponentType<{ className?: string }>; color: "amber" | "magenta" | "blue" | "terracotta" | "navy" | "orange" }> = {
-  pobreza: { icon: Users, color: "magenta" },
-  salud: { icon: Heart, color: "blue" },
-  educacion: { icon: BookOpen, color: "amber" },
-  inversion: { icon: Coins, color: "terracotta" },
-  demografia: { icon: UserCircle, color: "navy" },
-  seguridad: { icon: AlertTriangle, color: "orange" },
+const categoryConfig = {
+  pobreza: { icon: Users, color: "magenta" as const },
+  salud: { icon: Heart, color: "terracotta" as const },
+  educacion: { icon: BookOpen, color: "amber" as const },
+  inversion: { icon: Coins, color: "terracotta" as const },
+  demografia: { icon: UserCircle, color: "navy" as const },
+  seguridad: { icon: AlertTriangle, color: "orange" as const },
 };
-
-const quickAccessCategories = [
-  { id: "salud", label: "Salud", icon: "cat-salud.png", bg: "bg-[#E07A5F]" },
-  { id: "educacion", label: "Educación", icon: "cat-educacion.png", bg: "bg-[#F3A712]" },
-  { id: "pobreza", label: "Pobreza", icon: "cat-pobreza.png", bg: "bg-[#BF1363]" },
-  { id: "seguridad", label: "Seguridad", icon: "cat-justicia.png", bg: "bg-[#3777FF]" },
-  { id: "inversion", label: "Inversión", icon: "cat-censo.png", bg: "bg-[#FF7F11]" },
-  { id: "demografia", label: "Demografía", icon: "cat-estudiantes.png", bg: "bg-[#1E9AD8]" },
-];
 
 function formatValue(valor: string, unidad: string): string {
   if (unidad === "‰") return `${valor}‰`;
@@ -62,6 +53,7 @@ export default function HomePage() {
                 alt="Gobierno de Córdoba"
                 width={40}
                 height={40}
+                style={{ height: "auto" }}
                 className="rounded"
               />
               <Image
@@ -69,6 +61,7 @@ export default function HomePage() {
                 alt="DDNA"
                 width={160}
                 height={40}
+                style={{ height: "auto" }}
                 className="object-contain"
               />
             </div>
@@ -99,37 +92,6 @@ export default function HomePage() {
       {/* Main content */}
       <main className="max-w-7xl mx-auto px-6 lg:px-8 py-8 lg:py-10">
         
-        {/* Quick Access */}
-        <section className="mb-10">
-          <h2 className="font-display text-xl text-[#00074E] mb-5">
-            Acceso Rápido
-          </h2>
-          <div className="grid grid-cols-3 lg:grid-cols-6 gap-3 lg:gap-4">
-            {quickAccessCategories.map((cat) => (
-              <Link 
-                key={cat.id}
-                href={`/?categoria=${cat.id}`}
-                className="group flex flex-col items-center"
-              >
-                <div 
-                  className={`w-full aspect-square ${cat.bg} rounded-xl flex items-center justify-center mb-2 transition-opacity group-hover:opacity-80`}
-                >
-                  <Image
-                    src={`/logos/${cat.icon}`}
-                    alt={cat.label}
-                    width={48}
-                    height={48}
-                    className="w-12 h-12 lg:w-14 lg:h-14 object-contain brightness-0 invert"
-                  />
-                </div>
-                <span className="font-accent text-xs lg:text-sm text-[#4D4D4D] text-center">
-                  {cat.label}
-                </span>
-              </Link>
-            ))}
-          </div>
-        </section>
-
         {/* KPIs */}
         <section className="mb-10">
           <div className="flex items-center justify-between mb-5">
@@ -306,6 +268,7 @@ export default function HomePage() {
                 alt="Gobierno de Córdoba"
                 width={32}
                 height={32}
+                style={{ height: "auto" }}
                 className="rounded"
               />
               <Image
@@ -313,6 +276,7 @@ export default function HomePage() {
                 alt="DDNA"
                 width={120}
                 height={32}
+                style={{ height: "auto" }}
                 className="object-contain"
               />
             </div>

@@ -52,13 +52,21 @@ export default function PobrezaPage() {
     fetchData();
   }, []);
 
-  // Time series Pobreza vs Indigencia
+  // Time series Pobreza vs Indigencia (usando tipo "Personas" como métrica principal)
   const getPobrezaSeries = () => {
-    const pobreza = data.filter(d => d.indicador_nombre.toLowerCase().includes("pobreza") && !d.indicador_nombre.toLowerCase().includes("indigencia"))
+    // Filtrar por tipo "Personas" para evitar duplicados de Hogares vs Personas
+    const pobreza = data.filter(d => 
+        d.indicador_nombre.toLowerCase().includes("pobreza") && 
+        !d.indicador_nombre.toLowerCase().includes("indigencia") &&
+        d.desglose?.tipo === "Pobreza Personas"
+      )
       .map(d => ({ periodo: d.periodo, valor: Number(d.valor) || 0 }))
       .sort((a, b) => a.periodo.localeCompare(b.periodo));
     
-    const indigencia = data.filter(d => d.indicador_nombre.toLowerCase().includes("indigencia"))
+    const indigencia = data.filter(d => 
+        d.indicador_nombre.toLowerCase().includes("indigencia") &&
+        d.desglose?.tipo === "Indigencia Personas"
+      )
       .map(d => ({ periodo: d.periodo, valor: Number(d.valor) || 0 }))
       .sort((a, b) => a.periodo.localeCompare(b.periodo));
     
@@ -128,7 +136,7 @@ export default function PobrezaPage() {
         xAxisKey="periodo"
       >
         <div className="h-72">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height={280}>
             <LineChart data={pobrezaData} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
               <XAxis dataKey="periodo" tick={{ fill: "#4D4D4D", fontSize: 12 }} />
