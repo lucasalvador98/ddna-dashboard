@@ -85,7 +85,7 @@ class SupabaseLoader:
         for i in range(0, len(datos), BATCH_SIZE):
             batch = datos[i : i + BATCH_SIZE]
             response = httpx.post(
-                f"{self.url}/rest/v1/datos_indicadores",
+                f"{self.url}/rest/v1/indicadores",
                 headers=self.headers,
                 json=batch,
                 timeout=30.0,

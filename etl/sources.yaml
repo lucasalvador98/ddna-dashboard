@@ -175,16 +175,16 @@ fuentes:
   # ============================================================
   presupuesto_inversion:
     tipo: "manual"
-    archivo: "Inversion/BASE DE DATOS.xlsx"
+    archivo: "inversion/BASE DE DATOS VISUALIZADOR al PTO 2025.xlsx"
     hoja: "BASE DE DATOS"
     indicador: "Inversión social en infancia"
     categoria: "inversion"
     unidad: "Md"
     frecuencia: "anual"
     fuente_oficial: "Ministerio de Finanzas Córdoba"
-    ruta_oficial: "E:/Backup Luca/DDNA/01. Monitoreo/TABLEROS Y BASES/Inversion/BASE DE DATOS.xlsx"
+    ruta_oficial: "E:/Backup Luca/DDNA/01. Monitoreo/TABLEROS Y BASES/Inversion/BASE DE DATOS VISUALIZADOR al PTO 2025.xlsx"
     ultima_actualizacion: "2026-04-16"
-    estado: "cargado"
+    estado: "pendiente"
 
 # ============================================================
 # CONFIGURACIÓN DE APIs (FUTURO)
