@@ -1,158 +1,320 @@
 "use client";
 
-import { Users, TrendingDown, TrendingUp } from "lucide-react";
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { Users, TrendingUp, TrendingDown, Baby, Home, PersonStanding } from "lucide-react";
 import { SectionHeader } from "@/components/section-header";
-import { KpiCard } from "@/components/kpi-card";
-import { ChartWithTable } from "@/components/charts/chart-with-table";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-} from "recharts";
+import { ChartCard } from "@/components/charts/chart-card";
+import { supabase } from "@/lib/supabase";
 
-const COLORS = {
-  magenta: "#BF1363",
-  orange: "#FF7F11",
-};
-
-interface IndicadorData {
-  id: string;
+type PovertyRecord = {
   indicador_nombre: string;
   valor: number;
-  unidad: string;
-  periodo: string;
-  region: string;
-  desglose: Record<string, any> | null;
-}
+  periodo: number;
+  desglose: Record<string, unknown>;
+};
 
 export default function PobrezaPage() {
+  const [data, setData] = useState<PovertyRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<IndicadorData[]>([]);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchData() {
-      const { data: indicadores, error } = await supabase
+    async function loadData() {
+      const { data: povertyData } = await supabase
         .from("indicadores")
-        .select("id, indicador_nombre, valor, unidad, periodo, region, desglose")
+        .select("indicador_nombre, valor, periodo, desglose")
         .eq("categoria", "pobreza")
         .order("periodo", { ascending: true });
 
-      if (error) setError(error.message);
-      else setData(indicadores || []);
+      if (povertyData) {
+        setData(povertyData as PovertyRecord[]);
+      }
       setLoading(false);
     }
-    fetchData();
+    loadData();
   }, []);
 
-  // Time series Pobreza vs Indigencia (usando tipo "Personas" como métrica principal)
-  const getPobrezaSeries = () => {
-    // Filtrar por tipo "Personas" para evitar duplicados de Hogares vs Personas
-    const pobreza = data.filter(d => 
-        d.indicador_nombre.toLowerCase().includes("pobreza") && 
-        !d.indicador_nombre.toLowerCase().includes("indigencia") &&
-        d.desglose?.tipo === "Pobreza Personas"
-      )
-      .map(d => ({ periodo: d.periodo, valor: Number(d.valor) || 0 }))
-      .sort((a, b) => a.periodo.localeCompare(b.periodo));
-    
-    const indigencia = data.filter(d => 
-        d.indicador_nombre.toLowerCase().includes("indigencia") &&
-        d.desglose?.tipo === "Indigencia Personas"
-      )
-      .map(d => ({ periodo: d.periodo, valor: Number(d.valor) || 0 }))
-      .sort((a, b) => a.periodo.localeCompare(b.periodo));
-    
-    // Combinar por periodo
-    const combinada = [...new Set([...pobreza.map(p => p.periodo), ...indigencia.map(i => i.periodo)])]
-      .map(periodo => ({
-        periodo,
-        pobreza: pobreza.find(p => p.periodo === periodo)?.valor || 0,
-        indigencia: indigencia.find(i => i.periodo === periodo)?.valor || 0,
-      }))
-      .sort((a, b) => a.periodo.localeCompare(b.periodo));
-    
-    return combinada;
+  // Process data for charts
+  const pobrezaHogares = data
+    .filter((r) => r.indicador_nombre === "Pobreza hogares")
+    .map((r) => ({ periodo: r.periodo, valor: r.valor, desglose: r.desglose }));
+
+  const pobrezaPersonas = data
+    .filter((r) => r.indicador_nombre === "Pobreza personas")
+    .map((r) => ({ periodo: r.periodo, valor: r.valor, desglose: r.desglose }));
+
+  const indigenciaHogares = data
+    .filter((r) => r.indicador_nombre === "Indigencia hogares")
+    .map((r) => ({ periodo: r.periodo, valor: r.valor, desglose: r.desglose }));
+
+  const indigenciaPersonas = data
+    .filter((r) => r.indicador_nombre === "Indigencia personas")
+    .map((r) => ({ periodo: r.periodo, valor: r.valor, desglose: r.desglose }));
+
+  // Latest data (semestre 2 of 2024)
+  const latestPobrezaHogar = pobrezaHogares.find(
+    (r) => r.periodo === 2024 && r.desglose?.semestre === 2
+  );
+  const latestPobrezaPersona = pobrezaPersonas.find(
+    (r) => r.periodo === 2024 && r.desglose?.semestre === 2
+  );
+  const latestIndigenciaHogar = indigenciaHogares.find(
+    (r) => r.periodo === 2024 && r.desglose?.semestre === 2
+  );
+  const latestIndigenciaPersona = indigenciaPersonas.find(
+    (r) => r.periodo === 2024 && r.desglose?.semestre === 2
+  );
+
+  // Previous semester for comparison
+  const prevPobrezaHogar = pobrezaHogares.find(
+    (r) => r.periodo === 2023 && r.desglose?.semestre === 2
+  );
+  const prevPobrezaPersona = pobrezaPersonas.find(
+    (r) => r.periodo === 2023 && r.desglose?.semestre === 2
+  );
+
+  const formatPercent = (val?: number) => (val ? `${val.toFixed(1)}%` : "N/D");
+  const calcChange = (current?: number, prev?: number) => {
+    if (!current || !prev) return null;
+    const diff = current - prev;
+    return { value: diff.toFixed(1), positive: diff > 0 };
   };
 
-  const pobrezaData = getPobrezaSeries();
-  
-  const latest = pobrezaData.length > 0 ? pobrezaData[pobrezaData.length - 1] : null;
-  const cambio = pobrezaData.length >= 2 && latest
-    ? (latest.pobreza - pobrezaData[pobrezaData.length - 2].pobreza).toFixed(1)
-    : null;
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <SectionHeader
+          icon={Users}
+          title="Pobreza e Indigencia"
+          description="Indicadores de condiciones socioeconómicas - Córdoba (EPH-INDEC)"
+          color="magenta"
+        />
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#BF1363]"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <SectionHeader
         icon={Users}
-        title="Indicadores de Pobreza"
-        description="Evolución de pobreza e indigencia infantil en Córdoba"
+        title="Pobreza e Indigencia"
+        description="Indicadores de condiciones socioeconómicas - Córdoba (EPH-INDEC)"
         color="magenta"
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <KpiCard
-          title="Pobreza infantil"
-          value={latest ? `${latest.pobreza}%` : "—"}
-          subtitle={`Porcentaje NNA bajo línea de pobreza - ${latest?.periodo || ""}`}
-          change={cambio ? `${cambio}%` : undefined}
-          changeType={Number(cambio) < 0 ? "down" : Number(cambio) > 0 ? "up" : "neutral"}
-          icon={TrendingDown}
-          color="magenta"
-        />
-        
-        <KpiCard
-          title="Indigencia infantil"
-          value={latest ? `${latest.indigencia}%` : "—"}
-          subtitle={`Porcentaje NNA bajo línea de indigencia`}
-          icon={TrendingUp}
-          color="orange"
-        />
-        
-        <KpiCard
-          title="Brecha de pobreza"
-          value={latest ? `${(latest.pobreza - latest.indigencia).toFixed(1)}%` : "—"}
-          subtitle="Diferencia entre pobreza e indigencia"
-          icon={Users}
-          color="magenta"
-        />
+      {/* KPIs */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl border border-[#E0E0E0] p-5">
+          <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+            <Home className="w-4 h-4" />
+            Pobreza Hogares
+          </div>
+          <p className="text-3xl font-bold text-[#BF1363]">
+            {formatPercent(latestPobrezaHogar?.valor)}
+          </p>
+          {prevPobrezaHogar && latestPobrezaHogar && (
+            <div
+              className={`flex items-center gap-1 text-sm mt-1 ${
+                latestPobrezaHogar.valor > prevPobrezaHogar.valor
+                  ? "text-red-600"
+                  : "text-green-600"
+              }`}
+            >
+              {latestPobrezaHogar.valor > prevPobrezaHogar.valor ? (
+                <TrendingUp className="w-4 h-4" />
+              ) : (
+                <TrendingDown className="w-4 h-4" />
+              )}
+              {calcChange(latestPobrezaHogar.valor, prevPobrezaHogar.valor)?.value}
+              % vs 2023
+            </div>
+          )}
+        </div>
+
+        <div className="bg-white rounded-xl border border-[#E0E0E0] p-5">
+          <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+            <PersonStanding className="w-4 h-4" />
+            Pobreza Personas
+          </div>
+          <p className="text-3xl font-bold text-[#BF1363]">
+            {formatPercent(latestPobrezaPersona?.valor)}
+          </p>
+          {prevPobrezaPersona && latestPobrezaPersona && (
+            <div
+              className={`flex items-center gap-1 text-sm mt-1 ${
+                latestPobrezaPersona.valor > prevPobrezaPersona.valor
+                  ? "text-red-600"
+                  : "text-green-600"
+              }`}
+            >
+              {latestPobrezaPersona.valor > prevPobrezaPersona.valor ? (
+                <TrendingUp className="w-4 h-4" />
+              ) : (
+                <TrendingDown className="w-4 h-4" />
+              )}
+              {calcChange(latestPobrezaPersona.valor, prevPobrezaPersona.valor)?.value}
+              % vs 2023
+            </div>
+          )}
+        </div>
+
+        <div className="bg-white rounded-xl border border-[#E0E0E0] p-5">
+          <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+            <Home className="w-4 h-4" />
+            Indigencia Hogares
+          </div>
+          <p className="text-3xl font-bold text-[#E07A5F]">
+            {formatPercent(latestIndigenciaHogar?.valor)}
+          </p>
+        </div>
+
+        <div className="bg-white rounded-xl border border-[#E0E0E0] p-5">
+          <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+            <PersonStanding className="w-4 h-4" />
+            Indigencia Personas
+          </div>
+          <p className="text-3xl font-bold text-[#E07A5F]">
+            {formatPercent(latestIndigenciaPersona?.valor)}
+          </p>
+        </div>
       </div>
 
-      <ChartWithTable
-        title="Pobreza e Indigencia Infantil"
-        subtitle="Evolución histórica (porcentaje de hogares con niños/as)"
+        {/* Evolución de Pobreza */}
+        <ChartCard
+        title="Evolución de la Pobreza - Córdoba"
+        subtitle="Porcentaje de hogares y personas bajo la línea de pobreza"
         color="magenta"
-        fuente="INDEC / ENCOPRAC"
-        data={pobrezaData}
-        dataKey="valor"
-        xAxisKey="periodo"
+        fuente="EPH-INDEC / Dirección de Estadísticas"
       >
-        <div className="h-72">
-          <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={pobrezaData} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
-              <XAxis dataKey="periodo" tick={{ fill: "#4D4D4D", fontSize: 12 }} />
-              <YAxis tick={{ fill: "#4D4D4D", fontSize: 12 }} domain={[0, 60]} tickFormatter={(v) => `${v}%`} />
-              <Tooltip contentStyle={{ backgroundColor: "#FFF", border: "1px solid #E0E0E0", borderRadius: "8px" }} formatter={(v) => [`${v ?? 0}%`, ""]} />
-              <Legend />
-              <Line type="monotone" dataKey="pobreza" stroke={COLORS.magenta} strokeWidth={2} dot={{ fill: COLORS.magenta, r: 4 }} name="Pobreza" />
-              <Line type="monotone" dataKey="indigencia" stroke={COLORS.orange} strokeWidth={2} dot={{ fill: COLORS.orange, r: 4 }} name="Indigencia" />
-            </LineChart>
-          </ResponsiveContainer>
+        <div className="space-y-6">
+          <div className="h-64">
+            {/* Simple bar chart using HTML/CSS */}
+            <div className="flex items-end justify-around h-full gap-2">
+              {pobrezaHogares.map((item, idx) => (
+                <div key={idx} className="flex flex-col items-center flex-1">
+                  <div
+                    className="w-full bg-[#BF1363] rounded-t hover:bg-[#d6387a] transition-colors"
+                    style={{
+                      height: `${(item.valor / 60) * 100}%`,
+                      minHeight: item.valor > 0 ? "4px" : "0",
+                    }}
+                    title={`${item.periodo}: ${item.valor}%`}
+                  />
+                  <span className="text-xs text-gray-500 mt-2">{item.periodo}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <p className="text-xs text-gray-400 text-center">
+            2° semestre de cada año. Fuente: EPH-INDEC
+          </p>
         </div>
-      </ChartWithTable>
+      </ChartCard>
 
-      {loading && <div className="py-12 text-center text-gray-500">Cargando...</div>}
-      {error && <div className="bg-red-50 p-4 rounded text-red-700">Error: {error}</div>}
-      {data.length === 0 && !loading && <div className="bg-gray-50 p-8 rounded text-center text-gray-500">Sin datos disponibles</div>}
-    </div>
+      {/* Pobreza Infantil */}
+      <ChartCard
+        title="Pobreza Infantil por Grupo Etario"
+        subtitle="Niños/as de 0-17 años en situación de pobreza"
+        color="amber"
+        fuente="EPH-INDEC / Dirección de Estadísticas"
+      >
+        <div className="grid grid-cols-3 gap-4">
+          {["0-5", "6-11", "12-17"].map((grupo) => {
+            const infantileData = data.filter(
+              (r) =>
+                r.indicador_nombre === "Pobreza infantil" &&
+                r.desglose?.grupo_edad === grupo &&
+                r.desglose?.semestre === 2
+            );
+            const latest = infantileData.find((r) => r.periodo === 2024);
+            return (
+              <div
+                key={grupo}
+                className="bg-gray-50 rounded-lg p-4 text-center"
+              >
+                <div className="flex items-center justify-center gap-2 text-gray-500 mb-2">
+                  <Baby className="w-4 h-4" />
+                  <span className="text-sm">{grupo} años</span>
+                </div>
+                <p className="text-2xl font-bold text-[#F3A712]">
+                  {latest ? `${latest.valor.toFixed(1)}%` : "N/D"}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">2024 - 2° sem</p>
+              </div>
+            );
+          })}
+        </div>
+      </ChartCard>
+
+      {/* Tabla de evolución */}
+      <div className="bg-white rounded-xl border border-[#E0E0E0] overflow-hidden">
+        <div className="p-4 border-b border-[#E0E0E0]">
+          <h3 className="font-display text-lg text-[#00074E]">
+            Serie Histórica Completa
+          </h3>
+          <p className="text-sm text-gray-500">
+            Evolución de pobreza e indigencia (2016-2024)
+          </p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-3 text-left font-medium text-gray-600">Año</th>
+                <th className="px-4 py-3 text-right font-medium text-gray-600">
+                  Pob. Hogares
+                </th>
+                <th className="px-4 py-3 text-right font-medium text-gray-600">
+                  Pob. Personas
+                </th>
+                <th className="px-4 py-3 text-right font-medium text-gray-600">
+                  Ind. Hogares
+                </th>
+                <th className="px-4 py-3 text-right font-medium text-gray-600">
+                  Ind. Personas
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {[2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016]
+                .reverse()
+                .map((year) => {
+                  const ph = pobrezaHogares.find(
+                    (r) => r.periodo === year && r.desglose?.semestre === 2
+                  );
+                  const pp = pobrezaPersonas.find(
+                    (r) => r.periodo === year && r.desglose?.semestre === 2
+                  );
+                  const ih = indigenciaHogares.find(
+                    (r) => r.periodo === year && r.desglose?.semestre === 2
+                  );
+                  const ip = indigenciaPersonas.find(
+                    (r) => r.periodo === year && r.desglose?.semestre === 2
+                  );
+                  return (
+                    <tr key={year} className="border-t border-gray-100">
+                      <td className="px-4 py-3 font-medium">{year}</td>
+                      <td className="px-4 py-3 text-right">
+                        {ph ? `${ph.valor.toFixed(1)}%` : "-"}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {pp ? `${pp.valor.toFixed(1)}%` : "-"}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {ih ? `${ih.valor.toFixed(1)}%` : "-"}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {ip ? `${ip.valor.toFixed(1)}%` : "-"}
+                      </td>
+                    </tr>
+                  );
+                })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+</div>
   );
 }
