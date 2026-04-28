@@ -90,17 +90,17 @@
 
 ---
 
-## Datos en Supabase (al 24/04/2026)
+## Datos en Supabase (al 28/04/2026)
 
 | Categoría | Registros | Período | Notas |
 |----------|----------|---------|-------|
 | educacion | 397 | 2024 | Aprender + Censo |
 | inversion | 6164 | 2024 | Presupuesto ejecutado |
-| pobreza | 36 | 2024 | INDEC + ENCOPRAC |
+| pobreza | 218 | 2016-2024 | **ACTUALIZADO** - EPH-INDEC reales |
 | salud | 144 | 2022 | Mortalidad infantil + DEIS |
 | seguridad | 7 | 2022 | Ministerio Público Córdoba |
 | demografia | 0 | — | Sin datos cargados |
-| **Total** | **6748** | | |
+| **Total** | **7530** | | |
 
 ### Método de carga
 - ETL: `python etl/main.py transform --category <cat>` → genera JSONs en `etl/output/`
@@ -371,6 +371,29 @@ curl http://localhost:3000/api/fuentes
 5. **inversion** — `BASE DE DATOS VISUALIZADOR al PTO 2025.xlsx` (2.5MB) sin cargar
 6. **Proteccion Digital** — docx sin procesar
 7. **Consumo_2022.csv** — sin cargar
+
+---
+
+### 工作会话 — Abril 2026 (28/04/2026 — pobreza real)
+
+#### Completado ✅
+- **Datos reales de pobreza cargados**: 218 registros de EPH-INDEC (2016-2024)
+  - Pobreza hogares/personas (32 cada uno)
+  - Indigencia hogares/personas (32 cada uno)
+  - Pobreza infantil por grupo etario: 0-5, 6-11, 12-17 años (2016-2024, semestres 1 y 2)
+- **Página /pobreza actualizada**:
+  - KPIs con evolución vs año anterior
+  - Gráfico de barras de pobreza hogares 2016-2024
+  - Pobreza infantil por grupo etario
+  - Tabla histórica completa
+- **Script ETL**: `etl/transform/transform_pobreza.py` genera SQL desde Excel
+
+#### Pendiente 🔲
+1. **Verificar página /pobreza** en producción — abrir en browser y revisar visualizaciones
+2. **Actualizar otras categorías** con datos reales:
+   - demografia desde `censo poblacion.xlsx`
+   - salud desde `datosDeis-2024-07-26.xlsx`
+   - educación desde anuario 2024
 
 ---
 
