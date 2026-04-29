@@ -70,7 +70,7 @@ export default function SaludPage() {
         valor: Number(d.valor) || 0,
         region: d.region,
       }))
-      .sort((a, b) => a.periodo.localeCompare(b.periodo));
+      .sort((a, b) => Number(a.periodo) - Number(b.periodo));
   };
 
   // Mortalidad infantil time series (TMI Córdoba - métrica principal)
@@ -98,7 +98,7 @@ export default function SaludPage() {
         }
         return row;
       })
-      .sort((a, b) => a.periodo.localeCompare(b.periodo));
+      .sort((a, b) => Number(a.periodo) - Number(b.periodo));
   };
   
   // Cobertura vacunal

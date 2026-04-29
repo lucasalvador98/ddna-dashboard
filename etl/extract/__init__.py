@@ -9,7 +9,7 @@ def find_data_files(category: str, data_files_map) -> list:
     return existing
 
 
-def read_excel_file(path: str, sheet_name: str = None):
+def read_excel_file(path: str, sheet_name: str | None = None):
     """Return a dict of sheet name to DataFrame or fallback data."""
     pd = _import_pandas()
     if pd is None:
@@ -17,17 +17,12 @@ def read_excel_file(path: str, sheet_name: str = None):
         return read_excel(path)
 
     try:
-        # Try to read with specific sheet name
+        # If a specific sheet is requested, read only that sheet
         if sheet_name:
             df = pd.read_excel(path, sheet_name=sheet_name)
             return {sheet_name: df}
-        # Default: try BASE DE DATOS sheet, otherwise first
-        try:
-            df = pd.read_excel(path, sheet_name='BASE DE DATOS')
-            return {'BASE DE DATOS': df}
-        except:
-            df = pd.read_excel(path)
-            return df if isinstance(df, dict) else {'Sheet1': df}
+        # Read all sheets from the workbook
+        return pd.read_excel(path, sheet_name=None)
     except Exception as e:
         print(f"read_excel_file error: {e}")
         return read_excel(path)

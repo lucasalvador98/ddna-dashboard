@@ -7,7 +7,13 @@ export type CategoriaIndicador =
   | "pobreza"
   | "seguridad"
   | "inversion"
-  | "demografia";
+  | "demografia"
+  | "deis"
+  | "aprender"
+  | "justicia"
+  | "salud_adolescente"
+  | "anuario_educacion"
+  | "consumo";
 
 export interface KpiData {
   id: string;
@@ -126,5 +132,47 @@ export const categoriasInfo: Record<
       "Datos poblacionales: censo, proyecciones, composición etaria, distribución geográfica.",
     color: "#00074E",
     icono: "BarChart3",
+  },
+  deis: {
+    titulo: "Estadísticas Vitales (DEIS)",
+    descripcion:
+      "Nacimientos, mortalidad fetal y perinatal, estadísticas vitales del Ministerio de Salud.",
+    color: "#8B5CF6",
+    icono: "Baby",
+  },
+  aprender: {
+    titulo: "Evaluaciones Aprender",
+    descripcion:
+      "Resultados de evaluaciones educativas nacionales por área, nivel y quintil de ingreso.",
+    color: "#10B981",
+    icono: "GraduationCap",
+  },
+  justicia: {
+    titulo: "Justicia",
+    descripcion:
+      "Causos judiciales relacionados con infancia: familia, violencia familiar, Penal Juvenil.",
+    color: "#6366F1",
+    icono: "Scale",
+  },
+  salud_adolescente: {
+    titulo: "Salud Adolescente",
+    descripcion:
+      "Indicadores de salud sexual y reproductiva, natalidad, fecundidad en adolescentes.",
+    color: "#EC4899",
+    icono: "HeartPulse",
+  },
+  anuario_educacion: {
+    titulo: "Anuario Educativo",
+    descripcion:
+      "Matrícula educativa por nivel: inicial, primario, secundario, superior no universitario.",
+    color: "#F59E0B",
+    icono: "School",
+  },
+  consumo: {
+    titulo: "Consumo Hogares",
+    descripcion:
+      "Características de hogares con menores: tamaño, ingreso per cápita, condiciones de vida.",
+    color: "#14B8A6",
+    icono: "Home",
   },
 };
