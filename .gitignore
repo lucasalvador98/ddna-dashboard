@@ -50,3 +50,10 @@ __pycache__/
 
 # supabase
 supabase/.temp/
+
+# SDD artifacts (Gentle AI stack)
+.atl/
+openspec/
+
+# Windows special device file
+nul
