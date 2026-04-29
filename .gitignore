@@ -12,6 +12,8 @@
 
 # testing
 /coverage
+coverage/
+vitest.config.*.timestamp-*
 
 # next.js
 /.next/
