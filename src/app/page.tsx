@@ -4,7 +4,7 @@ import { Users, Heart, BookOpen, Coins, UserCircle, AlertTriangle } from "lucide
 import Image from "next/image";
 import Link from "next/link";
 import { KpiCard } from "@/components/kpi-card";
-import { useIndicadores } from "@/lib/hooks";
+import { getLatestValue, getTimeSeries, calculateChange, useDashboardData, type Indicador } from "@/lib/use-dashboard-data";
 import type { CategoriaIndicador } from "@/lib/supabase";
 
 const categoryConfig = {
@@ -16,29 +16,41 @@ const categoryConfig = {
   seguridad: { icon: AlertTriangle, color: "orange" as const },
 };
 
-function formatValue(valor: string, unidad: string): string {
-  if (unidad === "‰") return `${valor}‰`;
-  if (unidad === "%") return `${valor}%`;
-  if (unidad === "Md") return `$${valor} Md`;
-  if (unidad === "hab" || unidad === "casos") return Number(valor).toLocaleString("es-AR");
-  return valor;
+function formatValue(valor: number | null, unidad: string): string {
+  if (valor === null || valor === undefined) return "—";
+  if (unidad === "%" || unidad === "‰") return `${valor}${unidad}`;
+  if (unidad === "Md") return `$${(valor / 1000000).toFixed(1)}Md`;
+  if (unidad === "hab" || unidad === "casos" || unidad === "alumnos") return valor.toLocaleString("es-AR");
+  return String(valor);
+}
+
+function formatChange(cambio: number | null): string | undefined {
+  if (cambio === null || cambio === undefined) return undefined;
+  const prefix = cambio > 0 ? "+" : "";
+  return `${prefix}${cambio.toFixed(1)}%`;
 }
 
 export default function HomePage() {
-  const { data, loading, source, metadata } = useIndicadores();
+  const { data, loading, source } = useDashboardData();
   
-  const getLatestByCategory = (cat: string) => {
-    const categoryData = data.filter(d => d.categoria === cat);
-    if (categoryData.length === 0) return null;
-    return categoryData[0];
-  };
+  // Extraer valores más recientes por categoría
+  const pobrezaData = data?.pobreza || [];
+  const saludData = data?.salud || [];
+  const educacionData = data?.educacion || [];
+  const inversionData = data?.inversion || [];
+  const demografiaData = data?.demografia || [];
   
-  const pobreza = getLatestByCategory("pobreza");
-  const salud = getLatestByCategory("salud");
-  const educacion = getLatestByCategory("educacion");
-  const inversion = getLatestByCategory("inversion");
-  const demografia = getLatestByCategory("demografia");
-  const seguridad = getLatestByCategory("seguridad");
+  const pobreza = getLatestValue(pobrezaData, "Pobreza infantil");
+  const indigencia = getLatestValue(pobrezaData, "Indigencia infantil");
+  const mortalidad = getLatestValue(saludData);
+  const escolarizacion = getLatestValue(educacionData, "Tasa de asistencia educativa");
+  const inversion = inversionData.reduce((sum, d) => sum + (Number(d.valor) || 0), 0);
+  const poblacion = demografiaData.reduce((sum, d) => sum + (Number(d.valor) || 0), 0);
+  
+  // Calcular cambios
+  const pobrezaSerie = getTimeSeries(pobrezaData, "Pobreza infantile");
+  const pobrezaChanges = calculateChange(pobrezaSerie);
+  const cambioPobreza = pobrezaChanges.length > 0 ? pobrezaChanges[pobrezaChanges.length - 1].cambio : null;
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
@@ -98,139 +110,69 @@ export default function HomePage() {
             <h2 className="font-display text-xl text-[#00074E]">
               Indicadores Clave
             </h2>
-            {metadata?.ultimaActualizacion && (
+            {source === "supabase" && (
               <span className="text-sm text-gray-400">
-                Actualizado: {new Date(metadata.ultimaActualizacion).toLocaleDateString("es-AR")}
+                Datos en vivo
               </span>
             )}
           </div>
           
-          {loading && source === "supabase" ? (
+          {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FF7F11]" />
               <span className="ml-3 font-body text-gray-500">Cargando...</span>
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-              {pobreza ? (
-                <KpiCard
-                  title={pobreza.nombre}
-                  value={formatValue(pobreza.valor, pobreza.unidad || "%")}
-                  subtitle={pobreza.subtitulo || "Porcentaje de NNA bajo línea de pobreza"}
-                  change={pobreza.cambio}
-                  changeType={pobreza.cambioTipo}
-                  icon={categoryConfig.pobreza.icon}
-                  color={categoryConfig.pobreza.color}
-                />
-              ) : (
-                <KpiCard
-                  title="Pobreza infantil"
-                  value="—"
-                  subtitle="Sin datos disponibles"
-                  icon={categoryConfig.pobreza.icon}
-                  color={categoryConfig.pobreza.color}
-                />
-              )}
+              <KpiCard
+                title="Pobreza infantil"
+                value={formatValue(pobreza, "%")}
+                subtitle="Porcentaje de NNA bajo línea de pobreza"
+                change={formatChange(cambioPobreza)}
+                changeType={(cambioPobreza !== null && cambioPobreza < 0) ? "down" : (cambioPobreza !== null ? "up" : "neutral")}
+                icon={categoryConfig.pobreza.icon}
+                color={categoryConfig.pobreza.color}
+              />
               
-              {salud ? (
-                <KpiCard
-                  title={salud.nombre || "Mortalidad infantil"}
-                  value={formatValue(salud.valor, salud.unidad || "‰")}
-                  subtitle={salud.subtitulo || "Tasa por cada mil nacidos vivos"}
-                  change={salud.cambio}
-                  changeType={salud.cambioTipo}
-                  icon={categoryConfig.salud.icon}
-                  color={categoryConfig.salud.color}
-                />
-              ) : (
-                <KpiCard
-                  title="Mortalidad infantil"
-                  value="—"
-                  subtitle="Sin datos disponibles"
-                  icon={categoryConfig.salud.icon}
-                  color={categoryConfig.salud.color}
-                />
-              )}
+              <KpiCard
+                title="Mortalidad infantil"
+                value={formatValue(mortalidad, "‰")}
+                subtitle="Tasa por cada mil nacidos vivos"
+                icon={categoryConfig.salud.icon}
+                color={categoryConfig.salud.color}
+              />
               
-              {educacion ? (
-                <KpiCard
-                  title={educacion.nombre || "Escolarización"}
-                  value={formatValue(educacion.valor, educacion.unidad || "%")}
-                  subtitle={educacion.subtitulo || "Tasa neta de escolarización"}
-                  change={educacion.cambio}
-                  changeType={educacion.cambioTipo}
-                  icon={categoryConfig.educacion.icon}
-                  color={categoryConfig.educacion.color}
-                />
-              ) : (
-                <KpiCard
-                  title="Escolarización"
-                  value="—"
-                  subtitle="Sin datos disponibles"
-                  icon={categoryConfig.educacion.icon}
-                  color={categoryConfig.educacion.color}
-                />
-              )}
+              <KpiCard
+                title="Escolarización"
+                value={formatValue(escolarizacion, "%")}
+                subtitle="Tasa neta de escolarización"
+                icon={categoryConfig.educacion.icon}
+                color={categoryConfig.educacion.color}
+              />
               
-              {demografia ? (
-                <KpiCard
-                  title={demografia.nombre || "Población adolescente"}
-                  value={formatValue(demografia.valor, demografia.unidad || "hab")}
-                  subtitle={demografia.subtitulo || "Población de 12-17 años"}
-                  change={demografia.cambio}
-                  changeType={demografia.cambioTipo}
-                  icon={categoryConfig.demografia.icon}
-                  color={categoryConfig.demografia.color}
-                />
-              ) : (
-                <KpiCard
-                  title="Adolescentes"
-                  value="—"
-                  subtitle="Sin datos disponibles"
-                  icon={categoryConfig.demografia.icon}
-                  color={categoryConfig.demografia.color}
-                />
-              )}
+              <KpiCard
+                title="Población 0-17 años"
+                value={formatValue(poblacion, "hab")}
+                subtitle="Censo 2022 - Córdoba"
+                icon={categoryConfig.demografia.icon}
+                color={categoryConfig.demografia.color}
+              />
               
-              {seguridad ? (
-                <KpiCard
-                  title={seguridad.nombre || "Denuncias"}
-                  value={formatValue(seguridad.valor, seguridad.unidad || "casos")}
-                  subtitle={seguridad.subtitulo || "Registradas en el último período"}
-                  change={seguridad.cambio}
-                  changeType={seguridad.cambioTipo}
-                  icon={categoryConfig.seguridad.icon}
-                  color={categoryConfig.seguridad.color}
-                />
-              ) : (
-                <KpiCard
-                  title="Denuncias"
-                  value="—"
-                  subtitle="Sin datos disponibles"
-                  icon={categoryConfig.seguridad.icon}
-                  color={categoryConfig.seguridad.color}
-                />
-              )}
+              <KpiCard
+                title="Denuncias"
+                value="—"
+                subtitle="Registrado en el último período"
+                icon={categoryConfig.seguridad.icon}
+                color={categoryConfig.seguridad.color}
+              />
               
-              {inversion ? (
-                <KpiCard
-                  title={inversion.nombre || "Inversión social"}
-                  value={formatValue(inversion.valor, inversion.unidad || "$")}
-                  subtitle={inversion.subtitulo || "Destinado a infancia y adolescencia"}
-                  change={inversion.cambio}
-                  changeType={inversion.cambioTipo}
-                  icon={categoryConfig.inversion.icon}
-                  color={categoryConfig.inversion.color}
-                />
-              ) : (
-                <KpiCard
-                  title="Inversión social"
-                  value="—"
-                  subtitle="Sin datos disponibles"
-                  icon={categoryConfig.inversion.icon}
-                  color={categoryConfig.inversion.color}
-                />
-              )}
+              <KpiCard
+                title="Inversión social"
+                value={formatValue(inversion, "Md")}
+                subtitle="Destinado a infancia y adolescencia"
+                icon={categoryConfig.inversion.icon}
+                color={categoryConfig.inversion.color}
+              />
             </div>
           )}
         </section>

@@ -14,15 +14,18 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
+  { label: "Ejecutivo", href: "/ejecutivo", iconSrc: "/logos/Recurso 1@2x.png", iconAlt: "Ejecutivo" },
   { label: "Inicio", href: "/", iconSrc: "/logos/Recurso 1@2x.png", iconAlt: "Inicio" },
   { label: "Salud", href: "/salud", iconSrc: "/logos/Recurso 2@2x.png", iconAlt: "Salud" },
+  { label: "Salud Adolescente", href: "/salud-adolescente", iconSrc: "/logos/Recurso 2@2x.png", iconAlt: "Salud Adolescente" },
   { label: "Educación", href: "/educacion", iconSrc: "/logos/Recurso 3@2x.png", iconAlt: "Educación" },
-  { label: "Pobreza", href: "/pobreza", iconSrc: "/logos/Recurso 4@2x.png", iconAlt: "Pobreza" },
+  { label: "Aprender", href: "/aprender", iconSrc: "/logos/Recurso 3@2x.png", iconAlt: "Aprender" },
+  { label: "Condiciones", href: "/condiciones", iconSrc: "/logos/Recurso 4@2x.png", iconAlt: "Condiciones" },
   { label: "Seguridad", href: "/seguridad", iconSrc: "/logos/Recurso 5@2x.png", iconAlt: "Seguridad" },
   { label: "Inversión", href: "/inversion", iconSrc: "/logos/Recurso 6@2x.png", iconAlt: "Inversión Social" },
+  { label: "Mapas", href: "/geo", iconSrc: "/logos/Recurso 5@2x.png", iconAlt: "Mapas" },
   { label: "Fuentes", href: "/fuentes", iconSrc: "/logos/Recurso 7@2x.png", iconAlt: "Fuentes de Datos" },
   { label: "Repositorio", href: "/repositorio", iconSrc: "/logos/Recurso 7@2x.png", iconAlt: "Repositorio DDNA" },
-  
 ];
 
 export function Sidebar() {

@@ -10,7 +10,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from config import OUTPUT_DIR
+from ..config import OUTPUT_DIR
 
 # ── Indicadores seed conocidos ──
 # Para lookups por nombre+categoria en lugar de UUIDs hardcodeados

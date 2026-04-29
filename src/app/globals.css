@@ -118,8 +118,8 @@
 
   /* Font families */
   --font-sans: var(--font-epilogue);
-  --font-caprasimo: var(--font-caprasimo);
-  --font-dk-lemon: var(--font-dk-lemon);
+  --font-display: var(--font-playfair);
+  --font-accent: var(--font-dm-sans);
 
   /* Typography scale */
   --font-size-display: 3rem;
@@ -148,11 +148,11 @@ body {
 
 /* Font utility classes */
 .font-display {
-  font-family: var(--font-caprasimo), Georgia, serif;
+  font-family: var(--font-playfair), Georgia, serif;
 }
 
 .font-accent {
-  font-family: var(--font-dk-lemon), Georgia, serif;
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
 }
 
 .font-body {
@@ -161,12 +161,12 @@ body {
 
 /* Typography helpers */
 .text-display {
-  font-family: var(--font-caprasimo), Georgia, serif;
+  font-family: var(--font-playfair), Georgia, serif;
   font-weight: 400;
 }
 
 .text-accent-label {
-  font-family: var(--font-dk-lemon), Georgia, serif;
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
   font-weight: 400;
 }
 

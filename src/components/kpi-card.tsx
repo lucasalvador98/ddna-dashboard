@@ -1,7 +1,7 @@
 import { TrendingUp, TrendingDown } from "lucide-react";
 import clsx from "clsx";
 
-type KpiColor = "amber" | "magenta" | "blue" | "terracotta" | "navy" | "orange";
+type KpiColor = "amber" | "magenta" | "blue" | "terracotta" | "navy" | "orange" | "green";
 
 interface KpiCardProps {
   title: string;
@@ -43,6 +43,11 @@ const colorClasses: Record<KpiColor, { border: string; iconBg: string; iconText:
     border: "border-l-[#FF7F11]",
     iconBg: "bg-[#FF7F11]/10",
     iconText: "text-[#FF7F11]",
+  },
+  green: {
+    border: "border-l-[#10B981]",
+    iconBg: "bg-[#10B981]/10",
+    iconText: "text-[#10B981]",
   },
 };
 

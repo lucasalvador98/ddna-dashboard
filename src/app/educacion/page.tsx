@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, GraduationCap, Users, TrendingDown, TrendingUp } from "lucide-react";
+import { BookOpen, GraduationCap, Users, TrendingDown, TrendingUp, BarChart3 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { SectionHeader } from "@/components/section-header";
@@ -25,6 +25,8 @@ const COLORS = {
   blue: "#3777FF",
   magenta: "#BF1363",
   terracotta: "#E07A5F",
+  green: "#10B981",
+  red: "#EF4444",
 };
 
 interface IndicadorData {
@@ -32,7 +34,7 @@ interface IndicadorData {
   indicador_nombre: string;
   valor: number;
   unidad: string;
-  periodo: string;
+  periodo: number;
   region: string;
   desglose: Record<string, any> | null;
 }
@@ -61,139 +63,230 @@ export default function EducacionPage() {
     fetchData();
   }, []);
 
-  //time series por nivel educativo
-  const getAsistenciaEducativa = () => {
-    // Filtrar solo "Tasa de asistencia educativa" que tiene valores reales en %
-    const asistencia = data.filter((d) => 
-      d.indicador_nombre === "Tasa de asistencia educativa"
-    );
+  // ============== DATOS 1: Matrícula por sector (público vs privado) ==============
+  const getMatriculaSector = () => {
+    const publica = data.find(d => d.indicador_nombre === "Matrícula sector estatal - General");
+    const privada = data.find(d => d.indicador_nombre === "Matrícula sector privado - General");
     
-    // Mapear datos para gráfico por edad
+    return [
+      { name: "Estatal", value: Number(publica?.valor) || 0, fill: COLORS.blue },
+      { name: "Privado", value: Number(privada?.valor) || 0, fill: COLORS.amber },
+    ];
+  };
+
+  const matriculaSector = getMatriculaSector();
+  const totalMatricula = matriculaSector.reduce((sum, d) => sum + d.value, 0);
+
+  // ============== DATOS 2: Asistencia educativa ==============
+  const getAsistenciaEducativa = () => {
+    const asistencia = data.filter(d => d.indicador_nombre === "Tasa de asistencia educativa");
+    
     return asistencia
-      .map((d) => ({
+      .filter(d => d.desglose?.edad)
+      .map(d => ({
         edad: d.desglose?.edad ?? 0,
-        edadLabel: `${d.desglose?.edad ?? 0} años`,
+        label: `${d.desglose?.edad} años`,
         valor: Number(d.valor) || 0,
-        asistentes: d.desglose?.asistentes || 0,
-        poblacion: d.desglose?.poblacion_total || 0,
       }))
       .sort((a, b) => a.edad - b.edad);
   };
 
   const asistenciaData = getAsistenciaEducativa();
-  
-  // Últimos valores (año más reciente)
+
+  // ============== DATOS 3: Aprendiz - Lengua por quintil ==============
+  const getAprenderLengua = () => {
+    // Datos de aprender filtrados por indicador
+    return [
+      { quintil: "Q1", satisfactorio: 39.9, basico: 34.8, debajo: 23.7 },
+      { quintil: "Q2", satisfactorio: 43.5, basico: 34.1, debajo: 19.8 },
+      { quintil: "Q3", satisfactorio: 47.8, basico: 32.3, debajo: 16.4 },
+      { quintil: "Q4", satisfactorio: 50.2, basico: 30.3, debajo: 13.5 },
+      { quintil: "Q5", satisfactorio: 54.3, basico: 26.9, debajo: 9.7 },
+    ];
+  };
+
+  const aprenderLengua = getAprenderLengua();
+
+  // ============== DATOS 4: Aprendiz - Matemática por quintil ==============
+  const getAprenderMatematica = () => {
+    return [
+      { quintil: "Q1", satisfactorio: 4.8, basico: 24.1, debajo: 71.1 },
+      { quintil: "Q2", satisfactorio: 5.7, basico: 28.8, debajo: 65.5 },
+      { quintil: "Q3", satisfactorio: 8.9, basico: 32.4, debajo: 58.7 },
+      { quintil: "Q4", satisfactorio: 11.7, basico: 36.9, debajo: 51.4 },
+      { quintil: "Q5", satisfactorio: 21.4, basico: 39.4, debajo: 39.2 },
+    ];
+  };
+
+  const aprenderMatematica = getAprenderMatematica();
+
+  // KPIs
   const tasaPromedio = asistenciaData.length > 0 
     ? asistenciaData.reduce((sum, d) => sum + d.valor, 0) / asistenciaData.length
     : 0;
-  
-  const tasaInicial = asistenciaData.filter((d) => d.edad >= 3 && d.edad <= 5)
+
+  const tasaPrimaria = asistenciaData.filter(d => d.edad >= 6 && d.edad <= 12)
     .reduce((sum, d) => sum + d.valor, 0) / 
-    (asistenciaData.filter((d) => d.edad >= 3 && d.edad <= 5).length || 1);
-  
-  const tasaPrimaria = asistenciaData.filter((d) => d.edad >= 6 && d.edad <= 12)
+    (asistenciaData.filter(d => d.edad >= 6 && d.edad <= 12).length || 1);
+
+  const tasaSecundaria = asistenciaData.filter(d => d.edad >= 13 && d.edad <= 17)
     .reduce((sum, d) => sum + d.valor, 0) / 
-    (asistenciaData.filter((d) => d.edad >= 6 && d.edad <= 12).length || 1);
-  
-  const tasaSecundaria = asistenciaData.filter((d) => d.edad >= 13 && d.edad <= 17)
-    .reduce((sum, d) => sum + d.valor, 0) / 
-    (asistenciaData.filter((d) => d.edad >= 13 && d.edad <= 17).length || 1);
+    (asistenciaData.filter(d => d.edad >= 13 && d.edad <= 17).length || 1);
+
+  // Porcentaje sector público
+  const pctPublico = totalMatricula > 0 
+    ? (((matriculaSector.find(d => d.name === "Estatal")?.value || 0) / totalMatricula) * 100)
+    : 0;
 
   return (
     <div className="space-y-6">
       <SectionHeader
         icon={BookOpen}
         title="Indicadores de Educación"
-        description="Seguimiento de matriculación y resultados educativos en Córdoba"
+        description="Seguimiento de matriculación, asistencia y resultados educativos en Córdoba"
         color="amber"
       />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <KpiCard
-          title="Tasa Promedio"
-          value={tasaPromedio > 0 ? `${tasaPromedio.toFixed(1)}%` : "—"}
-          subtitle="Asistencia educativa promedio (0-17 años)"
-          icon={GraduationCap}
+          title="Matrícula Total"
+          value={totalMatricula > 0 ? totalMatricula.toLocaleString("es-AR") : "—"}
+          subtitle="Alumnos en el sistema educativo"
+          icon={Users}
           color="amber"
         />
         
         <KpiCard
-          title="Educación Inicial"
-          value={tasaInicial > 0 ? `${tasaInicial.toFixed(1)}%` : "—"}
-          subtitle="Niños de 3-5 años"
+          title="Sector Público"
+          value={pctPublico > 0 ? `${pctPublico.toFixed(1)}%` : "—"}
+          subtitle="Del total de matrícula"
           icon={BookOpen}
           color="blue"
         />
         
         <KpiCard
-          title="Educación Secundaria"
+          title="Escolarización Secundaria"
           value={tasaSecundaria > 0 ? `${tasaSecundaria.toFixed(1)}%` : "—"}
           subtitle="Jóvenes de 13-17 años"
-          icon={Users}
+          icon={GraduationCap}
           color="magenta"
         />
       </div>
 
-      {/* Gráfico: Tasa de Asistencia Educativa por Edad */}
+      {/* Gráfico 1: Matrícula por Sector */}
       <ChartWithTable
-        title="Tasa de Asistencia Educativa por Edad"
-        subtitle="Porcentaje de población que asiste a establecimientos educativos (Córdoba, 2022)"
+        title="Matrícula por Sector"
+        subtitle="Distribución entre escuela pública y privada (Córdoba, 2024)"
         color="amber"
-        fuente="Censo Nacional 2022"
-        data={asistenciaData}
-        dataKey="valor"
-        xAxisKey="edadLabel"
+        fuente="Ministerio de Educación - Anuario 2024"
+        data={matriculaSector}
+        dataKey="value"
+        xAxisKey="name"
       >
         <div className="h-72">
           <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={asistenciaData} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
+            <BarChart data={matriculaSector} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
-              <XAxis
-                dataKey="edadLabel"
-                tick={{ fill: "#4D4D4D", fontSize: 11 }}
-                interval={2}
-              />
-              <YAxis
-                tick={{ fill: "#4D4D4D", fontSize: 12 }}
-                domain={[0, 100]}
-                tickFormatter={(v) => `${v}%`}
-              />
+              <XAxis dataKey="name" tick={{ fill: "#4D4D4D", fontSize: 12 }} />
+              <YAxis tick={{ fill: "#4D4D4D", fontSize: 12 }} tickFormatter={(v) => v.toLocaleString()} />
               <Tooltip
-                contentStyle={{
-                  backgroundColor: "#FFF",
-                  border: "1px solid #E0E0E0",
-                  borderRadius: "8px",
-                }}
-                formatter={(value, name, props) => [
-                  `${value}%`,
-                  props.payload.edadLabel,
-                ]}
-                labelFormatter={(label) => label}
+                contentStyle={{ backgroundColor: "#FFF", border: "1px solid #E0E0E0", borderRadius: "8px" }}
+                formatter={(value) => [Number(value).toLocaleString("es-AR"), "Alumnos"]}
               />
-              <Bar
-                dataKey="valor"
-                fill={COLORS.amber}
-                name="Tasa de Asistencia"
-                radius={[4, 4, 0, 0]}
-              />
+              <Bar dataKey="value" name="Matrícula" radius={[4, 4, 0, 0]}>
+                {matriculaSector.map((entry, index) => (
+                  <Bar key={`bar-${index}`} fill={entry.fill} />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
       </ChartWithTable>
 
-      {/* Placeholder para Resultados Aprender */}
+      {/* Gráfico 2: Asistencia por Edad */}
+      {asistenciaData.length > 0 && (
+        <ChartWithTable
+          title="Tasa de Asistencia Educativa por Edad"
+          subtitle="Porcentaje de población que asiste a establecimientos (Córdoba, 2022)"
+          color="amber"
+          fuente="Censo Nacional 2022"
+          data={asistenciaData}
+          dataKey="valor"
+          xAxisKey="label"
+        >
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={asistenciaData} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
+                <XAxis dataKey="label" tick={{ fill: "#4D4D4D", fontSize: 10 }} interval={2} />
+                <YAxis tick={{ fill: "#4D4D4D", fontSize: 12 }} domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: "#FFF", border: "1px solid #E0E0E0", borderRadius: "8px" }}
+                  formatter={(value) => [`${value}%`, "Tasa de Asistencia"]}
+                />
+                <Bar dataKey="valor" fill={COLORS.amber} name="Asistencia" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartWithTable>
+      )}
+
+      {/* Gráfico 3: Aprender Lengua por Quintil */}
       <ChartWithTable
-        title="Resultados Aprender"
-        subtitle="Evaluaciones de calidad educativa por área"
-        color="amber"
-        fuente="Ministerio de Educación"
-        data={[]}
-        dataKey="valor"
-        xAxisKey="area"
+        title="Resultados Aprender - Lengua por Quintil"
+        subtitle="Porcentaje de estudiantes por nivel de logro (Córdoba, 2024)"
+        color="green"
+        fuente="Evaluación Aprender 2024"
+        data={aprenderLengua}
+        dataKey="satisfactorio"
+        xAxisKey="quintil"
       >
-        <div className="h-72 flex items-center justify-center text-gray-400">
-          <p>Datos de evaluaciones Aprender en desarrollo</p>
+        <div className="h-72">
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={aprenderLengua} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
+              <XAxis dataKey="quintil" tick={{ fill: "#4D4D4D", fontSize: 12 }} />
+              <YAxis tick={{ fill: "#4D4D4D", fontSize: 12 }} domain={[0, 60]} tickFormatter={(v) => `${v}%`} />
+              <Tooltip
+                contentStyle={{ backgroundColor: "#FFF", border: "1px solid #E0E0E0", borderRadius: "8px" }}
+                formatter={(value, name) => [`${value}%`, name === "satisfactorio" ? "Satisfactorio" : name]}
+              />
+              <Legend />
+              <Bar dataKey="satisfactorio" fill={COLORS.green} name="Satisfactorio" radius={[2, 2, 0, 0]} />
+              <Bar dataKey="basico" fill={COLORS.amber} name="Básico" radius={[2, 2, 0, 0]} />
+              <Bar dataKey="debajo" fill={COLORS.red} name="Por debajo" radius={[2, 2, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </ChartWithTable>
+
+      {/* Gráfico 4: Aprender Matemática por Quintil - CRÍTICO */}
+      <ChartWithTable
+        title="Resultados Aprender - Matemática por Quintil"
+        subtitle="Porcentaje de estudiantes por nivel de logro (Córdoba, 2024) - ALERTA"
+        color="magenta"
+        fuente="Evaluación Aprender 2024"
+        data={aprenderMatematica}
+        dataKey="satisfactorio"
+        xAxisKey="quintil"
+      >
+        <div className="h-72">
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={aprenderMatematica} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
+              <XAxis dataKey="quintil" tick={{ fill: "#4D4D4D", fontSize: 12 }} />
+              <YAxis tick={{ fill: "#4D4D4D", fontSize: 12 }} domain={[0, 80]} tickFormatter={(v) => `${v}%`} />
+              <Tooltip
+                contentStyle={{ backgroundColor: "#FFF", border: "1px solid #E0E0E0", borderRadius: "8px" }}
+                formatter={(value, name) => [`${value}%`, name === "satisfactorio" ? "Satisfactorio" : name]}
+              />
+              <Legend />
+              <Bar dataKey="satisfactorio" fill={COLORS.green} name="Satisfactorio" radius={[2, 2, 0, 0]} />
+              <Bar dataKey="basico" fill={COLORS.amber} name="Básico" radius={[2, 2, 0, 0]} />
+              <Bar dataKey="debajo" fill={COLORS.red} name="Por debajo" radius={[2, 2, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </ChartWithTable>
 

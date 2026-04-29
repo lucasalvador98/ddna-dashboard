@@ -9,8 +9,8 @@ import logging
 import sys
 from pathlib import Path
 
-# Agregar el directorio padre al path para imports (mantener para posible uso futuro)
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+# Agregar el directorio raíz del repo al path para que se puedan importar módulos de etl
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from etl.config import DATA_FILES
 

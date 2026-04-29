@@ -4,16 +4,17 @@ interface SectionHeaderProps {
   icon: React.ComponentType<{ className?: string }>;
   title: string;
   description: string;
-  color: "amber" | "magenta" | "blue" | "terracotta" | "navy" | "orange";
+  color: "amber" | "magenta" | "blue" | "terracotta" | "navy" | "orange" | "green";
 }
 
-const colorClasses = {
+const colorClasses: Record<string, string> = {
   amber: "bg-[#F3A712]",
   magenta: "bg-[#BF1363]",
   blue: "bg-[#3777FF]",
   terracotta: "bg-[#E07A5F]",
   navy: "bg-[#00074E]",
   orange: "bg-[#FF7F11]",
+  green: "bg-[#10B981]",
 };
 
 export function SectionHeader({ icon: Icon, title, description, color }: SectionHeaderProps) {
