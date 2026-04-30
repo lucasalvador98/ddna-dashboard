@@ -1,38 +1,29 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-let _supabase: SupabaseClient | null = null;
+// ⚠️ CLIENTE PARA BROWSER: SOLO usa anon key (NEXT_PUBLIC_)
+// ⚠️ NO usar getSupabaseClient() aca - esa usa service_role (prohibido en browser)
 
-export function getSupabaseClient(): SupabaseClient {
-  if (!_supabase) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 
+// Cliente PARA EL BROWSER (singleton)
+let _supabaseBrowser: SupabaseClient | null = null;
+
+function getBrowserClient(): SupabaseClient {
+  if (!_supabaseBrowser) {
     if (!supabaseUrl || !supabaseAnonKey) {
       throw new Error(
         "Supabase not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local"
       );
     }
-
-    _supabase = createClient(supabaseUrl, supabaseAnonKey);
+    _supabaseBrowser = createClient(supabaseUrl, supabaseAnonKey);
   }
-  return _supabase;
+  return _supabaseBrowser;
 }
 
-// Convenience export for use in client components and API routes
-// Handles missing config gracefully
-export const supabase = typeof window !== "undefined" || process.env.NEXT_PUBLIC_SUPABASE_URL
-  ? (() => {
-      try {
-        return getSupabaseClient();
-      } catch {
-        return null as unknown as SupabaseClient;
-      }
-    })()
-  : null as unknown as SupabaseClient;
-
-export function isSupabaseConfigured(): boolean {
-  return !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-}
+// Export PARA EL BROWSER (páginas y componentes)
+// SOLO usa anon key ✅
+export const supabase = getBrowserClient();
 
 // Tipos para las tablas principales del dashboard
 export type CategoriaIndicador =
@@ -77,24 +68,24 @@ export interface FuenteDato {
   created_at: string;
 }
 
-// Helper para consultas tipadas
+// Helper para consultas tipadas (páginas del dashboard)
 export async function getIndicadores(categoria?: CategoriaIndicador) {
   let query = supabase
     .from("indicadores")
     .select("*")
     .order("nombre", { ascending: true });
-
+  
   if (categoria) {
     query = query.eq("categoria", categoria);
   }
-
+  
   const { data, error } = await query;
-
+  
   if (error) {
     console.error("Error fetching indicadores:", error.message);
     return [];
   }
-
+  
   return data as Indicador[];
 }
 
@@ -108,21 +99,21 @@ export async function getDatosIndicador(
     .select("*")
     .eq("indicador_id", indicadorId)
     .order("periodo", { ascending: true });
-
+  
   if (periodoDesde) {
     query = query.gte("periodo", periodoDesde);
   }
   if (periodoHasta) {
     query = query.lte("periodo", periodoHasta);
   }
-
+  
   const { data, error } = await query;
-
+  
   if (error) {
     console.error("Error fetching datos:", error.message);
     return [];
   }
-
+  
   return data as DatoIndicador[];
 }
 
@@ -131,17 +122,36 @@ export async function getFuentesDatos(categoria?: CategoriaIndicador) {
     .from("fuentes_datos")
     .select("*")
     .order("nombre", { ascending: true });
-
+  
   if (categoria) {
     query = query.eq("categoria", categoria);
   }
-
+  
   const { data, error } = await query;
-
+  
   if (error) {
     console.error("Error fetching fuentes:", error.message);
     return [];
   }
-
+  
   return data as FuenteDato[];
+}
+
+// Para APIs de administración (SOLO en API routes, NO en browser)
+// Esta función usa service_role y debe llamarse SOLO desde API routes
+export function getSupabaseAdminClient(): SupabaseClient {
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+  
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error(
+      "Supabase admin not configured. Set SUPABASE_SERVICE_ROLE_KEY for API routes"
+    );
+  }
+  
+  return createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
 }

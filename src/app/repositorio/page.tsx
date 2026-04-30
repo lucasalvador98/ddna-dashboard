@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FileText, FileSpreadsheet, File, FolderOpen, Search, Upload, X, CheckCircle } from "lucide-react";
+import { FileText, FileSpreadsheet, File, FolderOpen, Search, Upload, X, CheckCircle, Bot } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 interface RepoFile {
@@ -126,6 +126,27 @@ export default function RepositorioPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-6">
+        {/* Chat Button - NotebookLM style */}
+        <div className="mb-6">
+          <a
+            href="/repositorio/chat"
+            className="flex items-center justify-between w-full px-6 py-4 bg-gradient-to-r from-[#3777FF] to-[#00074E] text-white rounded-2xl font-accent text-lg hover:shadow-xl hover:scale-[1.02] transition-all group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center group-hover:rotate-12 transition-transform">
+                <Bot className="w-6 h-6" />
+              </div>
+              <div className="text-left">
+                <p className="font-bold text-xl">Chat con la bibliografía</p>
+                <p className="text-sm opacity-90">Consultá todos nuestros documentos como en NotebookLM</p>
+              </div>
+            </div>
+            <svg className="w-6 h-6 group-hover:translate-x-2 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
+        </div>
+
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-white border border-gray-200 rounded-lg p-4">
