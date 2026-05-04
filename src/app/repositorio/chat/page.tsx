@@ -1,31 +1,31 @@
-"use client";
+'use client';
 
-import { useEffect, useState, useRef } from "react";
-import { Send, Bot, User, FileText, Loader2, AlertCircle } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { useEffect, useState, useRef } from 'react';
+import { Send, Bot, User, FileText, Loader2, AlertCircle } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 interface ChatMessage {
-  role: "user" | "assistant";
+  role: 'user' | 'assistant';
   content: string;
   sources?: {
-    fileName: string;
-    categoria?: string;
-    chunkIndex?: number;
+    source: string;
+    type: string;
   }[];
+  tools_used?: string[];
   timestamp: Date;
 }
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const [hasContext, setHasContext] = useState<boolean | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Scroll to bottom on new message
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -33,24 +33,24 @@ export default function ChatPage() {
     if (!input.trim() || loading) return;
 
     const userMessage: ChatMessage = {
-      role: "user",
+      role: 'user',
       content: input,
       timestamp: new Date(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
-    setInput("");
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
     setLoading(true);
-    setError("");
+    setError('');
     setHasContext(null);
 
     try {
-      const response = await fetch("/api/repositorio/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/agent/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           question: input,
-          conversationHistory: messages.slice(-6).map((m) => ({
+          conversationHistory: messages.slice(-6).map(m => ({
             role: m.role,
             content: m.content,
           })),
@@ -66,14 +66,15 @@ export default function ChatPage() {
       }
 
       const assistantMessage: ChatMessage = {
-        role: "assistant",
+        role: 'assistant',
         content: data.answer,
         sources: data.sources,
+        tools_used: data.tools_used,
         timestamp: new Date(),
       };
 
-      setMessages((prev) => [...prev, assistantMessage]);
-      setHasContext(data.hasContext);
+      setMessages(prev => [...prev, assistantMessage]);
+      setHasContext(data.sources && data.sources.length > 0);
     } catch (err) {
       setError(String(err));
     } finally {
@@ -91,24 +92,22 @@ export default function ChatPage() {
       <div className="mb-8">
         <h1 className="font-display text-3xl text-[#00074E] flex items-center gap-3">
           <Bot className="w-8 h-8 text-[#3777FF]" />
-          Asistente DDNA
+          Asistente de Investigación DDNA
         </h1>
         <p className="font-body text-gray-600 mt-2">
-          Hacé preguntas sobre la bibliografía de la Defensoría. El asistente buscará en los
-          documentos disponibles y te responderá basándose en ellos.
+          Hacé preguntas sobre la Defensoría. El asistente buscará en los documentos disponibles y,
+          si es necesario, complementará con información de la web.
         </p>
         {hasContext === false && (
           <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
             <div>
-              <p className="font-accent text-sm text-amber-800">
-                No hay documentos procesados
-              </p>
+              <p className="font-accent text-sm text-amber-800">No hay documentos procesados</p>
               <p className="text-sm text-amber-700 mt-1">
-                Subí y procesá documentos en la sección{" "}
+                Subí y procesá documentos en la sección{' '}
                 <a href="/repositorio" className="underline hover:text-amber-900">
                   Repositorio
-                </a>{" "}
+                </a>{' '}
                 para que el asistente pueda responder preguntas.
               </p>
             </div>
@@ -130,17 +129,17 @@ export default function ChatPage() {
                 ¡Bienvenido al Asistente DDNA!
               </h3>
               <p className="font-body text-gray-600 max-w-md mb-6">
-                Podés hacer preguntas sobre los documentos de la Defensoría. 
-                El asistente buscará en la bibliografía disponible.
+                Podés hacer preguntas sobre los documentos de la Defensoría. El asistente buscará en
+                la bibliografía disponible.
               </p>
-              
+
               {/* Example Questions */}
               <div className="space-y-2 w-full max-w-md">
                 <p className="text-sm text-gray-500 font-accent">Preguntas de ejemplo:</p>
                 {[
-                  "¿Cuál es la tasa de mortalidad infantil en Córdoba?",
-                  "¿Qué datos hay sobre escolarización primaria?",
-                  "¿Cómo se mide la pobreza infantil?",
+                  '¿Cuál es la tasa de mortalidad infantil en Córdoba?',
+                  '¿Qué dice la encuesta de 2024 sobre consumo de sustancias?',
+                  '¿Cuáles son los últimos datos de pobreza infantil en Argentina?',
                 ].map((q, idx) => (
                   <button
                     key={idx}
@@ -155,45 +154,56 @@ export default function ChatPage() {
           ) : (
             /* Chat Messages */
             messages.map((msg, idx) => (
-              <div
-                key={idx}
-                className={`flex gap-4 ${msg.role === "user" ? "justify-end" : ""}`}
-              >
-                {msg.role === "assistant" && (
+              <div key={idx} className={`flex gap-4 ${msg.role === 'user' ? 'justify-end' : ''}`}>
+                {msg.role === 'assistant' && (
                   <div className="w-8 h-8 bg-[#3777FF]/10 rounded-full flex items-center justify-center flex-shrink-0">
                     <Bot className="w-4 h-4 text-[#3777FF]" />
                   </div>
                 )}
-                
+
                 <div
                   className={`max-w-[80%] ${
-                    msg.role === "user"
-                      ? "bg-[#00074E] text-white"
-                      : "bg-gray-50 border border-gray-200"
+                    msg.role === 'user'
+                      ? 'bg-[#00074E] text-white'
+                      : 'bg-gray-50 border border-gray-200'
                   } rounded-lg px-4 py-3`}
                 >
                   <p className="font-body text-sm whitespace-pre-wrap">{msg.content}</p>
-                  
+
                   {/* Sources */}
                   {msg.sources && msg.sources.length > 0 && (
                     <div className="mt-3 pt-3 border-t border-gray-200">
-                      <p className="text-xs font-accent text-gray-500 mb-2">Fuentes consultadas:</p>
+                      <p className="text-xs font-accent text-gray-500 mb-2">Fuentes:</p>
                       <div className="flex flex-wrap gap-2">
-                        {msg.sources.map((source, sIdx) => (
-                          <div
-                            key={sIdx}
-                            className="flex items-center gap-1 px-2 py-1 bg-white border border-gray-200 rounded text-xs text-gray-600"
-                          >
-                            <FileText className="w-3 h-3" />
-                            {source.fileName}
-                          </div>
-                        ))}
+                        {msg.sources.map((source, sIdx) => {
+                          // Clean URL for display
+                          const cleanSource = source.source
+                            .replace(/^https?:\/\//, '')
+                            .replace(/^www\./, '')
+                            .split('/')[0];
+
+                          return (
+                            <span
+                              key={sIdx}
+                              className="inline-flex items-center gap-1 px-2 py-1 bg-[#3777FF]/10 text-[#3777FF] rounded text-xs font-medium"
+                            >
+                              {source.type === 'documento' ? (
+                                <FileText className="w-3 h-3" />
+                              ) : (
+                                <Bot className="w-3 h-3" />
+                              )}
+                              {cleanSource.length > 25
+                                ? cleanSource.substring(0, 25) + '...'
+                                : cleanSource}
+                            </span>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
                 </div>
 
-                {msg.role === "user" && (
+                {msg.role === 'user' && (
                   <div className="w-8 h-8 bg-[#00074E] rounded-full flex items-center justify-center flex-shrink-0">
                     <User className="w-4 h-4 text-white" />
                   </div>
@@ -210,7 +220,7 @@ export default function ChatPage() {
               </div>
               <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 flex items-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
-                <span className="text-sm text-gray-500">Buscando en documentos...</span>
+                <span className="text-sm text-gray-500">Analizando y buscando información...</span>
               </div>
             </div>
           )}
@@ -230,7 +240,7 @@ export default function ChatPage() {
             <input
               type="text"
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={e => setInput(e.target.value)}
               placeholder="Escribí tu pregunta sobre los documentos..."
               className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3777FF] focus:border-transparent outline-none font-body text-sm"
               disabled={loading}
@@ -254,7 +264,8 @@ export default function ChatPage() {
       {/* Info Footer */}
       <div className="mt-6 text-center">
         <p className="text-xs text-gray-500 font-body">
-          Este asistente utiliza RAG (Retrieval-Augmented Generation) para responder basándose en los documentos de la Defensoría.
+          Este asistente usa Agent con Tools — busca en tus documentos y complementa con búsqueda
+          web cuando es necesario.
           <a href="/repositorio" className="text-[#3777FF] hover:underline ml-1">
             Ver documentos disponibles →
           </a>
