@@ -5,14 +5,14 @@ import { StorageClient } from '@supabase/storage-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const pdf = require('pdf-parse');
-
-// Dynamic extractors
+// Dynamic extractors - PDF extraction disabled due to Node.js server limitations
 async function extractText(fileType: string, buffer: Buffer) {
   if (fileType === 'pdf') {
-    const data = await pdf(buffer);
-    return { text: data.text, pages: data.numpages };
+    // Return placeholder - PDF processing requires offline conversion
+    return {
+      text: `[PDF de ${buffer.length} bytes - Los PDFs deben ser convertidos a texto offline]`,
+      pages: 0,
+    };
   } else if (fileType === 'docx' || fileType === 'doc') {
     const { extractTextFromDOCX } = await import('@/lib/rag/extractors/docx');
     return extractTextFromDOCX(buffer);
