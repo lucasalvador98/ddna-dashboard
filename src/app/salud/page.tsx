@@ -1,11 +1,16 @@
-"use client";
+'use client';
 
-import { Heart, Baby, Syringe, TrendingDown, TrendingUp } from "lucide-react";
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
-import { SectionHeader } from "@/components/section-header";
-import { KpiCard } from "@/components/kpi-card";
-import { ChartWithTable, SimpleLineChart, SimpleBarChart } from "@/components/charts/chart-with-table";
+import { Heart, Baby, Syringe, TrendingDown, TrendingUp } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+import { parseDesglose } from '@/lib/parse-desglose';
+import { SectionHeader } from '@/components/section-header';
+import { KpiCard } from '@/components/kpi-card';
+import {
+  ChartWithTable,
+  SimpleLineChart,
+  SimpleBarChart,
+} from '@/components/charts/chart-with-table';
 import {
   LineChart,
   Line,
@@ -17,14 +22,14 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
-} from "recharts";
+} from 'recharts';
 
 // Colores DDNA
 const COLORS = {
-  terracotta: "#E07A5F",
-  blue: "#3777FF",
-  magenta: "#BF1363",
-  amber: "#F3A712",
+  terracotta: '#E07A5F',
+  blue: '#3777FF',
+  magenta: '#BF1363',
+  amber: '#F3A712',
 };
 
 interface IndicadorData {
@@ -46,25 +51,29 @@ export default function SaludPage() {
   useEffect(() => {
     async function fetchData() {
       const { data: indicadores, error } = await supabase
-        .from("indicadores")
-        .select("id, indicador_nombre, valor, unidad, periodo, region, desglose")
-        .eq("categoria", "salud")
-        .order("periodo", { ascending: true });
+        .from('indicadores')
+        .select('id, indicador_nombre, valor, unidad, periodo, region, desglose')
+        .eq('categoria', 'salud')
+        .order('periodo', { ascending: true });
 
       if (error) {
         setError(error.message);
       } else {
-        setData(indicadores || []);
+        const parsed = (indicadores || []).map(d => ({
+          ...d,
+          desglose: parseDesglose(d.desglose),
+        }));
+        setData(parsed);
       }
       setLoading(false);
     }
     fetchData();
   }, []);
 
-// Agrupar datos por indicador para time series
+  // Agrupar datos por indicador para time series
   const getTimeSeries = (nombreIndicador: string) => {
     return data
-      .filter((d) => d.indicador_nombre === nombreIndicador)
+      .filter(d => d.indicador_nombre === nombreIndicador)
       .map(d => ({
         periodo: d.periodo,
         valor: Number(d.valor) || 0,
@@ -74,49 +83,46 @@ export default function SaludPage() {
   };
 
   // Mortalidad infantil time series (TMI Córdoba - métrica principal)
-  const mortalidadData = getTimeSeries("Mortalidad infantil (TMI Cba)");
-  
+  const mortalidadData = getTimeSeries('Mortalidad infantil (TMI Cba)');
+
   // Otras series para gráfico comparativo
   const mortalidadComparativa = () => {
-    const series = ["Mortalidad infantil (TMI Cba)", "Mortalidad infantil (TMI)"]
+    const series = ['Mortalidad infantil (TMI Cba)', 'Mortalidad infantil (TMI)']
       .map(nombre => ({
         nombre,
         data: getTimeSeries(nombre),
       }))
       .filter(s => s.data.length > 0);
-    
+
     if (series.length === 0) return [];
-    
+
     // Combinar por periodo
     const periodos = [...new Set(series.flatMap(s => s.data.map(d => d.periodo)))];
     return periodos
       .map(periodo => {
         const row: Record<string, any> = { periodo };
         for (const s of series) {
-          row[s.nombre.replace("Mortalidad infantil (", "").replace(")", "")] = 
+          row[s.nombre.replace('Mortalidad infantil (', '').replace(')', '')] =
             s.data.find(d => d.periodo === periodo)?.valor || null;
         }
         return row;
       })
       .sort((a, b) => Number(a.periodo) - Number(b.periodo));
   };
-  
+
   // Cobertura vacunal
   const coberturaData = data
-    .filter((d) => d.indicador_nombre.toLowerCase().includes("cobertura"))
+    .filter(d => d.indicador_nombre.toLowerCase().includes('cobertura'))
     .map(d => ({
-      name: d.desglose?.vacuna || d.desglose?.tipo || "General",
+      name: d.desglose?.vacuna || d.desglose?.tipo || 'General',
       value: Number(d.valor) || 0,
     }));
 
   // Últimos valores
-  const latestMortalidad = mortalidadData.length > 0 
-    ? mortalidadData[mortalidadData.length - 1] 
-    : null;
-  
-  const latestCobertura = coberturaData.length > 0
-    ? coberturaData[coberturaData.length - 1]
-    : null;
+  const latestMortalidad =
+    mortalidadData.length > 0 ? mortalidadData[mortalidadData.length - 1] : null;
+
+  const latestCobertura = coberturaData.length > 0 ? coberturaData[coberturaData.length - 1] : null;
 
   // Calcular cambio
   const getCambio = (arr: { periodo: string; valor: number }[]) => {
@@ -126,7 +132,7 @@ export default function SaludPage() {
     const cambio = actual - anterior;
     return {
       value: cambio.toFixed(1),
-      tipo: cambio < 0 ? "down" : cambio > 0 ? "up" : "neutral",
+      tipo: cambio < 0 ? 'down' : cambio > 0 ? 'up' : 'neutral',
     };
   };
 
@@ -145,22 +151,22 @@ export default function SaludPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <KpiCard
           title="Mortalidad infantil Córdoba"
-          value={latestMortalidad ? `${latestMortalidad.valor}‰` : "—"}
-          subtitle={`TMI - Córdoba ${latestMortalidad?.periodo || ""}`}
+          value={latestMortalidad ? `${latestMortalidad.valor}‰` : '—'}
+          subtitle={`TMI - Córdoba ${latestMortalidad?.periodo || ''}`}
           change={cambioMortalidad ? `${cambioMortalidad.value}‰` : undefined}
-          changeType={cambioMortalidad?.tipo as "up" | "down" | undefined}
+          changeType={cambioMortalidad?.tipo as 'up' | 'down' | undefined}
           icon={Baby}
           color="terracotta"
         />
-        
+
         <KpiCard
           title="Cobertura vacunal"
-          value={latestCobertura ? `${latestCobertura.value}%` : "—"}
+          value={latestCobertura ? `${latestCobertura.value}%` : '—'}
           subtitle="Promedio de esquemas completos"
           icon={Syringe}
           color="blue"
         />
-        
+
         <KpiCard
           title="Nacimientos"
           value="83.456"
@@ -182,22 +188,22 @@ export default function SaludPage() {
       >
         <div className="h-72">
           <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={mortalidadComparativa()} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
+            <LineChart
+              data={mortalidadComparativa()}
+              margin={{ top: 10, right: 30, left: 10, bottom: 10 }}
+            >
               <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
-              <XAxis
-                dataKey="periodo"
-                tick={{ fill: "#4D4D4D", fontSize: 12 }}
-              />
+              <XAxis dataKey="periodo" tick={{ fill: '#4D4D4D', fontSize: 12 }} />
               <YAxis
-                tick={{ fill: "#4D4D4D", fontSize: 12 }}
-                domain={[0, "auto"]}
-                tickFormatter={(v) => `${v}‰`}
+                tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                domain={[0, 'auto']}
+                tickFormatter={v => `${v}‰`}
               />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "#FFF",
-                  border: "1px solid #E0E0E0",
-                  borderRadius: "8px",
+                  backgroundColor: '#FFF',
+                  border: '1px solid #E0E0E0',
+                  borderRadius: '8px',
                 }}
                 formatter={(value, name) => [`${value ?? 0}‰`, name]}
               />
@@ -238,33 +244,33 @@ export default function SaludPage() {
       >
         <div className="h-72">
           <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={coberturaData} layout="vertical" margin={{ top: 10, right: 30, left: 80, bottom: 10 }}>
+            <BarChart
+              data={coberturaData}
+              layout="vertical"
+              margin={{ top: 10, right: 30, left: 80, bottom: 10 }}
+            >
               <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" horizontal={false} />
               <XAxis
                 type="number"
                 domain={[0, 100]}
-                tick={{ fill: "#4D4D4D", fontSize: 12 }}
-                tickFormatter={(v) => `${v}%`}
+                tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                tickFormatter={v => `${v}%`}
               />
               <YAxis
                 type="category"
                 dataKey="name"
-                tick={{ fill: "#4D4D4D", fontSize: 11 }}
+                tick={{ fill: '#4D4D4D', fontSize: 11 }}
                 width={70}
               />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "#FFF",
-                  border: "1px solid #E0E0E0",
-                  borderRadius: "8px",
+                  backgroundColor: '#FFF',
+                  border: '1px solid #E0E0E0',
+                  borderRadius: '8px',
                 }}
-                formatter={(value) => [`${value ?? 0}%`, "Cobertura"]}
+                formatter={value => [`${value ?? 0}%`, 'Cobertura']}
               />
-              <Bar
-                dataKey="value"
-                fill={COLORS.blue}
-                radius={[0, 4, 4, 0]}
-              />
+              <Bar dataKey="value" fill={COLORS.blue} radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

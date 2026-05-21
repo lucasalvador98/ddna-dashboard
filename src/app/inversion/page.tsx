@@ -1,19 +1,37 @@
-"use client";
+'use client';
 
-import { Coins, TrendingUp } from "lucide-react";
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
-import { SectionHeader } from "@/components/section-header";
-import { KpiCard } from "@/components/kpi-card";
-import { ChartWithTable } from "@/components/charts/chart-with-table";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { Coins, TrendingUp } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+import { parseDesglose } from '@/lib/parse-desglose';
+import { SectionHeader } from '@/components/section-header';
+import { KpiCard } from '@/components/kpi-card';
+import { ChartWithTable } from '@/components/charts/chart-with-table';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const COLORS = {
-  terracotta: "#E07A5F",
-  amber: "#F3A712",
-  blue: "#3777FF",
-  magenta: "#BF1363",
+  terracotta: '#E07A5F',
+  amber: '#F3A712',
+  blue: '#3777FF',
+  magenta: '#BF1363',
 };
+
+/** Categorías de inversión directamente vinculadas a la infancia/adolescencia */
+const CHILD_CATS = [
+  'Educación básica (inicial, elemental y media)',
+  'Comedores escolares y copa de leche',
+  'Niños en riesgo',
+  'Transporte escolar',
+  'Materno-infantil',
+  'Transferencias de ingresos a las familias',
+  'Calidad educativa, gestión curricular y capacitaci',
+  'Trabajo infantil',
+  'Atención ambulatoria e internación',
+  'Prevención de enfermedades y riesgos específicos',
+  'Deporte y recreación',
+  'Atención de grupos vulnerables',
+  'Violencia familiar',
+];
 
 interface IndicadorData {
   id: string;
@@ -33,13 +51,19 @@ export default function InversionPage() {
   useEffect(() => {
     async function fetchData() {
       const { data: indicadores, error } = await supabase
-        .from("indicadores")
-        .select("id, indicador_nombre, valor, unidad, periodo, region, desglose")
-        .eq("categoria", "inversion")
-        .order("periodo", { ascending: true });
+        .from('indicadores')
+        .select('id, indicador_nombre, valor, unidad, periodo, region, desglose')
+        .eq('categoria', 'inversion')
+        .order('periodo', { ascending: true });
 
       if (error) setError(error.message);
-      else setData(indicadores || []);
+      else {
+        const parsed = (indicadores || []).map(d => ({
+          ...d,
+          desglose: parseDesglose(d.desglose),
+        }));
+        setData(parsed);
+      }
       setLoading(false);
     }
     fetchData();
@@ -49,19 +73,20 @@ export default function InversionPage() {
   const getInversionPorArea = () => {
     const porArea = new Map<string, number>();
     for (const d of data) {
-      const area = d.desglose?.categoria || "Sin categoría";
+      const area = d.desglose?.categoria || 'Sin categoría';
       porArea.set(area, (porArea.get(area) || 0) + Number(d.valor));
     }
     return Array.from(porArea.entries())
       .map(([name, value]) => ({ name, value: Math.round(value) }))
-      .sort((a, b) => b.value - a.value);
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 15);
   };
 
   // Inversión por organismo (top 10)
   const getInversionPorOrganismo = () => {
     const porOrganismo = new Map<string, number>();
     for (const d of data) {
-      const org = d.desglose?.organismo || "Sin organismo";
+      const org = d.desglose?.organismo || 'Sin organismo';
       porOrganismo.set(org, (porOrganismo.get(org) || 0) + Number(d.valor));
     }
     return Array.from(porOrganismo.entries())
@@ -72,8 +97,12 @@ export default function InversionPage() {
 
   const inversionArea = getInversionPorArea();
   const inversionOrganismo = getInversionPorOrganismo();
-  
-  const total = inversionArea.reduce((sum, d) => sum + d.value, 0);
+
+  const totalInfancia = inversionArea
+    .filter(d => CHILD_CATS.some(cat => d.name.includes(cat)))
+    .reduce((sum, d) => sum + d.value, 0);
+
+  const total = totalInfancia;
 
   return (
     <div className="space-y-6">
@@ -86,22 +115,22 @@ export default function InversionPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <KpiCard
-          title="Inversión total 2024"
+          title="Inversión en Infancia 2024"
           value={`$${(total / 1000).toFixed(1)} MM`}
-          subtitle="Millones de pesos en inversión social"
+          subtitle="Millones de pesos — categorías vinculadas a niñez/adolescencia"
           icon={Coins}
           color="terracotta"
         />
         <KpiCard
           title="En Educación"
-          value={`$${((inversionArea.find(d => d.name === "Educación")?.value || 0) / 1000).toFixed(1)} MM`}
+          value={`$${((inversionArea.find(d => d.name === 'Educación')?.value || 0) / 1000).toFixed(1)} MM`}
           subtitle="Millones de pesos"
           icon={TrendingUp}
           color="amber"
         />
         <KpiCard
           title="En Salud"
-          value={`$${((inversionArea.find(d => d.name === "Salud")?.value || 0) / 1000).toFixed(1)} MM`}
+          value={`$${((inversionArea.find(d => d.name === 'Salud')?.value || 0) / 1000).toFixed(1)} MM`}
           subtitle="Millones de pesos"
           icon={Coins}
           color="blue"
@@ -119,13 +148,30 @@ export default function InversionPage() {
       >
         <div className="h-72">
           <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={inversionArea} layout="vertical" margin={{ top: 10, right: 30, left: 100, bottom: 10 }}>
+            <BarChart
+              data={inversionArea}
+              layout="vertical"
+              margin={{ top: 10, right: 30, left: 100, bottom: 10 }}
+            >
               <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" horizontal={false} />
-              <XAxis type="number" tick={{ fill: "#4D4D4D", fontSize: 12 }} tickFormatter={(v) => `$${v / 1000}M`} />
-              <YAxis type="category" dataKey="name" tick={{ fill: "#4D4D4D", fontSize: 11 }} width={90} />
-              <Tooltip 
-                contentStyle={{ backgroundColor: "#FFF", border: "1px solid #E0E0E0", borderRadius: "8px" }} 
-                formatter={(v) => [`${v?.toLocaleString("es-AR") ?? 0}`, "Inversión"]}
+              <XAxis
+                type="number"
+                tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                tickFormatter={v => `$${v / 1000}M`}
+              />
+              <YAxis
+                type="category"
+                dataKey="name"
+                tick={{ fill: '#4D4D4D', fontSize: 11 }}
+                width={90}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: '#FFF',
+                  border: '1px solid #E0E0E0',
+                  borderRadius: '8px',
+                }}
+                formatter={v => [`${v?.toLocaleString('es-AR') ?? 0}`, 'Inversión']}
               />
               <Bar dataKey="value" fill={COLORS.terracotta} radius={[0, 4, 4, 0]} />
             </BarChart>
@@ -144,13 +190,29 @@ export default function InversionPage() {
       >
         <div className="h-72">
           <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={inversionOrganismo} margin={{ top: 10, right: 30, left: 10, bottom: 60 }}>
+            <BarChart
+              data={inversionOrganismo}
+              margin={{ top: 10, right: 30, left: 10, bottom: 60 }}
+            >
               <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
-              <XAxis dataKey="name" tick={{ fill: "#4D4D4D", fontSize: 10 }} angle={-35} textAnchor="end" interval={0} />
-              <YAxis tick={{ fill: "#4D4D4D", fontSize: 12 }} tickFormatter={(v) => `$${v / 1000}M`} />
-              <Tooltip 
-                contentStyle={{ backgroundColor: "#FFF", border: "1px solid #E0E0E0", borderRadius: "8px" }}
-                formatter={(v) => [`${v?.toLocaleString("es-AR") ?? 0}`, "Inversión"]}
+              <XAxis
+                dataKey="name"
+                tick={{ fill: '#4D4D4D', fontSize: 10 }}
+                angle={-35}
+                textAnchor="end"
+                interval={0}
+              />
+              <YAxis
+                tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                tickFormatter={v => `$${v / 1000}M`}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: '#FFF',
+                  border: '1px solid #E0E0E0',
+                  borderRadius: '8px',
+                }}
+                formatter={v => [`${v?.toLocaleString('es-AR') ?? 0}`, 'Inversión']}
               />
               <Bar dataKey="value" fill={COLORS.terracotta} radius={[4, 4, 0, 0]} />
             </BarChart>
@@ -160,7 +222,11 @@ export default function InversionPage() {
 
       {loading && <div className="py-12 text-center text-gray-500">Cargando...</div>}
       {error && <div className="bg-red-50 p-4 rounded text-red-700">Error: {error}</div>}
-      {data.length === 0 && !loading && <div className="bg-gray-50 p-8 rounded text-center text-gray-500">Sin datos disponibles</div>}
+      {data.length === 0 && !loading && (
+        <div className="bg-gray-50 p-8 rounded text-center text-gray-500">
+          Sin datos disponibles
+        </div>
+      )}
     </div>
   );
 }
