@@ -11,6 +11,7 @@ import {
   getInversionTotal,
   getPoblacion0a17,
   findStatValue,
+  findStatSum,
   useDashboardData,
   type Indicador,
 } from '@/lib/use-dashboard-data';
@@ -60,16 +61,19 @@ export default function HomePage() {
   const educacionData = data?.educacion || [];
   const inversionData = data?.inversion || [];
   const demografiaData = data?.demografia || [];
+  const seguridadData = data?.seguridad || [];
 
   // Get latest indicator values per KPI
   const pobrezaInd = getLatestValue(pobrezaData, 'Pobreza infantil');
   const indigenciaInd = getLatestValue(pobrezaData, 'Indigencia infantil');
-  const mortalidadInd = getLatestValue(saludData);
+  const mortalidadInd = getLatestValue(saludData, 'TMI Cba');
   const escolarizacionInd = getLatestValue(educacionData, 'Tasa de asistencia educativa');
+  const denunciasInd = getLatestValue(seguridadData, 'Total casos');
   const pobreza = pobrezaInd?.valor ?? null;
   const indigencia = indigenciaInd?.valor ?? null;
   const mortalidad = mortalidadInd?.valor ?? null;
   const escolarizacion = escolarizacionInd?.valor ?? null;
+  const denuncias = denunciasInd?.valor ?? null;
 
   // FIXED: use child-relevant inversion sum instead of blind sum
   const inversion = getInversionTotal(inversionData);
@@ -85,9 +89,9 @@ export default function HomePage() {
 
   // Stats banner values (real data from indicators)
   const statsPoblacion = poblacion;
-  const statsCentrosSalud = findStatValue(saludData, 'centros de salud');
-  const statsEstablecimientos = findStatValue(educacionData, 'establecimientos');
-  const statsVacunacion = findStatValue(saludData, 'vacun');
+  const statsMortalidad = findStatValue(saludData, 'TMI Cba');
+  const statsEstablecimientos = findStatSum(educacionData, 'Unidades educativas');
+  const statsMatricula = findStatSum(educacionData, 'Matrícula - General');
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
@@ -173,7 +177,7 @@ export default function HomePage() {
               <KpiCard
                 title="Mortalidad infantil"
                 value={formatValue(mortalidad, '‰')}
-                subtitle="Tasa por cada mil nacidos vivos"
+                subtitle="por cada 1000 nacidos vivos"
                 icon={categoryConfig.salud.icon}
                 color={categoryConfig.salud.color}
               />
@@ -181,7 +185,7 @@ export default function HomePage() {
               <KpiCard
                 title="Escolarización"
                 value={formatValue(escolarizacion, '%')}
-                subtitle="Tasa neta de escolarización"
+                subtitle="Tasa de asistencia educativa"
                 icon={categoryConfig.educacion.icon}
                 color={categoryConfig.educacion.color}
               />
@@ -196,7 +200,7 @@ export default function HomePage() {
 
               <KpiCard
                 title="Denuncias"
-                value="—"
+                value={formatValue(denuncias, 'casos')}
                 subtitle="Registrado en el último período"
                 icon={categoryConfig.seguridad.icon}
                 color={categoryConfig.seguridad.color}
@@ -224,9 +228,11 @@ export default function HomePage() {
             </div>
             <div className="text-center">
               <p className="font-display text-2xl lg:text-3xl text-white">
-                {formatStatNumber(statsCentrosSalud)}
+                {statsMortalidad != null ? `${statsMortalidad}‰` : '—'}
               </p>
-              <p className="font-accent text-xs text-white/60 mt-1">Centros de salud</p>
+              <p className="font-accent text-xs text-white/60 mt-1">
+                Mortalidad infantil (Córdoba)
+              </p>
             </div>
             <div className="text-center">
               <p className="font-display text-2xl lg:text-3xl text-white">
@@ -236,9 +242,9 @@ export default function HomePage() {
             </div>
             <div className="text-center">
               <p className="font-display text-2xl lg:text-3xl text-white">
-                {statsVacunacion != null ? `${statsVacunacion}%` : '—'}
+                {formatStatNumber(statsMatricula)}
               </p>
-              <p className="font-accent text-xs text-white/60 mt-1">Cobertura vacunal</p>
+              <p className="font-accent text-xs text-white/60 mt-1">Matrícula escolar</p>
             </div>
           </div>
         </section>

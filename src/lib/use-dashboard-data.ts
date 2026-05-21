@@ -399,6 +399,33 @@ export function findStatValue(indicadores: Indicador[], nombreBuscar: string): n
   return ind?.valor ?? null;
 }
 
+/**
+ * Looks up an aggregated stat by name keyword, summing all rows
+ * for the most recent period. Use for indicators like
+ * "Unidades educativas - General" or "Matrícula - General"
+ * that have multiple rows per period (e.g. by level/zone).
+ * Returns null if not found.
+ */
+export function findStatSum(indicadores: Indicador[], nombreBuscar: string): number | null {
+  if (!indicadores || indicadores.length === 0) return null;
+
+  const lowerSearch = nombreBuscar.toLowerCase();
+  const matched = indicadores.filter(i => i.indicador_nombre.toLowerCase().includes(lowerSearch));
+
+  if (matched.length === 0) return null;
+
+  // Find the most recent period among matches
+  const sorted = [...matched].sort((a, b) => b.periodo.localeCompare(a.periodo));
+  const latestPeriod = sorted[0].periodo;
+
+  // Sum all values for the most recent period
+  const total = matched
+    .filter(i => i.periodo === latestPeriod)
+    .reduce((sum, i) => sum + Number(i.valor || 0), 0);
+
+  return total;
+}
+
 // ———————————————————————————————————————————————
 // useKPIs: focused KPI fetching for the summary bar
 // ———————————————————————————————————————————————
