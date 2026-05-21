@@ -1,0 +1,262 @@
+{
+  "name": "DDNA RAG — Backfill PDFs",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "trigger-manual",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "notes": "Ejecutar UNA SOLA VEZ. Después de backfill, desactivar este workflow."
+    },
+    {
+      "parameters": {
+        "url": "https://YOUR_SUPABASE_PROJECT.supabase.co/storage/v1/object/list/ddna-repositorio",
+        "method": "POST",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_SERVICE_ROLE_KEY"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "list-bucket",
+      "name": "List Bucket Files",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 300],
+      "notes": "⚠️ Reemplazá YOUR_SUPABASE_PROJECT y YOUR_SERVICE_ROLE_KEY con los valores reales."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Filtrar solo PDFs no procesados aún\nconst items = $input.all();\nconst files = items[0]?.json || [];\n\n// Si la respuesta viene como array directo\nconst fileList = Array.isArray(files) ? files : (files.data || []);\n\n// Filtrar: solo PDFs que NO empiecen con '.' (system files)\nconst pdfs = fileList.filter(f => {\n  const name = f.name || '';\n  return name.toLowerCase().endsWith('.pdf') && !name.startsWith('.');\n});\n\nif (pdfs.length === 0) {\n  throw new Error('No se encontraron PDFs en el bucket');\n}\n\n// Retornar cada PDF como item separado\nreturn pdfs.map(pdf => ({\n  json: {\n    file_name: pdf.name,\n    file_id: pdf.id || pdf.name,\n    bucket: 'ddna-repositorio',\n    created_at: pdf.created_at || pdf.metadata?.lastModified\n  }\n}));\n\n// 📝 NOTA: Para evitar reprocesar PDFs ya indexados, podrías\n// consultar la tabla repositorio y filtrar los que tengan processed=true"
+      },
+      "id": "filter-pdfs",
+      "name": "Filter PDFs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "loop-files",
+      "name": "Loop Each File",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://YOUR_SUPABASE_PROJECT.supabase.co/storage/v1/object/authenticated/ddna-repositorio/{{ $json.file_name }}",
+        "method": "GET",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_SERVICE_ROLE_KEY"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "download-file",
+      "name": "Download PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 300],
+      "notes": "⚠️ Reemplazá YOUR_SUPABASE_PROJECT y YOUR_SERVICE_ROLE_KEY."
+    },
+    {
+      "parameters": {
+        "language": "spa",
+        "ocr": true
+      },
+      "id": "extract-pdf",
+      "name": "Extract PDF Text",
+      "type": "n8n-nodes-pdf-api-hub.pdf",
+      "typeVersion": 1,
+      "position": [1250, 300],
+      "notes": "⚠️ Requiere instalar n8n-nodes-pdf-api-hub. Si el tipo de nodo no es 'n8n-nodes-pdf-api-hub.pdf', buscá el nombre real después de instalar."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Chunk text into ~500 token chunks with 20% overlap\n// Estrategia: romper en boundaries naturales (párrafos, oraciones)\n\nconst items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const text = item.json.text || item.json.content || '';\n  const source = item.json.source || item.json.fileName || $('Loop Each File').first().json.file_name || 'unknown';\n  const fileId = $('Loop Each File').first().json.file_id || source;\n\n  // 500 tokens ≈ 2000 caracteres (aproximación español)\n  const MAX_CHARS = 2000;\n  const OVERLAP_CHARS = Math.floor(MAX_CHARS * 0.2); // 400 chars = 20%\n\n  if (!text || text.length < 50) {\n    // Texto muy corto — un solo chunk\n    if (text && text.trim().length > 0) {\n      results.push({\n        json: {\n          repo_file_id: fileId,\n          chunk_index: 0,\n          content: text.trim(),\n          source: source,\n          file_type: 'pdf',\n          char_count: text.trim().length,\n          word_count: text.trim().split(/\\s+/).length,\n          processed_at: new Date().toISOString()\n        }\n      });\n    }\n    continue;\n  }\n\n  let chunkIndex = 0;\n  let start = 0;\n\n  while (start < text.length) {\n    let end = start + MAX_CHARS;\n\n    if (end < text.length) {\n      // Intentar cortar en salto de párrafo\n      const window = text.slice(start, end);\n      const paraBreak = window.lastIndexOf('\\n\\n');\n      const sentenceBreak = window.lastIndexOf('. ');\n\n      // Preferir corte en párrafo si está en la segunda mitad del chunk\n      if (paraBreak > MAX_CHARS * 0.4) {\n        end = start + paraBreak;\n      } else if (sentenceBreak > MAX_CHARS * 0.4) {\n        end = start + sentenceBreak + 1;\n      }\n    } else {\n      end = text.length;\n    }\n\n    const chunkText = text.slice(start, end).trim();\n    if (chunkText.length > 30) {\n      results.push({\n        json: {\n          repo_file_id: fileId,\n          chunk_index: chunkIndex,\n          content: chunkText,\n          source: source,\n          file_type: 'pdf',\n          char_count: chunkText.length,\n          word_count: chunkText.split(/\\s+/).length,\n          processed_at: new Date().toISOString()\n        }\n      });\n      chunkIndex++;\n    }\n\n    start = end - OVERLAP_CHARS;\n    if (start >= text.length - 10) break;\n  }\n}\n\nreturn results;"
+      },
+      "id": "chunk-text",
+      "name": "Chunk Text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.openai.com/v1/embeddings",
+        "method": "POST",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_OPENAI_API_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "text-embedding-3-small"
+            },
+            {
+              "name": "input",
+              "value": "={{ $json.content }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "generate-embedding",
+      "name": "Generate Embedding",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1650, 300],
+      "notes": "⚠️ Reemplazá YOUR_OPENAI_API_KEY. Modelo text-embedding-3-small: $0.02 por 1M tokens (muy barato)."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Formatear para insertar en doc_chunks\nconst items = $input.all();\n\nreturn items.map((item, i) => {\n  const prevItem = $('Chunk Text').all()[i] || {};\n  const embedding = item.json.data?.[0]?.embedding || [];\n\n  return {\n    json: {\n      repo_file_id: prevItem.json?.repo_file_id || '',\n      chunk_index: prevItem.json?.chunk_index || 0,\n      content: prevItem.json?.content || '',\n      embedding: embedding,\n      metadata: {\n        source: prevItem.json?.source || '',\n        type: prevItem.json?.file_type || 'pdf',\n        chunk_size: prevItem.json?.word_count || 0,\n        processed_at: prevItem.json?.processed_at || new Date().toISOString()\n      }\n    }\n  };\n});"
+      },
+      "id": "format-for-insert",
+      "name": "Format for DB",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1850, 300]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "tableId": "doc_chunks",
+        "dataToSend": "defineBelow",
+        "fieldsToSend": {
+          "values": [
+            {
+              "name": "repo_file_id",
+              "value": "={{ $json.repo_file_id }}"
+            },
+            {
+              "name": "chunk_index",
+              "value": "={{ $json.chunk_index }}"
+            },
+            {
+              "name": "content",
+              "value": "={{ $json.content }}"
+            },
+            {
+              "name": "embedding",
+              "value": "={{ JSON.stringify($json.embedding) }}"
+            },
+            {
+              "name": "metadata",
+              "value": "={{ JSON.stringify($json.metadata) }}"
+            }
+          ]
+        }
+      },
+      "id": "insert-chunks",
+      "name": "Save to doc_chunks",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [2050, 300],
+      "credentials": {
+        "supabaseApi": {
+          "id": "1",
+          "name": "Supabase DDNA"
+        }
+      },
+      "notes": "⚠️ Configurar credenciales de Supabase en N8N primero (Service Role Key)."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Resumen final: cuántos chunks se procesaron\nconst allInserts = $('Save to doc_chunks').all();\n\nlet totalChunks = 0;\nconst files = new Set();\n\nfor (const ins of allInserts) {\n  const body = ins.json.body || ins.json;\n  if (body) totalChunks++;\n}\n\nreturn [{\n  json: {\n    status: 'completed',\n    total_chunks: totalChunks,\n    message: `Backfill completado: ${totalChunks} chunks indexados`\n  }\n}];"
+      },
+      "id": "summary",
+      "name": "Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2250, 300]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [[{ "node": "List Bucket Files", "type": "main", "index": 0 }]]
+    },
+    "List Bucket Files": {
+      "main": [[{ "node": "Filter PDFs", "type": "main", "index": 0 }]]
+    },
+    "Filter PDFs": {
+      "main": [[{ "node": "Loop Each File", "type": "main", "index": 0 }]]
+    },
+    "Loop Each File": {
+      "main": [[{ "node": "Download PDF", "type": "main", "index": 0 }]]
+    },
+    "Download PDF": {
+      "main": [[{ "node": "Extract PDF Text", "type": "main", "index": 0 }]]
+    },
+    "Extract PDF Text": {
+      "main": [[{ "node": "Chunk Text", "type": "main", "index": 0 }]]
+    },
+    "Chunk Text": {
+      "main": [[{ "node": "Generate Embedding", "type": "main", "index": 0 }]]
+    },
+    "Generate Embedding": {
+      "main": [[{ "node": "Format for DB", "type": "main", "index": 0 }]]
+    },
+    "Format for DB": {
+      "main": [[{ "node": "Save to doc_chunks", "type": "main", "index": 0 }]]
+    },
+    "Save to doc_chunks": {
+      "main": [[{ "node": "Summary", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "versionId": "backfill-v1"
+}

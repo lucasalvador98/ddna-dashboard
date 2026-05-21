@@ -8,6 +8,9 @@ import {
   getLatestValue,
   getTimeSeries,
   calculateChange,
+  getInversionTotal,
+  getPoblacion0a17,
+  findStatValue,
   useDashboardData,
   type Indicador,
 } from '@/lib/use-dashboard-data';
@@ -37,16 +40,28 @@ function formatChange(cambio: number | null): string | undefined {
   return `${prefix}${cambio.toFixed(1)}%`;
 }
 
+function formatStatNumber(valor: number | null | undefined): string {
+  if (valor === null || valor === undefined) return '—';
+  if (valor >= 1_000_000) {
+    return `${(valor / 1_000_000).toFixed(1)} M`;
+  }
+  if (valor >= 1_000) {
+    return valor.toLocaleString('es-AR');
+  }
+  return String(valor);
+}
+
 export default function HomePage() {
   const { data, loading, source } = useDashboardData();
 
-  // Extraer valores más recientes por categoría
+  // Extract category arrays
   const pobrezaData = data?.pobreza || [];
   const saludData = data?.salud || [];
   const educacionData = data?.educacion || [];
   const inversionData = data?.inversion || [];
   const demografiaData = data?.demografia || [];
 
+  // Get latest indicator values per KPI
   const pobrezaInd = getLatestValue(pobrezaData, 'Pobreza infantil');
   const indigenciaInd = getLatestValue(pobrezaData, 'Indigencia infantil');
   const mortalidadInd = getLatestValue(saludData);
@@ -55,14 +70,24 @@ export default function HomePage() {
   const indigencia = indigenciaInd?.valor ?? null;
   const mortalidad = mortalidadInd?.valor ?? null;
   const escolarizacion = escolarizacionInd?.valor ?? null;
-  const inversion = inversionData.reduce((sum, d) => sum + (Number(d.valor) || 0), 0);
-  const poblacion = demografiaData.reduce((sum, d) => sum + (Number(d.valor) || 0), 0);
 
-  // Calcular cambios
-  const pobrezaSerie = getTimeSeries(pobrezaData, 'Pobreza infantile');
+  // FIXED: use child-relevant inversion sum instead of blind sum
+  const inversion = getInversionTotal(inversionData);
+
+  // FIXED: compute population 0-17 from demografia data
+  const poblacion = getPoblacion0a17(demografiaData);
+
+  // Poverty time series with FIXED indicator name
+  const pobrezaSerie = getTimeSeries(pobrezaData, 'Pobreza infantil');
   const pobrezaChanges = calculateChange(pobrezaSerie);
   const cambioPobreza =
     pobrezaChanges.length > 0 ? pobrezaChanges[pobrezaChanges.length - 1].cambio : null;
+
+  // Stats banner values (real data from indicators)
+  const statsPoblacion = poblacion;
+  const statsCentrosSalud = findStatValue(saludData, 'centros de salud');
+  const statsEstablecimientos = findStatValue(educacionData, 'establecimientos');
+  const statsVacunacion = findStatValue(saludData, 'vacun');
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
@@ -188,23 +213,31 @@ export default function HomePage() {
           )}
         </section>
 
-        {/* Stats banner */}
+        {/* Stats banner — computed from real data */}
         <section className="bg-[#00074E] rounded-xl p-6 lg:p-8">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="text-center">
-              <p className="font-display text-2xl lg:text-3xl text-white">3.892.456</p>
+              <p className="font-display text-2xl lg:text-3xl text-white">
+                {formatStatNumber(statsPoblacion)}
+              </p>
               <p className="font-accent text-xs text-white/60 mt-1">Población 0-17 años</p>
             </div>
             <div className="text-center">
-              <p className="font-display text-2xl lg:text-3xl text-white">847</p>
+              <p className="font-display text-2xl lg:text-3xl text-white">
+                {formatStatNumber(statsCentrosSalud)}
+              </p>
               <p className="font-accent text-xs text-white/60 mt-1">Centros de salud</p>
             </div>
             <div className="text-center">
-              <p className="font-display text-2xl lg:text-3xl text-white">2.341</p>
+              <p className="font-display text-2xl lg:text-3xl text-white">
+                {formatStatNumber(statsEstablecimientos)}
+              </p>
               <p className="font-accent text-xs text-white/60 mt-1">Establecimientos educativos</p>
             </div>
             <div className="text-center">
-              <p className="font-display text-2xl lg:text-3xl text-white">95,1%</p>
+              <p className="font-display text-2xl lg:text-3xl text-white">
+                {statsVacunacion != null ? `${statsVacunacion}%` : '—'}
+              </p>
               <p className="font-accent text-xs text-white/60 mt-1">Cobertura vacunal</p>
             </div>
           </div>

@@ -1,0 +1,276 @@
+{
+  "name": "DDNA RAG — Ongoing Indexing",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "supabase-storage-webhook",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Supabase Storage Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300],
+      "webhookId": "ddna-storage-webhook",
+      "notes": "⚠️ Configurar en Supabase: Database → Webhooks → storage.objects → INSERT.\nEsto se dispara automáticamente cada vez que se sube un archivo al bucket."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parsear el payload del webhook de Supabase Storage\nconst item = $input.first().json;\n\n// Supabase webhook envía { type: 'INSERT', table: 'objects', record: {...}, ... }\nconst record = item.record || item;\nconst fileName = record.name || record.path_tokens?.[record.path_tokens.length - 1] || 'unknown';\nconst fileId = record.id || record.metadata?.id || fileName;\nconst bucketId = record.bucket_id || 'ddna-repositorio';\n\n// Extensiones válidas para procesar\nconst VALID_EXTENSIONS = ['.pdf', '.docx', '.xlsx', '.txt', '.csv'];\nconst extension = fileName.toLowerCase().slice(fileName.lastIndexOf('.'));\n\nif (!VALID_EXTENSIONS.includes(extension)) {\n  throw new Error(`Tipo de archivo no soportado: ${extension}. Solo: ${VALID_EXTENSIONS.join(', ')}`);\n}\n\n// Saltar archivos de sistema (empezados con .)\nif (fileName.startsWith('.')) {\n  throw new Error('Archivo de sistema ignorado');\n}\n\nreturn [{\n  json: {\n    file_name: fileName,\n    file_id: fileId,\n    bucket_id: bucketId,\n    file_type: extension.replace('.', ''),\n    event_type: item.type || 'INSERT',\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "parse-webhook",
+      "name": "Parse Webhook",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://YOUR_SUPABASE_PROJECT.supabase.co/storage/v1/object/authenticated/ddna-repositorio/{{ $json.file_name }}",
+        "method": "GET",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_SERVICE_ROLE_KEY"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "download-file",
+      "name": "Download File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [650, 300],
+      "notes": "⚠️ Reemplazá YOUR_SUPABASE_PROJECT y YOUR_SERVICE_ROLE_KEY."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Determinar cómo extraer texto según el tipo de archivo\nconst item = $input.first().json;\nconst fileType = $('Parse Webhook').first().json.file_type;\n\n// Pasar metadata del archivo para que los nodos siguientes la tengan\nreturn [{\n  json: {\n    ...item,\n    file_name: $('Parse Webhook').first().json.file_name,\n    file_id: $('Parse Webhook').first().json.file_id,\n    file_type: fileType\n  }\n}];"
+      },
+      "id": "prepare-extraction",
+      "name": "Prepare Extraction",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "language": "spa",
+        "ocr": true
+      },
+      "id": "extract-pdf",
+      "name": "Extract PDF",
+      "type": "n8n-nodes-pdf-api-hub.pdf",
+      "typeVersion": 1,
+      "position": [1050, 200],
+      "notes": "⚠️ Solo se ejecuta si el archivo es PDF. Requiere n8n-nodes-pdf-api-hub."
+    },
+    {
+      "parameters": {
+        "url": "https://YOUR_APP_URL/api/repositorio/process",
+        "method": "POST",
+        "authentication": "none",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "fileName",
+              "value": "={{ $('Parse Webhook').first().json.file_name }}"
+            },
+            {
+              "name": "fileId",
+              "value": "={{ $('Parse Webhook').first().json.file_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "extract-other",
+      "name": "Extract Other Formats",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 400],
+      "notes": "⚠️ DOCX, XLSX, TXT. Llama al endpoint de Next.js que ya sabe extraer estos formatos.\nReemplazá YOUR_APP_URL (ej: https://ddna-dashboard.vercel.app)."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Chunk text into ~500 token chunks with 20% overlap\nconst items = $input.all();\nconst results = [];\n\n// Obtener metadata del archivo (viene de nodos anteriores)\nconst parseData = $('Parse Webhook').first().json;\nconst fileId = parseData.file_id;\nconst source = parseData.file_name;\nconst fileType = parseData.file_type;\n\nconst MAX_CHARS = 2000;\nconst OVERLAP_CHARS = Math.floor(MAX_CHARS * 0.2);\n\nfor (const item of items) {\n  const text = item.json.text || item.json.content || item.json.extractedText || '';\n\n  if (!text || text.length < 50) {\n    if (text && text.trim().length > 0) {\n      results.push({\n        json: {\n          repo_file_id: fileId,\n          chunk_index: 0,\n          content: text.trim(),\n          source: source,\n          file_type: fileType,\n          char_count: text.trim().length,\n          word_count: text.trim().split(/\\s+/).length,\n          processed_at: new Date().toISOString()\n        }\n      });\n    }\n    continue;\n  }\n\n  let chunkIndex = 0;\n  let start = 0;\n\n  while (start < text.length) {\n    let end = Math.min(start + MAX_CHARS, text.length);\n\n    if (end < text.length) {\n      const window = text.slice(start, end);\n      const paraBreak = window.lastIndexOf('\\n\\n');\n      const sentenceBreak = window.lastIndexOf('. ');\n\n      if (paraBreak > MAX_CHARS * 0.4) {\n        end = start + paraBreak;\n      } else if (sentenceBreak > MAX_CHARS * 0.4) {\n        end = start + sentenceBreak + 1;\n      }\n    }\n\n    const chunkText = text.slice(start, end).trim();\n    if (chunkText.length > 30) {\n      results.push({\n        json: {\n          repo_file_id: fileId,\n          chunk_index: chunkIndex,\n          content: chunkText,\n          source: source,\n          file_type: fileType,\n          char_count: chunkText.length,\n          word_count: chunkText.split(/\\s+/).length,\n          processed_at: new Date().toISOString()\n        }\n      });\n      chunkIndex++;\n    }\n\n    start = end - OVERLAP_CHARS;\n    if (start >= text.length - 10) break;\n  }\n}\n\nif (results.length === 0) {\n  throw new Error('No se pudo extraer texto del archivo. ¿Formato soportado?');\n}\n\nreturn results;"
+      },
+      "id": "chunk-text",
+      "name": "Chunk Text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.openai.com/v1/embeddings",
+        "method": "POST",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_OPENAI_API_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "text-embedding-3-small"
+            },
+            {
+              "name": "input",
+              "value": "={{ $json.content }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "generate-embedding",
+      "name": "Generate Embedding",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1450, 300],
+      "notes": "⚠️ Reemplazá YOUR_OPENAI_API_KEY."
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst chunkItems = $('Chunk Text').all();\n\nreturn items.map((item, i) => {\n  const chunkData = chunkItems[i]?.json || {};\n  const embedding = item.json.data?.[0]?.embedding || [];\n\n  return {\n    json: {\n      repo_file_id: chunkData.repo_file_id || '',\n      chunk_index: chunkData.chunk_index || 0,\n      content: chunkData.content || '',\n      embedding: embedding,\n      metadata: {\n        source: chunkData.source || '',\n        type: chunkData.file_type || 'unknown',\n        chunk_size: chunkData.word_count || 0,\n        processed_at: chunkData.processed_at || new Date().toISOString()\n      }\n    }\n  };\n});"
+      },
+      "id": "format-for-insert",
+      "name": "Format for DB",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1650, 300]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "tableId": "doc_chunks",
+        "dataToSend": "defineBelow",
+        "fieldsToSend": {
+          "values": [
+            {
+              "name": "repo_file_id",
+              "value": "={{ $json.repo_file_id }}"
+            },
+            {
+              "name": "chunk_index",
+              "value": "={{ $json.chunk_index }}"
+            },
+            {
+              "name": "content",
+              "value": "={{ $json.content }}"
+            },
+            {
+              "name": "embedding",
+              "value": "={{ JSON.stringify($json.embedding) }}"
+            },
+            {
+              "name": "metadata",
+              "value": "={{ JSON.stringify($json.metadata) }}"
+            }
+          ]
+        }
+      },
+      "id": "insert-chunks",
+      "name": "Save to doc_chunks",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1850, 300],
+      "credentials": {
+        "supabaseApi": {
+          "id": "1",
+          "name": "Supabase DDNA"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const inserts = $input.all();\nconst parseData = $('Parse Webhook').first().json;\n\nreturn [{\n  json: {\n    status: 'success',\n    file: parseData.file_name,\n    chunks_indexed: inserts.length,\n    timestamp: new Date().toISOString(),\n    message: `✅ ${parseData.file_name}: ${inserts.length} chunks indexados`\n  }\n}];"
+      },
+      "id": "webhook-response",
+      "name": "Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2050, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "respond",
+      "name": "Webhook Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2250, 300]
+    }
+  ],
+  "connections": {
+    "Supabase Storage Webhook": {
+      "main": [[{ "node": "Parse Webhook", "type": "main", "index": 0 }]]
+    },
+    "Parse Webhook": {
+      "main": [[{ "node": "Download File", "type": "main", "index": 0 }]]
+    },
+    "Download File": {
+      "main": [[{ "node": "Prepare Extraction", "type": "main", "index": 0 }]]
+    },
+    "Prepare Extraction": {
+      "main": [
+        [{ "node": "Extract PDF", "type": "main", "index": 0 }],
+        [{ "node": "Extract Other Formats", "type": "main", "index": 0 }]
+      ]
+    },
+    "Extract PDF": {
+      "main": [[{ "node": "Chunk Text", "type": "main", "index": 0 }]]
+    },
+    "Extract Other Formats": {
+      "main": [[{ "node": "Chunk Text", "type": "main", "index": 0 }]]
+    },
+    "Chunk Text": {
+      "main": [[{ "node": "Generate Embedding", "type": "main", "index": 0 }]]
+    },
+    "Generate Embedding": {
+      "main": [[{ "node": "Format for DB", "type": "main", "index": 0 }]]
+    },
+    "Format for DB": {
+      "main": [[{ "node": "Save to doc_chunks", "type": "main", "index": 0 }]]
+    },
+    "Save to doc_chunks": {
+      "main": [[{ "node": "Response", "type": "main", "index": 0 }]]
+    },
+    "Response": {
+      "main": [[{ "node": "Webhook Respond", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "versionId": "ongoing-v1"
+}
