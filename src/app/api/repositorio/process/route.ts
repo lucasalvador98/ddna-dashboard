@@ -49,24 +49,44 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { fileId } = await request.json();
+    const { fileId, fileName } = await request.json();
 
-    if (!fileId) {
-      return NextResponse.json({ error: 'fileId is required' }, { status: 400 });
+    if (!fileId && !fileName) {
+      return NextResponse.json({ error: 'fileId or fileName is required' }, { status: 400 });
     }
 
     const supabase = getAdminClient();
     const storage = getStorageClient();
 
-    // 1. Get file metadata from repositorio table
-    const { data: fileData, error: fileError } = await supabase
-      .from('repositorio')
-      .select('*')
-      .eq('id', fileId)
-      .single();
+    // 1. Get file metadata from repositorio table (by ID or by name)
+    let query = supabase.from('repositorio').select('*');
+
+    if (fileId) {
+      // Try by ID first (repositorio table UUID)
+      query = query.eq('id', fileId);
+    }
+
+    let { data: fileData, error: fileError } = await query.single();
+
+    // Fallback: if ID lookup fails and we have fileName, try by name
+    if ((fileError || !fileData) && fileName) {
+      const { data: byName, error: nameError } = await supabase
+        .from('repositorio')
+        .select('*')
+        .ilike('nombre_archivo', `%${decodeURIComponent(fileName)}%`)
+        .limit(1);
+
+      if (!nameError && byName && byName.length > 0) {
+        fileData = byName[0];
+        fileError = null;
+      }
+    }
 
     if (fileError || !fileData) {
-      return NextResponse.json({ error: 'File not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'File not found', searched: { fileId, fileName } },
+        { status: 404 }
+      );
     }
 
     // Check if already processed
