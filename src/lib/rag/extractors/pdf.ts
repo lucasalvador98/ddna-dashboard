@@ -1,8 +1,8 @@
 /**
- * PDF Extractor - Legacy implementation
- * PDF extraction is disabled due to Node.js server limitations in Next.js
- * PDFs should be converted to text offline before uploading
+ * PDF Extractor using pdf-parse
  */
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const pdfParse = require('pdf-parse');
 
 export interface PDFExtractResult {
   text: string;
@@ -15,22 +15,34 @@ export interface PDFExtractResult {
   };
 }
 
-/**
- * Extract text from PDF buffer - returns placeholder
- */
-export async function extractTextFromPDF(_buffer: Buffer): Promise<PDFExtractResult> {
-  return {
-    text: '[PDF extraction not supported in serverless environment. Please convert PDFs to text offline.]',
-    pages: 0,
-    metadata: {
-      pageCount: 0,
-    },
-  };
+export async function extractTextFromPDF(buffer: Buffer): Promise<PDFExtractResult> {
+  try {
+    const data = await pdfParse(buffer, {
+      // Disable canvas rendering for serverless
+      pagerender: undefined,
+    });
+
+    return {
+      text: data.text,
+      pages: data.numpages,
+      metadata: {
+        title: data.info?.Title,
+        author: data.info?.Author,
+        creationDate: data.info?.CreationDate,
+        pageCount: data.numpages,
+      },
+    };
+  } catch (err) {
+    console.error('PDF extraction failed:', err);
+    return {
+      text: '',
+      pages: 0,
+      metadata: { pageCount: 0 },
+    };
+  }
 }
 
-/**
- * Extract text from PDF file
- */
-export async function extractPDFFromFile(_file: File): Promise<PDFExtractResult> {
-  return extractTextFromPDF(Buffer.from([]));
+export async function extractPDFFromFile(file: File): Promise<PDFExtractResult> {
+  const buffer = Buffer.from(await file.arrayBuffer());
+  return extractTextFromPDF(buffer);
 }
