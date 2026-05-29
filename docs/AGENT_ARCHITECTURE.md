@@ -1,299 +1,248 @@
-# DDNA Agent Architecture — Enfoque B
+# DDNA Agent Architecture
 
-**Versión**: 1.0  
-**Fecha**: 2026-05-04  
-**Enfoque**: Agent con Tools  
-**Estado**: Por implementar
+**Versión**: 2.0  
+**Fecha**: 2026-05-29  
+**Estado**: Implementado ✅
 
 ---
 
 ## 🎯 Objetivo
 
-Crear un agente conversacional inteligente que pueda:
+Dos agentes conversacionales independientes que permiten consultar los datos de la Defensoría:
 
-1. Responder preguntas sobre fuentes primarias de la Defensoría (documentos subidos)
-2. Complementar con búsqueda en internet cuando sea necesario
-3. Razonar y decidir qué herramienta usar según la consulta
+1. **Agente de Indicadores** (`/api/repositorio/chat`) — consulta datos estructurados de la DB + documentos
+2. **Agente de Investigación** (`/api/agent/chat`) — búsqueda en documentos + web + scraping
+
+Ambos usan Groq como LLM y OpenAI para embeddings.
 
 ---
 
-## 🏗️ Arquitectura
+## 🏗️ Arquitectura General
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│                        USER INTERFACE                        │
-│                    /repositorio/chat (UI)                    │
-└─────────────────────────┬────────────────────────────────────┘
-                          │
-                    ┌─────▼─────┐
-                    │  AGENT   │
-                    │ (Groq)   │
-                    │          │
-                    │ Decides: │
-                    │ - Which  │
-                    │   tools  │
-                    │ - How to │
-                    │   answer │
-                    └─────┬─────┘
-                          │
-         ┌────────────────┼────────────────┐
-         │                │                │
-    ┌────▼────┐     ┌──────▼─────┐   ┌─────▼──────┐
-    │ TOOL 1 │     │  TOOL 2    │   │  TOOL 3    │
-    │Search  │     │  Web       │   │  Scrape    │
-    │Docs    │     │  Search    │   │  URL       │
-    └────────┘     └────────────┘   └────────────┘
+│                     FRONTEND                                  │
+│  /repositorio/chat  (UI de chat con fuentes citadas)          │
+└────────────────────────┬─────────────────────────────────────┘
+                         │
+          ┌──────────────┴──────────────┐
+          │                             │
+   ┌──────▼──────┐              ┌──────▼──────────┐
+   │  AGENTE DE  │              │  AGENTE DE      │
+   │ INDICADORES │              │  INVESTIGACIÓN  │
+   │             │              │                 │
+   │ /repositorio│              │ /api/agent/chat │
+   │ /chat       │              │                 │
+   └──────┬──────┘              └──────┬──────────┘
+          │                            │
+   ┌──────┴────────────────────────────┴──────────┐
+   │                  TOOLS                        │
+   ├───────────────────────┬──────────────────────┤
+   │ Indicador Tools (5)   │ Research Tools       │
+   │ • listAvailable       │ • search-docs        │
+   │ • getLatestValue      │ • web-search         │
+   │ • getTimeSeries       │ • scrape-url         │
+   │ • getCategoryOverview │ • download-file      │
+   │ • getBreakdown        │ • list-bucket        │
+   ├───────────────────────┴──────────────────────┤
+   │         search_knowledge_base                │
+   │      (compartida por ambos agentes)          │
+   └───────────────────────┬──────────────────────┘
+                           │
+                ┌──────────▼──────────┐
+                │     SUPABASE         │
+                │  • indicadores       │
+                │  • doc_chunks (pgv.) │
+                │  • repositorio       │
+                │  • Storage           │
+                └──────────────────────┘
 ```
 
 ---
 
-## 🔧 Tools del Agent
+## Agente 1: Indicadores (`/api/repositorio/chat`)
 
-### Tool 1: `search_knowledge_base`
+**Archivo**: `src/app/api/repositorio/chat/route.ts`  
+**Tools**: `src/lib/agent/indicator-tools.ts`
 
-Busca en los documentos subidos al repositorio.
-
-```typescript
-interface SearchKnowledgeBaseInput {
-  query: string;
-  max_results?: number; // default: 5
-  filters?: {
-    categoria?: string;
-    fecha_desde?: string;
-    fecha_hasta?: string;
-  };
-}
-
-interface SearchKnowledgeBaseOutput {
-  results: {
-    content: string;
-    source: string;
-    similarity: number;
-    metadata: Record<string, unknown>;
-  }[];
-  total: number;
-}
-```
-
-**Cuándo usarla**:
-
-- Preguntas sobre documentos de la Defensoría
-- Información de encuestas, informes, datos históricos
-- Cualquier cosa que pueda estar en los archivos subidos
-
----
-
-### Tool 2: `web_search`
-
-Busca en internet usando un motor de búsqueda.
-
-```typescript
-interface WebSearchInput {
-  query: string;
-  num_results?: number; // default: 10
-  site?: string; // filtrar por sitio específico
-}
-
-interface WebSearchOutput {
-  results: {
-    title: string;
-    url: string;
-    snippet: string;
-    source: string;
-  }[];
-}
-```
-
-**Cuándo usarla**:
-
-- Datos actualizados (noticias, estadísticas recientes)
-- Información que no está en los documentos
-- Contextos o definiciones de términos
-
----
-
-### Tool 3: `scrape_url`
-
-Hace scraping de una URL específica.
-
-```typescript
-interface ScrapeUrlInput {
-  url: string;
-  extract_type?: 'text' | 'links' | 'metadata'; // default: "text"
-}
-
-interface ScrapeUrlOutput {
-  content: string;
-  title?: string;
-  links?: string[];
-  metadata?: Record<string, string>;
-}
-```
-
-**Cuándo usarla**:
-
-- El usuario proporciona una URL específica
-- El agent decide que necesita información de una página específica
-- Necesita extraer datos estructurados de una fuente web
-
----
-
-## 🔄 Flujo del Agent
+### Flow
 
 ```
 User: "¿Cuál es la tasa de pobreza infantil en Córdoba?"
 
-Agent Reasoning:
-"Esta pregunta podría responderse con:
-1. Datos locales (documentos subidos) - si hay informes de pobreza
-2. Datos web (buscar en internet) - si necesito datos actualizados
+1. Vector search → busca en doc_chunks contenido relevante
+2. LLM (Groq) analiza la pregunta + chunks → decide tools a usar
+3. LLM llama a getLatestIndicatorValue("Pobreza infantil")
+4. Tool consulta tabla indicadores en Supabase → devuelve datos
+5. LLM sintetiza respuesta con datos + fuentes
+6. Respuesta: valor + año + fuente + badges clickeables
 
-Primero buscaré en los documentos, luego complementaré con web si es necesario."
+Máximo 3 rondas de tools, 5 tool calls totales.
+```
 
-1. search_knowledge_base({ query: "pobreza infantil Córdoba" })
-   → Encuentra: "Informe de pobreza 2024" (datos hasta 2023)
+### Tools de Indicadores
 
-2. web_search({ query: "pobreza infantil Córdoba 2024 INDEC" })
-   → Encuentra: "INDEC: Pobreza infantil 2024"
+| Tool | Descripción | Parámetros |
+|------|-------------|------------|
+| `listAvailableIndicators` | Lista todos los indicadores por categoría | — |
+| `getLatestIndicatorValue` | Último valor de un indicador | `indicadorNombre` (req), `categoria` (opt) |
+| `getIndicatorTimeSeries` | Serie temporal completa | `indicadorNombre` (req), `categoria` (opt), `limit` (opt) |
+| `getCategoryOverview` | Resumen de todos los indicadores de una categoría | `categoria` (req) |
+| `getIndicatorBreakdown` | Desglose por dimensión (edad, género, región) | `indicadorNombre` (req), `desgloseField` (opt) |
+| `search_knowledge_base` | Búsqueda vectorial en documentos | `query` (req), `max_results` (opt) |
 
-3. Synthesize answer with both sources
+### LLM
+
+- **Proveedor**: Groq (con fallback a OpenAI)
+- **Modelo**: `llama-3.1-8b-instant` (Groq) / `gpt-4o-mini` (OpenAI)
+- **Temperatura**: 0.3 (respuestas precisas)
+- **Tools**: Function calling nativo de Groq (compatible con OpenAI format)
+
+---
+
+## Agente 2: Investigación (`/api/agent/chat`)
+
+**Archivo**: `src/app/api/agent/chat/route.ts`
+
+### Flow
+
+```
+User: "¿Qué dice el informe de pobreza 2024 sobre la indigencia?"
+
+1. LLM analiza la pregunta
+2. Decide llamar a search-docs → busca en doc_chunks
+3. Si no encuentra suficiente contexto, llama a web-search → DuckDuckGo
+4. Si el usuario dio una URL, llama a scrape-url
+5. Sintetiza respuesta con fuentes
+
+Máximo 5 tool calls totales.
+```
+
+### Tools de Investigación
+
+| Tool | Endpoint | Descripción |
+|------|----------|-------------|
+| `search-docs` | `/api/agent/search-docs` | Búsqueda vectorial en `doc_chunks` |
+| `web-search` | `/api/agent/web-search` | Búsqueda web via DuckDuckGo |
+| `scrape-url` | `/api/agent/scrape-url` | Extrae texto de una URL específica |
+| `download-file` | `/api/agent/download-file` | Descarga archivos desde URLs públicas |
+| `list-bucket` | `/api/agent/list-bucket` | Lista archivos en Supabase Storage |
+
+---
+
+## Pipeline de Documentos
+
+### Auto-indexing al subir
+
+```
+1. Usuario sube archivo → /api/repositorio/upload
+   → Guarda en Supabase Storage + tabla repositorio
+
+2. POST /api/repositorio/process { fileId }
+   → Descarga archivo del bucket
+   → Extrae texto (pdf.ts | docx.ts | xlsx.ts)
+   → Divide en chunks (chunker.ts: 500-1000 chars, 100 overlap)
+   → Genera embeddings (embedder.ts: OpenAI text-embedding-3-small)
+   → Guarda en doc_chunks con vector(1536)
+   → Actualiza repositorio.processed = true
+```
+
+### Backfill de PDFs históricos
+
+```
+POST /api/admin/backfill
+Authorization: Bearer <INTERNAL_API_SECRET>
+
+→ SELECT * FROM repositorio WHERE processed = false
+→ Procesa secuencialmente (máx 20 archivos)
+→ Para cada uno: extracción → chunking → embeddings → INSERT
+```
+
+### Búsqueda Vectorial
+
+```sql
+-- Función search_doc_chunks en Supabase
+SELECT c.id, c.content, c.metadata,
+       1 - (c.embedding <=> query_embedding::vector) AS similarity
+FROM doc_chunks c
+WHERE c.embedding IS NOT NULL
+ORDER BY c.embedding <=> query_embedding::vector
+LIMIT 10;
 ```
 
 ---
 
-## 📋 Prompt del Agent
+## Stack de Agentes
 
-```python
-SYSTEM_PROMPT = """
-Eres el asistente de investigación de la Defensoría de los Derechos de Niñas,
-Niños y Adolescentes (DDNA) de la Provincia de Córdoba.
-
-Tu trabajo es ayudar a los usuarios a encontrar información precisa y actualizada
-sobre temas relacionados con la infancia y adolescencia en Córdoba y Argentina.
-
-## Reglas importantes:
-
-1. **Siempre responde en español** con tono profesional pero accesible.
-2. **Cita las fuentes** de donde obtienes la información.
-3. **Si no tienes información**, dilo honestamente y propone dónde buscar.
-4. **Prioriza fuentes oficiales**: INDEC, DEIS,Ministerios, etc.
-5. **Sé preciso con datos**: incluye años, fuentes, y contextos cuando sea relevante.
-
-## Cómo trabajar:
-
-1. **Analiza la pregunta** del usuario
-2. **Decide qué herramientas usar**:
-   - Si pregunta sobre documentos/archivos → `search_knowledge_base`
-   - Si necesita datos actualizados → `web_search`
-   - Si el usuario dio una URL → `scrape_url`
-3. **Synthetiza** la respuesta con las fuentes encontradas
-4. **Sugiere** si el usuario quiere más información o fuentes adicionales
-
-## Formato de respuesta:
-
-- **Respuesta**: Tu respuesta en español
-- **Fuentes**: Lista de fuentes consultadas (nombre, fecha, url si aplica)
-- **Nota**: Cualquier consideración adicional relevante
-"""
-```
+| Componente | Tecnología | Notas |
+|------------|------------|-------|
+| **LLM** | Groq (Llama 3.1 8B) | Principal, rápido y económico |
+| **LLM fallback** | OpenAI (gpt-4o-mini) | Si GROQ_API_KEY no configurada |
+| **Embeddings** | OpenAI text-embedding-3-small | 1536 dimensiones |
+| **Vector DB** | pgvector (Supabase) | Índice IVFFlat, cosine distance |
+| **Tool calling** | Function calling (Groq/OpenAI) | Tool definitions en `indicator-tools.ts` |
+| **Web search** | DuckDuckGo | Sin API key, HTML scraping |
+| **Text extraction** | `pdfjs-dist`, `mammoth`, `xlsx` | Según tipo de archivo |
+| **Chunking** | Custom splitter | `src/lib/rag/chunker.ts` |
+| **Frontend** | React + Tailwind v4 | Chat UI con fuentes + badges |
 
 ---
 
-## 📦 Esquema de Base de Datos
+## Base de Datos
 
-### Tabla: `repositorio` (existente)
-
+### `repositorio`
 ```sql
--- Agregar campos para metadata enriquecida
-ALTER TABLE repositorio
-ADD COLUMN IF NOT EXISTS tipo_fuente TEXT DEFAULT 'documento', -- 'documento', 'url', 'api'
-ADD COLUMN IF NOT EXISTS etiquetas TEXT[],
-ADD COLUMN IF NOT EXISTS fecha_publicacion DATE,
-ADD COLUMN IF NOT EXISTS origen TEXT, -- 'upload', 'scraped', 'api'
-ADD COLUMN IF NOT EXISTS embed_url TEXT; -- para URLs scrapeadas
-```
-
-### Tabla: `url_content` (nueva)
-
-```sql
-CREATE TABLE url_content (
+CREATE TABLE repositorio (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  url TEXT NOT NULL UNIQUE,
-  title TEXT,
-  content TEXT,
-  summary TEXT,
-  fetched_at TIMESTAMPTZ DEFAULT NOW(),
+  nombre TEXT NOT NULL,
+  tipo TEXT,           -- 'pdf', 'docx', 'xlsx'
+  size BIGINT,
+  url TEXT,            -- URL pública en Supabase Storage
+  categoria TEXT,
+  processed BOOLEAN DEFAULT FALSE,
+  total_chunks INTEGER DEFAULT 0,
+  last_processed_at TIMESTAMPTZ
+);
+```
+
+### `doc_chunks`
+```sql
+CREATE TABLE doc_chunks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  repo_file_id UUID REFERENCES repositorio(id) ON DELETE CASCADE,
+  chunk_index INTEGER NOT NULL,
+  content TEXT NOT NULL,
+  embedding VECTOR(1536),
   metadata JSONB DEFAULT '{}',
-  embeddings VECTOR(1536) -- optional, for URL search
+  UNIQUE(repo_file_id, chunk_index)
 );
 
-CREATE INDEX idx_url_content_content ON url_content USING gin(to_tsvector('spanish', content));
+CREATE INDEX idx_doc_chunks_embedding
+  ON doc_chunks USING ivfflat (embedding vector_cosine_ops)
+  WITH (lists = 100);
 ```
 
----
-
-## 🚀 Plan de Implementación
-
-### Fase 1: Herramientas Base
-
-- [ ] 1.1 Crear endpoint `/api/agent/search-docs` (buscar en doc_chunks)
-- [ ] 1.2 Crear endpoint `/api/agent/web-search` (integrar búsqueda web)
-- [ ] 1.3 Crear endpoint `/api/agent/scrape-url` (scraping de URLs)
-
-### Fase 2: Integración Groq
-
-- [ ] 2.1 Actualizar `/api/repositorio/chat` para usar el agent
-- [ ] 2.2 Implementar el loop de decisión del agent
-- [ ] 2.3 Agregar prompting sophisticated
-
-### Fase 3: Mejoras
-
-- [ ] 3.1 Agregar cacheo de búsquedas web
-- [ ] 3.2 Agregar rate limiting
-- [ ] 3.3 Mejorar el sistema de citas
+### Datos actuales
+- **16 documentos** en `repositorio`
+- **7,541 chunks** en `doc_chunks`
+- **~6,700 indicadores** en tabla `indicadores`
 
 ---
 
-## 📝 Notas Técnicas
+## Variables de Entorno
 
-### Web Search Options
+```env
+# Supabase (requerido para todo)
+NEXT_PUBLIC_SUPABASE_URL=https://ppyyqrvirjqmfpqaqnxy.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
 
-| Opción               | Costo    | Notas                                               |
-| -------------------- | -------- | --------------------------------------------------- |
-| **DuckDuckGo**       | Gratis   | Bueno para testing, no es confiable para producción |
-| **SerpAPI**          | Paid     | Mejor calidad, pero costo por query                 |
-| ** Tavily**          | Freemium | Diseñado para AI agents, buena opción               |
-| **Brave Search API** | Freemium | Buena alternativa gratuita                          |
+# Embeddings (requerido para procesar documentos y búsqueda)
+OPENAI_API_KEY=sk-...
 
-**Recomendación**: Empezar con Tavily (tienen API gratuita para testing) o implementar wrapper de DuckDuckGo.
+# LLM principal (requerido para ambos agentes)
+GROQ_API_KEY=gsk_...
 
-### Scraping Options
-
-| Opción         | Notas                     |
-| -------------- | ------------------------- |
-| **Cheerio**    | Ligero, para HTML simple  |
-| **Playwright** | Para sitios JS-heavy      |
-| **Firecrawl**  | AI-powered scraping, caro |
-
-**Recomendación**: Cheerio para la mayoría, Playwright para casos específicos.
-
----
-
-## 🧪 Testing
-
-### Tests unitarios de tools
-
-```typescript
-// test: search_knowledge_base
-expect(await searchKnowledgeBase("pobreza")).toHaveLength(>0);
-
-// test: web_search
-expect(await webSearch("tasa mortalidad infantil Córdoba")).toHaveProperty('results');
-
-// test: scrape_url
-expect(await scrapeUrl("https://www.indec.gob.ar")).toHaveProperty('content');
+# Backfill (requerido para /api/admin/backfill)
+INTERNAL_API_SECRET=...
 ```
-
----
-
-_Documento vivo - actualizar según evoluciona el proyecto_

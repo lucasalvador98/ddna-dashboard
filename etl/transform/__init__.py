@@ -1,1 +1,0 @@
-"""Módulos de transformación de datos para el ETL DDNA."""
