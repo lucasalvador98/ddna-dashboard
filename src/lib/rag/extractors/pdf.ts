@@ -16,7 +16,9 @@ export interface PDFExtractResult {
 async function tryPdfParse(buffer: Buffer): Promise<PDFExtractResult | null> {
   try {
     // Dynamic import — avoids bundling canvas in serverless
-    const pdfParse = await import('pdf-parse').then(m => m.default || m);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mod: any = await import('pdf-parse');
+    const pdfParse = typeof mod === 'function' ? mod : mod.default;
     if (typeof pdfParse !== 'function') return null;
     const data = await pdfParse(buffer);
     return {
