@@ -22,6 +22,11 @@ const MAX_TOOL_ROUNDS = 3;
 const MAX_TOOL_CALLS = 5;
 const MAX_TOKENS = 1500;
 
+// Base URL for calling internal endpoints (used by tools)
+const BASE_URL = process.env.VERCEL_URL
+  ? `https://${process.env.VERCEL_URL}`
+  : 'http://localhost:3000';
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -63,7 +68,21 @@ const SEARCH_TOOL_DEFINITION = {
   parameters: 'query (requerido — la consulta de búsqueda en lenguaje natural)',
 };
 
-const ALL_TOOL_DEFINITIONS = [SEARCH_TOOL_DEFINITION, ...INDICATOR_TOOL_DEFINITIONS];
+const WEB_SEARCH_TOOL = {
+  name: 'search_web',
+  description:
+    'Busca en internet (DuckDuckGo) información actualizada. Usala para obtener datos externos, noticias recientes, estadísticas nacionales, o información que no está en los documentos ni indicadores de la DDNA.',
+  parameters: 'query (requerido — la consulta de búsqueda), site (opcional — limitar a un dominio específico)',
+};
+
+const SCRAPE_URL_TOOL = {
+  name: 'scrape_url',
+  description:
+    'Extrae el contenido completo de una página web. Usala cuando necesitás leer en detalle un artículo, informe o fuente específica encontrada en la búsqueda web.',
+  parameters: 'url (requerido — la URL completa de la página)',
+};
+
+const ALL_TOOL_DEFINITIONS = [SEARCH_TOOL_DEFINITION, WEB_SEARCH_TOOL, SCRAPE_URL_TOOL, ...INDICATOR_TOOL_DEFINITIONS];
 
 // ---------------------------------------------------------------------------
 // System Prompt (enhanced for agent + tools)
@@ -105,6 +124,8 @@ Los resultados de las herramientas te serán enviados en el siguiente mensaje. L
 - **Documentos + Datos**: para informes completos, análisis de situación, reportes ejecutivos
 - **Solo Documentos**: para preguntas sobre normativas, procedimientos, definiciones institucionales
 - **Solo Datos**: para consultas estadísticas puntuales, tendencias, comparaciones numéricas
+- **Web**: para información externa, contexto nacional, noticias recientes, o validar datos contra fuentes externas
+- **Combinación de las tres**: para análisis profundo, informes completos, o cuando necesitás contrastar datos locales con contexto nacional/global
 - **Ninguna**: para preguntas simples, saludos, o información general que ya conocés
 
 ## REGLAS DE RESPUESTA
@@ -117,6 +138,25 @@ Los resultados de las herramientas te serán enviados en el siguiente mensaje. L
    - Datos estadísticos: [Indicador: nombre_indicador, periodo]
 5. Mantené un tono profesional pero accesible para público general
 6. NO respondas con TOOL_CALL a menos que realmente necesites datos o documentos
+
+## ANÁLISIS CRÍTICO Y VALIDACIÓN CRUZADA
+
+Como analista de la DDNA, tu trabajo NO es solo repetir datos, sino analizarlos críticamente:
+
+1. **Cruzá fuentes**: cuando tengas datos de indicadores (base de datos oficial), documentos (biblioteca DDNA), y búsquedas web (fuentes externas), comparalos. Si hay discrepancias, señalalas y explicá posibles razones (diferentes metodologías, períodos, fuentes).
+
+2. **Detectá inconsistencias**: si un dato no tiene sentido (ej: "la pobreza infantil es del 120%"), cuestionalo. Si dos fuentes dan números muy distintos, advertilo.
+
+3. **Evaluá calidad de fuentes**:
+   - Indicadores de la DDNA → alta confiabilidad (datos oficiales provinciales)
+   - Documentos de la biblioteca → confiabilidad media-alta (informes institucionales)
+   - Búsquedas web → confiabilidad variable (verificar fuente, fecha, metodología)
+
+4. **Contextualizá**: explicá qué significa un número, no solo lo reportes. "La pobreza infantil del 39.3% significa que casi 4 de cada 10 niños en Córdoba viven en hogares pobres."
+
+5. **Reconocé limitaciones**: si los datos disponibles no alcanzan para responder completamente, decilo. Sugerí qué datos harían falta.
+
+6. **Ofrecé visión panorámica**: combiná los tres tipos de fuentes (indicadores + documentos + web) para dar una respuesta completa.
 
 ## GENERACIÓN DE INFORMES Y CONTENIDO ANALÍTICO
 
@@ -368,7 +408,7 @@ async function executeTool(
 ): Promise<{
   result: unknown;
   formattedResult: string;
-  sourceType: 'documents' | 'indicators' | 'unknown';
+  sourceType: 'documents' | 'indicators' | 'web' | 'unknown';
 }> {
   // Indicator tools
   if (INDICATOR_TOOL_DEFINITIONS.some(t => t.name === name)) {
@@ -404,6 +444,53 @@ async function executeTool(
     };
   }
 
+  // Web search tool
+  if (name === 'search_web') {
+    if (!params.query) throw new Error('search_web requiere el parámetro "query".');
+    const searchUrl = new URL('/api/agent/web-search', BASE_URL).toString();
+    const res = await fetch(searchUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: params.query, site: params.site || undefined }),
+    });
+    const data = await res.json();
+    const results: Array<{ title: string; url: string; snippet: string; source: string }> =
+      data.results || [];
+    const formatted =
+      results.length === 0
+        ? 'No se encontraron resultados en la web.'
+        : results
+            .map(
+              (r, i) =>
+                `${i + 1}. ${r.title}\n   URL: ${r.url}\n   ${r.snippet}`
+            )
+            .join('\n\n');
+    return {
+      result: data,
+      formattedResult: `[Búsqueda web: "${params.query}"]\n\n${formatted}`,
+      sourceType: 'web',
+    };
+  }
+
+  // Scrape URL tool
+  if (name === 'scrape_url') {
+    if (!params.url) throw new Error('scrape_url requiere el parámetro "url".');
+    const scrapeUrl = new URL('/api/agent/scrape-url', BASE_URL).toString();
+    const res = await fetch(scrapeUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: params.url }),
+    });
+    const data = await res.json();
+    const text: string = data.content || data.text || data.error || '';
+    const truncated = text.length > 3000 ? text.substring(0, 3000) + '...' : text;
+    return {
+      result: data,
+      formattedResult: `[Contenido de ${params.url}]\n\nTítulo: ${data.title || 'N/A'}\n\n${truncated}`,
+      sourceType: 'web',
+    };
+  }
+
   throw new Error(`Herramienta desconocida: "${name}".`);
 }
 
@@ -436,13 +523,26 @@ async function callLLM(
   });
 
   if (!response.ok) {
-    const errorBody = await response.json();
-    const msg = errorBody?.error?.message || `HTTP ${response.status}`;
+    let msg = `HTTP ${response.status}`;
+    try {
+      const errorBody = await response.json();
+      msg = errorBody?.error?.message || msg;
+    } catch {
+      // Response wasn't JSON (HTML error page, etc.)
+      const text = await response.text();
+      msg = `HTTP ${response.status} - ${text.substring(0, 200)}`;
+    }
     throw new Error(`Error al generar respuesta con ${LLM_PROVIDER}: ${msg}`);
   }
 
-  const data = await response.json();
-  const content = data.choices[0]?.message?.content || '';
+  let data: { choices?: Array<{ message?: { content?: string } }> };
+  try {
+    data = await response.json();
+  } catch {
+    const text = await response.text();
+    throw new Error(`${LLM_PROVIDER} devolvió una respuesta no-JSON: ${text.substring(0, 300)}`);
+  }
+  const content = data?.choices?.[0]?.message?.content || '';
   return { content };
 }
 
@@ -474,11 +574,25 @@ const DOC_KEYWORDS = [
   'ddna', 'derecho', 'convención', 'protocolo', 'procedimiento',
 ];
 
+const WEB_KEYWORDS = [
+  'según', 'fuente externa', 'nacional', 'argentina', 'país', 'comparado',
+  'a nivel', 'noticia', 'reciente', 'actualidad', 'último', 'índec',
+  'ocde', 'unicef', 'oms', 'banco mundial', 'ministerio',
+];
+
 function detectToolNeed(question: string): string | null {
   const q = question.toLowerCase();
   const needsData = DATA_KEYWORDS.some(kw => q.includes(kw));
   const needsDocs = DOC_KEYWORDS.some(kw => q.includes(kw));
-  
+  const needsWeb = WEB_KEYWORDS.some(kw => q.includes(kw));
+
+  if (needsWeb) {
+    if (needsData && needsDocs) return 'search_web + getLatestIndicatorValue + search_knowledge_base';
+    if (needsData) return 'search_web + getLatestIndicatorValue';
+    if (needsDocs) return 'search_web + search_knowledge_base';
+    return 'search_web';
+  }
+
   if (needsData && needsDocs) {
     return 'getLatestIndicatorValue o getCategoryOverview + search_knowledge_base';
   }
