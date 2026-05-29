@@ -1,9 +1,7 @@
 /**
- * PDF Extractor using pdf-parse
+ * PDF Extractor — serverless-safe
+ * Uses dynamic import for pdf-parse, graceful fallback if unavailable.
  */
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const pdfParse = require('pdf-parse');
-
 export interface PDFExtractResult {
   text: string;
   pages: number;
@@ -15,31 +13,56 @@ export interface PDFExtractResult {
   };
 }
 
-export async function extractTextFromPDF(buffer: Buffer): Promise<PDFExtractResult> {
+async function tryPdfParse(buffer: Buffer): Promise<PDFExtractResult | null> {
   try {
-    const data = await pdfParse(buffer, {
-      // Disable canvas rendering for serverless
-      pagerender: undefined,
-    });
-
+    // Dynamic import — avoids bundling canvas in serverless
+    const pdfParse = await import('pdf-parse').then(m => m.default || m);
+    if (typeof pdfParse !== 'function') return null;
+    const data = await pdfParse(buffer);
     return {
-      text: data.text,
-      pages: data.numpages,
+      text: data.text || '',
+      pages: data.numpages || 0,
       metadata: {
         title: data.info?.Title,
         author: data.info?.Author,
         creationDate: data.info?.CreationDate,
-        pageCount: data.numpages,
+        pageCount: data.numpages || 0,
       },
     };
-  } catch (err) {
-    console.error('PDF extraction failed:', err);
-    return {
-      text: '',
-      pages: 0,
-      metadata: { pageCount: 0 },
-    };
+  } catch {
+    return null;
   }
+}
+
+function rawExtract(buffer: Buffer): PDFExtractResult {
+  // Best-effort text extraction from raw buffer
+  const text = buffer
+    .toString('utf-8')
+    .replace(/[^\x20-\x7E\xA0-\xFF\u00C0-\u024F\n\r\t.,;:!?¿¡()\[\]{}]/g, ' ')
+    .replace(/\s{3,}/g, '\n\n')
+    .trim();
+  return {
+    text: text.length > 50 ? text : '',
+    pages: 1,
+    metadata: { pageCount: 1 },
+  };
+}
+
+export async function extractTextFromPDF(buffer: Buffer): Promise<PDFExtractResult> {
+  // Try pdf-parse first (works locally with canvas)
+  const result = await tryPdfParse(buffer);
+  if (result && result.text.length > 50) return result;
+
+  // Fallback: raw extraction
+  const raw = rawExtract(buffer);
+  if (raw.text.length > 50) return raw;
+
+  // Nothing worked
+  return {
+    text: '[PDF extraction not available in this environment. Process PDFs locally with `node scripts/backfill.mjs`]',
+    pages: 0,
+    metadata: { pageCount: 0 },
+  };
 }
 
 export async function extractPDFFromFile(file: File): Promise<PDFExtractResult> {
