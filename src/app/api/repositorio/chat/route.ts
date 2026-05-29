@@ -447,48 +447,66 @@ async function executeTool(
   // Web search tool
   if (name === 'search_web') {
     if (!params.query) throw new Error('search_web requiere el parámetro "query".');
-    const searchUrl = new URL('/api/agent/web-search', BASE_URL).toString();
-    const res = await fetch(searchUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: params.query, site: params.site || undefined }),
-    });
-    const data = await res.json();
-    const results: Array<{ title: string; url: string; snippet: string; source: string }> =
-      data.results || [];
-    const formatted =
-      results.length === 0
-        ? 'No se encontraron resultados en la web.'
-        : results
-            .map(
-              (r, i) =>
-                `${i + 1}. ${r.title}\n   URL: ${r.url}\n   ${r.snippet}`
-            )
-            .join('\n\n');
-    return {
-      result: data,
-      formattedResult: `[Búsqueda web: "${params.query}"]\n\n${formatted}`,
-      sourceType: 'web',
-    };
+    try {
+      const searchUrl = new URL('/api/agent/web-search', BASE_URL).toString();
+      const res = await fetch(searchUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: params.query, site: params.site || undefined }),
+      });
+      const data = await res.json();
+      const results: Array<{ title: string; url: string; snippet: string; source: string }> =
+        data.results || [];
+      const formatted =
+        results.length === 0
+          ? 'No se encontraron resultados en la web.'
+          : results
+              .map(
+                (r, i) =>
+                  `${i + 1}. ${r.title}\n   URL: ${r.url}\n   ${r.snippet}`
+              )
+              .join('\n\n');
+      return {
+        result: data,
+        formattedResult: `[Búsqueda web: "${params.query}"]\n\n${formatted}`,
+        sourceType: 'web',
+      };
+    } catch (err) {
+      console.error('search_web tool failed:', err);
+      return {
+        result: { error: String(err) },
+        formattedResult: `[Búsqueda web: "${params.query}"]\n\nLa búsqueda web no está disponible en este momento (error: ${String(err).substring(0, 200)}). Continuá con los datos de indicadores y documentos disponibles.`,
+        sourceType: 'web',
+      };
+    }
   }
 
   // Scrape URL tool
   if (name === 'scrape_url') {
     if (!params.url) throw new Error('scrape_url requiere el parámetro "url".');
-    const scrapeUrl = new URL('/api/agent/scrape-url', BASE_URL).toString();
-    const res = await fetch(scrapeUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: params.url }),
-    });
-    const data = await res.json();
-    const text: string = data.content || data.text || data.error || '';
-    const truncated = text.length > 3000 ? text.substring(0, 3000) + '...' : text;
-    return {
-      result: data,
-      formattedResult: `[Contenido de ${params.url}]\n\nTítulo: ${data.title || 'N/A'}\n\n${truncated}`,
-      sourceType: 'web',
-    };
+    try {
+      const scrapeUrl = new URL('/api/agent/scrape-url', BASE_URL).toString();
+      const res = await fetch(scrapeUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: params.url }),
+      });
+      const data = await res.json();
+      const text: string = data.content || data.text || data.error || '';
+      const truncated = text.length > 3000 ? text.substring(0, 3000) + '...' : text;
+      return {
+        result: data,
+        formattedResult: `[Contenido de ${params.url}]\n\nTítulo: ${data.title || 'N/A'}\n\n${truncated}`,
+        sourceType: 'web',
+      };
+    } catch (err) {
+      console.error('scrape_url tool failed:', err);
+      return {
+        result: { error: String(err) },
+        formattedResult: `[Scraping de ${params.url}]\n\nNo se pudo extraer el contenido de la URL (error: ${String(err).substring(0, 200)}).`,
+        sourceType: 'web',
+      };
+    }
   }
 
   throw new Error(`Herramienta desconocida: "${name}".`);
