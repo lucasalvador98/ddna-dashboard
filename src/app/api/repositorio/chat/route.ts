@@ -457,6 +457,45 @@ function isStructuredReport(text: string): boolean {
 }
 
 // ---------------------------------------------------------------------------
+// Heuristic: detect if question needs data or documents
+// ---------------------------------------------------------------------------
+
+const DATA_KEYWORDS = [
+  'dato', 'datos', 'estadística', 'indicador', 'indicadores', 'número', 'cifra',
+  'porcentaje', 'tasa', 'cantidad', 'cuánto', 'cuántos', 'cuál es', 'valor',
+  'pobreza', 'indigencia', 'mortalidad', 'educación', 'escolarización', 'inversión',
+  'población', 'demografía', 'salud', 'seguridad', 'justicia', 'evolución',
+  'tendencia', 'histórico', 'comparar', 'comparación', 'aumentó', 'disminuyó',
+  'informe', 'reporte', 'análisis', 'diagnóstico', 'situación', 'estado actual',
+];
+
+const DOC_KEYWORDS = [
+  'documento', 'informe', 'normativa', 'ley', 'resolución', 'defensoría',
+  'ddna', 'derecho', 'convención', 'protocolo', 'procedimiento',
+];
+
+function detectToolNeed(question: string): string | null {
+  const q = question.toLowerCase();
+  const needsData = DATA_KEYWORDS.some(kw => q.includes(kw));
+  const needsDocs = DOC_KEYWORDS.some(kw => q.includes(kw));
+  
+  if (needsData && needsDocs) {
+    return 'getLatestIndicatorValue o getCategoryOverview + search_knowledge_base';
+  }
+  if (needsData) {
+    return 'getLatestIndicatorValue, getIndicatorTimeSeries, o getCategoryOverview';
+  }
+  if (needsDocs) {
+    return 'search_knowledge_base';
+  }
+  // If no keywords but question is substantial (>30 chars), suggest tools
+  if (question.length > 30) {
+    return 'search_knowledge_base o listAvailableIndicators';
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // POST handler — agent loop with tool execution
 // ---------------------------------------------------------------------------
 
@@ -545,7 +584,26 @@ export async function POST(request: Request) {
       const toolCalls = parseToolCalls(llmContent);
 
       if (toolCalls.length === 0) {
-        // No tool calls — this is the final answer
+        // No tool calls — but maybe the LLM forgot. Force retry if the question
+        // clearly needs data or documents (first round only, no previous tools)
+        if (round === 1 && toolsUsed.length === 0) {
+          const needsTools = detectToolNeed(question);
+          if (needsTools) {
+            // Force the LLM to use tools
+            messages.push(
+              { role: 'assistant', content: llmContent },
+              {
+                role: 'user',
+                content: `[IMPORTANTE: No respondiste usando las herramientas. Esta pregunta requiere datos o documentos. 
+Respondé SOLO con líneas TOOL_CALL. No escribas nada más. 
+Herramientas sugeridas: ${needsTools}]
+Pregunta original: "${question}"`,
+              }
+            );
+            continue; // retry
+          }
+        }
+        // No tool calls and doesn't need tools — final answer
         finalAnswer = llmContent;
         break;
       }
