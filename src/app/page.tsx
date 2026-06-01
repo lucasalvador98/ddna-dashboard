@@ -87,11 +87,11 @@ export default function HomePage() {
   const cambioPobreza =
     pobrezaChanges.length > 0 ? pobrezaChanges[pobrezaChanges.length - 1].cambio : null;
 
-  // Stats banner values (real data from indicators)
-  const statsPoblacion = poblacion;
-  const statsMortalidad = findStatValue(saludData, 'TMI Cba');
+  // Stats banner values (real data from indicators, non-redundant with KPIs)
   const statsEstablecimientos = findStatSum(educacionData, 'Unidades educativas');
   const statsMatricula = findStatSum(educacionData, 'Matrícula - General');
+  const statsCategorias = data ? Object.keys(data).filter(k => data[k as CategoriaIndicador]?.length > 0).length : 6;
+  const statsFuentes = '10';
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
@@ -188,23 +188,9 @@ export default function HomePage() {
           )}
         </section>
 
-        {/* Stats banner — computed from real data */}
+        {/* Stats banner — complementary metrics */}
         <section className="bg-[#00074E] rounded-xl p-6 lg:p-8">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="text-center">
-              <p className="font-display text-2xl lg:text-3xl text-white">
-                {formatStatNumber(statsPoblacion)}
-              </p>
-              <p className="font-accent text-xs text-white/60 mt-1">Población 0-17 años</p>
-            </div>
-            <div className="text-center">
-              <p className="font-display text-2xl lg:text-3xl text-white">
-                {statsMortalidad != null ? `${statsMortalidad}‰` : '—'}
-              </p>
-              <p className="font-accent text-xs text-white/60 mt-1">
-                Mortalidad infantil (Córdoba)
-              </p>
-            </div>
             <div className="text-center">
               <p className="font-display text-2xl lg:text-3xl text-white">
                 {formatStatNumber(statsEstablecimientos)}
@@ -216,6 +202,18 @@ export default function HomePage() {
                 {formatStatNumber(statsMatricula)}
               </p>
               <p className="font-accent text-xs text-white/60 mt-1">Matrícula escolar</p>
+            </div>
+            <div className="text-center">
+              <p className="font-display text-2xl lg:text-3xl text-white">
+                {statsCategorias}
+              </p>
+              <p className="font-accent text-xs text-white/60 mt-1">Categorías de indicadores</p>
+            </div>
+            <div className="text-center">
+              <p className="font-display text-2xl lg:text-3xl text-white">
+                {statsFuentes}
+              </p>
+              <p className="font-accent text-xs text-white/60 mt-1">Fuentes de datos</p>
             </div>
           </div>
         </section>

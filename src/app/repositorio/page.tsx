@@ -239,6 +239,7 @@ export default function RepositorioPage() {
               placeholder="Buscar archivos..."
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
+              aria-label="Buscar archivos en el repositorio"
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00074E] focus:border-transparent"
             />
           </div>

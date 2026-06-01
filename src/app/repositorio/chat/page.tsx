@@ -242,6 +242,7 @@ export default function ChatPage() {
               type="text"
               value={input}
               onChange={e => setInput(e.target.value)}
+              aria-label="Escribí tu pregunta"
               placeholder="Escribí tu pregunta sobre los documentos..."
               className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3777FF] focus:border-transparent outline-none font-body text-sm"
               disabled={loading}
