@@ -1,15 +1,17 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { Send, Bot, User, FileText, Loader2, AlertCircle } from 'lucide-react';
+import { Send, Bot, User, FileText, Loader2, AlertCircle, Download } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   sources?: {
-    source: string;
-    type: string;
+    fileName: string;
+    categoria?: string;
+    chunkIndex?: number;
+    similarity?: number;
   }[];
   tools_used?: string[];
   timestamp: Date;
@@ -45,7 +47,7 @@ export default function ChatPage() {
     setHasContext(null);
 
     try {
-      const response = await fetch('/api/agent/chat', {
+      const response = await fetch('/api/repositorio/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -129,8 +131,8 @@ export default function ChatPage() {
                 ¡Bienvenido al Asistente DDNA!
               </h3>
               <p className="font-body text-gray-600 max-w-md mb-6">
-                Podés hacer preguntas sobre los documentos de la Defensoría. El asistente buscará en
-                la bibliografía disponible.
+                Preguntá sobre indicadores sociales, documentos de la Defensoría o pedí informes. 
+                El asistente combina datos estadísticos con la bibliografía disponible.
               </p>
 
               {/* Example Questions */}
@@ -175,27 +177,23 @@ export default function ChatPage() {
                     <div className="mt-3 pt-3 border-t border-gray-200">
                       <p className="text-xs font-accent text-gray-500 mb-2">Fuentes:</p>
                       <div className="flex flex-wrap gap-2">
-                        {msg.sources.map((source, sIdx) => {
-                          // Clean URL for display
-                          const cleanSource = source.source
-                            .replace(/^https?:\/\//, '')
-                            .replace(/^www\./, '')
-                            .split('/')[0];
-
+                        {msg.sources.map((source: any, sIdx: number) => {
+                          const name = source.fileName || source.source || 'Documento';
+                          const clean = name.length > 30 ? name.substring(0, 27) + '...' : name;
+                          const downloadUrl = source.downloadUrl || '';
                           return (
-                            <span
+                            <a
                               key={sIdx}
-                              className="inline-flex items-center gap-1 px-2 py-1 bg-[#3777FF]/10 text-[#3777FF] rounded text-xs font-medium"
+                              href={downloadUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 px-2 py-1 bg-[#3777FF]/10 hover:bg-[#3777FF]/20 text-[#3777FF] rounded text-xs font-medium transition-colors"
+                              title={`Descargar ${name}`}
                             >
-                              {source.type === 'documento' ? (
-                                <FileText className="w-3 h-3" />
-                              ) : (
-                                <Bot className="w-3 h-3" />
-                              )}
-                              {cleanSource.length > 25
-                                ? cleanSource.substring(0, 25) + '...'
-                                : cleanSource}
-                            </span>
+                              <FileText className="w-3 h-3" />
+                              {clean}
+                              <Download className="w-3 h-3 ml-0.5 opacity-60" />
+                            </a>
                           );
                         })}
                       </div>
