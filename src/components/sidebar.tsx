@@ -20,7 +20,6 @@ const navItems: NavItem[] = [
   { label: "Salud Adolescente", href: "/salud-adolescente", iconSrc: "/logos/Recurso 2@2x.png", iconAlt: "Salud Adolescente" },
   { label: "Educación", href: "/educacion", iconSrc: "/logos/Recurso 3@2x.png", iconAlt: "Educación" },
   { label: "Aprender", href: "/aprender", iconSrc: "/logos/Recurso 3@2x.png", iconAlt: "Aprender" },
-  { label: "Condiciones", href: "/condiciones", iconSrc: "/logos/Recurso 4@2x.png", iconAlt: "Condiciones" },
   { label: "Pobreza", href: "/pobreza", iconSrc: "/logos/Recurso 4@2x.png", iconAlt: "Pobreza" },
   { label: "Seguridad", href: "/seguridad", iconSrc: "/logos/Recurso 5@2x.png", iconAlt: "Seguridad" },
   { label: "Inversión", href: "/inversion", iconSrc: "/logos/Recurso 6@2x.png", iconAlt: "Inversión Social" },
@@ -36,8 +35,8 @@ export function Sidebar() {
   return (
     <aside
       className={clsx(
-        "hidden md:flex flex-col bg-white border-r border-[#E0E0E0] transition-all duration-300 ease-in-out relative",
-        isCollapsed ? "w-20" : "w-56"
+        "hidden sm:flex flex-col bg-white border-r border-[#E0E0E0] transition-all duration-300 ease-in-out relative shrink-0",
+        isCollapsed ? "w-14 sm:w-16" : "w-56"
       )}
     >
       {/* Gradient accent strip at top */}

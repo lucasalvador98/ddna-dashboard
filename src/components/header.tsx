@@ -14,7 +14,6 @@ const routeTitles: Record<string, string> = {
   "/educacion": "Indicadores de Educación",
   "/aprender": "Pruebas Aprender",
   "/pobreza": "Indicadores de Pobreza",
-  "/condiciones": "Condiciones de Vida",
   "/seguridad": "Indicadores de Seguridad",
   "/inversion": "Inversión Social",
   "/fuentes": "Catálogo de Fuentes y APIs",
@@ -45,7 +44,7 @@ export function Header() {
   return (
     <header className="bg-white border-b border-[#E0E0E0] sticky top-0 z-40">
       {/* Desktop Header */}
-      <div className="hidden md:flex items-center justify-between px-6 py-4">
+      <div className="hidden md:flex items-center justify-between px-6 lg:px-8 py-4">
         {/* Breadcrumb / Title */}
         <div>
           <h1 className="font-display text-2xl text-[#00074E] tracking-tight">{title}</h1>
@@ -90,7 +89,7 @@ export function Header() {
       </div>
 
       {/* Mobile Header */}
-      <div className="md:hidden flex items-center justify-between px-4 py-3">
+      <div className="md:hidden flex items-center justify-between px-6 py-3">
         {/* Mobile Logo */}
         <div className="flex items-center gap-2">
           <Image
