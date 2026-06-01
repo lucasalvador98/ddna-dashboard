@@ -602,15 +602,10 @@ function detectToolNeed(question: string): string | null {
   const q = question.toLowerCase();
   const needsData = DATA_KEYWORDS.some(kw => q.includes(kw));
   const needsDocs = DOC_KEYWORDS.some(kw => q.includes(kw));
-  const needsWeb = WEB_KEYWORDS.some(kw => q.includes(kw));
-
-  if (needsWeb) {
-    if (needsData && needsDocs) return 'search_web + getLatestIndicatorValue + search_knowledge_base';
-    if (needsData) return 'search_web + getLatestIndicatorValue';
-    if (needsDocs) return 'search_web + search_knowledge_base';
-    return 'search_web';
-  }
-
+  
+  // Web search is NOT auto-triggered (DuckDuckGo blocks Vercel).
+  // It's still available as an explicit tool when the user asks.
+  
   if (needsData && needsDocs) {
     return 'getLatestIndicatorValue o getCategoryOverview + search_knowledge_base';
   }
@@ -620,7 +615,6 @@ function detectToolNeed(question: string): string | null {
   if (needsDocs) {
     return 'search_knowledge_base';
   }
-  // If no keywords but question is substantial (>30 chars), suggest tools
   if (question.length > 30) {
     return 'search_knowledge_base o listAvailableIndicators';
   }
