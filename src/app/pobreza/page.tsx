@@ -56,12 +56,12 @@ const DIMENSIONES_UCA = [
 ];
 
 const METODOLOGIA_COMPARACION = [
-  ['Tipo de pobreza', 'Monetaria (ingresos)', 'Multidimensional (derechos)'],
-  ['Cobertura', '31 aglomerados urbanos', 'Nacional urbano'],
+  ['Tipo de medición', 'Monetaria (ingresos)', 'Monetaria (ingresos)'],
+  ['Encuesta', 'EPH (INDEC)', 'EDSA (UCA-ODSA)'],
+  ['Cobertura geográfica', 'Gran Córdoba', 'Nacional urbano'],
   ['Córdoba específico', '✅ Sí', '❌ Nacional'],
   ['Periodicidad', 'Semestral', 'Anual'],
-  ['Dimensiones', '1 (ingreso)', '6 (alimentación, salud, vivienda, educación, empleo, ambiente)'],
-  ['Último dato', '2025', '2024'],
+  ['Último dato', '2024 (2° sem)', '2024'],
 ];
 
 // ─── Helpers ────────────────────────────────────────────────────
@@ -280,18 +280,28 @@ export default function PobrezaPage() {
   const ucInseguridad = ucaLatest('Inseguridad alimentaria total');
   const ucMultidimensional = ucaLatest('Pobreza multidimensional (2+ carencias)');
 
-  // ─── Comparison data ──────────────────────────────────────────
-  // INDEC
-  const indPhPers = latestPP;
-  const indPhHog = latestPH;
-  const indIndPers = indecData.filter((r) => r.indicador_nombre === 'Indigencia personas').sort((a, b) => b.periodo - a.periodo)[0];
-  const indIndHog = indecData.filter((r) => r.indicador_nombre === 'Indigencia hogares').sort((a, b) => b.periodo - a.periodo)[0];
+  // ─── Comparison data (filtered to 2024) ───────────────────────
+  // INDEC 2024 — 2nd semester only
+  const indec2024 = indecData.filter(d =>
+    d.periodo === 2024 &&
+    (!d.desglose?.semestre || d.desglose?.semestre === 2)
+  );
 
-  // UCA equivalents
-  const ucaPhPers = ucaLatest('Pobreza monetaria (personas)');
-  const ucaPhHog = ucaLatest('Pobreza monetaria (hogares)');
-  const ucaIndPers = ucaLatest('Indigencia (personas)');
-  const ucaIndHog = ucaLatest('Indigencia (hogares)');
+  // UCA 2024
+  const uca2024 = ucaData.filter(d => d.periodo === 2024);
+
+  const findIndec = (name: string) => indec2024.find(d => d.indicador_nombre === name);
+  const findUca = (name: string) => uca2024.find(d => d.indicador_nombre === name);
+
+  const indPhPers = findIndec('Pobreza personas');
+  const indPhHog = findIndec('Pobreza hogares');
+  const indIndPers = findIndec('Indigencia personas');
+  const indIndHog = findIndec('Indigencia hogares');
+
+  const ucaPhPers = findUca('Pobreza monetaria (personas)');
+  const ucaPhHog = findUca('Pobreza monetaria (hogares)');
+  const ucaIndPers = findUca('Indigencia (personas)');
+  const ucaIndHog = findUca('Indigencia (hogares)');
 
   // ─── Render ───────────────────────────────────────────────────
   return (
@@ -688,8 +698,18 @@ function TabComparacion({
       {/* Side-by-side KPIs */}
       <div>
         <h2 className="font-display text-lg text-[#00074E] mb-4">
-          Comparación: INDEC (Córdoba) vs UCA (Argentina urbana)
+          Comparación 2024: INDEC (Gran Córdoba) vs UCA (Nacional urbano)
         </h2>
+
+        {/* Note about geographic coverage */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+          <div className="flex gap-3">
+            <Info className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-blue-800 leading-relaxed">
+              Los valores de INDEC corresponden a <strong>Gran Córdoba</strong> (2° semestre 2024). Los de UCA corresponden al <strong>total nacional urbano</strong> (2024). Las diferencias reflejan distintas coberturas geográficas, no errores metodológicos.
+            </p>
+          </div>
+        </div>
 
         {/* Row 1: Pobreza Personas + Pobreza Hogares */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
@@ -697,33 +717,35 @@ function TabComparacion({
             title="Pobreza Personas"
             indec={indPhPers}
             uca={ucaPhPers}
-            indecLabel="INDEC Córdoba"
-            ucaLabel="UCA Nacional"
+            indecLabel="INDEC Gran Córdoba"
+            ucaLabel="UCA Nacional urbano"
             color="magenta"
           />
           <ComparisonKpi
             title="Pobreza Hogares"
             indec={indPhHog}
             uca={ucaPhHog}
-            indecLabel="INDEC Córdoba"
-            ucaLabel="UCA Nacional"
+            indecLabel="INDEC Gran Córdoba"
+            ucaLabel="UCA Nacional urbano"
             color="magenta"
           />
           <ComparisonKpi
             title="Indigencia Personas"
             indec={indIndPers}
             uca={ucaIndPers}
-            indecLabel="INDEC Córdoba"
-            ucaLabel="UCA Nacional"
+            indecLabel="INDEC Gran Córdoba"
+            ucaLabel="UCA Nacional urbano"
             color="terracotta"
+            indecHint="INDEC no publica desglose de indigencia por aglomerado en la API nueva de datos.gob.ar"
           />
           <ComparisonKpi
             title="Indigencia Hogares"
             indec={indIndHog}
             uca={ucaIndHog}
-            indecLabel="INDEC Córdoba"
-            ucaLabel="UCA Nacional"
+            indecLabel="INDEC Gran Córdoba"
+            ucaLabel="UCA Nacional urbano"
             color="terracotta"
+            indecHint="INDEC no publica desglose de indigencia por aglomerado en la API nueva de datos.gob.ar"
           />
         </div>
       </div>
@@ -772,6 +794,7 @@ function ComparisonKpi({
   indecLabel,
   ucaLabel,
   color,
+  indecHint,
 }: {
   title: string;
   indec?: IndicadorRow;
@@ -779,6 +802,7 @@ function ComparisonKpi({
   indecLabel: string;
   ucaLabel: string;
   color: 'magenta' | 'terracotta' | 'amber' | 'orange';
+  indecHint?: string;
 }) {
   const borderColors: Record<string, string> = {
     magenta: 'border-l-[#BF1363]',
@@ -787,13 +811,23 @@ function ComparisonKpi({
     orange: 'border-l-[#FF7F11]',
   };
 
+  const indecVal = fmt(indec?.valor);
+  const showIndecHint = indecHint && indecVal === 'N/D';
+
   return (
     <div className={`bg-white rounded-xl border border-[#E0E0E0] ${borderColors[color]} border-l-4 p-4`}>
       <h4 className="font-accent text-xs text-[#4D4D4D] tracking-wide mb-3">{title}</h4>
       <div className="space-y-2">
         <div className="flex justify-between items-baseline">
           <span className="text-xs text-gray-400">{indecLabel}</span>
-          <span className="font-display text-xl text-[#BF1363]">{fmt(indec?.valor)}</span>
+          <span className="font-display text-xl text-[#BF1363] inline-flex items-center gap-1">
+            {indecVal}
+            {showIndecHint && (
+              <span title={indecHint} className="inline-flex">
+                <Info className="w-3.5 h-3.5 text-gray-400 cursor-help" />
+              </span>
+            )}
+          </span>
         </div>
         <div className="flex justify-between items-baseline">
           <span className="text-xs text-gray-400">{ucaLabel}</span>
