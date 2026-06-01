@@ -19,7 +19,6 @@ const routeTitles: Record<string, string> = {
   "/fuentes": "Catálogo de Fuentes y APIs",
   "/repositorio": "Repositorio Documental",
   "/repositorio/chat": "Chat con la Bibliografía",
-  "/ejecutivo": "Resumen Ejecutivo",
   "/geo": "Mapas",
 };
 

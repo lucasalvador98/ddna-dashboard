@@ -1,6 +1,6 @@
 'use client';
 
-import { Users, Heart, BookOpen, Coins, UserCircle, AlertTriangle } from 'lucide-react';
+import { Users, Heart, BookOpen, Coins, UserCircle, AlertTriangle, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { KpiCard } from '@/components/kpi-card';
 import { SectionCard } from '@/components/section-card';
@@ -216,6 +216,26 @@ export default function HomePage() {
               <p className="font-accent text-xs text-white/60 mt-1">Fuentes de datos</p>
             </div>
           </div>
+        </section>
+
+        {/* Executive Report CTA */}
+        <section className="mt-8">
+          <Link
+            href="/ejecutivo"
+            target="_blank"
+            className="flex items-center justify-between w-full px-6 py-5 bg-gradient-to-r from-[#00074E] to-[#1a1a6e] rounded-xl hover:shadow-xl hover:scale-[1.01] transition-all group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                <FileText className="w-6 h-6 text-white" />
+              </div>
+              <div className="text-left">
+                <p className="font-accent text-lg text-white font-semibold">Informe Ejecutivo</p>
+                <p className="text-sm text-white/70 font-body">Análisis general con indicadores clave, alertas y recomendaciones</p>
+              </div>
+            </div>
+            <span className="text-white/60 text-sm font-accent hidden sm:inline">Abrir → Ctrl+P para PDF</span>
+          </Link>
         </section>
 
         {/* Quick access to sections */}

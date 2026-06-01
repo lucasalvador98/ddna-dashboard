@@ -14,7 +14,6 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: "Ejecutivo", href: "/ejecutivo", iconSrc: "/logos/Recurso 1@2x.png", iconAlt: "Ejecutivo" },
   { label: "Inicio", href: "/", iconSrc: "/logos/Recurso 1@2x.png", iconAlt: "Inicio" },
   { label: "Salud", href: "/salud", iconSrc: "/logos/Recurso 2@2x.png", iconAlt: "Salud" },
   { label: "Salud Adolescente", href: "/salud-adolescente", iconSrc: "/logos/Recurso 2@2x.png", iconAlt: "Salud Adolescente" },

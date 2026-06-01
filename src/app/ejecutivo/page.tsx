@@ -118,13 +118,26 @@ export default function ExecutiveDashboard() {
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-6">
+    <>
+      <style>{`@media print { aside, header, .print\\:hidden { display: none !important; } body { background: white !important; } }`}</style>
+      <div className="space-y-6 print:space-y-4">
       <SectionHeader
         icon={Scale}
         title="Estado de Niñez, Adolescencia y Familia"
         description="Indicadores clave para la toma de decisiones — Provincia de Córdoba"
         color="navy"
       />
+
+      {/* Print button */}
+      <div className="flex justify-end print:hidden">
+        <button
+          onClick={() => window.print()}
+          className="flex items-center gap-2 px-4 py-2 text-sm bg-[#00074E] text-white rounded-lg hover:bg-[#1a1a6e] transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+          Imprimir / Guardar PDF
+        </button>
+      </div>
 
       {/* Alertas críticas */}
       <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4 flex items-start gap-3">
@@ -328,5 +341,6 @@ export default function ExecutiveDashboard() {
         </p>
       </section>
     </div>
+    </>
   );
 }
