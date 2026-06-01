@@ -47,12 +47,12 @@ const COLORS = {
 const INDEC_FUENTE = 'EPH-INDEC / datos.gob.ar';
 
 const DIMENSIONES_UCA = [
-  { dimension: 'Alimentación y Salud', valor: 26.6, fill: '#BF1363' },
-  { dimension: 'Servicios Básicos', valor: 30, fill: '#E07A5F' },
-  { dimension: 'Vivienda Digna', valor: 25, fill: '#F3A712' },
-  { dimension: 'Medio Ambiente', valor: 40, fill: '#FF7F11' },
-  { dimension: 'Educación', valor: 20, fill: '#3777FF' },
-  { dimension: 'Empleo y Seg. Social', valor: 35, fill: '#10B981' },
+  { dimension: 'Déficit en alimentación y salud', valor: 26.6, fill: '#BF1363', desc: '% de hogares' },
+  { dimension: 'Déficit en servicios básicos', valor: 30, fill: '#E07A5F', desc: '% de hogares' },
+  { dimension: 'Déficit en vivienda digna', valor: 25, fill: '#F3A712', desc: '% de hogares' },
+  { dimension: 'Déficit en medio ambiente', valor: 40, fill: '#FF7F11', desc: '% de hogares' },
+  { dimension: 'Déficit en acceso a educación', valor: 20, fill: '#3777FF', desc: '% de hogares' },
+  { dimension: 'Déficit en empleo y seg. social', valor: 35, fill: '#10B981', desc: '% de hogares' },
 ];
 
 const METODOLOGIA_COMPARACION = [
@@ -586,7 +586,7 @@ function TabMultidimensional({
       {/* Chart: Dimensiones */}
       <ChartCard
         title="Dimensiones de la Pobreza Estructural"
-        subtitle="Medición de carencias en 6 dimensiones según metodología UCA-ODSA"
+        subtitle="% de hogares con déficit en cada dimensión (valores estimados según UCA-ODSA 2010-2024). Cada barra indica el porcentaje de hogares urbanos que no accede adecuadamente a ese derecho."
         color="magenta"
         fuente="UCA-ODSA (EDSA)"
       >

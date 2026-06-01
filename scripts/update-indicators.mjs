@@ -47,7 +47,7 @@ async function main() {
       return {
         indicador_nombre: s.nombre,
         categoria: s.categoria,
-        valor: Number(Number(valor).toFixed(2)),
+        valor: Number((Number(valor) * 100).toFixed(1)),  // API returns 0-1 proportion, convert to percentage
         unidad: s.unidad,
         periodo: d.getFullYear(),
         region: 'Córdoba',
