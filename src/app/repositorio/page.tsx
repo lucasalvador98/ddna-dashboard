@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { FileText, FileSpreadsheet, File, FolderOpen, Search, Upload, X, CheckCircle, Bot, Download } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
@@ -128,7 +129,7 @@ export default function RepositorioPage() {
       <div className="max-w-7xl mx-auto px-6">
         {/* Chat Button - NotebookLM style */}
         <div className="mb-6">
-          <a
+          <Link
             href="/repositorio/chat"
             className="flex items-center justify-between w-full px-6 py-4 bg-gradient-to-r from-[#3777FF] to-[#00074E] text-white rounded-2xl font-accent text-lg hover:shadow-xl hover:scale-[1.02] transition-all group"
           >
@@ -144,7 +145,7 @@ export default function RepositorioPage() {
             <svg className="w-6 h-6 group-hover:translate-x-2 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
-          </a>
+          </Link>
         </div>
 
         {/* Stats */}

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { Send, Bot, User, FileText, Loader2, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 
 interface ChatMessage {
@@ -91,15 +92,22 @@ export default function ChatPage() {
   return (
     <div className="max-w-4xl mx-auto px-6 py-8">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="font-display text-3xl text-[#00074E] flex items-center gap-3">
-          <Bot className="w-8 h-8 text-[#3777FF]" />
-          Asistente de Investigación DDNA
-        </h1>
-        <p className="font-body text-gray-600 mt-2">
-          Hacé preguntas sobre la Defensoría. El asistente buscará en los documentos disponibles y,
-          si es necesario, complementará con información de la web.
-        </p>
+      <div className="mb-8 flex items-start justify-between">
+        <div>
+          <h1 className="font-display text-3xl text-[#00074E] flex items-center gap-3">
+            <Bot className="w-8 h-8 text-[#3777FF]" />
+            Asistente de Investigación DDNA
+          </h1>
+          <p className="font-body text-gray-600 mt-2">
+            Hacé preguntas sobre la Defensoría. El asistente buscará en los documentos disponibles y,
+            si es necesario, complementará con información de la web.
+          </p>
+        </div>
+        {messages.length > 0 && (
+          <button onClick={() => setMessages([])} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors whitespace-nowrap">
+            + Nueva conversación
+          </button>
+        )}
         {hasContext === false && (
           <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
@@ -107,9 +115,9 @@ export default function ChatPage() {
               <p className="font-accent text-sm text-amber-800">No hay documentos procesados</p>
               <p className="text-sm text-amber-700 mt-1">
                 Subí y procesá documentos en la sección{' '}
-                <a href="/repositorio" className="underline hover:text-amber-900">
+                <Link href="/repositorio" className="underline hover:text-amber-900">
                   Repositorio
-                </a>{' '}
+                </Link>{' '}
                 para que el asistente pueda responder preguntas.
               </p>
             </div>

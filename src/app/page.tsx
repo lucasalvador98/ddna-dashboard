@@ -3,6 +3,7 @@
 import { Users, Heart, BookOpen, Coins, UserCircle, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { KpiCard } from '@/components/kpi-card';
+import { SectionCard } from '@/components/section-card';
 import {
   getLatestValue,
   getTimeSeries,
@@ -216,6 +217,19 @@ export default function HomePage() {
               </p>
               <p className="font-accent text-xs text-white/60 mt-1">Matrícula escolar</p>
             </div>
+          </div>
+        </section>
+
+        {/* Quick access to sections */}
+        <section className="mt-8">
+          <h2 className="font-display text-xl text-[#00074E] mb-4">Explorar por tema</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <SectionCard title="Salud" description="Mortalidad infantil, materna y neonatal" href="/salud" icon={Heart} color="terracotta" />
+            <SectionCard title="Educación" description="Asistencia, matrícula, unidades educativas" href="/educacion" icon={BookOpen} color="amber" />
+            <SectionCard title="Pobreza" description="Pobreza e indigencia infantil y por hogares" href="/pobreza" icon={Users} color="magenta" />
+            <SectionCard title="Seguridad" description="Casos de niñez, violencia familiar y justicia" href="/seguridad" icon={AlertTriangle} color="orange" />
+            <SectionCard title="Inversión Social" description="Presupuesto provincial destinado a niñez" href="/inversion" icon={Coins} color="terracotta" />
+            <SectionCard title="Repositorio" description="Documentos, informes y bibliografía DDNA" href="/repositorio" icon={BookOpen} color="navy" />
           </div>
         </section>
       </main>

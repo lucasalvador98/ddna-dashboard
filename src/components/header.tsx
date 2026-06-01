@@ -10,11 +10,18 @@ import clsx from "clsx";
 const routeTitles: Record<string, string> = {
   "/": "Tablero General de Monitoreo",
   "/salud": "Indicadores de Salud",
+  "/salud-adolescente": "Salud Adolescente",
   "/educacion": "Indicadores de Educación",
+  "/aprender": "Pruebas Aprender",
   "/pobreza": "Indicadores de Pobreza",
+  "/condiciones": "Condiciones de Vida",
   "/seguridad": "Indicadores de Seguridad",
   "/inversion": "Inversión Social",
   "/fuentes": "Catálogo de Fuentes y APIs",
+  "/repositorio": "Repositorio Documental",
+  "/repositorio/chat": "Chat con la Bibliografía",
+  "/ejecutivo": "Resumen Ejecutivo",
+  "/geo": "Mapas",
 };
 
 export function Header() {
