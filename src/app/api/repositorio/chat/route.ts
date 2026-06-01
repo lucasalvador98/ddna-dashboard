@@ -21,7 +21,7 @@ const OPENAI_MODEL = 'gpt-4o-mini';
 const MAX_TOOL_ROUNDS = 3;
 const MAX_TOOL_CALLS = 5;
 const MAX_TOKENS = 1500;
-
+const MAX_CONTEXT_CHARS = 12000; // ~3K tokens, prevent Groq context overflow
 // Base URL for calling internal endpoints (used by tools)
 const BASE_URL = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -796,7 +796,13 @@ Pregunta original: "${question}"`,
       }
 
       // Feed tool results back to LLM as a user message
-      const feedbackMessage = toolResults.join('\n\n---\n\n');
+      let feedbackMessage = toolResults.join('\n\n---\n\n');
+      
+      // Truncate if too large for Groq context window
+      if (feedbackMessage.length > MAX_CONTEXT_CHARS) {
+        feedbackMessage = feedbackMessage.substring(0, MAX_CONTEXT_CHARS) + 
+          '\n\n[... resultado truncado por límite de contexto ...]';
+      }
 
       messages.push({
         role: 'user',
