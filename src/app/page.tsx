@@ -1,7 +1,6 @@
 'use client';
 
 import { Users, Heart, BookOpen, Coins, UserCircle, AlertTriangle } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { KpiCard } from '@/components/kpi-card';
 import {
@@ -95,50 +94,21 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
-      {/* Header - Clean institutional style */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 lg:h-20">
-            {/* Logos */}
-            <div className="flex items-center gap-3 lg:gap-4">
-              <Image
-                src="/logos/Cba.png"
-                alt="Gobierno de Córdoba"
-                width={40}
-                height={40}
-                style={{ height: 'auto' }}
-                className="rounded"
-              />
-              <Image
-                src="/logos/LOGO DDNA_HORIZONTAL_COLOR.png"
-                alt="DDNA"
-                width={160}
-                height={40}
-                style={{ height: 'auto' }}
-                className="object-contain"
-              />
-            </div>
-
-            {/* Status badge */}
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <span
-                className={`w-2 h-2 rounded-full ${source === 'supabase' ? 'bg-green-500' : 'bg-amber-500'}`}
-              />
-              <span className="hidden sm:inline">
-                {source === 'supabase' ? 'Datos en vivo' : 'Datos de referencia'}
-              </span>
-            </div>
-          </div>
-        </div>
-      </header>
-
       {/* Page title */}
       <div className="bg-[#00074E]">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-8 lg:py-12">
-          <h1 className="font-display text-3xl lg:text-4xl text-white">Tablero de Monitoreo</h1>
-          <p className="font-body text-base lg:text-lg text-white/80 mt-1">
-            Defensoría de los Derechos de Niñas, Niños y Adolescentes de Córdoba
-          </p>
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-8 lg:py-12 flex items-center justify-between">
+          <div>
+            <h1 className="font-display text-3xl lg:text-4xl text-white">Tablero de Monitoreo</h1>
+            <p className="font-body text-base lg:text-lg text-white/80 mt-1">
+              Defensoría de los Derechos de Niñas, Niños y Adolescentes de Córdoba
+            </p>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-white/70">
+            <span className={`w-2 h-2 rounded-full ${source === 'supabase' ? 'bg-green-400' : 'bg-amber-400'}`} />
+            <span className="hidden sm:inline">
+              {source === 'supabase' ? 'Datos en vivo' : 'Datos de referencia'}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -255,20 +225,18 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-6 lg:px-8 py-6">
           <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <Image
+              <img
                 src="/logos/Cba.png"
                 alt="Gobierno de Córdoba"
                 width={32}
                 height={32}
-                style={{ height: 'auto' }}
                 className="rounded"
               />
-              <Image
+              <img
                 src="/logos/LOGO DDNA_HORIZONTAL_COLOR.png"
                 alt="DDNA"
                 width={120}
                 height={32}
-                style={{ height: 'auto' }}
                 className="object-contain"
               />
             </div>

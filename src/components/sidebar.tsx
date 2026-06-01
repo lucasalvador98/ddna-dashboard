@@ -21,6 +21,7 @@ const navItems: NavItem[] = [
   { label: "Educación", href: "/educacion", iconSrc: "/logos/Recurso 3@2x.png", iconAlt: "Educación" },
   { label: "Aprender", href: "/aprender", iconSrc: "/logos/Recurso 3@2x.png", iconAlt: "Aprender" },
   { label: "Condiciones", href: "/condiciones", iconSrc: "/logos/Recurso 4@2x.png", iconAlt: "Condiciones" },
+  { label: "Pobreza", href: "/pobreza", iconSrc: "/logos/Recurso 4@2x.png", iconAlt: "Pobreza" },
   { label: "Seguridad", href: "/seguridad", iconSrc: "/logos/Recurso 5@2x.png", iconAlt: "Seguridad" },
   { label: "Inversión", href: "/inversion", iconSrc: "/logos/Recurso 6@2x.png", iconAlt: "Inversión Social" },
   { label: "Mapas", href: "/geo", iconSrc: "/logos/Recurso 5@2x.png", iconAlt: "Mapas" },

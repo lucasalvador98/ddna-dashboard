@@ -31,6 +31,7 @@ export function Header() {
     { label: "Pobreza", href: "/pobreza" },
     { label: "Seguridad", href: "/seguridad" },
     { label: "Inversión Social", href: "/inversion" },
+    { label: "Repositorio", href: "/repositorio" },
     { label: "Fuentes de Datos", href: "/fuentes" },
   ];
 

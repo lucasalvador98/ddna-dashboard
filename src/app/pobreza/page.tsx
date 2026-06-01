@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Users, TrendingUp, TrendingDown, Baby, Home, PersonStanding } from 'lucide-react';
+import { Users, TrendingUp, TrendingDown, Baby, Home, PersonStanding, AlertCircle } from 'lucide-react';
 import { SectionHeader } from '@/components/section-header';
 import { ChartCard } from '@/components/charts/chart-card';
 import { supabase } from '@/lib/supabase';
@@ -17,23 +17,31 @@ type PovertyRecord = {
 export default function PobrezaPage() {
   const [data, setData] = useState<PovertyRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadData() {
-      const { data: povertyData } = await supabase
-        .from('indicadores')
-        .select('indicador_nombre, valor, periodo, desglose')
-        .eq('categoria', 'pobreza')
-        .order('periodo', { ascending: true });
+      try {
+        const { data: povertyData, error: queryError } = await supabase
+          .from('indicadores')
+          .select('indicador_nombre, valor, periodo, desglose')
+          .eq('categoria', 'pobreza')
+          .order('periodo', { ascending: true });
 
-      if (povertyData) {
-        const parsed = povertyData.map(r => ({
-          ...r,
-          desglose: parseDesglose(r.desglose),
-        }));
-        setData(parsed as PovertyRecord[]);
+        if (queryError) throw queryError;
+
+        if (povertyData) {
+          const parsed = povertyData.map(r => ({
+            ...r,
+            desglose: parseDesglose(r.desglose),
+          }));
+          setData(parsed as PovertyRecord[]);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error al cargar datos');
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
     loadData();
   }, []);
@@ -83,6 +91,20 @@ export default function PobrezaPage() {
     const diff = current - prev;
     return { value: diff.toFixed(1), positive: diff > 0 };
   };
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <SectionHeader icon={Users} title="Pobreza e Indigencia" description="Indicadores de condiciones socioeconómicas" color="magenta" />
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <AlertCircle className="w-12 h-12 text-red-400 mb-4" />
+          <p className="font-body text-gray-600 mb-2">Error al cargar los datos</p>
+          <p className="text-sm text-gray-400 mb-4">{error}</p>
+          <button onClick={() => window.location.reload()} className="px-4 py-2 bg-[#BF1363] text-white rounded-lg text-sm hover:bg-[#a01052] transition-colors">Reintentar</button>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
