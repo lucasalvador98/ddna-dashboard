@@ -27,8 +27,8 @@ type IndicadorRow = {
 type TabId = 'ingresos' | 'multidimensional' | 'infancia';
 
 const TABS: { id: TabId; label: string }[] = [
-  { id: 'ingresos', label: 'Pobreza por Ingresos' },
-  { id: 'multidimensional', label: 'Pobreza Multidimensional' },
+  { id: 'ingresos', label: 'Ingresos (INDEC)' },
+  { id: 'multidimensional', label: 'Multidimensional (UCA)' },
   { id: 'infancia', label: 'Infancia (UCA)' },
 ];
 
@@ -211,24 +211,37 @@ export default function PobrezaPage() {
   }
 
   // ─── INDEC processed data ─────────────────────────────────────
-  const indecByYear = (indicatorName: string, semestre: number = 2) => {
+  // Get all data points for an indicator — no semester filter, all periods
+  const indecGetAll = (indicatorName: string) => {
     return indecData
-      .filter((r) => r.indicador_nombre === indicatorName && r.desglose?.semestre === semestre)
-      .map((r) => ({ year: r.periodo, valor: r.valor }));
+      .filter((r) => r.indicador_nombre === indicatorName)
+      .map((r) => ({ year: r.periodo, semestre: Number(r.desglose?.semestre) || 0, valor: r.valor }));
   };
 
-  const phYearly = indecByYear('Pobreza hogares');
-  const ppYearly = indecByYear('Pobreza personas');
+  const phAll = indecGetAll('Pobreza hogares');
+  const ppAll = indecGetAll('Pobreza personas');
 
-  // Merge for chart
-  const yearSet = new Set<number>();
-  phYearly.forEach((p) => yearSet.add(p.year));
-  ppYearly.forEach((p) => yearSet.add(p.year));
-  const sortedYears = [...yearSet].sort((a, b) => a - b);
-  const evoChartData = sortedYears.map((y) => ({
-    year: y,
-    'Hogares': Number(phYearly.find((p) => p.year === y)?.valor ?? 0) || undefined,
-    'Personas': Number(ppYearly.find((p) => p.year === y)?.valor ?? 0) || undefined,
+  // Build sorted unique period labels (year + semester)
+  const periodSet = new Map<string, { year: number; semestre: number; label: string }>();
+  for (const d of [...phAll, ...ppAll]) {
+    const key = `${d.year}-${d.semestre}`;
+    if (!periodSet.has(key)) {
+      periodSet.set(key, {
+        year: d.year,
+        semestre: d.semestre,
+        label: periodoLabel(d.year, { semestre: d.semestre || undefined }),
+      });
+    }
+  }
+
+  const sortedPeriods = [...periodSet.values()].sort((a, b) =>
+    a.year !== b.year ? a.year - b.year : a.semestre - b.semestre
+  );
+
+  const evoChartData = sortedPeriods.map((p) => ({
+    label: p.label,
+    'Hogares': phAll.find((d) => d.year === p.year && d.semestre === p.semestre)?.valor ?? undefined,
+    'Personas': ppAll.find((d) => d.year === p.year && d.semestre === p.semestre)?.valor ?? undefined,
   }));
 
   // Latest KPIs (INDEC)
@@ -309,7 +322,7 @@ export default function PobrezaPage() {
       <SectionHeader
         icon={Users}
         title="Pobreza e Indigencia"
-        description="Medición por ingresos (INDEC) y multidimensional (UCA-ODSA). Datos complementarios para entender el fenómeno de la pobreza en Argentina."
+        description="Indicadores de condiciones socioeconómicas — Córdoba (EPH-INDEC & UCA-ODSA). Medición por ingresos y enfoque multidimensional de derechos."
         color="magenta"
       />
 
@@ -382,7 +395,7 @@ function TabIngresos({
   latestDesempleo?: IndicadorRow;
   changePH: ReturnType<typeof calcChange>;
   changePP: ReturnType<typeof calcChange>;
-  evoChartData: { year: number; Hogares?: number; Personas?: number }[];
+  evoChartData: { label: string; Hogares?: number; Personas?: number }[];
   tableRows: { periodo: string; ph: string; pp: string }[];
 }) {
   if (indecData.length === 0) {
@@ -448,8 +461,8 @@ function TabIngresos({
 
       {/* Chart: Evolución */}
       <ChartCard
-        title="Evolución Pobreza — Córdoba (2016‑2025)"
-        subtitle="Porcentaje de hogares y personas bajo la línea de pobreza — 2° semestre de cada año"
+        title="Evolución de la Pobreza — Córdoba (2016-2025)"
+        subtitle="Porcentaje de hogares y personas bajo la línea de pobreza. Se muestran todos los semestres disponibles."
         color="magenta"
         fuente={INDEC_FUENTE}
       >
@@ -462,7 +475,7 @@ function TabIngresos({
             <BarChart data={evoChartData} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
               <XAxis
-                dataKey="year"
+                dataKey="label"
                 tick={{ fill: '#4D4D4D', fontSize: 12 }}
                 tickLine={{ stroke: '#E5E7EB' }}
               />
@@ -550,6 +563,18 @@ function TabMultidimensional({
 
   return (
     <div className="space-y-6">
+      {/* Explanatory box */}
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-5">
+        <div className="flex gap-3">
+          <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+          <div className="text-sm text-blue-900 leading-relaxed">
+            <p>
+              La <strong>UCA-ODSA</strong> mide la pobreza desde un <strong>enfoque de derechos</strong>. No solo ingresos: evalúa <strong>6 dimensiones</strong> del desarrollo humano (alimentación, servicios, vivienda, ambiente, educación, empleo).
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
@@ -628,6 +653,9 @@ function TabMultidimensional({
         <p className="text-xs text-gray-400 text-center mt-4">
           Valores estimados según metodología UCA-ODSA. Datos exactos en informe completo.
         </p>
+        <p className="text-xs text-gray-400 text-center mt-2">
+          Los datos de evolución por dimensión están disponibles en el informe completo de UCA-ODSA.
+        </p>
       </ChartCard>
 
       {/* Context Box */}
@@ -664,12 +692,83 @@ function TabInfancia({ ucaData }: { ucaData: IndicadorRow[] }) {
 
   return (
     <div className="space-y-8">
+      {/* Explanatory box */}
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-5">
+        <div className="flex gap-3">
+          <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+          <div className="text-sm text-blue-900 leading-relaxed">
+            <p>
+              El <strong>Barómetro de la Deuda Social de la Infancia (UCA)</strong> monitorea <strong>7 dimensiones</strong> de derechos de NNyA (0-17 años) en áreas urbanas de Argentina desde 2010.
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard title="Inseguridad Alimentaria Total" value={`${findVal('Inseguridad alimentaria total')?.valor ?? '—'}%`} subtitle="2025 — NNyA 0-17 (UCA)" icon={UtensilsCrossed} color="magenta" change="⬇️ -6.7pp vs 2024" changeType="down" />
         <KpiCard title="Inseg. Alimentaria Severa" value={`${findVal('severa')?.valor ?? '—'}%`} subtitle="2025 — pasan hambre" icon={AlertCircle} color="orange" change="⬇️ -3.3pp vs 2024" changeType="down" />
         <KpiCard title="Sin internet en casa" value={`${findVal('sin internet')?.valor ?? '—'}%`} subtitle="2025 — era 73.5% en 2010" icon={Layers} color="blue" change="⬇️ -57.7pp vs 2010" changeType="down" />
         <KpiCard title="Sin actividad física" value={`${findVal('física')?.valor ?? '—'}%`} subtitle="2025 — interior del país" icon={Users} color="terracotta" />
       </div>
+
+      {/* NNyA Time Series */}
+      {(() => {
+        const nnIaData = ucaData
+          .filter(d => d.indicador_nombre?.toLowerCase().includes('inseguridad alimentaria total'))
+          .sort((a, b) => a.periodo - b.periodo);
+
+        if (nnIaData.length >= 2) {
+          const chartData = nnIaData.map(d => ({
+            year: d.periodo,
+            valor: d.valor,
+          }));
+          return (
+            <ChartCard
+              title="Evolución — Inseguridad Alimentaria NNyA"
+              subtitle="Porcentaje de NNyA (0-17 años) con inseguridad alimentaria total. Argentina urbana."
+              color="magenta"
+              fuente="UCA-ODSA — Barómetro de la Deuda Social de la Infancia"
+            >
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                  <XAxis
+                    dataKey="year"
+                    tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                    tickLine={{ stroke: '#E5E7EB' }}
+                  />
+                  <YAxis
+                    tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                    tickLine={{ stroke: '#E5E7EB' }}
+                    tickFormatter={(v: number) => `${v}%`}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#FFF',
+                      border: '1px solid #E0E0E0',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                    }}
+                    formatter={(value) => [`${value ?? '—'}%`, 'Inseguridad Alimentaria']}
+                  />
+                  <Bar dataKey="valor" fill={COLORS.magenta} radius={[4, 4, 0, 0]} name="NNyA 0-17" />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartCard>
+          );
+        }
+
+        return (
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-5">
+            <div className="flex gap-3">
+              <TrendingUp className="w-5 h-5 text-gray-500 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-gray-700 leading-relaxed">
+                <p>Los datos de evolución temporal para NNyA están disponibles en los informes anuales completos del <strong>Barómetro de la Deuda Social de la Infancia (UCA)</strong>.</p>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       <div className="bg-red-50 border-2 border-red-200 rounded-xl p-5">
         <div className="flex gap-3">
