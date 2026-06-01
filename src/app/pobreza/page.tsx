@@ -24,12 +24,12 @@ type IndicadorRow = {
   region: string;
 };
 
-type TabId = 'ingresos' | 'multidimensional' | 'comparacion';
+type TabId = 'ingresos' | 'multidimensional' | 'infancia';
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'ingresos', label: 'Pobreza por Ingresos' },
   { id: 'multidimensional', label: 'Pobreza Multidimensional' },
-  { id: 'comparacion', label: 'Comparación' },
+  { id: 'infancia', label: 'Infancia (UCA)' },
 ];
 
 // ─── Constants ──────────────────────────────────────────────────
@@ -357,20 +357,9 @@ export default function PobrezaPage() {
         />
       )}
 
-      {/* ── Tab 3: Comparación ─────────────────────────────── */}
-      {tab === 'comparacion' && (
-        <TabComparacion
-          indecData={indecData}
-          ucaData={ucaData}
-          indPhPers={indPhPers}
-          indPhHog={indPhHog}
-          indIndPers={indIndPers}
-          indIndHog={indIndHog}
-          ucaPhPers={ucaPhPers}
-          ucaPhHog={ucaPhHog}
-          ucaIndPers={ucaIndPers}
-          ucaIndHog={ucaIndHog}
-        />
+      {/* ── Tab 3: Infancia (UCA) ──────────────────────────── */}
+      {tab === 'infancia' && (
+        <TabInfancia ucaData={ucaData} />
       )}
     </div>
   );
@@ -660,7 +649,64 @@ function TabMultidimensional({
   );
 }
 
-// ─── Tab 3: Comparación ─────────────────────────────────────────
+// ─── Tab 3: Infancia (UCA) ─────────────────────────────────────────
+function TabInfancia({ ucaData }: { ucaData: IndicadorRow[] }) {
+  const findVal = (keyword: string) => ucaData.find(d => d.indicador_nombre?.toLowerCase().includes(keyword.toLowerCase()));
+
+  if (ucaData.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <Info className="w-12 h-12 text-gray-300 mb-4" />
+        <p className="font-body text-gray-600">No hay datos de infancia disponibles</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <KpiCard title="Inseguridad Alimentaria Total" value={`${findVal('Inseguridad alimentaria total')?.valor ?? '—'}%`} subtitle="2025 — NNyA 0-17 (UCA)" icon={UtensilsCrossed} color="magenta" change="⬇️ -6.7pp vs 2024" changeType="down" />
+        <KpiCard title="Inseg. Alimentaria Severa" value={`${findVal('severa')?.valor ?? '—'}%`} subtitle="2025 — pasan hambre" icon={AlertCircle} color="orange" change="⬇️ -3.3pp vs 2024" changeType="down" />
+        <KpiCard title="Sin internet en casa" value={`${findVal('sin internet')?.valor ?? '—'}%`} subtitle="2025 — era 73.5% en 2010" icon={Layers} color="blue" change="⬇️ -57.7pp vs 2010" changeType="down" />
+        <KpiCard title="Sin actividad física" value={`${findVal('física')?.valor ?? '—'}%`} subtitle="2025 — interior del país" icon={Users} color="terracotta" />
+      </div>
+
+      <div className="bg-red-50 border-2 border-red-200 rounded-xl p-5">
+        <div className="flex gap-3">
+          <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <h3 className="font-accent text-red-700 font-semibold text-lg mb-2">La desigualdad que no cede</h3>
+            <p className="text-sm text-red-600 font-body mb-3">
+              NNyA de nivel <strong>muy bajo</strong>: <strong>28 veces más</strong> probabilidad de pasar hambre que nivel medio-alto.
+            </p>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="bg-white/50 rounded-lg p-3 text-center">
+                <p className="font-accent text-red-700">Nivel muy bajo</p>
+                <p className="text-2xl font-bold text-red-600">31.1%</p>
+                <p className="text-xs text-red-500">inseguridad severa</p>
+              </div>
+              <div className="bg-white/50 rounded-lg p-3 text-center">
+                <p className="font-accent text-green-700">Nivel medio-alto</p>
+                <p className="text-2xl font-bold text-green-600">1.1%</p>
+                <p className="text-xs text-green-500">inseguridad severa</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 flex gap-3">
+        <Info className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+        <div className="text-sm text-amber-800 font-body">
+          <p className="mb-2"><strong>Fuente:</strong> Barómetro de la Deuda Social de la Infancia — UCA (2010-2025). Infancia en Argentina: avances en la coyuntura, deudas estructurales.</p>
+          <p>7 dimensiones monitoreadas: Alimentación, Salud, Hábitat, Subsistencia, Crianza, Educación, Información.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Tab (commented): Comparación ──────────────────────────────────
 function TabComparacion({
   indecData,
   ucaData,
