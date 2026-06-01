@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Users, TrendingUp, TrendingDown, Baby, Home, PersonStanding, AlertCircle } from 'lucide-react';
 import { SectionHeader } from '@/components/section-header';
+import { KpiCard } from '@/components/kpi-card';
 import { ChartCard } from '@/components/charts/chart-card';
 import { supabase } from '@/lib/supabase';
 import { parseDesglose } from '@/lib/parse-desglose';
@@ -133,77 +134,38 @@ export default function PobrezaPage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl border border-[#E0E0E0] p-5">
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-            <Home className="w-4 h-4" />
-            Pobreza Hogares
-          </div>
-          <p className="text-3xl font-bold text-[#BF1363]">
-            {formatPercent(latestPobrezaHogar?.valor)}
-          </p>
-          {prevPobrezaHogar && latestPobrezaHogar && (
-            <div
-              className={`flex items-center gap-1 text-sm mt-1 ${
-                latestPobrezaHogar.valor > prevPobrezaHogar.valor
-                  ? 'text-red-600'
-                  : 'text-green-600'
-              }`}
-            >
-              {latestPobrezaHogar.valor > prevPobrezaHogar.valor ? (
-                <TrendingUp className="w-4 h-4" />
-              ) : (
-                <TrendingDown className="w-4 h-4" />
-              )}
-              {calcChange(latestPobrezaHogar.valor, prevPobrezaHogar.valor)?.value}% vs 2023
-            </div>
-          )}
-        </div>
-
-        <div className="bg-white rounded-xl border border-[#E0E0E0] p-5">
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-            <PersonStanding className="w-4 h-4" />
-            Pobreza Personas
-          </div>
-          <p className="text-3xl font-bold text-[#BF1363]">
-            {formatPercent(latestPobrezaPersona?.valor)}
-          </p>
-          {prevPobrezaPersona && latestPobrezaPersona && (
-            <div
-              className={`flex items-center gap-1 text-sm mt-1 ${
-                latestPobrezaPersona.valor > prevPobrezaPersona.valor
-                  ? 'text-red-600'
-                  : 'text-green-600'
-              }`}
-            >
-              {latestPobrezaPersona.valor > prevPobrezaPersona.valor ? (
-                <TrendingUp className="w-4 h-4" />
-              ) : (
-                <TrendingDown className="w-4 h-4" />
-              )}
-              {calcChange(latestPobrezaPersona.valor, prevPobrezaPersona.valor)?.value}% vs 2023
-            </div>
-          )}
-        </div>
-
-        <div className="bg-white rounded-xl border border-[#E0E0E0] p-5">
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-            <Home className="w-4 h-4" />
-            Indigencia Hogares
-          </div>
-          <p className="text-3xl font-bold text-[#E07A5F]">
-            {formatPercent(latestIndigenciaHogar?.valor)}
-          </p>
-        </div>
-
-        <div className="bg-white rounded-xl border border-[#E0E0E0] p-5">
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-            <PersonStanding className="w-4 h-4" />
-            Indigencia Personas
-          </div>
-          <p className="text-3xl font-bold text-[#E07A5F]">
-            {formatPercent(latestIndigenciaPersona?.valor)}
-          </p>
-        </div>
+        <KpiCard
+          title="Pobreza Hogares"
+          value={String(formatPercent(latestPobrezaHogar?.valor))}
+          subtitle={latestPobrezaHogar?.periodo ? `${String(latestPobrezaHogar.periodo)} vs 2023` : 'vs 2023'}
+          change={String(calcChange(latestPobrezaHogar?.valor, prevPobrezaHogar?.valor)?.value ?? '—')}
+          changeType={latestPobrezaHogar && prevPobrezaHogar ? (latestPobrezaHogar.valor > prevPobrezaHogar.valor ? 'up' : 'down') : 'neutral'}
+          icon={Home}
+          color="magenta"
+        />
+        <KpiCard
+          title="Pobreza Personas"
+          value={String(formatPercent(latestPobrezaPersona?.valor))}
+          subtitle={`${String(latestPobrezaPersona?.periodo || '')} vs 2023`}
+          change={String(calcChange(latestPobrezaPersona?.valor, prevPobrezaPersona?.valor)?.value ?? '—')}
+          changeType={latestPobrezaPersona && prevPobrezaPersona ? (latestPobrezaPersona.valor > prevPobrezaPersona.valor ? 'up' : 'down') : 'neutral'}
+          icon={PersonStanding}
+          color="magenta"
+        />
+        <KpiCard
+          title="Indigencia Hogares"
+          value={String(formatPercent(latestIndigenciaHogar?.valor))}
+          subtitle={String(latestIndigenciaHogar?.periodo || '')}
+          icon={Home}
+          color="terracotta"
+        />
+        <KpiCard
+          title="Indigencia Personas"
+          value={String(formatPercent(latestIndigenciaPersona?.valor))}
+          subtitle={String(latestIndigenciaPersona?.periodo || '')}
+          icon={PersonStanding}
+          color="terracotta"
+        />
       </div>
 
       {/* Evolución de Pobreza */}
