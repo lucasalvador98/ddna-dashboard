@@ -107,6 +107,7 @@ export default function InversionPage() {
     .reduce((sum, d) => sum + d.value, 0);
 
   const total = totalInfancia;
+  const inversionPeriod = data.length > 0 ? data[0].periodo : null;
 
   return (
     <div className="space-y-6">
@@ -119,7 +120,7 @@ export default function InversionPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <KpiCard
-          title="Inversión en Infancia 2024"
+          title={`Inversión en Infancia ${inversionPeriod || ''}`}
           value={`$${(total / 1000).toFixed(1)} MM`}
           subtitle="Millones de pesos — categorías vinculadas a niñez/adolescencia"
           icon={Coins}
@@ -185,7 +186,7 @@ export default function InversionPage() {
 
       <ChartWithTable
         title="Top 10 Organismos por Inversión"
-        subtitle="Principales organismos ejecutores de inversión social en infancia (2024)"
+          subtitle={`Principales organismos ejecutores de inversión social en infancia ${inversionPeriod ? `(${inversionPeriod})` : ''}`}
         color="terracotta"
         fuente="Ministerio de Finanzas Córdoba"
         data={inversionOrganismo.map(d => ({ organismo: d.name, inversion: d.value }))}

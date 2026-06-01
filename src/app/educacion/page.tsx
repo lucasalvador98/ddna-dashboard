@@ -81,6 +81,10 @@ export default function EducacionPage() {
 
   const matriculaSector = getMatriculaSector();
   const totalMatricula = matriculaSector.reduce((sum, d) => sum + d.value, 0);
+  
+  // Extract period from matrícula data
+  const matriculaPublica = data.find(d => d.indicador_nombre === 'Matrícula sector estatal - General');
+  const matriculaPeriod = matriculaPublica?.periodo;
 
   // ============== DATOS 2: Asistencia educativa ==============
   const getAsistenciaEducativa = () => {
@@ -97,6 +101,11 @@ export default function EducacionPage() {
   };
 
   const asistenciaData = getAsistenciaEducativa();
+
+  // Period from asistencia data
+  const asistenciaPeriod = data
+    .filter(d => d.indicador_nombre === 'Tasa de asistencia educativa')
+    .sort((a, b) => b.periodo - a.periodo)[0]?.periodo;
 
   // ============== DATOS 3: Aprendiz - Lengua por quintil ==============
   const getAprenderLengua = () => {
@@ -159,7 +168,7 @@ export default function EducacionPage() {
         <KpiCard
           title="Matrícula Total"
           value={totalMatricula > 0 ? totalMatricula.toLocaleString('es-AR') : '—'}
-          subtitle="Alumnos en el sistema educativo"
+          subtitle={matriculaPeriod ? `${matriculaPeriod} — Alumnos en el sistema educativo` : 'Alumnos en el sistema educativo'}
           icon={Users}
           color="amber"
         />
@@ -167,7 +176,7 @@ export default function EducacionPage() {
         <KpiCard
           title="Sector Público"
           value={pctPublico > 0 ? `${pctPublico.toFixed(1)}%` : '—'}
-          subtitle="Del total de matrícula"
+          subtitle={matriculaPeriod ? `${matriculaPeriod} — Del total de matrícula` : 'Del total de matrícula'}
           icon={BookOpen}
           color="blue"
         />
@@ -175,7 +184,7 @@ export default function EducacionPage() {
         <KpiCard
           title="Escolarización Secundaria"
           value={tasaSecundaria > 0 ? `${tasaSecundaria.toFixed(1)}%` : '—'}
-          subtitle="Jóvenes de 13-17 años"
+          subtitle={asistenciaPeriod ? `${asistenciaPeriod} — Jóvenes de 13-17 años` : 'Jóvenes de 13-17 años'}
           icon={GraduationCap}
           color="magenta"
         />
@@ -184,7 +193,7 @@ export default function EducacionPage() {
       {/* Gráfico 1: Matrícula por Sector */}
       <ChartWithTable
         title="Matrícula por Sector"
-        subtitle="Distribución entre escuela pública y privada (Córdoba, 2024)"
+          subtitle={`Distribución entre escuela pública y privada (Córdoba, ${matriculaPeriod || '2024'})`}
         color="amber"
         fuente="Ministerio de Educación - Anuario 2024"
         data={matriculaSector}
@@ -222,7 +231,7 @@ export default function EducacionPage() {
       {asistenciaData.length > 0 && (
         <ChartWithTable
           title="Tasa de Asistencia Educativa por Edad"
-          subtitle="Porcentaje de población que asiste a establecimientos (Córdoba, 2022)"
+            subtitle={`Porcentaje de población que asiste a establecimientos (Córdoba, ${asistenciaPeriod || '2022'})`}
           color="amber"
           fuente="Censo Nacional 2022"
           data={asistenciaData}

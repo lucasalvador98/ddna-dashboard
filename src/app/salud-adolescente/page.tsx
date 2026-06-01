@@ -102,6 +102,11 @@ export default function SaludAdolescentePage() {
   const ultimosFecundidad = fecundidad.length > 0 ? fecundidad[fecundidad.length - 1].valor : 0;
   const ultimosMortalidad = mortalidad.length > 0 ? mortalidad[mortalidad.length - 1].valor : 0;
 
+  // Latest periods
+  const periodoNacimientos = nacimientos.length > 0 ? nacimientos[nacimientos.length - 1].periodo : null;
+  const periodoFecundidad = fecundidad.length > 0 ? fecundidad[fecundidad.length - 1].periodo : null;
+  const periodoMortalidad = mortalidad.length > 0 ? mortalidad[mortalidad.length - 1].periodo : null;
+
   // Calcular cambio
   const getCambio = (series: { periodo: number; valor: number }[]) => {
     if (series.length < 2) return null;
@@ -148,7 +153,7 @@ export default function SaludAdolescentePage() {
         <KpiCard
           title="Nacimientos adolescentes"
           value={ultimosNacimientos > 0 ? ultimosNacimientos.toLocaleString("es-AR") : "—"}
-          subtitle="Mujeres de 10-19 años"
+          subtitle={periodoNacimientos ? `${periodoNacimientos} — Mujeres de 10-19 años` : 'Mujeres de 10-19 años'}
           change={cambioNacimientos ? `${cambioNacimientos.value}%` : undefined}
           changeType={cambioNacimientos?.tipo as "up" | "down" | undefined}
           icon={Baby}
@@ -158,7 +163,7 @@ export default function SaludAdolescentePage() {
         <KpiCard
           title="Tasa de Fecundidad"
           value={ultimosFecundidad > 0 ? `${ultimosFecundidad.toFixed(1)}‰` : "—"}
-          subtitle="Por cada mil mujeres 15-19 años"
+          subtitle={periodoFecundidad ? `${periodoFecundidad} — Por cada mil mujeres 15-19 años` : 'Por cada mil mujeres 15-19 años'}
           change={cambioFecundidad ? `${cambioFecundidad.value}%` : undefined}
           changeType={cambioFecundidad?.tipo as "up" | "down" | undefined}
           icon={HeartPulse}
@@ -168,7 +173,7 @@ export default function SaludAdolescentePage() {
         <KpiCard
           title="Tasa Mortalidad"
           value={ultimosMortalidad > 0 ? `${ultimosMortalidad.toFixed(1)}‰` : "—"}
-          subtitle="Adolescentes 15-19 años"
+          subtitle={periodoMortalidad ? `${periodoMortalidad} — Adolescentes 15-19 años` : 'Adolescentes 15-19 años'}
           icon={TrendingDown}
           color="blue"
         />
@@ -178,7 +183,7 @@ export default function SaludAdolescentePage() {
       {nacimientos.length > 0 && (
         <ChartWithTable
           title="Nacimientos en Adolescentes"
-          subtitle="Serie histórica 2015-2022 (mujeres 10-19 años)"
+          subtitle={`Serie histórica ${nacimientos.length > 0 ? `${nacimientos[0].periodo}-${nacimientos[nacimientos.length - 1].periodo}` : '2015-2022'} (mujeres 10-19 años)`}
           color="magenta"
           fuente="DEIS - Dirección de Estadísticas e Información de Salud"
           data={nacimientos}

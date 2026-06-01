@@ -87,6 +87,11 @@ export default function HomePage() {
   const cambioPobreza =
     pobrezaChanges.length > 0 ? pobrezaChanges[pobrezaChanges.length - 1].cambio : null;
 
+  // Latest period from inversion data for the Inversión social KPI subtitle
+  const latestInversionPeriod = inversionData.length > 0
+    ? [...inversionData].sort((a, b) => b.periodo.localeCompare(a.periodo))[0]?.periodo
+    : null;
+
   // Stats banner values (real data from indicators, non-redundant with KPIs)
   const statsEstablecimientos = findStatSum(educacionData, 'Unidades educativas');
   const statsMatricula = findStatSum(educacionData, 'Matrícula - General');
@@ -132,7 +137,7 @@ export default function HomePage() {
               <KpiCard
                 title="Pobreza infantil"
                 value={formatValue(pobreza, '%')}
-                subtitle="Porcentaje de NNA bajo línea de pobreza"
+                subtitle={`${pobrezaInd?.periodo || ''} — Porcentaje de NNA bajo línea de pobreza`}
                 change={formatChange(cambioPobreza)}
                 changeType={
                   cambioPobreza !== null && cambioPobreza < 0
@@ -148,7 +153,7 @@ export default function HomePage() {
               <KpiCard
                 title="Mortalidad infantil"
                 value={formatValue(mortalidad, '‰')}
-                subtitle="por cada 1000 nacidos vivos"
+                subtitle={`TMI ${mortalidadInd?.periodo || ''} — por cada 1000 nacidos vivos`}
                 icon={categoryConfig.salud.icon}
                 color={categoryConfig.salud.color}
               />
@@ -156,7 +161,7 @@ export default function HomePage() {
               <KpiCard
                 title="Escolarización"
                 value={formatValue(escolarizacion, '%')}
-                subtitle="Tasa de asistencia educativa"
+                subtitle={`${escolarizacionInd?.periodo || ''} — Tasa de asistencia educativa`}
                 icon={categoryConfig.educacion.icon}
                 color={categoryConfig.educacion.color}
               />
@@ -172,7 +177,7 @@ export default function HomePage() {
               <KpiCard
                 title="Denuncias"
                 value={formatValue(denuncias, 'casos')}
-                subtitle="Registrado en el último período"
+                subtitle={`${denunciasInd?.periodo || ''} — Registrado en el último período`}
                 icon={categoryConfig.seguridad.icon}
                 color={categoryConfig.seguridad.color}
               />
@@ -180,7 +185,7 @@ export default function HomePage() {
               <KpiCard
                 title="Inversión social"
                 value={formatValue(inversion, 'Md')}
-                subtitle="Destinado a infancia y adolescencia"
+                subtitle={`${latestInversionPeriod || ''} — Destinado a infancia y adolescencia`}
                 icon={categoryConfig.inversion.icon}
                 color={categoryConfig.inversion.color}
               />

@@ -15,6 +15,7 @@ import { KpiCard } from "@/components/kpi-card";
 import { SectionHeader } from "@/components/section-header";
 import {
   useDashboardData,
+  getLatestValue,
   findStatValue,
   findStatSum,
   getInversionTotal,
@@ -82,10 +83,35 @@ export default function ExecutiveDashboard() {
 
   const matriculaTotal = findStatSum(dashboardData?.educacion ?? [], "Matricula");
 
+  // Indicator objects with period info for dynamic subtitles
+  const violenciaInd = getLatestValue(
+    dashboardData?.seguridad ?? [],
+    "Violencia Familiar"
+  );
+  const pobrezaInfantilInd = getLatestValue(
+    dashboardData?.pobreza ?? [],
+    "Pobreza infantil"
+  );
+  const mortalidadInfantilInd = getLatestValue(
+    dashboardData?.salud ?? [],
+    "TMI Cba"
+  );
+  const escolarizacionInd = getLatestValue(
+    dashboardData?.educacion ?? [],
+    "asistencia educativa"
+  );
+  const matriculaInd = getLatestValue(
+    dashboardData?.educacion ?? [],
+    "Matricula"
+  );
+
   const sectorPublicoPct =
     findStatValue(dashboardData?.educacion ?? [], "estatal") ?? null;
 
   const inversionTotal = getInversionTotal(dashboardData?.inversion ?? []);
+  const inversionPeriod = dashboardData?.inversion && dashboardData.inversion.length > 0
+    ? [...dashboardData.inversion].sort((a, b) => b.periodo.localeCompare(a.periodo))[0]?.periodo
+    : null;
 
   const inversionEducacion = sumInversionByKeyword(
     dashboardData?.inversion ?? [],
@@ -172,28 +198,28 @@ export default function ExecutiveDashboard() {
           <KpiCard
             title="Violencia Familiar"
             value={fmtNumber(violenciaFamiliar, "55,993")}
-            subtitle="casos (último período)"
+            subtitle={`${violenciaInd?.periodo || ''} — casos`}
             icon={AlertTriangle}
             color="magenta"
           />
           <KpiCard
             title="Pobreza Infantil"
             value={fmtPercent(pobrezaInfantil, "52.9%")}
-            subtitle="población 0-17 años"
+            subtitle={`${pobrezaInfantilInd?.periodo || ''} — población 0-17 años`}
             icon={Users}
             color="magenta"
           />
           <KpiCard
             title="Mortalidad Infantil"
             value={fmtPerMille(mortalidadInfantil, "7.2‰")}
-            subtitle="por mil nacidos vivos"
+            subtitle={`${mortalidadInfantilInd?.periodo || ''} — por mil nacidos vivos`}
             icon={Baby}
             color="terracotta"
           />
           <KpiCard
             title="Escolarización"
             value={fmtPercent(escolarizacion, "89.1%")}
-            subtitle="tasa neta de asistencia"
+            subtitle={`${escolarizacionInd?.periodo || ''} — tasa neta de asistencia`}
             icon={BookOpen}
             color="amber"
           />
@@ -210,14 +236,14 @@ export default function ExecutiveDashboard() {
           <KpiCard
             title="Matrícula Total"
             value={fmtNumber(matriculaTotal, "887,014")}
-            subtitle="alumnos (último período)"
+            subtitle={`${matriculaInd?.periodo || ''} — alumnos`}
             icon={BookOpen}
             color="navy"
           />
           <KpiCard
             title="Sector Público"
             value={fmtPercent(sectorPublicoPct, "64.5%")}
-            subtitle="de la matrícula total"
+            subtitle={`${matriculaInd?.periodo || ''} — de la matrícula total`}
             icon={TrendingUp}
             color="blue"
           />
@@ -241,7 +267,7 @@ export default function ExecutiveDashboard() {
           <KpiCard
             title="Inversión Total"
             value={fmtCurrency(inversionTotal, "$549,519 M")}
-            subtitle="en infancia (último período)"
+            subtitle={`${inversionPeriod || ''} — en infancia`}
             icon={Coins}
             color="green"
           />

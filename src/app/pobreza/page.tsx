@@ -64,26 +64,35 @@ export default function PobrezaPage() {
     .filter(r => r.indicador_nombre === 'Indigencia personas')
     .map(r => ({ periodo: r.periodo, valor: r.valor, desglose: r.desglose }));
 
-  // Latest data (semestre 2 of 2024)
+  // Dynamic latest and previous years with semestre 2 data
+  const sem2Periods = [...new Set(
+    data
+      .filter(r => r.desglose?.semestre === 2)
+      .map(r => r.periodo)
+  )].sort((a, b) => b - a);
+  const latestYear = sem2Periods[0];
+  const prevYear = sem2Periods[1];
+
+  // Latest data (semestre 2 of latest year)
   const latestPobrezaHogar = pobrezaHogares.find(
-    r => r.periodo === 2024 && r.desglose?.semestre === 2
+    r => r.periodo === latestYear && r.desglose?.semestre === 2
   );
   const latestPobrezaPersona = pobrezaPersonas.find(
-    r => r.periodo === 2024 && r.desglose?.semestre === 2
+    r => r.periodo === latestYear && r.desglose?.semestre === 2
   );
   const latestIndigenciaHogar = indigenciaHogares.find(
-    r => r.periodo === 2024 && r.desglose?.semestre === 2
+    r => r.periodo === latestYear && r.desglose?.semestre === 2
   );
   const latestIndigenciaPersona = indigenciaPersonas.find(
-    r => r.periodo === 2024 && r.desglose?.semestre === 2
+    r => r.periodo === latestYear && r.desglose?.semestre === 2
   );
 
   // Previous semester for comparison
   const prevPobrezaHogar = pobrezaHogares.find(
-    r => r.periodo === 2023 && r.desglose?.semestre === 2
+    r => r.periodo === prevYear && r.desglose?.semestre === 2
   );
   const prevPobrezaPersona = pobrezaPersonas.find(
-    r => r.periodo === 2023 && r.desglose?.semestre === 2
+    r => r.periodo === prevYear && r.desglose?.semestre === 2
   );
 
   const formatPercent = (val?: number) => (val !== undefined && val !== null && !isNaN(val) ? `${val.toFixed(1)}%` : 'N/D');
@@ -137,7 +146,7 @@ export default function PobrezaPage() {
         <KpiCard
           title="Pobreza Hogares"
           value={String(formatPercent(latestPobrezaHogar?.valor))}
-          subtitle={latestPobrezaHogar?.periodo ? `${String(latestPobrezaHogar.periodo)} vs 2023` : 'vs 2023'}
+          subtitle={latestPobrezaHogar?.periodo && prevYear ? `${String(latestPobrezaHogar.periodo)} vs ${prevYear}` : `vs ${prevYear || 'período anterior'}`}
           change={String(calcChange(latestPobrezaHogar?.valor, prevPobrezaHogar?.valor)?.value ?? '—')}
           changeType={latestPobrezaHogar && prevPobrezaHogar ? (latestPobrezaHogar.valor > prevPobrezaHogar.valor ? 'up' : 'down') : 'neutral'}
           icon={Home}
@@ -146,7 +155,7 @@ export default function PobrezaPage() {
         <KpiCard
           title="Pobreza Personas"
           value={String(formatPercent(latestPobrezaPersona?.valor))}
-          subtitle={`${String(latestPobrezaPersona?.periodo || '')} vs 2023`}
+          subtitle={`${String(latestPobrezaPersona?.periodo || '')} vs ${prevYear || 'período anterior'}`}
           change={String(calcChange(latestPobrezaPersona?.valor, prevPobrezaPersona?.valor)?.value ?? '—')}
           changeType={latestPobrezaPersona && prevPobrezaPersona ? (latestPobrezaPersona.valor > prevPobrezaPersona.valor ? 'up' : 'down') : 'neutral'}
           icon={PersonStanding}
@@ -215,7 +224,7 @@ export default function PobrezaPage() {
                 r.desglose?.grupo_edad === grupo &&
                 r.desglose?.semestre === 2
             );
-            const latest = infantileData.find(r => r.periodo === 2024);
+            const latest = infantileData.find(r => r.periodo === latestYear);
             return (
               <div key={grupo} className="bg-gray-50 rounded-lg p-4 text-center">
                 <div className="flex items-center justify-center gap-2 text-gray-500 mb-2">
@@ -225,7 +234,7 @@ export default function PobrezaPage() {
                 <p className="text-2xl font-bold text-[#F3A712]">
                   {latest ? `${latest.valor.toFixed(1)}%` : 'N/D'}
                 </p>
-                <p className="text-xs text-gray-400 mt-1">2024 - 2° sem</p>
+                <p className="text-xs text-gray-400 mt-1">{latestYear} - 2° sem</p>
               </div>
             );
           })}
@@ -236,7 +245,7 @@ export default function PobrezaPage() {
       <div className="bg-white rounded-xl border border-[#E0E0E0] overflow-hidden">
         <div className="p-4 border-b border-[#E0E0E0]">
           <h3 className="font-display text-lg text-[#00074E]">Serie Histórica Completa</h3>
-          <p className="text-sm text-gray-500">Evolución de pobreza e indigencia (2016-2024)</p>
+          <p className="text-sm text-gray-500">Evolución de pobreza e indigencia (2016-{latestYear})</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -250,7 +259,7 @@ export default function PobrezaPage() {
               </tr>
             </thead>
             <tbody>
-              {[2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016].reverse().map(year => {
+              {Array.from({ length: latestYear ? latestYear - 2016 + 1 : 9 }, (_, i) => 2016 + i).map(year => {
                 const ph = pobrezaHogares.find(
                   r => r.periodo === year && r.desglose?.semestre === 2
                 );

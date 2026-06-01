@@ -117,6 +117,9 @@ export default function SaludPage() {
       name: d.desglose?.vacuna || d.desglose?.tipo || 'General',
       value: Number(d.valor) || 0,
     }));
+  
+  const coberturaPeriod = data
+    .find(d => d.indicador_nombre.toLowerCase().includes('cobertura'))?.periodo;
 
   // Últimos valores
   const latestMortalidad =
@@ -162,7 +165,7 @@ export default function SaludPage() {
         <KpiCard
           title="Cobertura vacunal"
           value={latestCobertura ? `${latestCobertura.value}%` : '—'}
-          subtitle="Promedio de esquemas completos"
+          subtitle={`${coberturaPeriod || ''} — Promedio de esquemas completos`}
           icon={Syringe}
           color="blue"
         />

@@ -54,6 +54,10 @@ export default function SeguridadPage() {
 
   const distribucionData = getDistribucion();
   const total = distribucionData.reduce((sum, d) => sum + d.value, 0);
+  
+  // Latest period from data (sorted by periodo, not by value)
+  const periodos = [...new Set(data.map(d => d.periodo))].sort((a, b) => b.localeCompare(a));
+  const latestPeriod = periodos[0] || '';
 
   return (
     <div className="space-y-6">
@@ -68,21 +72,21 @@ export default function SeguridadPage() {
         <KpiCard
           title="Total casos"
           value={total > 0 ? total.toLocaleString("es-AR") : "—"}
-          subtitle="Casos registrados en el sistema"
+          subtitle={`${latestPeriod} — Casos registrados en el sistema`}
           icon={Shield}
           color="blue"
         />
         <KpiCard
           title="Violencia Familiar"
           value={distribucionData.find(d => d.name === "Violencia Familiar")?.value.toLocaleString("es-AR") || "—"}
-          subtitle="Denuncias por violencia familiar"
+          subtitle={`${latestPeriod} — Denuncias por violencia familiar`}
           icon={AlertTriangle}
           color="magenta"
         />
         <KpiCard
           title="Niñez y Adolescencia"
           value={distribucionData.find(d => d.name === "Niñez")?.value.toLocaleString("es-AR") || "—"}
-          subtitle="Casos de niños, niñas y adolescentes"
+          subtitle={`${latestPeriod} — Casos de niños, niñas y adolescentes`}
           icon={Shield}
           color="orange"
         />
