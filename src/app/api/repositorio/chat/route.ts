@@ -694,13 +694,12 @@ export async function POST(request: Request) {
         console.error(`LLM call failed (round ${round}):`, err);
         // If we have results from previous rounds, try to synthesize manually
         if (toolsUsed.length > 0) {
+          const errMsg = err instanceof Error ? err.message : String(err);
           finalAnswer =
-            'No pude generar una respuesta completa debido a un error en el servicio de IA. ' +
-            'A continuación se muestran los datos que se pudieron obtener:\n\n' +
-            '**Herramientas ejecutadas**: ' +
-            toolsUsed.join(', ') +
-            '\n\n' +
-            'Por favor, intentá de nuevo con una consulta más específica.';
+            '⚠️ No pude generar la respuesta final (error: ' + errMsg.substring(0, 300) + ').\n\n' +
+            '**Herramientas ejecutadas**: ' + toolsUsed.join(', ') + '\n\n' +
+            'Los datos se obtuvieron correctamente pero el servicio de IA falló al sintetizarlos. ' +
+            'Probá con una consulta más específica o reintentá en unos segundos.';
           break;
         }
         throw err;
