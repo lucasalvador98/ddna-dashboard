@@ -142,7 +142,7 @@ export default function SeguridadPage() {
       </ChartWithTable>
 
       {loading && <div className="py-12 text-center text-gray-500">Cargando...</div>}
-      {error && <div className="bg-red-50 p-4 rounded text-red-700">Error: {error}</div>}
+      {error && <div className="bg-red-50 p-4 rounded"><p className="text-red-700 mb-2">Error: {error}</p><button onClick={() => window.location.reload()} className="text-sm text-red-600 underline hover:text-red-800">Reintentar</button></div>}
     </div>
   );
 }
