@@ -3,6 +3,7 @@
 import { Shield, AlertTriangle, TrendingUp } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { parseDesglose } from "@/lib/parse-desglose";
 import { SectionHeader } from "@/components/section-header";
 import { KpiCard } from "@/components/kpi-card";
 import { ChartWithTable } from "@/components/charts/chart-with-table";
@@ -34,7 +35,7 @@ export default function SeguridadPage() {
         .order("valor", { ascending: false });
 
       if (error) setError(error.message);
-      else setData(indicadores || []);
+      else setData((indicadores || []).map(d => ({ ...d, desglose: parseDesglose(d.desglose) })));
       setLoading(false);
     }
     fetchData();

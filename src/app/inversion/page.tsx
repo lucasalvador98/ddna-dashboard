@@ -62,7 +62,11 @@ export default function InversionPage() {
           ...d,
           desglose: parseDesglose(d.desglose),
         }));
-        setData(parsed);
+        // Filter to latest period only
+        const periodos = [...new Set(parsed.map(d => d.periodo))].sort((a, b) => Number(b) - Number(a));
+        const latestPeriod = periodos[0];
+        const latestData = latestPeriod ? parsed.filter(d => String(d.periodo) === String(latestPeriod)) : parsed;
+        setData(latestData);
       }
       setLoading(false);
     }

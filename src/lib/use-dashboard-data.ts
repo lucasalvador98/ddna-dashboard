@@ -95,12 +95,20 @@ function parseDesglose(raw: unknown): Record<string, unknown> {
 }
 
 function normalizeIndicador(ind: Record<string, unknown>): Indicador {
+  const rawValor = Number(ind.valor);
+  // Round to max 3 meaningful decimals for display
+  const valor = rawValor ? Number(rawValor.toFixed(3)) : 0;
+  // Sanitize encoding issues in unidad (Ã¢â‚¬Â° → ‰)
+  const unidad = String(ind.unidad || '')
+    .replace(/Ã¢â‚¬Â°/g, '‰')
+    .replace(/Ã¡/g, 'á').replace(/Ã©/g, 'é').replace(/Ã­/g, 'í')
+    .replace(/Ã³/g, 'ó').replace(/Ãº/g, 'ú').replace(/Ã±/g, 'ñ');
   return {
     id: String(ind.id),
     indicador_nombre: String(ind.indicador_nombre || ''),
     categoria: String(ind.categoria || ''),
-    valor: Number(ind.valor) || 0,
-    unidad: String(ind.unidad || ''),
+    valor,
+    unidad,
     periodo: String(ind.periodo || ''),
     region: String(ind.region || ''),
     desglose: parseDesglose(ind.desglose),

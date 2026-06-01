@@ -151,7 +151,7 @@ export default function SaludPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <KpiCard
           title="Mortalidad infantil Córdoba"
-          value={latestMortalidad ? `${latestMortalidad.valor}‰` : '—'}
+          value={latestMortalidad ? `${Number(latestMortalidad.valor).toFixed(1)}‰` : '—'}
           subtitle={`TMI - Córdoba ${latestMortalidad?.periodo || ''}`}
           change={cambioMortalidad ? `${cambioMortalidad.value}‰` : undefined}
           changeType={cambioMortalidad?.tipo as 'up' | 'down' | undefined}
@@ -197,7 +197,7 @@ export default function SaludPage() {
               <YAxis
                 tick={{ fill: '#4D4D4D', fontSize: 12 }}
                 domain={[0, 'auto']}
-                tickFormatter={v => `${v}‰`}
+                tickFormatter={v => `${Number(v).toFixed(1)}‰`}
               />
               <Tooltip
                 contentStyle={{

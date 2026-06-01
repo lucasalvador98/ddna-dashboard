@@ -86,7 +86,7 @@ export default function PobrezaPage() {
     r => r.periodo === 2023 && r.desglose?.semestre === 2
   );
 
-  const formatPercent = (val?: number) => (val ? `${val.toFixed(1)}%` : 'N/D');
+  const formatPercent = (val?: number) => (val !== undefined && val !== null && !isNaN(val) ? `${val.toFixed(1)}%` : 'N/D');
   const calcChange = (current?: number, prev?: number) => {
     if (!current || !prev) return null;
     const diff = current - prev;
