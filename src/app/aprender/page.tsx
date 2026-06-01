@@ -1,8 +1,9 @@
 "use client";
 
-import { GraduationCap, TrendingDown, AlertTriangle, BarChart3 } from "lucide-react";
+import { GraduationCap, TrendingDown, AlertTriangle, BarChart3, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { parseDesglose } from "@/lib/parse-desglose";
 import { SectionHeader } from "@/components/section-header";
 import { KpiCard } from "@/components/kpi-card";
 import { ChartWithTable } from "@/components/charts/chart-with-table";
@@ -24,78 +25,122 @@ const COLORS = {
   blue: "#3777FF",
 };
 
-interface IndicadorData {
-  indicador_nombre: string;
-  valor: number;
-  region: string;
+interface AprenderRow {
+  quintil: string;
+  satisfactorio: number;
+  basico: number;
+  debajo: number;
 }
 
-// Datos completos de Aprender 2024 - Córdoba
-// Fuente: Evaluación Aprender 2024
-const aprenderData = {
-  lengua: [
-    { quintil: "Q1", sector: "Estatal", satisfactorio: 39.9, basico: 34.8, debajo: 23.7 },
-    { quintil: "Q1", sector: "Privado", satisfactorio: 37.0, basico: 34.2, debajo: 27.6 },
-    { quintil: "Q2", sector: "Estatal", satisfactorio: 43.5, basico: 34.1, debajo: 19.8 },
-    { quintil: "Q2", sector: "Privado", satisfaisatorio: 42.3, basico: 33.2, debajo: 22.5 },
-    { quintil: "Q3", sector: "Estatal", satisfactorio: 47.8, basico: 32.3, debajo: 16.4 },
-    { quintil: "Q3", sector: "Privado", satisfactorio: 47.7, basico: 31.7, debajo: 18.0 },
-    { quintil: "Q4", sector: "Estatal", satisfactorio: 50.2, basico: 30.3, debajo: 13.5 },
-    { quintil: "Q4", sector: "Privado", satisfactorio: 50.6, basico: 29.1, debajo: 14.1 },
-    { quintil: "Q5", sector: "Estatal", satisfactorio: 54.3, basico: 26.9, debajo: 9.7 },
-    { quintil: "Q5", sector: "Privado", satisfactory: 54.4, basico: 24.8, debajo: 9.6 },
-  ],
-  matematica: [
-    { quintil: "Q1", sector: "Estatal", satisfactorio: 4.8, basico: 24.1, debajo: 71.1 },
-    { quintil: "Q1", sector: "Privado", satisfactorio: 8.4, basico: 33.0, debajo: 58.6 },
-    { quintil: "Q2", sector: "Estatal", satisfactorio: 5.7, basico: 28.8, debajo: 65.5 },
-    { quintil: "Q2", sector: "Privado", satisfactorio: 9.5, basico: 36.2, debajo: 54.3 },
-    { quintil: "Q3", sector: "Estatal", satisfactorio: 8.9, basico: 32.4, debajo: 58.7 },
-    { quintil: "Q3", sector: "Privado", satisfactorio: 14.0, basico: 38.2, debajo: 47.8 },
-    { quintil: "Q4", sector: "Estatal", satisfactorio: 11.7, basico: 36.9, debajo: 51.4 },
-    { quintil: "Q4", sector: "Privado", satisfactorio: 19.7, basico: 39.7, debajo: 40.6 },
-    { quintil: "Q5", sector: "Estatal", satisfactorio: 21.4, basico: 39.4, debajo: 39.2 },
-    { quintil: "Q5", sector: "Privado", satisfactorio: 28.4, basico: 41.3, debajo: 30.3 },
-  ],
-};
+// ─── Data fetching & transformation ────────────────────────────────────────────
+
+function buildChartData(
+  rawData: Array<{ indicador_nombre: string; valor: number; desglose: Record<string, unknown> }>,
+  subject: "lengua" | "matematica",
+  sector?: string
+): AprenderRow[] {
+  const subjectKey = subject === "lengua" ? "Lengua" : "Matemática";
+  const quintiles = ["Q1", "Q2", "Q3", "Q4", "Q5"];
+
+  return quintiles.map((q) => {
+    const row: AprenderRow = { quintil: q, satisfactorio: 0, basico: 0, debajo: 0 };
+
+    const matches = (d: { desglose: Record<string, unknown> }) =>
+      d.desglose?.quintil === q && (!sector || d.desglose?.sector === sector);
+
+    const sat = rawData.find(
+      (d) => d.indicador_nombre === `Nivel ${subjectKey} - Satisfactorio` && matches(d)
+    );
+    row.satisfactorio = sat ? Number(sat.valor) : 0;
+
+    const bas = rawData.find(
+      (d) => d.indicador_nombre === `Nivel ${subjectKey} - Básico` && matches(d)
+    );
+    row.basico = bas ? Number(bas.valor) : 0;
+
+    const deb = rawData.find(
+      (d) =>
+        (d.indicador_nombre === `Nivel ${subjectKey} - Por debajo del básico` ||
+          d.indicador_nombre === `Nivel ${subjectKey} - Por debajo del básicos`) &&
+        matches(d)
+    );
+    row.debajo = deb ? Number(deb.valor) : 0;
+
+    return row;
+  });
+}
+
+// ─── Component ─────────────────────────────────────────────────────────────────
 
 export default function AprenderPage() {
-  const [loading, setLoading] = useState(false);
+  const [rawData, setRawData] = useState<
+    Array<{ indicador_nombre: string; valor: number; desglose: Record<string, unknown> }>
+  >([]);
+  const [loading, setLoading] = useState(true);
   const [area, setArea] = useState<"lengua" | "matematica">("lengua");
 
-  // Procesar datos para gráficos
-  const lenguaChart = [
-    { quintil: "Q1", satisfactorio: 39.9, basico: 34.8, debajo: 23.7 },
-    { quintil: "Q2", satisfactorio: 43.5, basico: 34.1, debajo: 19.8 },
-    { quintil: "Q3", satisfactorio: 47.8, basico: 32.3, debajo: 16.4 },
-    { quintil: "Q4", satisfactorio: 50.2, basico: 30.3, debajo: 13.5 },
-    { quintil: "Q5", satisfactorio: 54.3, basico: 26.9, debajo: 9.7 },
-  ];
+  useEffect(() => {
+    supabase
+      .from("indicadores")
+      .select("indicador_nombre, valor, desglose")
+      .eq("categoria", "aprender")
+      .then(({ data }) => {
+        setRawData(
+          (data || []).map((d) => ({
+            ...d,
+            desglose: parseDesglose(d.desglose),
+          }))
+        );
+        setLoading(false);
+      });
+  }, []);
 
-  const matematicaChart = [
-    { quintil: "Q1", satisfactorio: 4.8, basico: 24.1, debajo: 71.1 },
-    { quintil: "Q2", satisfactorio: 5.7, basico: 28.8, debajo: 65.5 },
-    { quintil: "Q3", satisfactorio: 8.9, basico: 32.4, debajo: 58.7 },
-    { quintil: "Q4", satisfactorio: 11.7, basico: 36.9, debajo: 51.4 },
-    { quintil: "Q5", satisfactorio: 21.4, basico: 39.4, debajo: 39.2 },
-  ];
+  // ── Derived data ───────────────────────────────────────────────────────────
 
-  const data = area === "lengua" ? lenguaChart : matematicaChart;
+  const chartData = buildChartData(rawData, area, "Estatal");
+  const estatalFull = buildChartData(rawData, area, "Estatal");
+  const privadoFull = buildChartData(rawData, area, "Privado");
 
-  // Calcular métricas
-  const satisfactorio = data.reduce((sum, d) => sum + d.satisfactorio, 0) / data.length;
-  const basico = data.reduce((sum, d) => sum + d.basico, 0) / data.length;
-  const debajo = data.reduce((sum, d) => sum + d.debajo, 0) / data.length;
+  const hasData = rawData.length > 0;
 
-  // Comparación público vs privado por área
-  const getComparacionSector = () => {
-    const estatal = data.map(d => d.satisfactorio);
-    // Promedio Q1-Q3 (mais populares)
-    return [
-      { name: "Estatal (Q1-Q3)", value: estatal.slice(0, 3).reduce((a, b) => a + b, 0) / 3 },
-      { name: "Privado (Q4-Q5)", value: 50 + (area === "lengua" ? 2 : 15) },
-    ];
-  };
+  // KPI averages (Estatal, all quintiles)
+  const satisfactorio = chartData.reduce((sum, d) => sum + d.satisfactorio, 0) / chartData.length;
+  const basico = chartData.reduce((sum, d) => sum + d.basico, 0) / chartData.length;
+  const debajo = chartData.reduce((sum, d) => sum + d.debajo, 0) / chartData.length;
+
+  // Sector comparison: Estatal Q1-Q2 vs Privado Q4-Q5
+  const estatalQ1Q2 =
+    hasData
+      ? (estatalFull[0]?.satisfactorio + estatalFull[1]?.satisfactorio) / 2
+      : area === "lengua"
+        ? 41.7
+        : 5.25;
+  const privadoQ4Q5 =
+    hasData
+      ? (privadoFull[3]?.satisfactorio + privadoFull[4]?.satisfactorio) / 2
+      : area === "lengua"
+        ? 52.5
+        : 24.05;
+
+  // ── Loading state ──────────────────────────────────────────────────────────
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <SectionHeader
+          icon={GraduationCap}
+          title="Evaluación Aprender"
+          description="Resultados de evaluaciones educativas por quintil de ingreso - Córdoba 2024"
+          color="terracotta"
+        />
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+        </div>
+      </div>
+    );
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <div className="space-y-6">
@@ -111,8 +156,8 @@ export default function AprenderPage() {
         <button
           onClick={() => setArea("lengua")}
           className={`px-4 py-2 rounded-lg font-medium ${
-            area === "lengua" 
-              ? "bg-green-600 text-white" 
+            area === "lengua"
+              ? "bg-green-600 text-white"
               : "bg-gray-100 text-gray-600 hover:bg-gray-200"
           }`}
         >
@@ -121,8 +166,8 @@ export default function AprenderPage() {
         <button
           onClick={() => setArea("matematica")}
           className={`px-4 py-2 rounded-lg font-medium ${
-            area === "matematica" 
-              ? "bg-amber-600 text-white" 
+            area === "matematica"
+              ? "bg-amber-600 text-white"
               : "bg-gray-100 text-gray-600 hover:bg-gray-200"
           }`}
         >
@@ -135,30 +180,30 @@ export default function AprenderPage() {
         <KpiCard
           title="Nivel Satisfactorio"
           value={`${satisfactorio.toFixed(1)}%`}
-          subtitle="Promedio general"
+          subtitle={hasData ? "Promedio general" : "Sin datos disponibles"}
           icon={TrendingDown}
           color="terracotta"
         />
-        
+
         <KpiCard
           title="Nivel Básico"
           value={`${basico.toFixed(1)}%`}
-          subtitle="Necesita fortalecimiento"
+          subtitle={hasData ? "Necesita fortalecimiento" : "Sin datos disponibles"}
           icon={BarChart3}
           color="amber"
         />
-        
+
         <KpiCard
           title="Por debajo del básico"
           value={`${debajo.toFixed(1)}%`}
-          subtitle="Requiere apoyo intensivo"
+          subtitle={hasData ? "Requiere apoyo intensivo" : "Sin datos disponibles"}
           icon={AlertTriangle}
           color="magenta"
         />
       </div>
 
       {/* Alerta para Matemática */}
-      {area === "matematica" && (
+      {area === "matematica" && hasData && chartData[0]?.debajo > 50 && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
           <div className="flex items-center gap-2 text-red-700 font-semibold">
             <AlertTriangle className="w-5 h-5" />
@@ -173,32 +218,49 @@ export default function AprenderPage() {
         subtitle="Porcentaje de estudiantes por nivel de logro"
         color={area === "lengua" ? "green" : "amber"}
         fuente="Evaluación Aprender 2024 - Ministerio de Educación"
-        data={data}
+        data={chartData}
         dataKey="satisfactorio"
         xAxisKey="quintil"
       >
         <div className="h-80">
           <ResponsiveContainer width="100%" height={320}>
-            <BarChart data={data} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
+            <BarChart data={chartData} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
               <XAxis dataKey="quintil" tick={{ fill: "#4D4D4D", fontSize: 14 }} />
-              <YAxis 
-                tick={{ fill: "#4D4D4D", fontSize: 12 }} 
-                domain={[0, area === "matematica" ? 80 : 60]} 
-                tickFormatter={(v) => `${v}%`} 
+              <YAxis
+                tick={{ fill: "#4D4D4D", fontSize: 12 }}
+                domain={[0, area === "matematica" ? 80 : 60]}
+                tickFormatter={(v) => `${v}%`}
               />
               <Tooltip
-                contentStyle={{ backgroundColor: "#FFF", border: "1px solid #E0E0E0", borderRadius: "8px" }}
+                contentStyle={{
+                  backgroundColor: "#FFF",
+                  border: "1px solid #E0E0E0",
+                  borderRadius: "8px",
+                }}
                 formatter={(value, name) => [
-                  `${value}%`, 
-                  name === "satisfactorio" ? "Satisfactorio" : 
-                  name === "basico" ? "Básico" : "Por debajo"
+                  `${value}%`,
+                  name === "satisfactorio"
+                    ? "Satisfactorio"
+                    : name === "basico"
+                      ? "Básico"
+                      : "Por debajo",
                 ]}
               />
               <Legend />
-              <Bar dataKey="satisfactorio" fill={COLORS.green} name="Satisfactorio" radius={[2, 2, 0, 0]} />
+              <Bar
+                dataKey="satisfactorio"
+                fill={COLORS.green}
+                name="Satisfactorio"
+                radius={[2, 2, 0, 0]}
+              />
               <Bar dataKey="basico" fill={COLORS.amber} name="Básico" radius={[2, 2, 0, 0]} />
-              <Bar dataKey="debajo" fill={COLORS.red} name="Por debajo" radius={[2, 2, 0, 0]} />
+              <Bar
+                dataKey="debajo"
+                fill={COLORS.red}
+                name="Por debajo"
+                radius={[2, 2, 0, 0]}
+              />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -211,27 +273,35 @@ export default function AprenderPage() {
         color="blue"
         fuente="Evaluación Aprender 2024"
         data={[
-          { sector: "Estatal Q1-Q2", lengua: 41.7, matematica: 5.25 },
-          { sector: "Privado Q4-Q5", lengua: 52.5, matematica: 24.05 },
+          { sector: "Estatal Q1-Q2", value: estatalQ1Q2 },
+          { sector: "Privado Q4-Q5", value: privadoQ4Q5 },
         ]}
-        dataKey={area === "lengua" ? "lengua" : "matematica"}
+        dataKey="value"
         xAxisKey="sector"
       >
         <div className="h-72">
           <ResponsiveContainer width="100%" height={280}>
-            <BarChart 
+            <BarChart
               data={[
-                { sector: "Estatal Q1-Q2", value: area === "lengua" ? 41.7 : 5.25 },
-                { sector: "Privado Q4-Q5", value: area === "lengua" ? 52.5 : 24.05 },
+                { sector: "Estatal Q1-Q2", value: estatalQ1Q2 },
+                { sector: "Privado Q4-Q5", value: privadoQ4Q5 },
               ]}
               margin={{ top: 10, right: 30, left: 10, bottom: 10 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
               <XAxis dataKey="sector" tick={{ fill: "#4D4D4D", fontSize: 12 }} />
-              <YAxis tick={{ fill: "#4D4D4D", fontSize: 12 }} domain={[0, 60]} tickFormatter={(v) => `${v}%`} />
+              <YAxis
+                tick={{ fill: "#4D4D4D", fontSize: 12 }}
+                domain={[0, 60]}
+                tickFormatter={(v) => `${v}%`}
+              />
               <Tooltip
-                contentStyle={{ backgroundColor: "#FFF", border: "1px solid #E0E0E0", borderRadius: "8px" }}
-                formatter={(value) => [`${value}%`, "Nivel Satisfactorio"]}
+                contentStyle={{
+                  backgroundColor: "#FFF",
+                  border: "1px solid #E0E0E0",
+                  borderRadius: "8px",
+                }}
+                formatter={(value) => [`${Number(value).toFixed(1)}%`, "Nivel Satisfactorio"]}
               />
               <Bar dataKey="value" fill={COLORS.blue} radius={[4, 4, 0, 0]} />
             </BarChart>
@@ -244,19 +314,33 @@ export default function AprenderPage() {
         <table className="w-full">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Quintil</th>
-              <th className="px-4 py-3 text-right text-sm font-semibold text-green-600">Satisfactorio</th>
-              <th className="px-4 py-3 text-right text-sm font-semibold text-amber-600">Básico</th>
-              <th className="px-4 py-3 text-right text-sm font-semibold text-red-600">Por debajo</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">
+                Quintil
+              </th>
+              <th className="px-4 py-3 text-right text-sm font-semibold text-green-600">
+                Satisfactorio
+              </th>
+              <th className="px-4 py-3 text-right text-sm font-semibold text-amber-600">
+                Básico
+              </th>
+              <th className="px-4 py-3 text-right text-sm font-semibold text-red-600">
+                Por debajo
+              </th>
             </tr>
           </thead>
           <tbody>
-            {data.map((row, i) => (
+            {chartData.map((row, i) => (
               <tr key={i} className="border-b border-gray-100">
                 <td className="px-4 py-3 text-sm font-medium">{row.quintil}</td>
-                <td className="px-4 py-3 text-sm text-right text-green-600">{row.satisfactorio}%</td>
-                <td className="px-4 py-3 text-sm text-right text-amber-600">{row.basico}%</td>
-                <td className="px-4 py-3 text-sm text-right text-red-600">{row.debajo}%</td>
+                <td className="px-4 py-3 text-sm text-right text-green-600">
+                  {row.satisfactorio.toFixed(1)}%
+                </td>
+                <td className="px-4 py-3 text-sm text-right text-amber-600">
+                  {row.basico.toFixed(1)}%
+                </td>
+                <td className="px-4 py-3 text-sm text-right text-red-600">
+                  {row.debajo.toFixed(1)}%
+                </td>
               </tr>
             ))}
           </tbody>
