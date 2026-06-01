@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FileText, FileSpreadsheet, File, FolderOpen, Search, Upload, X, CheckCircle, Bot } from "lucide-react";
+import { FileText, FileSpreadsheet, File, FolderOpen, Search, Upload, X, CheckCircle, Bot, Download } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 interface RepoFile {
@@ -272,6 +272,7 @@ export default function RepositorioPage() {
                   <th className="text-left px-4 py-3 font-accent text-sm text-gray-500">Tipo</th>
                   <th className="text-left px-4 py-3 font-accent text-sm text-gray-500">Descripción</th>
                   <th className="text-left px-4 py-3 font-accent text-sm text-gray-500">Fecha</th>
+                  <th className="text-center px-4 py-3 font-accent text-sm text-gray-500 w-16"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -303,6 +304,17 @@ export default function RepositorioPage() {
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-500">
                         {file.fecha_subida ? new Date(file.fecha_subida).toLocaleDateString("es-AR") : "—"}
+                      </td>
+                      <td className="px-2 py-3 text-center">
+                        <a
+                          href={`https://ppyyqrvirjqmfpqaqnxy.supabase.co/storage/v1/object/public/ddna-repositorio/${encodeURIComponent(file.nombre_archivo)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center justify-center w-8 h-8 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-[#3777FF] transition-colors"
+                          title="Descargar archivo"
+                        >
+                          <Download className="w-4 h-4" />
+                        </a>
                       </td>
                     </tr>
                   );

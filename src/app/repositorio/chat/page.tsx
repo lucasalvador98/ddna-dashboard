@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { Send, Bot, User, FileText, Loader2, AlertCircle, Download } from 'lucide-react';
+import { Send, Bot, User, FileText, Loader2, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 interface ChatMessage {
@@ -180,20 +180,15 @@ export default function ChatPage() {
                         {msg.sources.map((source: any, sIdx: number) => {
                           const name = source.fileName || source.source || 'Documento';
                           const clean = name.length > 30 ? name.substring(0, 27) + '...' : name;
-                          const downloadUrl = source.downloadUrl || '';
                           return (
-                            <a
+                            <span
                               key={sIdx}
-                              href={downloadUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 px-2 py-1 bg-[#3777FF]/10 hover:bg-[#3777FF]/20 text-[#3777FF] rounded text-xs font-medium transition-colors"
-                              title={`Descargar ${name}`}
+                              className="inline-flex items-center gap-1 px-2 py-1 bg-[#3777FF]/10 text-[#3777FF] rounded text-xs font-medium"
+                              title={name}
                             >
                               <FileText className="w-3 h-3" />
                               {clean}
-                              <Download className="w-3 h-3 ml-0.5 opacity-60" />
-                            </a>
+                            </span>
                           );
                         })}
                       </div>
