@@ -1,289 +1,803 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Users, TrendingUp, TrendingDown, Baby, Home, PersonStanding, AlertCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import {
+  Users, Home, PersonStanding, AlertCircle, Loader2, Info,
+  Briefcase, UtensilsCrossed, Layers, TrendingUp, TrendingDown
+} from 'lucide-react';
 import { SectionHeader } from '@/components/section-header';
 import { KpiCard } from '@/components/kpi-card';
 import { ChartCard } from '@/components/charts/chart-card';
 import { supabase } from '@/lib/supabase';
 import { parseDesglose } from '@/lib/parse-desglose';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+} from 'recharts';
 
-type PovertyRecord = {
+// ─── Types ──────────────────────────────────────────────────────
+type IndicadorRow = {
   indicador_nombre: string;
   valor: number;
   periodo: number;
   desglose: Record<string, unknown>;
+  fuente: string;
+  region: string;
 };
 
+type TabId = 'ingresos' | 'multidimensional' | 'comparacion';
+
+const TABS: { id: TabId; label: string }[] = [
+  { id: 'ingresos', label: 'Pobreza por Ingresos' },
+  { id: 'multidimensional', label: 'Pobreza Multidimensional' },
+  { id: 'comparacion', label: 'Comparación' },
+];
+
+// ─── Constants ──────────────────────────────────────────────────
+const COLORS = {
+  magenta: '#BF1363',
+  terracotta: '#E07A5F',
+  amber: '#F3A712',
+  orange: '#FF7F11',
+  navy: '#00074E',
+  blue: '#3777FF',
+  green: '#10B981',
+  purple: '#8B5CF6',
+};
+
+const INDEC_FUENTE = 'EPH-INDEC / datos.gob.ar';
+
+const DIMENSIONES_UCA = [
+  { dimension: 'Alimentación y Salud', valor: 26.6, fill: '#BF1363' },
+  { dimension: 'Servicios Básicos', valor: 30, fill: '#E07A5F' },
+  { dimension: 'Vivienda Digna', valor: 25, fill: '#F3A712' },
+  { dimension: 'Medio Ambiente', valor: 40, fill: '#FF7F11' },
+  { dimension: 'Educación', valor: 20, fill: '#3777FF' },
+  { dimension: 'Empleo y Seg. Social', valor: 35, fill: '#10B981' },
+];
+
+const METODOLOGIA_COMPARACION = [
+  ['Tipo de pobreza', 'Monetaria (ingresos)', 'Multidimensional (derechos)'],
+  ['Cobertura', '31 aglomerados urbanos', 'Nacional urbano'],
+  ['Córdoba específico', '✅ Sí', '❌ Nacional'],
+  ['Periodicidad', 'Semestral', 'Anual'],
+  ['Dimensiones', '1 (ingreso)', '6 (alimentación, salud, vivienda, educación, empleo, ambiente)'],
+  ['Último dato', '2025', '2024'],
+];
+
+// ─── Helpers ────────────────────────────────────────────────────
+function fmt(val?: number | null): string {
+  if (val == null || isNaN(val)) return 'N/D';
+  return `${val.toFixed(1)}%`;
+}
+
+function calcChange(curr?: number, prev?: number) {
+  if (curr == null || prev == null || prev === 0) return null;
+  const diff = curr - prev;
+  return {
+    label: `${diff > 0 ? '+' : ''}${diff.toFixed(1)} pp`,
+    up: diff > 0,
+  };
+}
+
+function periodoLabel(p: number, desglose: Record<string, unknown>): string {
+  const semestre = desglose?.semestre;
+  if (semestre === 1) return `1° sem ${p}`;
+  if (semestre === 2) return `2° sem ${p}`;
+  return String(p);
+}
+
+// ─── Page Component ─────────────────────────────────────────────
 export default function PobrezaPage() {
-  const [data, setData] = useState<PovertyRecord[]>([]);
+  const [tab, setTab] = useState<TabId>('ingresos');
+  const [indecData, setIndecData] = useState<IndicadorRow[]>([]);
+  const [ucaData, setUcaData] = useState<IndicadorRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function loadData() {
+    let cancelled = false;
+
+    async function load() {
       try {
-        const { data: povertyData, error: queryError } = await supabase
-          .from('indicadores')
-          .select('indicador_nombre, valor, periodo, desglose')
-          .eq('categoria', 'pobreza')
-          .order('periodo', { ascending: true });
+        const [indecRes, ucaRes] = await Promise.all([
+          supabase
+            .from('indicadores')
+            .select('indicador_nombre, valor, periodo, desglose, fuente, region')
+            .eq('categoria', 'pobreza')
+            .eq('fuente', INDEC_FUENTE)
+            .eq('activo', true)
+            .order('periodo', { ascending: true }),
+          supabase
+            .from('indicadores')
+            .select('indicador_nombre, valor, periodo, desglose, fuente, region')
+            .eq('categoria', 'pobreza')
+            .ilike('fuente', '%UCA%')
+            .eq('activo', true)
+            .order('periodo', { ascending: true }),
+        ]);
 
-        if (queryError) throw queryError;
+        if (indecRes.error) throw indecRes.error;
+        if (ucaRes.error) throw ucaRes.error;
 
-        if (povertyData) {
-          const parsed = povertyData.map(r => ({
-            ...r,
-            desglose: parseDesglose(r.desglose),
-          }));
-          setData(parsed as PovertyRecord[]);
+        if (!cancelled) {
+          setIndecData(
+            (indecRes.data || []).map((r) => ({
+              ...r,
+              desglose: parseDesglose(r.desglose),
+            })) as IndicadorRow[]
+          );
+          setUcaData(
+            (ucaRes.data || []).map((r) => ({
+              ...r,
+              desglose: parseDesglose(r.desglose),
+            })) as IndicadorRow[]
+          );
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error al cargar datos');
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Error al cargar datos');
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
-    loadData();
+
+    load();
+    return () => { cancelled = true; };
   }, []);
 
-  // Process data for charts
-  const pobrezaHogares = data
-    .filter(r => r.indicador_nombre === 'Pobreza hogares')
-    .map(r => ({ periodo: r.periodo, valor: r.valor, desglose: r.desglose }));
-
-  const pobrezaPersonas = data
-    .filter(r => r.indicador_nombre === 'Pobreza personas')
-    .map(r => ({ periodo: r.periodo, valor: r.valor, desglose: r.desglose }));
-
-  const indigenciaHogares = data
-    .filter(r => r.indicador_nombre === 'Indigencia hogares')
-    .map(r => ({ periodo: r.periodo, valor: r.valor, desglose: r.desglose }));
-
-  const indigenciaPersonas = data
-    .filter(r => r.indicador_nombre === 'Indigencia personas')
-    .map(r => ({ periodo: r.periodo, valor: r.valor, desglose: r.desglose }));
-
-  // Dynamic latest and previous years with semestre 2 data
-  const sem2Periods = [...new Set(
-    data
-      .filter(r => r.desglose?.semestre === 2)
-      .map(r => r.periodo)
-  )].sort((a, b) => b - a);
-  const latestYear = sem2Periods[0];
-  const prevYear = sem2Periods[1];
-
-  // Latest data (semestre 2 of latest year)
-  const latestPobrezaHogar = pobrezaHogares.find(
-    r => r.periodo === latestYear && r.desglose?.semestre === 2
-  );
-  const latestPobrezaPersona = pobrezaPersonas.find(
-    r => r.periodo === latestYear && r.desglose?.semestre === 2
-  );
-  const latestIndigenciaHogar = indigenciaHogares.find(
-    r => r.periodo === latestYear && r.desglose?.semestre === 2
-  );
-  const latestIndigenciaPersona = indigenciaPersonas.find(
-    r => r.periodo === latestYear && r.desglose?.semestre === 2
-  );
-
-  // Previous semester for comparison
-  const prevPobrezaHogar = pobrezaHogares.find(
-    r => r.periodo === prevYear && r.desglose?.semestre === 2
-  );
-  const prevPobrezaPersona = pobrezaPersonas.find(
-    r => r.periodo === prevYear && r.desglose?.semestre === 2
-  );
-
-  const formatPercent = (val?: number) => (val !== undefined && val !== null && !isNaN(val) ? `${val.toFixed(1)}%` : 'N/D');
-  const calcChange = (current?: number, prev?: number) => {
-    if (!current || !prev) return null;
-    const diff = current - prev;
-    return { value: diff.toFixed(1), positive: diff > 0 };
-  };
-
-  if (error) {
-    return (
-      <div className="space-y-6">
-        <SectionHeader icon={Users} title="Pobreza e Indigencia" description="Indicadores de condiciones socioeconómicas" color="magenta" />
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <AlertCircle className="w-12 h-12 text-red-400 mb-4" />
-          <p className="font-body text-gray-600 mb-2">Error al cargar los datos</p>
-          <p className="text-sm text-gray-400 mb-4">{error}</p>
-          <button onClick={() => window.location.reload()} className="px-4 py-2 bg-[#BF1363] text-white rounded-lg text-sm hover:bg-[#a01052] transition-colors">Reintentar</button>
-        </div>
-      </div>
-    );
-  }
-
+  // ─── Loading ──────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="space-y-6">
         <SectionHeader
           icon={Users}
           title="Pobreza e Indigencia"
-          description="Indicadores de condiciones socioeconómicas - Córdoba (EPH-INDEC)"
+          description="Medición por ingresos (INDEC) y multidimensional (UCA-ODSA)"
           color="magenta"
         />
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#BF1363]"></div>
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 text-[#BF1363] animate-spin" />
         </div>
+      </div>
+    );
+  }
+
+  // ─── Error ────────────────────────────────────────────────────
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <SectionHeader
+          icon={Users}
+          title="Pobreza e Indigencia"
+          description="Medición por ingresos (INDEC) y multidimensional (UCA-ODSA)"
+          color="magenta"
+        />
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <AlertCircle className="w-12 h-12 text-red-400 mb-4" />
+          <p className="font-body text-gray-700 mb-2">Error al cargar los datos</p>
+          <p className="text-sm text-gray-400 mb-5 max-w-md">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-5 py-2.5 bg-[#BF1363] text-white rounded-lg text-sm font-medium hover:bg-[#a01052] transition-colors"
+          >
+            Reintentar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Empty state ──────────────────────────────────────────────
+  const hasIndec = indecData.length > 0;
+  const hasUca = ucaData.length > 0;
+
+  if (!hasIndec && !hasUca) {
+    return (
+      <div className="space-y-6">
+        <SectionHeader
+          icon={Users}
+          title="Pobreza e Indigencia"
+          description="Medición por ingresos (INDEC) y multidimensional (UCA-ODSA)"
+          color="magenta"
+        />
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <Info className="w-12 h-12 text-gray-300 mb-4" />
+          <p className="font-body text-gray-600">No hay datos disponibles</p>
+          <p className="text-sm text-gray-400 mt-1">Los datos de pobreza aún no se han cargado en la base.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── INDEC processed data ─────────────────────────────────────
+  const indecByYear = (indicatorName: string, semestre: number = 2) => {
+    return indecData
+      .filter((r) => r.indicador_nombre === indicatorName && r.desglose?.semestre === semestre)
+      .map((r) => ({ year: r.periodo, valor: r.valor }));
+  };
+
+  const phYearly = indecByYear('Pobreza hogares');
+  const ppYearly = indecByYear('Pobreza personas');
+
+  // Merge for chart
+  const yearSet = new Set<number>();
+  phYearly.forEach((p) => yearSet.add(p.year));
+  ppYearly.forEach((p) => yearSet.add(p.year));
+  const sortedYears = [...yearSet].sort((a, b) => a - b);
+  const evoChartData = sortedYears.map((y) => ({
+    year: y,
+    'Hogares': Number(phYearly.find((p) => p.year === y)?.valor ?? 0) || undefined,
+    'Personas': Number(ppYearly.find((p) => p.year === y)?.valor ?? 0) || undefined,
+  }));
+
+  // Latest KPIs (INDEC)
+  const getLatest = (name: string, semestre?: number) => {
+    let filtered = indecData
+      .filter((r) => r.indicador_nombre === name)
+      .sort((a, b) => b.periodo - a.periodo);
+    if (semestre !== undefined) filtered = filtered.filter((r) => r.desglose?.semestre === semestre);
+    return filtered[0];
+  };
+
+  const getPrev = (name: string, latestPeriodo: number, semestre?: number) => {
+    let filtered = indecData.filter((r) => r.indicador_nombre === name && r.periodo < latestPeriodo);
+    if (semestre !== undefined) filtered = filtered.filter((r) => r.desglose?.semestre === semestre);
+    return filtered.sort((a, b) => b.periodo - a.periodo)[0];
+  };
+
+  const latestPH = getLatest('Pobreza hogares');
+  const latestPP = getLatest('Pobreza personas');
+  const latestDesempleo = getLatest('Tasa de desempleo');
+
+  const prevPH = latestPH ? getPrev('Pobreza hogares', latestPH.periodo, Number(latestPH.desglose?.semestre)) : undefined;
+  const prevPP = latestPP ? getPrev('Pobreza personas', latestPP.periodo, Number(latestPP.desglose?.semestre)) : undefined;
+
+  const changePH = calcChange(latestPH?.valor, prevPH?.valor);
+  const changePP = calcChange(latestPP?.valor, prevPP?.valor);
+
+  // Table data: last 5 periods (both indicators)
+  const allPeriods = [...new Set(indecData.map((r) => r.periodo))].sort((a, b) => b - a).slice(0, 5);
+  const tableRows = allPeriods.map((p) => {
+    const ph = indecData.find((r) => r.indicador_nombre === 'Pobreza hogares' && r.periodo === p);
+    const pp = indecData.find((r) => r.indicador_nombre === 'Pobreza personas' && r.periodo === p);
+    return {
+      periodo: periodoLabel(p, ph?.desglose ?? pp?.desglose ?? {}),
+      ph: fmt(ph?.valor),
+      pp: fmt(pp?.valor),
+    };
+  });
+
+  // ─── UCA processed data ───────────────────────────────────────
+  const ucaLatest = (name: string) => {
+    return ucaData
+      .filter((r) => r.indicador_nombre === name)
+      .sort((a, b) => b.periodo - a.periodo)[0];
+  };
+
+  const ucMonetaria = ucaLatest('Pobreza monetaria (personas)');
+  const ucIndigencia = ucaLatest('Indigencia (personas)');
+  const ucInseguridad = ucaLatest('Inseguridad alimentaria total');
+  const ucMultidimensional = ucaLatest('Pobreza multidimensional (2+ carencias)');
+
+  // ─── Comparison data ──────────────────────────────────────────
+  // INDEC
+  const indPhPers = latestPP;
+  const indPhHog = latestPH;
+  const indIndPers = indecData.filter((r) => r.indicador_nombre === 'Indigencia personas').sort((a, b) => b.periodo - a.periodo)[0];
+  const indIndHog = indecData.filter((r) => r.indicador_nombre === 'Indigencia hogares').sort((a, b) => b.periodo - a.periodo)[0];
+
+  // UCA equivalents
+  const ucaPhPers = ucaLatest('Pobreza monetaria (personas)');
+  const ucaPhHog = ucaLatest('Pobreza monetaria (hogares)');
+  const ucaIndPers = ucaLatest('Indigencia (personas)');
+  const ucaIndHog = ucaLatest('Indigencia (hogares)');
+
+  // ─── Render ───────────────────────────────────────────────────
+  return (
+    <div className="space-y-6">
+      <SectionHeader
+        icon={Users}
+        title="Pobreza e Indigencia"
+        description="Medición por ingresos (INDEC) y multidimensional (UCA-ODSA). Datos complementarios para entender el fenómeno de la pobreza en Argentina."
+        color="magenta"
+      />
+
+      {/* ── Tab navigation ────────────────────────────────── */}
+      <nav className="flex gap-1 bg-gray-100 rounded-lg p-1" role="tablist">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            role="tab"
+            aria-selected={tab === t.id}
+            onClick={() => setTab(t.id)}
+            className={`flex-1 px-4 py-2.5 rounded-md text-sm font-medium transition-colors ${
+              tab === t.id
+                ? 'bg-white text-[#00074E] shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </nav>
+
+      {/* ── Tab 1: Pobreza por Ingresos (INDEC) ────────────── */}
+      {tab === 'ingresos' && (
+        <TabIngresos
+          indecData={indecData}
+          latestPH={latestPH}
+          latestPP={latestPP}
+          latestDesempleo={latestDesempleo}
+          changePH={changePH}
+          changePP={changePP}
+          evoChartData={evoChartData}
+          tableRows={tableRows}
+        />
+      )}
+
+      {/* ── Tab 2: Pobreza Multidimensional (UCA) ──────────── */}
+      {tab === 'multidimensional' && (
+        <TabMultidimensional
+          ucaData={ucaData}
+          ucMonetaria={ucMonetaria}
+          ucIndigencia={ucIndigencia}
+          ucInseguridad={ucInseguridad}
+          ucMultidimensional={ucMultidimensional}
+        />
+      )}
+
+      {/* ── Tab 3: Comparación ─────────────────────────────── */}
+      {tab === 'comparacion' && (
+        <TabComparacion
+          indecData={indecData}
+          ucaData={ucaData}
+          indPhPers={indPhPers}
+          indPhHog={indPhHog}
+          indIndPers={indIndPers}
+          indIndHog={indIndHog}
+          ucaPhPers={ucaPhPers}
+          ucaPhHog={ucaPhHog}
+          ucaIndPers={ucaIndPers}
+          ucaIndHog={ucaIndHog}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── Tab 1: Ingresos ─────────────────────────────────────────────
+function TabIngresos({
+  indecData,
+  latestPH,
+  latestPP,
+  latestDesempleo,
+  changePH,
+  changePP,
+  evoChartData,
+  tableRows,
+}: {
+  indecData: IndicadorRow[];
+  latestPH?: IndicadorRow;
+  latestPP?: IndicadorRow;
+  latestDesempleo?: IndicadorRow;
+  changePH: ReturnType<typeof calcChange>;
+  changePP: ReturnType<typeof calcChange>;
+  evoChartData: { year: number; Hogares?: number; Personas?: number }[];
+  tableRows: { periodo: string; ph: string; pp: string }[];
+}) {
+  if (indecData.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <Info className="w-12 h-12 text-gray-300 mb-4" />
+        <p className="font-body text-gray-600">No hay datos disponibles</p>
+        <p className="text-sm text-gray-400 mt-1">Los datos de INDEC para Córdoba no están disponibles.</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <SectionHeader
-        icon={Users}
-        title="Pobreza e Indigencia"
-        description="Indicadores de condiciones socioeconómicas - Córdoba (EPH-INDEC)"
-        color="magenta"
-      />
-
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           title="Pobreza Hogares"
-          value={String(formatPercent(latestPobrezaHogar?.valor))}
-          subtitle={latestPobrezaHogar?.periodo && prevYear ? `${String(latestPobrezaHogar.periodo)} vs ${prevYear}` : `vs ${prevYear || 'período anterior'}`}
-          change={String(calcChange(latestPobrezaHogar?.valor, prevPobrezaHogar?.valor)?.value ?? '—')}
-          changeType={latestPobrezaHogar && prevPobrezaHogar ? (latestPobrezaHogar.valor > prevPobrezaHogar.valor ? 'up' : 'down') : 'neutral'}
+          value={fmt(latestPH?.valor)}
+          subtitle={latestPH ? `${periodoLabel(latestPH.periodo, latestPH.desglose)}` : 'Sin datos'}
+          change={changePH?.label}
+          changeType={changePH ? (changePH.up ? 'up' : 'down') : 'neutral'}
           icon={Home}
           color="magenta"
         />
         <KpiCard
           title="Pobreza Personas"
-          value={String(formatPercent(latestPobrezaPersona?.valor))}
-          subtitle={`${String(latestPobrezaPersona?.periodo || '')} vs ${prevYear || 'período anterior'}`}
-          change={String(calcChange(latestPobrezaPersona?.valor, prevPobrezaPersona?.valor)?.value ?? '—')}
-          changeType={latestPobrezaPersona && prevPobrezaPersona ? (latestPobrezaPersona.valor > prevPobrezaPersona.valor ? 'up' : 'down') : 'neutral'}
+          value={fmt(latestPP?.valor)}
+          subtitle={latestPP ? `${periodoLabel(latestPP.periodo, latestPP.desglose)}` : 'Sin datos'}
+          change={changePP?.label}
+          changeType={changePP ? (changePP.up ? 'up' : 'down') : 'neutral'}
           icon={PersonStanding}
           color="magenta"
         />
         <KpiCard
           title="Indigencia Hogares"
-          value={String(formatPercent(latestIndigenciaHogar?.valor))}
-          subtitle={String(latestIndigenciaHogar?.periodo || '')}
+          value={fmt(
+            indecData
+              .filter((r) => r.indicador_nombre === 'Indigencia hogares')
+              .sort((a, b) => b.periodo - a.periodo)[0]?.valor
+          )}
+          subtitle={
+            indecData
+              .filter((r) => r.indicador_nombre === 'Indigencia hogares')
+              .sort((a, b) => b.periodo - a.periodo)[0]
+              ? periodoLabel(
+                  indecData.filter((r) => r.indicador_nombre === 'Indigencia hogares').sort((a, b) => b.periodo - a.periodo)[0]!.periodo,
+                  indecData.filter((r) => r.indicador_nombre === 'Indigencia hogares').sort((a, b) => b.periodo - a.periodo)[0]!.desglose
+                )
+              : 'Sin datos'
+          }
           icon={Home}
           color="terracotta"
         />
         <KpiCard
-          title="Indigencia Personas"
-          value={String(formatPercent(latestIndigenciaPersona?.valor))}
-          subtitle={String(latestIndigenciaPersona?.periodo || '')}
-          icon={PersonStanding}
-          color="terracotta"
+          title="Desempleo Gran Córdoba"
+          value={fmt(latestDesempleo?.valor)}
+          subtitle={latestDesempleo ? `${periodoLabel(latestDesempleo.periodo, latestDesempleo.desglose)}` : 'Sin datos'}
+          icon={Briefcase}
+          color="amber"
         />
       </div>
 
-      {/* Evolución de Pobreza */}
+      {/* Chart: Evolución */}
       <ChartCard
-        title="Evolución de la Pobreza - Córdoba"
-        subtitle="Porcentaje de hogares y personas bajo la línea de pobreza"
+        title="Evolución Pobreza — Córdoba (2016‑2025)"
+        subtitle="Porcentaje de hogares y personas bajo la línea de pobreza — 2° semestre de cada año"
         color="magenta"
-        fuente="EPH-INDEC / Dirección de Estadísticas"
+        fuente={INDEC_FUENTE}
       >
-        <div className="space-y-6">
-          <div className="h-64">
-            {/* Simple bar chart using HTML/CSS */}
-            <div className="flex items-end justify-around h-full gap-2">
-              {pobrezaHogares.map((item, idx) => (
-                <div key={idx} className="flex flex-col items-center flex-1">
-                  <div
-                    className="w-full bg-[#BF1363] rounded-t hover:bg-[#d6387a] transition-colors"
-                    style={{
-                      height: `${(item.valor / 60) * 100}%`,
-                      minHeight: item.valor > 0 ? '4px' : '0',
-                    }}
-                    title={`${item.periodo}: ${item.valor}%`}
-                  />
-                  <span className="text-xs text-gray-500 mt-2">{item.periodo}</span>
-                </div>
-              ))}
-            </div>
+        {evoChartData.length === 0 ? (
+          <div className="h-64 flex items-center justify-center text-gray-400 text-sm">
+            No hay datos de evolución disponibles
           </div>
-          <p className="text-xs text-gray-400 text-center">
-            2° semestre de cada año. Fuente: EPH-INDEC
-          </p>
-        </div>
+        ) : (
+          <ResponsiveContainer width="100%" height={340}>
+            <BarChart data={evoChartData} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+              <XAxis
+                dataKey="year"
+                tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                tickLine={{ stroke: '#E5E7EB' }}
+              />
+              <YAxis
+                tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                tickLine={{ stroke: '#E5E7EB' }}
+                tickFormatter={(v: number) => `${v}%`}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: '#FFF',
+                  border: '1px solid #E0E0E0',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                }}
+                formatter={(value) => [`${value ?? '—'}%`, '']}
+              />
+              <Legend />
+              <Bar dataKey="Personas" fill={COLORS.magenta} radius={[4, 4, 0, 0]} name="Pobreza Personas" />
+              <Bar dataKey="Hogares" fill={COLORS.terracotta} radius={[4, 4, 0, 0]} name="Pobreza Hogares" />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </ChartCard>
 
-      {/* Pobreza Infantil */}
-      <ChartCard
-        title="Pobreza Infantil por Grupo Etario"
-        subtitle="Niños/as de 0-17 años en situación de pobreza"
-        color="amber"
-        fuente="EPH-INDEC / Dirección de Estadísticas"
-      >
-        <div className="grid grid-cols-3 gap-4">
-          {['0-5', '6-11', '12-17'].map(grupo => {
-            const infantileData = data.filter(
-              r =>
-                r.indicador_nombre === 'Pobreza infantil' &&
-                r.desglose?.grupo_edad === grupo &&
-                r.desglose?.semestre === 2
-            );
-            const latest = infantileData.find(r => r.periodo === latestYear);
-            return (
-              <div key={grupo} className="bg-gray-50 rounded-lg p-4 text-center">
-                <div className="flex items-center justify-center gap-2 text-gray-500 mb-2">
-                  <Baby className="w-4 h-4" />
-                  <span className="text-sm">{grupo} años</span>
-                </div>
-                <p className="text-2xl font-bold text-[#F3A712]">
-                  {latest ? `${latest.valor.toFixed(1)}%` : 'N/D'}
-                </p>
-                <p className="text-xs text-gray-400 mt-1">{latestYear} - 2° sem</p>
-              </div>
-            );
-          })}
-        </div>
-      </ChartCard>
-
-      {/* Tabla de evolución */}
+      {/* Table: Latest 5 periods */}
       <div className="bg-white rounded-xl border border-[#E0E0E0] overflow-hidden">
-        <div className="p-4 border-b border-[#E0E0E0]">
-          <h3 className="font-display text-lg text-[#00074E]">Serie Histórica Completa</h3>
-          <p className="text-sm text-gray-500">Evolución de pobreza e indigencia (2016-{latestYear})</p>
+        <div className="p-5 border-b border-[#E0E0E0]">
+          <div className="flex items-center gap-3">
+            <div className="w-1 h-6 rounded-full" style={{ backgroundColor: COLORS.magenta }} />
+            <h3 className="font-display text-lg text-[#00074E]">Últimos Períodos</h3>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-left">
+              <tr>
+                <th className="px-5 py-3 font-medium text-gray-600">Período</th>
+                <th className="px-5 py-3 font-medium text-gray-600 text-right">Pobreza Hogares</th>
+                <th className="px-5 py-3 font-medium text-gray-600 text-right">Pobreza Personas</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tableRows.map((row, i) => (
+                <tr key={i} className="border-t border-gray-100 hover:bg-gray-50">
+                  <td className="px-5 py-3 font-medium text-gray-700">{row.periodo}</td>
+                  <td className="px-5 py-3 text-right text-gray-700">{row.ph}</td>
+                  <td className="px-5 py-3 text-right text-gray-700">{row.pp}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="px-5 py-3 text-xs text-gray-400 border-t border-gray-100">
+          Fuente: {INDEC_FUENTE}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Tab 2: Multidimensional ─────────────────────────────────────
+function TabMultidimensional({
+  ucaData,
+  ucMonetaria,
+  ucIndigencia,
+  ucInseguridad,
+  ucMultidimensional,
+}: {
+  ucaData: IndicadorRow[];
+  ucMonetaria?: IndicadorRow;
+  ucIndigencia?: IndicadorRow;
+  ucInseguridad?: IndicadorRow;
+  ucMultidimensional?: IndicadorRow;
+}) {
+  if (ucaData.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <Info className="w-12 h-12 text-gray-300 mb-4" />
+        <p className="font-body text-gray-600">No hay datos disponibles</p>
+        <p className="text-sm text-gray-400 mt-1">Los datos de UCA-ODSA aún no están disponibles.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* KPIs */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <KpiCard
+          title="Pobreza Monetaria"
+          value={fmt(ucMonetaria?.valor)}
+          subtitle={ucMonetaria ? `${ucMonetaria.periodo} — Argentina urbana` : 'Sin datos'}
+          icon={PersonStanding}
+          color="magenta"
+        />
+        <KpiCard
+          title="Indigencia"
+          value={fmt(ucIndigencia?.valor)}
+          subtitle={ucIndigencia ? `${ucIndigencia.periodo} — Argentina urbana` : 'Sin datos'}
+          icon={TrendingDown}
+          color="terracotta"
+        />
+        <KpiCard
+          title="Inseguridad Alimentaria"
+          value={fmt(ucInseguridad?.valor)}
+          subtitle={ucInseguridad ? `${ucInseguridad.periodo} — Total país` : 'Sin datos'}
+          icon={UtensilsCrossed}
+          color="orange"
+        />
+        <KpiCard
+          title="Pobreza Multidimensional"
+          value={fmt(ucMultidimensional?.valor)}
+          subtitle={ucMultidimensional ? `${ucMultidimensional.periodo} — 2+ carencias` : 'Sin datos'}
+          icon={Layers}
+          color="amber"
+        />
+      </div>
+
+      {/* Chart: Dimensiones */}
+      <ChartCard
+        title="Dimensiones de la Pobreza Estructural"
+        subtitle="Medición de carencias en 6 dimensiones según metodología UCA-ODSA"
+        color="magenta"
+        fuente="UCA-ODSA (EDSA)"
+      >
+        <ResponsiveContainer width="100%" height={360}>
+          <BarChart
+            layout="vertical"
+            data={DIMENSIONES_UCA}
+            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" horizontal={false} />
+            <XAxis
+              type="number"
+              tick={{ fill: '#4D4D4D', fontSize: 12 }}
+              tickLine={{ stroke: '#E5E7EB' }}
+              tickFormatter={(v: number) => `${v}%`}
+            />
+            <YAxis
+              dataKey="dimension"
+              type="category"
+              tick={{ fill: '#4D4D4D', fontSize: 12 }}
+              tickLine={false}
+              width={160}
+            />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: '#FFF',
+                border: '1px solid #E0E0E0',
+                borderRadius: '8px',
+                fontSize: '13px',
+              }}
+              formatter={(value) => [`${value ?? '—'}%`, '']}
+            />
+            <Bar dataKey="valor" radius={[0, 4, 4, 0]}>
+              {DIMENSIONES_UCA.map((d, i) => (
+                <rect key={i} fill={d.fill} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+        <p className="text-xs text-gray-400 text-center mt-4">
+          Valores estimados según metodología UCA-ODSA. Datos exactos en informe completo.
+        </p>
+      </ChartCard>
+
+      {/* Context Box */}
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-5">
+        <div className="flex gap-3">
+          <Info className="w-5 h-5 text-[#F3A712] flex-shrink-0 mt-0.5" />
+          <div className="text-sm text-amber-900 leading-relaxed">
+            <p>
+              La UCA mide <strong>pobreza multidimensional</strong>: no solo ingreso, sino también acceso a derechos (alimentación, salud, vivienda, educación, empleo). El <strong>{fmt(ucInseguridad?.valor)}</strong> de personas sufre inseguridad alimentaria — incluso el{' '}
+              <strong>
+                26.7%
+              </strong>{' '}
+              de quienes <em>NO</em> son pobres por ingreso.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Tab 3: Comparación ─────────────────────────────────────────
+function TabComparacion({
+  indecData,
+  ucaData,
+  indPhPers,
+  indPhHog,
+  indIndPers,
+  indIndHog,
+  ucaPhPers,
+  ucaPhHog,
+  ucaIndPers,
+  ucaIndHog,
+}: {
+  indecData: IndicadorRow[];
+  ucaData: IndicadorRow[];
+  indPhPers?: IndicadorRow;
+  indPhHog?: IndicadorRow;
+  indIndPers?: IndicadorRow;
+  indIndHog?: IndicadorRow;
+  ucaPhPers?: IndicadorRow;
+  ucaPhHog?: IndicadorRow;
+  ucaIndPers?: IndicadorRow;
+  ucaIndHog?: IndicadorRow;
+}) {
+  if (indecData.length === 0 && ucaData.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <Info className="w-12 h-12 text-gray-300 mb-4" />
+        <p className="font-body text-gray-600">No hay datos disponibles para comparar</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      {/* Side-by-side KPIs */}
+      <div>
+        <h2 className="font-display text-lg text-[#00074E] mb-4">
+          Comparación: INDEC (Córdoba) vs UCA (Argentina urbana)
+        </h2>
+
+        {/* Row 1: Pobreza Personas + Pobreza Hogares */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          <ComparisonKpi
+            title="Pobreza Personas"
+            indec={indPhPers}
+            uca={ucaPhPers}
+            indecLabel="INDEC Córdoba"
+            ucaLabel="UCA Nacional"
+            color="magenta"
+          />
+          <ComparisonKpi
+            title="Pobreza Hogares"
+            indec={indPhHog}
+            uca={ucaPhHog}
+            indecLabel="INDEC Córdoba"
+            ucaLabel="UCA Nacional"
+            color="magenta"
+          />
+          <ComparisonKpi
+            title="Indigencia Personas"
+            indec={indIndPers}
+            uca={ucaIndPers}
+            indecLabel="INDEC Córdoba"
+            ucaLabel="UCA Nacional"
+            color="terracotta"
+          />
+          <ComparisonKpi
+            title="Indigencia Hogares"
+            indec={indIndHog}
+            uca={ucaIndHog}
+            indecLabel="INDEC Córdoba"
+            ucaLabel="UCA Nacional"
+            color="terracotta"
+          />
+        </div>
+      </div>
+
+      {/* Methodology table */}
+      <div className="bg-white rounded-xl border border-[#E0E0E0] overflow-hidden">
+        <div className="p-5 border-b border-[#E0E0E0]">
+          <div className="flex items-center gap-3">
+            <div className="w-1 h-6 rounded-full" style={{ backgroundColor: COLORS.navy }} />
+            <h3 className="font-display text-lg text-[#00074E]">Comparación Metodológica</h3>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">Año</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-600">Pob. Hogares</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-600">Pob. Personas</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-600">Ind. Hogares</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-600">Ind. Personas</th>
+                <th className="px-5 py-3 text-left font-medium text-gray-600">Característica</th>
+                <th className="px-5 py-3 text-left font-medium text-[#BF1363]">INDEC (EPH)</th>
+                <th className="px-5 py-3 text-left font-medium text-[#F3A712]">UCA (EDSA)</th>
               </tr>
             </thead>
             <tbody>
-              {Array.from({ length: latestYear ? latestYear - 2016 + 1 : 9 }, (_, i) => 2016 + i).map(year => {
-                const ph = pobrezaHogares.find(
-                  r => r.periodo === year && r.desglose?.semestre === 2
-                );
-                const pp = pobrezaPersonas.find(
-                  r => r.periodo === year && r.desglose?.semestre === 2
-                );
-                const ih = indigenciaHogares.find(
-                  r => r.periodo === year && r.desglose?.semestre === 2
-                );
-                const ip = indigenciaPersonas.find(
-                  r => r.periodo === year && r.desglose?.semestre === 2
-                );
-                return (
-                  <tr key={year} className="border-t border-gray-100">
-                    <td className="px-4 py-3 font-medium">{year}</td>
-                    <td className="px-4 py-3 text-right">{ph ? `${ph.valor.toFixed(1)}%` : '-'}</td>
-                    <td className="px-4 py-3 text-right">{pp ? `${pp.valor.toFixed(1)}%` : '-'}</td>
-                    <td className="px-4 py-3 text-right">{ih ? `${ih.valor.toFixed(1)}%` : '-'}</td>
-                    <td className="px-4 py-3 text-right">{ip ? `${ip.valor.toFixed(1)}%` : '-'}</td>
-                  </tr>
-                );
-              })}
+              {METODOLOGIA_COMPARACION.map((row, i) => (
+                <tr key={i} className="border-t border-gray-100 hover:bg-gray-50">
+                  <td className="px-5 py-3 font-medium text-gray-700">{row[0]}</td>
+                  <td className="px-5 py-3 text-gray-600">{row[1]}</td>
+                  <td className="px-5 py-3 text-gray-600">{row[2]}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
+        </div>
+        <div className="px-5 py-3 text-xs text-gray-400 border-t border-gray-100">
+          EPH: Encuesta Permanente de Hogares (INDEC) · EDSA: Encuesta de la Deuda Social Argentina (UCA-ODSA)
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Comparison KPI Card ────────────────────────────────────────
+function ComparisonKpi({
+  title,
+  indec,
+  uca,
+  indecLabel,
+  ucaLabel,
+  color,
+}: {
+  title: string;
+  indec?: IndicadorRow;
+  uca?: IndicadorRow;
+  indecLabel: string;
+  ucaLabel: string;
+  color: 'magenta' | 'terracotta' | 'amber' | 'orange';
+}) {
+  const borderColors: Record<string, string> = {
+    magenta: 'border-l-[#BF1363]',
+    terracotta: 'border-l-[#E07A5F]',
+    amber: 'border-l-[#F3A712]',
+    orange: 'border-l-[#FF7F11]',
+  };
+
+  return (
+    <div className={`bg-white rounded-xl border border-[#E0E0E0] ${borderColors[color]} border-l-4 p-4`}>
+      <h4 className="font-accent text-xs text-[#4D4D4D] tracking-wide mb-3">{title}</h4>
+      <div className="space-y-2">
+        <div className="flex justify-between items-baseline">
+          <span className="text-xs text-gray-400">{indecLabel}</span>
+          <span className="font-display text-xl text-[#BF1363]">{fmt(indec?.valor)}</span>
+        </div>
+        <div className="flex justify-between items-baseline">
+          <span className="text-xs text-gray-400">{ucaLabel}</span>
+          <span className="font-display text-xl text-[#F3A712]">{fmt(uca?.valor)}</span>
         </div>
       </div>
     </div>
