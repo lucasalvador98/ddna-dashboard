@@ -1,7 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { Users, Heart, BookOpen, Coins, UserCircle, AlertTriangle, FileText } from 'lucide-react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { KpiCard } from '@/components/kpi-card';
 import { SectionCard } from '@/components/section-card';
 import {
@@ -18,6 +20,12 @@ import {
 import { formatInversionValue } from '@/lib/format-inversion';
 import { INDICATOR_NAMES } from '@/lib/indicator-names';
 import type { CategoriaIndicador } from '@/lib/supabase';
+
+// Dynamic import of ReportModal to avoid client bundle impact
+const ReportModal = dynamic(() =>
+  import('@/components/report-modal').then((mod) => mod.ReportModal),
+  { ssr: false },
+);
 
 const categoryConfig = {
   pobreza: { icon: Users, color: 'magenta' as const },
@@ -55,6 +63,7 @@ function formatStatNumber(valor: number | null | undefined): string {
 }
 
 export default function HomePage() {
+  const [reportModalOpen, setReportModalOpen] = useState(false);
   const { data, loading, source } = useDashboardData();
 
   // Extract category arrays
@@ -236,10 +245,10 @@ export default function HomePage() {
 
         {/* Executive Report CTA */}
         <section className="mt-8">
-          <Link
-            href="/ejecutivo"
-            target="_blank"
-            className="flex items-center justify-between w-full px-6 py-5 bg-gradient-to-r from-[#00074E] to-[#1a1a6e] rounded-xl hover:shadow-xl hover:scale-[1.01] transition-all group"
+          <button
+            type="button"
+            onClick={() => setReportModalOpen(true)}
+            className="flex items-center justify-between w-full px-6 py-5 bg-gradient-to-r from-[#00074E] to-[#1a1a6e] rounded-xl hover:shadow-xl hover:scale-[1.01] transition-all group text-left cursor-pointer"
           >
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -250,9 +259,15 @@ export default function HomePage() {
                 <p className="text-sm text-white/70 font-body">Análisis general con indicadores clave, alertas y recomendaciones</p>
               </div>
             </div>
-            <span className="text-white/60 text-sm font-accent hidden sm:inline">Abrir → Ctrl+P para PDF</span>
-          </Link>
+            <span className="text-white/60 text-sm font-accent hidden sm:inline">Generar →</span>
+          </button>
         </section>
+
+        {/* Report Modal */}
+        <ReportModal
+          isOpen={reportModalOpen}
+          onClose={() => setReportModalOpen(false)}
+        />
 
         {/* Quick access to sections */}
         <section className="mt-8">
