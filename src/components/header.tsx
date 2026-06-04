@@ -42,6 +42,8 @@ export function Header() {
 
   return (
     <header className="bg-white border-b border-[#E0E0E0] sticky top-0 z-40">
+      {/* Gradient accent strip — matches sidebar */}
+      <div className="h-1.5 bg-gradient-to-r from-[#FF7F11] via-[#F3A712] to-[#FF7F11]" />
       {/* Desktop Header */}
       <div className="hidden md:flex items-center justify-between px-6 lg:px-8 py-4">
         {/* Breadcrumb / Title */}
