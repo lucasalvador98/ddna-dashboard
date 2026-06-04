@@ -1,9 +1,12 @@
 'use client';
 
-import { BookOpen, GraduationCap, Users, TrendingDown, TrendingUp, BarChart3 } from 'lucide-react';
+import { BookOpen, GraduationCap, Users, TrendingDown, TrendingUp, BarChart3, Loader2, AlertCircle, Info } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { parseDesglose } from '@/lib/parse-desglose';
+import { computeAprenderByQuintil } from '@/lib/aprender-transform';
+import type { AprenderRow } from '@/lib/aprender-transform';
+import type { Indicador } from '@/lib/use-dashboard-data';
 import { SectionHeader } from '@/components/section-header';
 import { KpiCard } from '@/components/kpi-card';
 import { ChartWithTable } from '@/components/charts/chart-with-table';
@@ -30,40 +33,53 @@ const COLORS = {
   red: '#EF4444',
 };
 
-interface IndicadorData {
-  id: string;
-  indicador_nombre: string;
-  valor: number;
-  unidad: string;
-  periodo: number;
-  region: string;
-  desglose: Record<string, any> | null;
-}
-
 export default function EducacionPage() {
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<IndicadorData[]>([]);
+  const [data, setData] = useState<Indicador[]>([]);
   const [error, setError] = useState<string | null>(null);
+
+  const [aprenderData, setAprenderData] = useState<AprenderRow[]>([]);
+  const [aprenderLoading, setAprenderLoading] = useState(true);
+  const [aprenderError, setAprenderError] = useState<string | null>(null);
 
   // Cargar datos
   useEffect(() => {
     async function fetchData() {
-      const { data: indicadores, error } = await supabase
-        .from('indicadores')
-        .select('id, indicador_nombre, valor, unidad, periodo, region, desglose')
-        .eq('categoria', 'educacion')
-        .order('periodo', { ascending: true });
+      const [educacionResult, aprenderResult] = await Promise.all([
+        supabase
+          .from('indicadores')
+          .select('id, indicador_nombre, valor, unidad, periodo, region, desglose')
+          .eq('categoria', 'educacion')
+          .order('periodo', { ascending: true }),
+        supabase
+          .from('indicadores')
+          .select('id, indicador_nombre, valor, unidad, periodo, region, desglose')
+          .eq('categoria', 'aprender')
+          .order('periodo', { ascending: true }),
+      ]);
 
-      if (error) {
-        setError(error.message);
+      if (educacionResult.error) {
+        setError(educacionResult.error.message);
       } else {
-        const parsed = (indicadores || []).map(d => ({
+        const parsed = (educacionResult.data || []).map(d => ({
           ...d,
           desglose: parseDesglose(d.desglose),
-        }));
+        })) as Indicador[];
         setData(parsed);
       }
+
+      if (aprenderResult.error) {
+        setAprenderError(aprenderResult.error.message);
+      } else {
+        const parsed = (aprenderResult.data || []).map(d => ({
+          ...d,
+          desglose: parseDesglose(d.desglose),
+        })) as AprenderRow[];
+        setAprenderData(parsed);
+      }
+
       setLoading(false);
+      setAprenderLoading(false);
     }
     fetchData();
   }, []);
@@ -93,8 +109,8 @@ export default function EducacionPage() {
     return asistencia
       .filter(d => d.desglose?.edad)
       .map(d => ({
-        edad: d.desglose?.edad ?? 0,
-        label: `${d.desglose?.edad} años`,
+        edad: Number(d.desglose?.edad) || 0,
+        label: `${d.desglose?.edad ?? 0} años`,
         valor: Number(d.valor) || 0,
       }))
       .sort((a, b) => a.edad - b.edad);
@@ -105,34 +121,14 @@ export default function EducacionPage() {
   // Period from asistencia data
   const asistenciaPeriod = data
     .filter(d => d.indicador_nombre === 'Tasa de asistencia educativa')
-    .sort((a, b) => b.periodo - a.periodo)[0]?.periodo;
+    .sort((a, b) => Number(b.periodo) - Number(a.periodo))[0]?.periodo;
 
-  // ============== DATOS 3: Aprendiz - Lengua por quintil ==============
-  const getAprenderLengua = () => {
-    // Datos de aprender filtrados por indicador
-    return [
-      { quintil: 'Q1', satisfactorio: 39.9, basico: 34.8, debajo: 23.7 },
-      { quintil: 'Q2', satisfactorio: 43.5, basico: 34.1, debajo: 19.8 },
-      { quintil: 'Q3', satisfactorio: 47.8, basico: 32.3, debajo: 16.4 },
-      { quintil: 'Q4', satisfactorio: 50.2, basico: 30.3, debajo: 13.5 },
-      { quintil: 'Q5', satisfactorio: 54.3, basico: 26.9, debajo: 9.7 },
-    ];
-  };
+  // ============== DATOS 3 & 4: Aprender por quintil (Lengua y Matemática) ==============
+  const aprenderLengua = computeAprenderByQuintil(aprenderData, 'Lengua');
+  const aprenderMatematica = computeAprenderByQuintil(aprenderData, 'Matemática');
 
-  const aprenderLengua = getAprenderLengua();
-
-  // ============== DATOS 4: Aprendiz - Matemática por quintil ==============
-  const getAprenderMatematica = () => {
-    return [
-      { quintil: 'Q1', satisfactorio: 4.8, basico: 24.1, debajo: 71.1 },
-      { quintil: 'Q2', satisfactorio: 5.7, basico: 28.8, debajo: 65.5 },
-      { quintil: 'Q3', satisfactorio: 8.9, basico: 32.4, debajo: 58.7 },
-      { quintil: 'Q4', satisfactorio: 11.7, basico: 36.9, debajo: 51.4 },
-      { quintil: 'Q5', satisfactorio: 21.4, basico: 39.4, debajo: 39.2 },
-    ];
-  };
-
-  const aprenderMatematica = getAprenderMatematica();
+  // Show aprender error if fetch failed (but don't block the page)
+  const aprenderFetchFailed = aprenderError && aprenderData.length === 0;
 
   // KPIs
   const tasaPromedio =

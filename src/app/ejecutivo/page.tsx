@@ -21,6 +21,7 @@ import {
   getInversionTotal,
 } from "@/lib/use-dashboard-data";
 import type { Indicador } from "@/lib/use-dashboard-data";
+import { INDICATOR_NAMES } from "@/lib/indicator-names";
 
 // ─── Format helpers ────────────────────────────────────────────────────────────
 
@@ -70,43 +71,45 @@ export default function ExecutiveDashboard() {
   // ── Compute KPIs from dashboard data ──────────────────────────────────────
 
   const violenciaFamiliar =
-    findStatValue(dashboardData?.seguridad ?? [], "Violencia Familiar") ?? null;
+    findStatValue(dashboardData?.seguridad ?? [], INDICATOR_NAMES.CASOS_VIOLENCIA_FAMILIAR) ?? null;
 
+  // TODO: validate with DDNA which indicator to display — DB has no child-specific poverty indicator
   const pobrezaInfantil =
-    findStatValue(dashboardData?.pobreza ?? [], "Pobreza infantil") ?? null;
+    findStatValue(dashboardData?.pobreza ?? [], INDICATOR_NAMES.POBREZA_PERSONAS) ?? null;
 
   const mortalidadInfantil =
-    findStatValue(dashboardData?.salud ?? [], "TMI Cba") ?? null;
+    findStatValue(dashboardData?.salud ?? [], INDICATOR_NAMES.TMI_CBA) ?? null;
 
   const escolarizacion =
-    findStatValue(dashboardData?.educacion ?? [], "asistencia educativa") ?? null;
+    findStatValue(dashboardData?.educacion ?? [], INDICATOR_NAMES.TASA_ASISTENCIA_EDUCATIVA) ?? null;
 
-  const matriculaTotal = findStatSum(dashboardData?.educacion ?? [], "Matricula");
+  const matriculaTotal = findStatSum(dashboardData?.educacion ?? [], INDICATOR_NAMES.MATRICULA_GENERAL);
 
   // Indicator objects with period info for dynamic subtitles
   const violenciaInd = getLatestValue(
     dashboardData?.seguridad ?? [],
-    "Violencia Familiar"
+    INDICATOR_NAMES.CASOS_VIOLENCIA_FAMILIAR
   );
+  // TODO: validate with DDNA which indicator to display — DB has no child-specific poverty indicator
   const pobrezaInfantilInd = getLatestValue(
     dashboardData?.pobreza ?? [],
-    "Pobreza infantil"
+    INDICATOR_NAMES.POBREZA_PERSONAS
   );
   const mortalidadInfantilInd = getLatestValue(
     dashboardData?.salud ?? [],
-    "TMI Cba"
+    INDICATOR_NAMES.TMI_CBA
   );
   const escolarizacionInd = getLatestValue(
     dashboardData?.educacion ?? [],
-    "asistencia educativa"
+    INDICATOR_NAMES.TASA_ASISTENCIA_EDUCATIVA
   );
   const matriculaInd = getLatestValue(
     dashboardData?.educacion ?? [],
-    "Matricula"
+    INDICATOR_NAMES.MATRICULA_GENERAL
   );
 
   const sectorPublicoPct =
-    findStatValue(dashboardData?.educacion ?? [], "estatal") ?? null;
+    findStatValue(dashboardData?.educacion ?? [], INDICATOR_NAMES.MATRICULA_SECTOR_ESTATAL) ?? null;
 
   const inversionTotal = getInversionTotal(dashboardData?.inversion ?? []);
   const inversionPeriod = dashboardData?.inversion && dashboardData.inversion.length > 0

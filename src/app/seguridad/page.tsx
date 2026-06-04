@@ -4,26 +4,23 @@ import { Shield, AlertTriangle, TrendingUp } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { parseDesglose } from "@/lib/parse-desglose";
+import { INDICATOR_NAMES } from "@/lib/indicator-names";
 import { SectionHeader } from "@/components/section-header";
 import { KpiCard } from "@/components/kpi-card";
 import { ChartWithTable } from "@/components/charts/chart-with-table";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import type { Indicador } from "@/lib/use-dashboard-data";
 
 const COLORS = ["#3777FF", "#BF1363", "#F3A712", "#E07A5F", "#3599B8", "#A66999"];
 
-interface IndicadorData {
-  id: string;
-  indicador_nombre: string;
-  valor: number;
-  unidad: string;
-  periodo: string;
-  region: string;
-  desglose: Record<string, any> | null;
-}
+// Known security-case indicator names from canonical constants
+const CASOS_NAMES: string[] = Object.values(INDICATOR_NAMES).filter(n =>
+  n.toLowerCase().includes("casos")
+);
 
 export default function SeguridadPage() {
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<IndicadorData[]>([]);
+  const [data, setData] = useState<Indicador[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -32,10 +29,10 @@ export default function SeguridadPage() {
         .from("indicadores")
         .select("id, indicador_nombre, valor, unidad, periodo, region, desglose")
         .eq("categoria", "seguridad")
-        .order("valor", { ascending: false });
+        .order("periodo", { ascending: false });
 
       if (error) setError(error.message);
-      else setData((indicadores || []).map(d => ({ ...d, desglose: parseDesglose(d.desglose) })));
+      else setData((indicadores || []).map(d => ({ ...d, desglose: parseDesglose(d.desglose) })) as Indicador[]);
       setLoading(false);
     }
     fetchData();
@@ -44,7 +41,7 @@ export default function SeguridadPage() {
   // Distribución por tipo de denuncia
   const getDistribucion = () => {
     return data
-      .filter(d => d.indicador_nombre.toLowerCase().includes("casos"))
+      .filter(d => CASOS_NAMES.includes(d.indicador_nombre))
       .map(d => ({
         name: d.indicador_nombre.replace("Casos de ", ""),
         value: Number(d.valor) || 0,
@@ -56,7 +53,7 @@ export default function SeguridadPage() {
   const total = distribucionData.reduce((sum, d) => sum + d.value, 0);
   
   // Latest period from data (sorted by periodo, not by value)
-  const periodos = [...new Set(data.map(d => d.periodo))].sort((a, b) => b.localeCompare(a));
+  const periodos = [...new Set(data.map(d => d.periodo))].sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
   const latestPeriod = periodos[0] || '';
 
   return (

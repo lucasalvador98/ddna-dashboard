@@ -3,6 +3,7 @@
 import { HeartPulse, Baby, AlertTriangle, TrendingDown, TrendingUp } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import type { Indicador } from "@/lib/use-dashboard-data";
 import { SectionHeader } from "@/components/section-header";
 import { KpiCard } from "@/components/kpi-card";
 import { ChartWithTable } from "@/components/charts/chart-with-table";
@@ -28,16 +29,9 @@ const COLORS = {
   amber: "#F3A712",
 };
 
-interface IndicadorData {
-  indicador_nombre: string;
-  valor: number;
-  periodo: number;
-  region: string;
-}
-
 export default function SaludAdolescentePage() {
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<IndicadorData[]>([]);
+  const [data, setData] = useState<Indicador[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -51,7 +45,7 @@ export default function SaludAdolescentePage() {
       if (error) {
         setError(error.message);
       } else {
-        setData(indicadores || []);
+        setData((indicadores || []) as Indicador[]);
       }
       setLoading(false);
     }
@@ -66,7 +60,7 @@ export default function SaludAdolescentePage() {
         periodo: d.periodo,
         valor: Number(d.valor) || 0,
       }))
-      .sort((a, b) => a.periodo - b.periodo);
+      .sort((a, b) => Number(a.periodo) - Number(b.periodo));
   };
 
   const nacimientos = getNacimientos();
@@ -79,7 +73,7 @@ export default function SaludAdolescentePage() {
         periodo: d.periodo,
         valor: Number(d.valor) || 0,
       }))
-      .sort((a, b) => a.periodo - b.periodo);
+      .sort((a, b) => Number(a.periodo) - Number(b.periodo));
   };
 
   const fecundidad = getFecundidad();
@@ -92,7 +86,7 @@ export default function SaludAdolescentePage() {
         periodo: d.periodo,
         valor: Number(d.valor) || 0,
       }))
-      .sort((a, b) => a.periodo - b.periodo);
+      .sort((a, b) => Number(a.periodo) - Number(b.periodo));
   };
 
   const mortalidad = getMortalidad();
@@ -108,7 +102,7 @@ export default function SaludAdolescentePage() {
   const periodoMortalidad = mortalidad.length > 0 ? mortalidad[mortalidad.length - 1].periodo : null;
 
   // Calcular cambio
-  const getCambio = (series: { periodo: number; valor: number }[]) => {
+  const getCambio = (series: { periodo: string; valor: number }[]) => {
     if (series.length < 2) return null;
     const actual = series[series.length - 1].valor;
     const anterior = series[series.length - 2].valor;

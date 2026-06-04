@@ -10,8 +10,9 @@ import { KpiCard } from '@/components/kpi-card';
 import { ChartCard } from '@/components/charts/chart-card';
 import { supabase } from '@/lib/supabase';
 import { parseDesglose } from '@/lib/parse-desglose';
+import { INDICATOR_NAMES } from '@/lib/indicator-names';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell,
 } from 'recharts';
 
 // ─── Types ──────────────────────────────────────────────────────
@@ -38,7 +39,6 @@ const COLORS = {
   terracotta: '#E07A5F',
   amber: '#F3A712',
   orange: '#FF7F11',
-  navy: '#00074E',
   blue: '#3777FF',
   green: '#10B981',
   purple: '#8B5CF6',
@@ -46,6 +46,10 @@ const COLORS = {
 
 const INDEC_FUENTE = 'EPH-INDEC / datos.gob.ar';
 
+// TODO: Replace hardcoded DIMENSIONES_UCA values with real data from indicadores table
+//       (categoria='pobreza', fuente ~ 'UCA'). Each dimension should come from its own
+//       indicador_nombre in the DB. The current values are approximate estimates based on
+//       UCA-ODSA historical reports and should be validated before production use.
 const DIMENSIONES_UCA = [
   { dimension: 'Déficit en alimentación y salud', valor: 26.6, fill: '#BF1363', desc: '% de hogares' },
   { dimension: 'Déficit en servicios básicos', valor: 30, fill: '#E07A5F', desc: '% de hogares' },
@@ -53,15 +57,6 @@ const DIMENSIONES_UCA = [
   { dimension: 'Déficit en medio ambiente', valor: 40, fill: '#FF7F11', desc: '% de hogares' },
   { dimension: 'Déficit en acceso a educación', valor: 20, fill: '#3777FF', desc: '% de hogares' },
   { dimension: 'Déficit en empleo y seg. social', valor: 35, fill: '#10B981', desc: '% de hogares' },
-];
-
-const METODOLOGIA_COMPARACION = [
-  ['Tipo de medición', 'Monetaria (ingresos)', 'Monetaria (ingresos)'],
-  ['Encuesta', 'EPH (INDEC)', 'EDSA (UCA-ODSA)'],
-  ['Cobertura geográfica', 'Gran Córdoba', 'Nacional urbano'],
-  ['Córdoba específico', '✅ Sí', '❌ Nacional'],
-  ['Periodicidad', 'Semestral', 'Anual'],
-  ['Último dato', '2024 (2° sem)', '2024'],
 ];
 
 // ─── Helpers ────────────────────────────────────────────────────
@@ -84,6 +79,11 @@ function periodoLabel(p: number, desglose: Record<string, unknown>): string {
   if (semestre === 1) return `1° sem ${p}`;
   if (semestre === 2) return `2° sem ${p}`;
   return String(p);
+}
+
+/** Safely extract semestre as number from desglose (which is Record<string, unknown>) */
+function getSemestre(d: IndicadorRow): number {
+  return Number(d.desglose?.semestre ?? 0);
 }
 
 // ─── Page Component ─────────────────────────────────────────────
@@ -218,8 +218,8 @@ export default function PobrezaPage() {
       .map((r) => ({ year: r.periodo, semestre: Number(r.desglose?.semestre) || 0, valor: r.valor }));
   };
 
-  const phAll = indecGetAll('Pobreza hogares');
-  const ppAll = indecGetAll('Pobreza personas');
+  const phAll = indecGetAll(INDICATOR_NAMES.POBREZA_HOGARES);
+  const ppAll = indecGetAll(INDICATOR_NAMES.POBREZA_PERSONAS);
 
   // Build sorted unique period labels (year + semester)
   const periodSet = new Map<string, { year: number; semestre: number; label: string }>();
@@ -254,26 +254,55 @@ export default function PobrezaPage() {
   };
 
   const getPrev = (name: string, latestPeriodo: number, semestre?: number) => {
-    let filtered = indecData.filter((r) => r.indicador_nombre === name && r.periodo < latestPeriodo);
-    if (semestre !== undefined) filtered = filtered.filter((r) => r.desglose?.semestre === semestre);
-    return filtered.sort((a, b) => b.periodo - a.periodo)[0];
+    const candidates = indecData.filter((r) => {
+      if (r.indicador_nombre !== name) return false;
+      const rPeriodo = Number(r.periodo);
+      if (isNaN(rPeriodo)) return false;
+
+      if (semestre !== undefined && r.desglose?.semestre !== undefined) {
+        // Same year, earlier semestre (e.g. S1 when latest is S2)
+        if (rPeriodo === latestPeriodo && getSemestre(r) < semestre) return true;
+        // Earlier year, any semestre
+        if (rPeriodo < latestPeriodo) return true;
+        return false;
+      }
+
+      // No semestre: just find the previous period
+      return rPeriodo < latestPeriodo;
+    });
+
+    // Sort by period desc, then by semestre desc
+    candidates.sort((a, b) => {
+      const pDiff = Number(b.periodo) - Number(a.periodo);
+      if (pDiff !== 0) return pDiff;
+      return getSemestre(b) - getSemestre(a);
+    });
+
+    return candidates.length > 0 ? candidates[0] : undefined;
   };
 
-  const latestPH = getLatest('Pobreza hogares');
-  const latestPP = getLatest('Pobreza personas');
-  const latestDesempleo = getLatest('Tasa de desempleo');
+  const latestPH = getLatest(INDICATOR_NAMES.POBREZA_HOGARES);
+  const latestPP = getLatest(INDICATOR_NAMES.POBREZA_PERSONAS);
+  const latestDesempleo = getLatest(INDICATOR_NAMES.TASA_DESEMPLEO);
 
-  const prevPH = latestPH ? getPrev('Pobreza hogares', latestPH.periodo, Number(latestPH.desglose?.semestre)) : undefined;
-  const prevPP = latestPP ? getPrev('Pobreza personas', latestPP.periodo, Number(latestPP.desglose?.semestre)) : undefined;
+  const prevPH = latestPH ? getPrev(INDICATOR_NAMES.POBREZA_HOGARES, latestPH.periodo, Number(latestPH.desglose?.semestre)) : undefined;
+  const prevPP = latestPP ? getPrev(INDICATOR_NAMES.POBREZA_PERSONAS, latestPP.periodo, Number(latestPP.desglose?.semestre)) : undefined;
 
   const changePH = calcChange(latestPH?.valor, prevPH?.valor);
   const changePP = calcChange(latestPP?.valor, prevPP?.valor);
 
   // Table data: last 5 periods (both indicators)
+  // TODO: table semestre cardinality — currently takes latest semestre per year.
+  // Business decision needed: show BOTH semesters as separate rows or just latest?
   const allPeriods = [...new Set(indecData.map((r) => r.periodo))].sort((a, b) => b - a).slice(0, 5);
   const tableRows = allPeriods.map((p) => {
-    const ph = indecData.find((r) => r.indicador_nombre === 'Pobreza hogares' && r.periodo === p);
-    const pp = indecData.find((r) => r.indicador_nombre === 'Pobreza personas' && r.periodo === p);
+    // Sort by semestre DESC so latest semestre per year wins
+    const ph = indecData
+      .filter((r) => r.indicador_nombre === INDICATOR_NAMES.POBREZA_HOGARES && r.periodo === p)
+      .sort((a, b) => getSemestre(b) - getSemestre(a))[0];
+    const pp = indecData
+      .filter((r) => r.indicador_nombre === INDICATOR_NAMES.POBREZA_PERSONAS && r.periodo === p)
+      .sort((a, b) => getSemestre(b) - getSemestre(a))[0];
     return {
       periodo: periodoLabel(p, ph?.desglose ?? pp?.desglose ?? {}),
       ph: fmt(ph?.valor),
@@ -288,33 +317,10 @@ export default function PobrezaPage() {
       .sort((a, b) => b.periodo - a.periodo)[0];
   };
 
-  const ucMonetaria = ucaLatest('Pobreza monetaria (personas)');
-  const ucIndigencia = ucaLatest('Indigencia (personas)');
-  const ucInseguridad = ucaLatest('Inseguridad alimentaria total');
-  const ucMultidimensional = ucaLatest('Pobreza multidimensional (2+ carencias)');
-
-  // ─── Comparison data (filtered to 2024) ───────────────────────
-  // INDEC 2024 — 2nd semester only
-  const indec2024 = indecData.filter(d =>
-    d.periodo === 2024 &&
-    (!d.desglose?.semestre || d.desglose?.semestre === 2)
-  );
-
-  // UCA 2024
-  const uca2024 = ucaData.filter(d => d.periodo === 2024);
-
-  const findIndec = (name: string) => indec2024.find(d => d.indicador_nombre === name);
-  const findUca = (name: string) => uca2024.find(d => d.indicador_nombre === name);
-
-  const indPhPers = findIndec('Pobreza personas');
-  const indPhHog = findIndec('Pobreza hogares');
-  const indIndPers = findIndec('Indigencia personas');
-  const indIndHog = findIndec('Indigencia hogares');
-
-  const ucaPhPers = findUca('Pobreza monetaria (personas)');
-  const ucaPhHog = findUca('Pobreza monetaria (hogares)');
-  const ucaIndPers = findUca('Indigencia (personas)');
-  const ucaIndHog = findUca('Indigencia (hogares)');
+  const ucMonetaria = ucaLatest(INDICATOR_NAMES.POBREZA_MONETARIA_PERSONAS);
+  const ucIndigencia = ucaLatest(INDICATOR_NAMES.INDIGENCIA_PERSONAS);
+  const ucInseguridad = ucaLatest(INDICATOR_NAMES.INSEGURIDAD_ALIMENTARIA_TOTAL);
+  const ucMultidimensional = ucaLatest(INDICATOR_NAMES.POBREZA_MULTIDIMENSIONAL);
 
   // ─── Render ───────────────────────────────────────────────────
   return (
@@ -434,16 +440,16 @@ function TabIngresos({
           title="Indigencia Hogares"
           value={fmt(
             indecData
-              .filter((r) => r.indicador_nombre === 'Indigencia hogares')
+              .filter((r) => r.indicador_nombre === INDICATOR_NAMES.INDIGENCIA_HOGARES)
               .sort((a, b) => b.periodo - a.periodo)[0]?.valor
           )}
           subtitle={
             indecData
-              .filter((r) => r.indicador_nombre === 'Indigencia hogares')
+              .filter((r) => r.indicador_nombre === INDICATOR_NAMES.INDIGENCIA_HOGARES)
               .sort((a, b) => b.periodo - a.periodo)[0]
               ? periodoLabel(
-                  indecData.filter((r) => r.indicador_nombre === 'Indigencia hogares').sort((a, b) => b.periodo - a.periodo)[0]!.periodo,
-                  indecData.filter((r) => r.indicador_nombre === 'Indigencia hogares').sort((a, b) => b.periodo - a.periodo)[0]!.desglose
+                  indecData.filter((r) => r.indicador_nombre === INDICATOR_NAMES.INDIGENCIA_HOGARES).sort((a, b) => b.periodo - a.periodo)[0]!.periodo,
+                  indecData.filter((r) => r.indicador_nombre === INDICATOR_NAMES.INDIGENCIA_HOGARES).sort((a, b) => b.periodo - a.periodo)[0]!.desglose
                 )
               : 'Sin datos'
           }
@@ -608,6 +614,19 @@ function TabMultidimensional({
       </div>
 
       {/* Chart: Dimensiones */}
+      <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-4">
+        <div className="flex gap-3">
+          <Info className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+          <div className="text-sm text-yellow-800 leading-relaxed">
+            <p className="font-medium">Aviso: datos de dimensiones no disponibles en la base de datos</p>
+            <p className="mt-1">
+              Los valores de las dimensiones que se muestran a continuación son <strong>estimaciones aproximadas</strong> basadas en
+              informes históricos de UCA-ODSA, no datos extraídos de la base. La evolución por dimensión no está disponible
+              actualmente en el sistema. Se requiere carga de datos desde los informes completos.
+            </p>
+          </div>
+        </div>
+      </div>
       <ChartCard
         title="Dimensiones de la Pobreza Estructural"
         subtitle="% de hogares con déficit en cada dimensión (valores estimados según UCA-ODSA 2010-2024). Cada barra indica el porcentaje de hogares urbanos que no accede adecuadamente a ese derecho."
@@ -645,7 +664,7 @@ function TabMultidimensional({
             />
             <Bar dataKey="valor" radius={[0, 4, 4, 0]}>
               {DIMENSIONES_UCA.map((d, i) => (
-                <rect key={i} fill={d.fill} />
+                <Cell key={`uca-cell-${i}`} fill={d.fill} />
               ))}
             </Bar>
           </BarChart>
@@ -805,180 +824,4 @@ function TabInfancia({ ucaData }: { ucaData: IndicadorRow[] }) {
   );
 }
 
-// ─── Tab (commented): Comparación ──────────────────────────────────
-function TabComparacion({
-  indecData,
-  ucaData,
-  indPhPers,
-  indPhHog,
-  indIndPers,
-  indIndHog,
-  ucaPhPers,
-  ucaPhHog,
-  ucaIndPers,
-  ucaIndHog,
-}: {
-  indecData: IndicadorRow[];
-  ucaData: IndicadorRow[];
-  indPhPers?: IndicadorRow;
-  indPhHog?: IndicadorRow;
-  indIndPers?: IndicadorRow;
-  indIndHog?: IndicadorRow;
-  ucaPhPers?: IndicadorRow;
-  ucaPhHog?: IndicadorRow;
-  ucaIndPers?: IndicadorRow;
-  ucaIndHog?: IndicadorRow;
-}) {
-  if (indecData.length === 0 && ucaData.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
-        <Info className="w-12 h-12 text-gray-300 mb-4" />
-        <p className="font-body text-gray-600">No hay datos disponibles para comparar</p>
-      </div>
-    );
-  }
 
-  return (
-    <div className="space-y-8">
-      {/* Side-by-side KPIs */}
-      <div>
-        <h2 className="font-display text-lg text-[#00074E] mb-4">
-          Comparación 2024: INDEC (Gran Córdoba) vs UCA (Nacional urbano)
-        </h2>
-
-        {/* Note about geographic coverage */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-          <div className="flex gap-3">
-            <Info className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-blue-800 leading-relaxed">
-              Los valores de INDEC corresponden a <strong>Gran Córdoba</strong> (2° semestre 2024). Los de UCA corresponden al <strong>total nacional urbano</strong> (2024). Las diferencias reflejan distintas coberturas geográficas, no errores metodológicos.
-            </p>
-          </div>
-        </div>
-
-        {/* Row 1: Pobreza Personas + Pobreza Hogares */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-          <ComparisonKpi
-            title="Pobreza Personas"
-            indec={indPhPers}
-            uca={ucaPhPers}
-            indecLabel="INDEC Gran Córdoba"
-            ucaLabel="UCA Nacional urbano"
-            color="magenta"
-          />
-          <ComparisonKpi
-            title="Pobreza Hogares"
-            indec={indPhHog}
-            uca={ucaPhHog}
-            indecLabel="INDEC Gran Córdoba"
-            ucaLabel="UCA Nacional urbano"
-            color="magenta"
-          />
-          <ComparisonKpi
-            title="Indigencia Personas"
-            indec={indIndPers}
-            uca={ucaIndPers}
-            indecLabel="INDEC Gran Córdoba"
-            ucaLabel="UCA Nacional urbano"
-            color="terracotta"
-            indecHint="INDEC no publica desglose de indigencia por aglomerado en la API nueva de datos.gob.ar"
-          />
-          <ComparisonKpi
-            title="Indigencia Hogares"
-            indec={indIndHog}
-            uca={ucaIndHog}
-            indecLabel="INDEC Gran Córdoba"
-            ucaLabel="UCA Nacional urbano"
-            color="terracotta"
-            indecHint="INDEC no publica desglose de indigencia por aglomerado en la API nueva de datos.gob.ar"
-          />
-        </div>
-      </div>
-
-      {/* Methodology table */}
-      <div className="bg-white rounded-xl border border-[#E0E0E0] overflow-hidden">
-        <div className="p-5 border-b border-[#E0E0E0]">
-          <div className="flex items-center gap-3">
-            <div className="w-1 h-6 rounded-full" style={{ backgroundColor: COLORS.navy }} />
-            <h3 className="font-display text-lg text-[#00074E]">Comparación Metodológica</h3>
-          </div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-5 py-3 text-left font-medium text-gray-600">Característica</th>
-                <th className="px-5 py-3 text-left font-medium text-[#BF1363]">INDEC (EPH)</th>
-                <th className="px-5 py-3 text-left font-medium text-[#F3A712]">UCA (EDSA)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {METODOLOGIA_COMPARACION.map((row, i) => (
-                <tr key={i} className="border-t border-gray-100 hover:bg-gray-50">
-                  <td className="px-5 py-3 font-medium text-gray-700">{row[0]}</td>
-                  <td className="px-5 py-3 text-gray-600">{row[1]}</td>
-                  <td className="px-5 py-3 text-gray-600">{row[2]}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="px-5 py-3 text-xs text-gray-400 border-t border-gray-100">
-          EPH: Encuesta Permanente de Hogares (INDEC) · EDSA: Encuesta de la Deuda Social Argentina (UCA-ODSA)
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Comparison KPI Card ────────────────────────────────────────
-function ComparisonKpi({
-  title,
-  indec,
-  uca,
-  indecLabel,
-  ucaLabel,
-  color,
-  indecHint,
-}: {
-  title: string;
-  indec?: IndicadorRow;
-  uca?: IndicadorRow;
-  indecLabel: string;
-  ucaLabel: string;
-  color: 'magenta' | 'terracotta' | 'amber' | 'orange';
-  indecHint?: string;
-}) {
-  const borderColors: Record<string, string> = {
-    magenta: 'border-l-[#BF1363]',
-    terracotta: 'border-l-[#E07A5F]',
-    amber: 'border-l-[#F3A712]',
-    orange: 'border-l-[#FF7F11]',
-  };
-
-  const indecVal = fmt(indec?.valor);
-  const showIndecHint = indecHint && indecVal === 'N/D';
-
-  return (
-    <div className={`bg-white rounded-xl border border-[#E0E0E0] ${borderColors[color]} border-l-4 p-4`}>
-      <h4 className="font-accent text-xs text-[#4D4D4D] tracking-wide mb-3">{title}</h4>
-      <div className="space-y-2">
-        <div className="flex justify-between items-baseline">
-          <span className="text-xs text-gray-400">{indecLabel}</span>
-          <span className="font-display text-xl text-[#BF1363] inline-flex items-center gap-1">
-            {indecVal}
-            {showIndecHint && (
-              <span title={indecHint} className="inline-flex">
-                <Info className="w-3.5 h-3.5 text-gray-400 cursor-help" />
-              </span>
-            )}
-          </span>
-        </div>
-        <div className="flex justify-between items-baseline">
-          <span className="text-xs text-gray-400">{ucaLabel}</span>
-          <span className="font-display text-xl text-[#F3A712]">{fmt(uca?.valor)}</span>
-        </div>
-      </div>
-    </div>
-  );
-}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import type { CategoriaIndicador } from '@/lib/supabase';
+import { CHILD_RELEVANT_CATEGORIES } from './inversion-constants';
 
 export interface Indicador {
   id: string;
@@ -17,17 +17,6 @@ export interface Indicador {
   ultima_actualizacion?: string;
 }
 
-export interface KpiData {
-  id: string;
-  categoria: CategoriaIndicador;
-  nombre: string;
-  valor: string;
-  subtitulo: string;
-  cambio?: string;
-  cambioTipo?: 'up' | 'down' | 'neutral';
-  unidad?: string;
-}
-
 export interface DashboardData {
   pobreza: Indicador[];
   salud: Indicador[];
@@ -38,28 +27,14 @@ export interface DashboardData {
 }
 
 // ———————————————————————————————————————————————
-// Child-relevant categories for inversion filtering
+// Child-relevant categories (imported from shared constants)
 // ———————————————————————————————————————————————
-const CHILD_RELEVANT_CATEGORIES: string[] = [
-  'Educación básica (inicial, elemental y media)',
-  'Comedores escolares y copa de leche',
-  'Niños en riesgo',
-  'Transporte escolar',
-  'Materno-infantil',
-  'Transferencias de ingresos a las familias',
-  'Calidad educativa, gestión curricular y capacitaci',
-  'Trabajo infantil',
-  'Atención ambulatoria e internación',
-  'Prevención de enfermedades y riesgos específicos',
-  'Deporte y recreación',
-  'Atención de grupos vulnerables',
-  'Violencia familiar',
-];
+// CHILD_RELEVANT_CATEGORIES is now imported from ./inversion-constants
 
 // ———————————————————————————————————————————————
 // Desglose parsing (handles double-encoded JSONB)
 // ———————————————————————————————————————————————
-function parseDesglose(raw: unknown): Record<string, unknown> {
+export function parseDesglose(raw: unknown): Record<string, unknown> {
   if (!raw) return {};
 
   // Already a plain object — Supabase client may have parsed outer JSONB
@@ -94,7 +69,7 @@ function parseDesglose(raw: unknown): Record<string, unknown> {
   return {};
 }
 
-function normalizeIndicador(ind: Record<string, unknown>): Indicador {
+export function normalizeIndicador(ind: Record<string, unknown>): Indicador {
   const rawValor = Number(ind.valor);
   // Round to max 3 meaningful decimals for display
   const valor = rawValor ? Number(rawValor.toFixed(3)) : 0;
@@ -103,6 +78,8 @@ function normalizeIndicador(ind: Record<string, unknown>): Indicador {
     .replace(/Ã¢â‚¬Â°/g, '‰')
     .replace(/Ã¡/g, 'á').replace(/Ã©/g, 'é').replace(/Ã­/g, 'í')
     .replace(/Ã³/g, 'ó').replace(/Ãº/g, 'ú').replace(/Ã±/g, 'ñ');
+  const fuente = ind.fuente ? String(ind.fuente) : undefined;
+
   return {
     id: String(ind.id),
     indicador_nombre: String(ind.indicador_nombre || ''),
@@ -112,6 +89,7 @@ function normalizeIndicador(ind: Record<string, unknown>): Indicador {
     periodo: String(ind.periodo || ''),
     region: String(ind.region || ''),
     desglose: parseDesglose(ind.desglose),
+    fuente,
   };
 }
 
@@ -219,10 +197,10 @@ export function useDashboardData(): {
           categories.map(cat =>
             supabase
               .from('indicadores')
-              .select('id, indicador_nombre, categoria, valor, unidad, periodo, region, desglose')
+              .select('id, indicador_nombre, categoria, valor, unidad, periodo, region, desglose, fuente')
               .eq('categoria', cat)
               .order('periodo', { ascending: false })
-              .limit(cat === 'inversion' ? 3000 : 500)
+              .limit(cat === 'inversion' ? 10000 : 500)
           )
         );
 
@@ -267,6 +245,27 @@ export function useDashboardData(): {
 }
 
 // ———————————————————————————————————————————————
+// Pure helpers
+// ———————————————————————————————————————————————
+
+/**
+ * Compare period strings numerically by year prefix, then lexicographically
+ * for same-year suffixes. Handles "2024", "2024-S2", "2022", etc.
+ *
+ * Returns negative if a < b, positive if a > b, zero if equal.
+ */
+function comparePeriodo(a: string, b: string): number {
+  const aMatch = a.match(/^(\d{4})/);
+  const bMatch = b.match(/^(\d{4})/);
+  if (aMatch && bMatch) {
+    const aYear = parseInt(aMatch[1], 10);
+    const bYear = parseInt(bMatch[1], 10);
+    if (aYear !== bYear) return aYear - bYear;
+  }
+  return a.localeCompare(b);
+}
+
+// ———————————————————————————————————————————————
 // Utility functions (fixed implementations)
 // ———————————————————————————————————————————————
 
@@ -279,7 +278,7 @@ export function getLatestValue(indicadores: Indicador[], nombreBuscar?: string):
 
   // Sort by periodo descending so the most recent comes first.
   // Handles formats: "2024-S2", "2024", "2022", etc.
-  const sorted = [...indicadores].sort((a, b) => b.periodo.localeCompare(a.periodo));
+  const sorted = [...indicadores].sort((a, b) => comparePeriodo(b.periodo, a.periodo));
 
   if (nombreBuscar) {
     const lowerSearch = nombreBuscar.toLowerCase();
@@ -307,7 +306,7 @@ export function getTimeSeries(
 
   // Sort by periodo ascending for time-series display
   return filtered
-    .sort((a, b) => a.periodo.localeCompare(b.periodo))
+    .sort((a, b) => comparePeriodo(a.periodo, b.periodo))
     .map(ind => ({
       periodo: ind.periodo,
       valor: Number(ind.valor) || 0,
@@ -344,7 +343,7 @@ export function getInversionTotal(inversionData: Indicador[]): number {
   if (!inversionData || inversionData.length === 0) return 0;
 
   // Find the latest period in the dataset
-  const latestPeriod = [...inversionData].sort((a, b) => b.periodo.localeCompare(a.periodo))[0]
+  const latestPeriod = [...inversionData].sort((a, b) => comparePeriodo(b.periodo, a.periodo))[0]
     ?.periodo;
 
   if (!latestPeriod) return 0;
@@ -369,7 +368,7 @@ export function getPoblacion0a17(demografiaData: Indicador[]): number {
   // Filter "Poblacion por edad" indicators, sorted by period DESC
   const relevant = [...demografiaData]
     .filter(ind => ind.indicador_nombre.toLowerCase().includes('poblacion por edad'))
-    .sort((a, b) => b.periodo.localeCompare(a.periodo));
+    .sort((a, b) => comparePeriodo(b.periodo, a.periodo));
 
   const latestPeriod = relevant[0]?.periodo;
   if (!latestPeriod) return 0;
@@ -423,7 +422,7 @@ export function findStatSum(indicadores: Indicador[], nombreBuscar: string): num
   if (matched.length === 0) return null;
 
   // Find the most recent period among matches
-  const sorted = [...matched].sort((a, b) => b.periodo.localeCompare(a.periodo));
+  const sorted = [...matched].sort((a, b) => comparePeriodo(b.periodo, a.periodo));
   const latestPeriod = sorted[0].periodo;
 
   // Sum all values for the most recent period
@@ -434,94 +433,4 @@ export function findStatSum(indicadores: Indicador[], nombreBuscar: string): num
   return total;
 }
 
-// ———————————————————————————————————————————————
-// useKPIs: focused KPI fetching for the summary bar
-// ———————————————————————————————————————————————
-export function useKPIs() {
-  const [data, setData] = useState<KpiData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [source, setSource] = useState<'supabase' | 'placeholder'>('placeholder');
 
-  useEffect(() => {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-
-    if (!supabaseUrl) {
-      setData([
-        {
-          id: 'kpi-placeholder',
-          categoria: 'pobreza',
-          nombre: 'Pobreza infantil',
-          valor: '39.2%',
-          subtitulo: '2024-S2 · Córdoba',
-          cambio: '+1.2%',
-          cambioTipo: 'up',
-          unidad: '%',
-        },
-      ]);
-      setLoading(false);
-      return;
-    }
-
-    async function fetchKPIs() {
-      try {
-        // Fetch a handful of the most recent indicators across key categories
-        const queries = await Promise.all([
-          supabase
-            .from('indicadores')
-            .select('id, indicador_nombre, categoria, valor, unidad, periodo')
-            .eq('categoria', 'pobreza')
-            .order('periodo', { ascending: false })
-            .limit(1),
-          supabase
-            .from('indicadores')
-            .select('id, indicador_nombre, categoria, valor, unidad, periodo')
-            .eq('categoria', 'salud')
-            .order('periodo', { ascending: false })
-            .limit(1),
-          supabase
-            .from('indicadores')
-            .select('id, indicador_nombre, categoria, valor, unidad, periodo')
-            .eq('categoria', 'educacion')
-            .order('periodo', { ascending: false })
-            .limit(1),
-          supabase
-            .from('indicadores')
-            .select('id, indicador_nombre, categoria, valor, unidad, periodo')
-            .eq('categoria', 'inversion')
-            .order('periodo', { ascending: false })
-            .limit(1),
-        ]);
-
-        const kpis: KpiData[] = [];
-        for (const res of queries) {
-          if (res.data && res.data.length > 0) {
-            const ind = res.data[0];
-            kpis.push({
-              id: ind.id,
-              categoria: ind.categoria as CategoriaIndicador,
-              nombre: ind.indicador_nombre,
-              valor: ind.valor != null ? `${ind.valor}${ind.unidad || ''}` : '—',
-              subtitulo: `${ind.periodo || ''}`,
-              cambio: undefined,
-              cambioTipo: 'neutral',
-              unidad: ind.unidad ?? undefined,
-            });
-          }
-        }
-
-        if (kpis.length > 0) {
-          setData(kpis);
-          setSource('supabase');
-        }
-      } catch (err) {
-        console.error('Error fetching KPIs:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchKPIs();
-  }, []);
-
-  return { data, loading, source };
-}

@@ -1,9 +1,10 @@
 'use client';
 
-import { Heart, Baby, Syringe, TrendingDown, TrendingUp } from 'lucide-react';
+import { Heart, Baby, Syringe, TrendingDown, TrendingUp, Loader2, AlertCircle, Info } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { parseDesglose } from '@/lib/parse-desglose';
+import { INDICATOR_NAMES } from '@/lib/indicator-names';
 import { SectionHeader } from '@/components/section-header';
 import { KpiCard } from '@/components/kpi-card';
 import {
@@ -11,6 +12,7 @@ import {
   SimpleLineChart,
   SimpleBarChart,
 } from '@/components/charts/chart-with-table';
+import type { Indicador as DashboardIndicador } from '@/lib/use-dashboard-data';
 import {
   LineChart,
   Line,
@@ -32,43 +34,108 @@ const COLORS = {
   amber: '#F3A712',
 };
 
-interface IndicadorData {
-  id: string;
-  indicador_nombre: string;
-  valor: number;
-  unidad: string;
-  periodo: string;
-  region: string;
-  desglose: Record<string, any> | null;
-}
-
 export default function SaludPage() {
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<IndicadorData[]>([]);
+  const [data, setData] = useState<DashboardIndicador[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   // Cargar datos de Supabase
   useEffect(() => {
     async function fetchData() {
-      const { data: indicadores, error } = await supabase
-        .from('indicadores')
-        .select('id, indicador_nombre, valor, unidad, periodo, region, desglose')
-        .eq('categoria', 'salud')
-        .order('periodo', { ascending: true });
+      try {
+        const { data: indicadores, error } = await supabase
+          .from('indicadores')
+          .select('id, indicador_nombre, valor, unidad, periodo, region, desglose')
+          .eq('categoria', 'salud')
+          .order('periodo', { ascending: true });
 
-      if (error) {
-        setError(error.message);
-      } else {
+        if (error) {
+          setError(error.message);
+        } else {
         const parsed = (indicadores || []).map(d => ({
           ...d,
           desglose: parseDesglose(d.desglose),
-        }));
+        })) as DashboardIndicador[];
         setData(parsed);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error al cargar datos');
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
     fetchData();
   }, []);
+
+  // ─── Early returns: loading / error / empty ────────────────────
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <SectionHeader
+          icon={Heart}
+          title="Indicadores de Salud"
+          description="Seguimiento de indicadores de salud materno-infantil y adolescente en Córdoba"
+          color="terracotta"
+        />
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 text-[#E07A5F] animate-spin" />
+          <span className="ml-3 font-body text-gray-500">Cargando datos...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <SectionHeader
+          icon={Heart}
+          title="Indicadores de Salud"
+          description="Seguimiento de indicadores de salud materno-infantil y adolescente en Córdoba"
+          color="terracotta"
+        />
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <AlertCircle className="w-12 h-12 text-red-400 mb-4" />
+          <p className="font-body text-gray-700 mb-2">Error al cargar los datos</p>
+          <p className="text-sm text-gray-400 mb-5 max-w-md">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-5 py-2.5 bg-[#E07A5F] text-white rounded-lg text-sm font-medium hover:bg-[#c96a4f] transition-colors"
+          >
+            Reintentar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (data.length === 0) {
+    return (
+      <div className="space-y-6">
+        <SectionHeader
+          icon={Heart}
+          title="Indicadores de Salud"
+          description="Seguimiento de indicadores de salud materno-infantil y adolescente en Córdoba"
+          color="terracotta"
+        />
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <Info className="w-12 h-12 text-gray-300 mb-4" />
+          <p className="font-body text-gray-600">No hay datos de salud disponibles</p>
+          <p className="text-sm text-gray-400 mt-1">Los datos de salud aún no se han cargado en la base.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Compute derived data ──────────────────────────────────────
+
+  // Nacimientos adolescentes
+  const nacimientosData = data
+    .filter(d => d.indicador_nombre === INDICATOR_NAMES.NACIMIENTOS_ADOLESCENTES)
+    .sort((a, b) => Number(b.periodo) - Number(a.periodo));
+
+  const latestNacimientos = nacimientosData.length > 0 ? nacimientosData[0] : null;
+  const nacimientosValor = latestNacimientos?.valor ?? null;
 
   // Agrupar datos por indicador para time series
   const getTimeSeries = (nombreIndicador: string) => {
@@ -83,11 +150,11 @@ export default function SaludPage() {
   };
 
   // Mortalidad infantil time series (TMI Córdoba - métrica principal)
-  const mortalidadData = getTimeSeries('Mortalidad infantil (TMI Cba)');
+  const mortalidadData = getTimeSeries(INDICATOR_NAMES.TMI_CBA);
 
   // Otras series para gráfico comparativo
   const mortalidadComparativa = () => {
-    const series = ['Mortalidad infantil (TMI Cba)', 'Mortalidad infantil (TMI)']
+    const series = [INDICATOR_NAMES.TMI_CBA, INDICATOR_NAMES.TMI_NAC]
       .map(nombre => ({
         nombre,
         data: getTimeSeries(nombre),
@@ -111,6 +178,8 @@ export default function SaludPage() {
   };
 
   // Cobertura vacunal
+  // NOTE: 'cobertura' fuzzy match — may return 0 rows if the exact DB name differs.
+  // TODO: investigate exact DB name for cobertura and use canonical constant
   const coberturaData = data
     .filter(d => d.indicador_nombre.toLowerCase().includes('cobertura'))
     .map(d => ({
@@ -171,9 +240,9 @@ export default function SaludPage() {
         />
 
         <KpiCard
-          title="Nacimientos"
-          value="83.456"
-          subtitle="Registrados en el último período"
+          title="Nacimientos adolescentes"
+          value={nacimientosValor !== null ? nacimientosValor.toLocaleString('es-AR') : '—'}
+          subtitle={nacimientosValor !== null ? `Registrados en ${latestNacimientos?.periodo || ''}` : 'Sin datos disponibles'}
           icon={Heart}
           color="magenta"
         />
@@ -279,25 +348,6 @@ export default function SaludPage() {
         </div>
       </ChartWithTable>
 
-      {loading && (
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E07A5F]" />
-          <span className="ml-3 font-body text-gray-500">Cargando datos...</span>
-        </div>
-      )}
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-700 mb-2">Error al cargar datos: {error}</p>
-          <button onClick={() => window.location.reload()} className="text-sm text-red-600 underline hover:text-red-800">Reintentar</button>
-        </div>
-      )}
-
-      {data.length === 0 && !loading && (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
-          <p className="text-gray-500">No hay datos de salud disponibles</p>
-        </div>
-      )}
     </div>
   );
 }

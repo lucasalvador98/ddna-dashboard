@@ -15,6 +15,8 @@ import {
   useDashboardData,
   type Indicador,
 } from '@/lib/use-dashboard-data';
+import { formatInversionValue } from '@/lib/format-inversion';
+import { INDICATOR_NAMES } from '@/lib/indicator-names';
 import type { CategoriaIndicador } from '@/lib/supabase';
 
 const categoryConfig = {
@@ -64,11 +66,13 @@ export default function HomePage() {
   const seguridadData = data?.seguridad || [];
 
   // Get latest indicator values per KPI
-  const pobrezaInd = getLatestValue(pobrezaData, 'Pobreza infantil');
-  const indigenciaInd = getLatestValue(pobrezaData, 'Indigencia infantil');
-  const mortalidadInd = getLatestValue(saludData, 'TMI Cba');
-  const escolarizacionInd = getLatestValue(educacionData, 'Tasa de asistencia educativa');
-  const denunciasInd = getLatestValue(seguridadData, 'Total casos');
+  // TODO: validate with DDNA which indicator to display — DB has no child-specific poverty indicator
+  const pobrezaInd = getLatestValue(pobrezaData, INDICATOR_NAMES.POBREZA_PERSONAS);
+  // TODO: validate with DDNA which indicator to display — DB has no child-specific indigence indicator
+  const indigenciaInd = getLatestValue(pobrezaData, INDICATOR_NAMES.INDIGENCIA_PERSONAS);
+  const mortalidadInd = getLatestValue(saludData, INDICATOR_NAMES.TMI_CBA);
+  const escolarizacionInd = getLatestValue(educacionData, INDICATOR_NAMES.TASA_ASISTENCIA_EDUCATIVA);
+  const denunciasInd = getLatestValue(seguridadData, INDICATOR_NAMES.TOTAL_CASOS_JUSTICIA);
   const pobreza = pobrezaInd?.valor ?? null;
   const indigencia = indigenciaInd?.valor ?? null;
   const mortalidad = mortalidadInd?.valor ?? null;
@@ -81,8 +85,8 @@ export default function HomePage() {
   // FIXED: compute population 0-17 from demografia data
   const poblacion = getPoblacion0a17(demografiaData);
 
-  // Poverty time series with FIXED indicator name
-  const pobrezaSerie = getTimeSeries(pobrezaData, 'Pobreza infantil');
+  // Poverty time series — uses canonical Pobreza personas (no child-specific indicator in DB)
+  const pobrezaSerie = getTimeSeries(pobrezaData, INDICATOR_NAMES.POBREZA_PERSONAS);
   const pobrezaChanges = calculateChange(pobrezaSerie);
   const cambioPobreza =
     pobrezaChanges.length > 0 ? pobrezaChanges[pobrezaChanges.length - 1].cambio : null;
@@ -96,7 +100,14 @@ export default function HomePage() {
   const statsEstablecimientos = findStatSum(educacionData, 'Unidades educativas');
   const statsMatricula = findStatSum(educacionData, 'Matrícula - General');
   const statsCategorias = data ? Object.keys(data).filter(k => data[k as CategoriaIndicador]?.length > 0).length : 6;
-  const statsFuentes = '10';
+  const statsFuentes = data
+    ? new Set(
+        Object.values(data)
+          .flat()
+          .map(ind => ind.fuente)
+          .filter((f): f is string => Boolean(f)),
+      ).size
+    : 0;
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
@@ -184,7 +195,7 @@ export default function HomePage() {
 
               <KpiCard
                 title="Inversión social"
-                value={formatValue(inversion, 'Md')}
+                value={formatInversionValue(inversion)}
                 subtitle={`${latestInversionPeriod || ''} — Destinado a infancia y adolescencia`}
                 icon={categoryConfig.inversion.icon}
                 color={categoryConfig.inversion.color}
