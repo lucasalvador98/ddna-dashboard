@@ -45,14 +45,16 @@ export function Header() {
       {/* Gradient accent strip — matches sidebar */}
       <div className="h-1.5 bg-gradient-to-r from-[#FF7F11] via-[#F3A712] to-[#FF7F11]" />
       {/* Desktop Header */}
-      <div className="hidden md:flex items-center justify-between px-6 lg:px-8 py-4">
-        {/* Breadcrumb / Title */}
-        <div>
-          <h1 className="font-display text-2xl text-[#00074E] tracking-tight">{title}</h1>
-          <p className="font-body text-sm text-[#4D4D4D] mt-0.5">
-            Defensoría de los Derechos de Niñas, Niños y Adolescentes
-          </p>
-        </div>
+      <div className={clsx(
+        "hidden md:flex items-center px-6 lg:px-8 py-4",
+        pathname === '/' ? "justify-end" : "justify-between"
+      )}>
+        {/* Breadcrumb / Title — hidden on homepage (page has its own banner) */}
+        {pathname !== '/' && (
+          <div>
+            <h1 className="font-display text-2xl text-[#00074E] tracking-tight">{title}</h1>
+          </div>
+        )}
 
         {/* Right Side Controls */}
         <div className="flex items-center gap-4">
