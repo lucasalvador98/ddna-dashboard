@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
-const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
-const GROQ_MODEL = 'llama-3.1-8b-instant';
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
+const OPENAI_MODEL = 'gpt-4o-mini';
 
 const SYSTEM_PROMPT = `Sos el asistente de investigación de la Defensoría de los Derechos de Niñas, Niños y Adolescentes (DDNA) de Córdoba, Argentina.
 
@@ -39,8 +39,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Question requerida' }, { status: 400 });
     }
 
-    if (!GROQ_API_KEY) {
-      return NextResponse.json({ error: 'GROQ_API_KEY no configurada' }, { status: 500 });
+    if (!OPENAI_API_KEY) {
+      return NextResponse.json({ error: 'OPENAI_API_KEY no configurada' }, { status: 500 });
     }
 
     const baseUrl = request.headers.get('origin') || 'http://localhost:3000';
@@ -130,14 +130,14 @@ export async function POST(request: Request) {
       },
     ];
 
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${GROQ_API_KEY}`,
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: GROQ_MODEL,
+        model: OPENAI_MODEL,
         messages,
         temperature: 0.3,
         max_tokens: 1200,
@@ -147,7 +147,7 @@ export async function POST(request: Request) {
     if (!response.ok) {
       const error = await response.json();
       return NextResponse.json(
-        { error: `Groq error: ${error.error?.message || error}` },
+        { error: `OpenAI error: ${error.error?.message || error}` },
         { status: 500 }
       );
     }

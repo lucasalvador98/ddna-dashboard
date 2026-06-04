@@ -1,7 +1,7 @@
-/**
+/** 
  * POST /api/repositorio/chat — Agent con Function Calling Nativo
  *
- * Usa Groq/OpenAI function calling API en vez de parsear TOOL_CALL: textual.
+ * Usa OpenAI function calling API en vez de parsear TOOL_CALL: textual.
  * El LLM decide CUÁNDO y CON QUÉ PARÁMETROS llamar cada tool.
  *
  * Tools disponibles:
@@ -10,7 +10,7 @@
  *   - Documentos:  search_knowledge_base, listAllDocuments
  *   - Web:         search_web, scrape_url
  *
- * Modelo: llama-3.3-70b-versatile (Groq) / gpt-4o-mini (OpenAI)
+ * Modelo: gpt-4o-mini
  */
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
@@ -26,11 +26,7 @@ import {
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const LLM_PROVIDER = process.env.LLM_PROVIDER || 'groq';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
-const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
-
-const GROQ_MODEL = process.env.LLM_MODEL || 'llama-3.3-70b-versatile';
 const OPENAI_MODEL = 'gpt-4o-mini';
 
 const MAX_TOOL_ROUNDS = 4;
@@ -580,12 +576,9 @@ async function callLLM(
     function: { name: string; arguments: string };
   }>;
 }> {
-  const isGroq = LLM_PROVIDER === 'groq';
-  const llmApiKey = isGroq ? GROQ_API_KEY : OPENAI_API_KEY;
-  const apiUrl = isGroq
-    ? 'https://api.groq.com/openai/v1/chat/completions'
-    : 'https://api.openai.com/v1/chat/completions';
-  const model = isGroq ? GROQ_MODEL : OPENAI_MODEL;
+  const llmApiKey = OPENAI_API_KEY;
+  const apiUrl = 'https://api.openai.com/v1/chat/completions';
+  const model = OPENAI_MODEL;
 
   const body: Record<string, unknown> = {
     model,
@@ -639,7 +632,7 @@ async function callLLM(
           data = await response.json();
         } catch {
           const text = await response.text();
-          throw new Error(`${LLM_PROVIDER} devolvió una respuesta no-JSON: ${text.substring(0, 300)}`);
+          throw new Error(`OpenAI devolvió una respuesta no-JSON: ${text.substring(0, 300)}`);
         }
 
         const message = data?.choices?.[0]?.message;
@@ -667,12 +660,12 @@ async function callLLM(
         msg.toLowerCase().includes('tokens per minute');
 
       if (!isRateLimit) {
-        throw new Error(`Error al generar respuesta con ${LLM_PROVIDER}: ${msg}`);
+        throw new Error(`Error al generar respuesta con OpenAI: ${msg}`);
       }
 
-      lastError = new Error(`Error al generar respuesta con ${LLM_PROVIDER}: ${msg}`);
+      lastError = new Error(`Error al generar respuesta con OpenAI: ${msg}`);
       console.warn(
-        `Groq rate limit (attempt ${attempt + 1}/${maxRetries}): ${msg}`
+        `Rate limit (attempt ${attempt + 1}/${maxRetries}): ${msg}`
       );
       // Continue to next attempt
     } catch (err) {
@@ -682,14 +675,14 @@ async function callLLM(
         err.message.includes('rate_limit')
       )) {
         lastError = err;
-        console.warn(`Groq rate limit (attempt ${attempt + 1}/${maxRetries})`);
+        console.warn(`Rate limit (attempt ${attempt + 1}/${maxRetries})`);
         continue;
       }
       throw err; // Non-rate-limit errors propagate immediately
     }
   }
 
-  throw lastError || new Error(`Error al generar respuesta con ${LLM_PROVIDER}: max retries exceeded`);
+  throw lastError || new Error(`Error al generar respuesta con OpenAI: max retries exceeded`);
 }
 
 // ---------------------------------------------------------------------------
@@ -719,15 +712,10 @@ export async function POST(request: Request) {
     }
 
     // --- Check LLM API key ---
-    const isGroq = LLM_PROVIDER === 'groq';
-    const llmApiKey = isGroq ? GROQ_API_KEY : OPENAI_API_KEY;
-
-    if (!llmApiKey) {
+    if (!OPENAI_API_KEY) {
       return NextResponse.json(
         {
-          error: `No hay API key configurada para ${LLM_PROVIDER.toUpperCase()}. Configurá ${
-            isGroq ? 'GROQ_API_KEY' : 'OPENAI_API_KEY'
-          } en .env.local`,
+          error: 'No hay API key configurada para OPENAI. Configurá OPENAI_API_KEY en .env.local',
         },
         { status: 500 }
       );
@@ -922,7 +910,7 @@ export async function POST(request: Request) {
       searchMethod: searchMethodUsed || 'vector',
       toolsUsed: [...new Set(toolsUsed)],
       reportGenerated: (finalAnswer.match(/^#{1,3}\s/gm) || []).length >= 2 && finalAnswer.length > 400,
-      model: isGroq ? GROQ_MODEL : OPENAI_MODEL,
+      model: OPENAI_MODEL,
       functionCalling: true,
     };
 
