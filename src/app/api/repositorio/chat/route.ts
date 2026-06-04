@@ -759,6 +759,21 @@ export async function POST(request: Request) {
       }
 
       // --- El LLM pidió ejecutar tools ---
+      // OpenAI requiere que los mensajes 'tool' respondan a un mensaje 'assistant' con tool_calls.
+      // Agregamos el mensaje del assistant ANTES de los resultados de las tools.
+      messages.push({
+        role: 'assistant',
+        content: response.content ?? null,
+        tool_calls: response.toolCalls.map(tc => ({
+          id: tc.id,
+          type: 'function' as const,
+          function: {
+            name: tc.function.name,
+            arguments: tc.function.arguments,
+          },
+        })),
+      });
+
       const toolResults: string[] = [];
       let allFailed = true;
 
