@@ -1,7 +1,7 @@
 # DDNA Agent Architecture
 
-**Versión**: 2.0  
-**Fecha**: 2026-05-29  
+**Versión**: 2.1  
+**Fecha**: 2026-06-04  
 **Estado**: Implementado ✅
 
 ---
@@ -13,7 +13,7 @@ Dos agentes conversacionales independientes que permiten consultar los datos de 
 1. **Agente de Indicadores** (`/api/repositorio/chat`) — consulta datos estructurados de la DB + documentos
 2. **Agente de Investigación** (`/api/agent/chat`) — búsqueda en documentos + web + scraping
 
-Ambos usan Groq como LLM y OpenAI para embeddings.
+Ambos usan OpenAI (gpt-4o-mini) como LLM y OpenAI para embeddings.
 
 ---
 
@@ -71,7 +71,7 @@ Ambos usan Groq como LLM y OpenAI para embeddings.
 User: "¿Cuál es la tasa de pobreza infantil en Córdoba?"
 
 1. Vector search → busca en doc_chunks contenido relevante
-2. LLM (Groq) analiza la pregunta + chunks → decide tools a usar
+2. LLM (gpt-4o-mini) analiza la pregunta + chunks → decide tools a usar
 3. LLM llama a getLatestIndicatorValue("Pobreza infantil")
 4. Tool consulta tabla indicadores en Supabase → devuelve datos
 5. LLM sintetiza respuesta con datos + fuentes
@@ -93,10 +93,11 @@ Máximo 3 rondas de tools, 5 tool calls totales.
 
 ### LLM
 
-- **Proveedor**: Groq (con fallback a OpenAI)
-- **Modelo**: `llama-3.1-8b-instant` (Groq) / `gpt-4o-mini` (OpenAI)
+- **Proveedor**: OpenAI (único)
+- **Modelo**: `gpt-4o-mini`
 - **Temperatura**: 0.3 (respuestas precisas)
-- **Tools**: Function calling nativo de Groq (compatible con OpenAI format)
+- **Tools**: Function calling nativo de OpenAI
+- **Rate limits**: ~500k TPM (Tier 1)
 
 ---
 
@@ -176,8 +177,7 @@ LIMIT 10;
 
 | Componente | Tecnología | Notas |
 |------------|------------|-------|
-| **LLM** | Groq (Llama 3.1 8B) | Principal, rápido y económico |
-| **LLM fallback** | OpenAI (gpt-4o-mini) | Si GROQ_API_KEY no configurada |
+| **LLM** | OpenAI (gpt-4o-mini) | Único para ambos agentes |
 | **Embeddings** | OpenAI text-embedding-3-small | 1536 dimensiones |
 | **Vector DB** | pgvector (Supabase) | Índice IVFFlat, cosine distance |
 | **Tool calling** | Function calling (Groq/OpenAI) | Tool definitions en `indicator-tools.ts` |
@@ -223,9 +223,9 @@ CREATE INDEX idx_doc_chunks_embedding
 ```
 
 ### Datos actuales
-- **16 documentos** en `repositorio`
-- **7,541 chunks** en `doc_chunks`
-- **~6,700 indicadores** en tabla `indicadores`
+- **~16 documentos** en `repositorio` (algunos pendientes de procesar)
+- **~7,500 chunks** en `doc_chunks`
+- **~8,100 indicadores** en tabla `indicadores` (~6 categorías)
 
 ---
 
@@ -240,9 +240,10 @@ SUPABASE_SERVICE_ROLE_KEY=eyJ...
 # Embeddings (requerido para procesar documentos y búsqueda)
 OPENAI_API_KEY=sk-...
 
-# LLM principal (requerido para ambos agentes)
-GROQ_API_KEY=gsk_...
-
 # Backfill (requerido para /api/admin/backfill)
 INTERNAL_API_SECRET=...
+
+# Opcional (ya no se usa — migrado a OpenAI)
+# GROQ_API_KEY=gsk_...
+# LLM_PROVIDER=groq
 ```
