@@ -155,7 +155,7 @@ async function fetchIndicators(
     categoria: row.categoria,
     valor: row.valor,
     unidad: row.unidad,
-    periodo: row.periodo,
+    periodo: String(row.periodo), // el DB puede devolver número o string
     region: row.region,
     desglose: row.desglose || {},
     fuente: row.fuente,
