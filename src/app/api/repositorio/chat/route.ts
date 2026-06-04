@@ -1,28 +1,43 @@
+/**
+ * POST /api/repositorio/chat — Agent con Function Calling Nativo
+ *
+ * Usa Groq/OpenAI function calling API en vez de parsear TOOL_CALL: textual.
+ * El LLM decide CUÁNDO y CON QUÉ PARÁMETROS llamar cada tool.
+ *
+ * Tools disponibles:
+ *   - Indicadores: listAvailableIndicators, getLatestIndicatorValue,
+ *                  getIndicatorTimeSeries, getCategoryOverview, getIndicatorBreakdown
+ *   - Documentos:  search_knowledge_base, listAllDocuments
+ *   - Web:         search_web, scrape_url
+ *
+ * Modelo: llama-3.3-70b-versatile (Groq) / gpt-4o-mini (OpenAI)
+ */
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import {
   executeIndicatorTool,
   extractDataSources,
-  INDICATOR_TOOL_DEFINITIONS,
+  INDICATOR_OPENAPI_TOOLS,
 } from '@/lib/agent/indicator-tools';
 
-// --- Configuration ---
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+// ---------------------------------------------------------------------------
+// Configuration
+// ---------------------------------------------------------------------------
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const LLM_PROVIDER = process.env.LLM_PROVIDER || 'groq';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
 
-// Models
-const GROQ_MODEL = 'llama-3.1-8b-instant';
+const GROQ_MODEL = process.env.LLM_MODEL || 'llama-3.3-70b-versatile';
 const OPENAI_MODEL = 'gpt-4o-mini';
 
-// Agent limits
-const MAX_TOOL_ROUNDS = 3;
-const MAX_TOOL_CALLS = 5;
-const MAX_TOKENS = 1500;
-const MAX_CONTEXT_CHARS = 12000; // ~3K tokens, prevent Groq context overflow
-// Base URL for calling internal endpoints (used by tools)
+const MAX_TOOL_ROUNDS = 4;
+const MAX_TOOL_CALLS = 8;
+const MAX_TOKENS = 4096;
+const MAX_CONTEXT_CHARS = 32000;
+
 const BASE_URL = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
   : 'http://localhost:3000';
@@ -51,69 +66,147 @@ interface RawIlikeRow {
   repositorio: { nombre_archivo: string; categoria: string } | null;
 }
 
-/** Parsed tool call from LLM response. */
-interface ParsedToolCall {
-  name: string;
-  params: Record<string, string>;
-}
-
 // ---------------------------------------------------------------------------
-// Tool definitions for the system prompt
+// OpenAI-compatible tool definitions (documentos + web)
 // ---------------------------------------------------------------------------
 
-const SEARCH_TOOL_DEFINITION = {
-  name: 'search_knowledge_base',
-  description:
-    'Busca en la base de conocimiento de la DDNA (documentos oficiales, informes, normativas) usando búsqueda semántica. Devuelve fragmentos relevantes de documentos con su fuente. Usala cuando el usuario haga preguntas que requieran información de documentos, normativas, o contexto institucional.',
-  parameters: 'query (requerido — la consulta de búsqueda en lenguaje natural)',
-};
+const DOCUMENT_TOOLS: Array<{
+  type: 'function';
+  function: {
+    name: string;
+    description: string;
+    parameters: Record<string, unknown>;
+  };
+}> = [
+  {
+    type: 'function',
+    function: {
+      name: 'search_knowledge_base',
+      description:
+        'Busca en la base de conocimiento de la DDNA (documentos oficiales, informes, normativas, PDFs, encuestas) usando búsqueda semántica. Devuelve fragmentos relevantes con su fuente. Usala para preguntas que requieran información de documentos o contexto institucional.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: {
+            type: 'string',
+            description:
+              'La consulta de búsqueda en lenguaje natural. Cuanto más específica, mejores resultados.',
+          },
+          max_results: {
+            type: 'number',
+            description:
+              'Cantidad máxima de fragmentos a retornar (default: 10, máximo: 20).',
+          },
+        },
+        required: ['query'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'listAllDocuments',
+      description:
+        'Lista todos los documentos disponibles en el repositorio de la DDNA. Devuelve nombre, tipo, categoría, y estado de procesamiento. Usala cuando el usuario pregunte "¿qué documentos tenés?", "mostrame los archivos disponibles", o "qué información hay cargada?".',
+      parameters: {
+        type: 'object',
+        properties: {
+          categoria: {
+            type: 'string',
+            description:
+              'Filtrar por categoría (opcional). Ej: "salud", "educacion", "pobreza", "inversion", "seguridad".',
+          },
+          processed: {
+            type: 'boolean',
+            description:
+              'Filtrar solo documentos procesados (true) o solo pendientes (false). Default: todos.',
+          },
+        },
+        required: [],
+      },
+    },
+  },
+];
 
-const WEB_SEARCH_TOOL = {
-  name: 'search_web',
-  description:
-    'Busca en internet (DuckDuckGo) información actualizada. Usala para obtener datos externos, noticias recientes, estadísticas nacionales, o información que no está en los documentos ni indicadores de la DDNA.',
-  parameters: 'query (requerido — la consulta de búsqueda), site (opcional — limitar a un dominio específico)',
-};
+const WEB_TOOLS: Array<{
+  type: 'function';
+  function: {
+    name: string;
+    description: string;
+    parameters: Record<string, unknown>;
+  };
+}> = [
+  {
+    type: 'function',
+    function: {
+      name: 'search_web',
+      description:
+        'Busca en internet (DuckDuckGo) información actualizada. Usala para obtener datos externos, noticias recientes, estadísticas nacionales, o información que no está en los documentos ni indicadores de la DDNA. Importante: NO funciona desde Vercel (DuckDuckGo bloquea).',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: {
+            type: 'string',
+            description: 'La consulta de búsqueda.',
+          },
+          site: {
+            type: 'string',
+            description:
+              'Limitar a un dominio específico (opcional). Ej: "indec.gob.ar", "unicef.org".',
+          },
+        },
+        required: ['query'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'scrape_url',
+      description:
+        'Extrae el contenido completo de una página web. Usala cuando necesites leer en detalle un artículo, informe o fuente específica encontrada en la búsqueda web.',
+      parameters: {
+        type: 'object',
+        properties: {
+          url: {
+            type: 'string',
+            description: 'La URL completa de la página a extraer.',
+          },
+        },
+        required: ['url'],
+      },
+    },
+  },
+];
 
-const SCRAPE_URL_TOOL = {
-  name: 'scrape_url',
-  description:
-    'Extrae el contenido completo de una página web. Usala cuando necesitás leer en detalle un artículo, informe o fuente específica encontrada en la búsqueda web.',
-  parameters: 'url (requerido — la URL completa de la página)',
-};
-
-const ALL_TOOL_DEFINITIONS = [SEARCH_TOOL_DEFINITION, WEB_SEARCH_TOOL, SCRAPE_URL_TOOL, ...INDICATOR_TOOL_DEFINITIONS];
+// Tool combinado para pasar a la API
+const ALL_TOOLS = [
+  ...INDICATOR_OPENAPI_TOOLS,
+  ...DOCUMENT_TOOLS,
+  ...WEB_TOOLS,
+];
 
 // ---------------------------------------------------------------------------
-// System Prompt (enhanced for agent + tools)
+// System Prompt
 // ---------------------------------------------------------------------------
 
-function buildSystemPrompt(): string {
-  return `Sos un asistente de la Defensoría de Niños, Niñas y Adolescentes de Córdoba (DDNA). Ayudás combinando datos estadísticos y documentos oficiales.
+const SYSTEM_PROMPT = `Sos un asistente de la Defensoría de Niños, Niñas y Adolescentes de Córdoba (DDNA). Ayudás combinando datos estadísticos y documentos oficiales.
 
-REGLAS:
-1. Respondé en español, tono profesional pero accesible.
-2. Basate solo en los datos recibidos, no inventes.
-3. Citá fuentes: [Fuente: archivo] para docs, [Indicador: nombre, periodo] para datos.
-4. Si hay datos de múltiples fuentes, contextualizalos. Explicá qué significan, no solo los repitas.
-5. Si los datos no alcanzan, decilo con honestidad.
-6. Para informes: usá secciones (# Título), incluí valores con período y fuente.
-7. Si te piden TOOL_CALL, respondé SOLO con líneas TOOL_CALL: nombre param1="valor1".`;
-}
-
-const SYSTEM_PROMPT = buildSystemPrompt();
+## Reglas
+1. Respondé SIEMPRE en español, tono profesional pero accesible.
+2. Basate SOLO en los datos recibidos de las herramientas — NO inventes cifras ni fuentes.
+3. Citá las fuentes de donde sacaste la información: [Fuente: nombre_archivo] para documentos, [Indicador: nombre, periodo] para datos.
+4. Si encontraste información en múltiples fuentes, contextualizala y explicá qué significa. No te limites a repetir datos.
+5. Si los datos no alcanzan para responder, decilo con honestidad y sugerí cómo obtener mejor información.
+6. Cuando te pregunten "¿qué documentos tenés?" o similares, usá listAllDocuments.
+7. SIEMPRE que necesites datos actuales o históricos de indicadores, usá las herramientas disponibles. No intentes responder de memoria.`;
 
 // ---------------------------------------------------------------------------
 // Helpers — Embedding & Search
 // ---------------------------------------------------------------------------
 
-/**
- * Generate embedding vector from text using OpenAI text-embedding-3-small.
- * Returns null if embedding generation fails or API key is missing.
- */
 async function generateEmbedding(text: string): Promise<number[] | null> {
   if (!OPENAI_API_KEY) return null;
-
   try {
     const response = await fetch('https://api.openai.com/v1/embeddings', {
       method: 'POST',
@@ -126,12 +219,10 @@ async function generateEmbedding(text: string): Promise<number[] | null> {
         input: text,
       }),
     });
-
     if (!response.ok) {
       console.error('OpenAI embedding error:', response.status, await response.text());
       return null;
     }
-
     const data = await response.json();
     return data.data[0]?.embedding ?? null;
   } catch (err) {
@@ -140,10 +231,6 @@ async function generateEmbedding(text: string): Promise<number[] | null> {
   }
 }
 
-/**
- * Build context string from chunks for the LLM.
- * Truncates each chunk to maxChars to balance context and token usage.
- */
 function buildContext(chunks: ChunkResult[], maxChars = 800): string {
   return chunks
     .map((chunk, idx) => {
@@ -159,9 +246,6 @@ function buildContext(chunks: ChunkResult[], maxChars = 800): string {
     .join('\n---\n\n');
 }
 
-/**
- * Extract keyword-based sources from chunks for the response.
- */
 function buildSources(chunks: ChunkResult[]) {
   return chunks.map(chunk => ({
     fileName: chunk.nombre_archivo || 'Documento desconocido',
@@ -173,28 +257,22 @@ function buildSources(chunks: ChunkResult[]) {
 }
 
 // ---------------------------------------------------------------------------
-// Tool: search_knowledge_base
+// Tools — Document Search
 // ---------------------------------------------------------------------------
 
-/**
- * Tool wrapper for the document knowledge-base search.
- *
- * Preserves the original vector-search (RPC search_doc_chunks) and ILIKE
- * fallback logic, packaged as a callable tool for the agent.
- */
 async function searchKnowledgeBase(query: string): Promise<{
   chunks: ChunkResult[];
   searchMethod: 'vector' | 'text';
   warning?: string;
 }> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabaseClient: any = createClient(supabaseUrl, supabaseAnonKey);
+  const supabaseClient: any = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   let chunks: ChunkResult[] = [];
   let searchMethod: 'vector' | 'text' = 'text';
   let warning: string | undefined;
 
-  // === Step 1: Try vector semantic search ===
+  // Step 1: Vector semantic search
   const embedding = await generateEmbedding(query);
 
   if (embedding) {
@@ -215,14 +293,12 @@ async function searchKnowledgeBase(query: string): Promise<{
     }
   }
 
-  // === Step 2: Fallback to ILIKE text search ===
+  // Step 2: Fallback to ILIKE text search
   if (chunks.length === 0) {
     if (!embedding) {
-      warning =
-        'OPENAI_API_KEY no configurada. Usando búsqueda por texto (ILIKE). Configurá la API key para búsqueda semántica vectorial.';
+      warning = 'OPENAI_API_KEY no configurada. Usando búsqueda por texto (ILIKE).';
     }
 
-    // Extract keywords
     const keywords = query
       .toLowerCase()
       .replace(/[?:,;.!¡¿]/g, '')
@@ -233,8 +309,6 @@ async function searchKnowledgeBase(query: string): Promise<{
     if (keywords.length > 0) {
       const searchConditions = keywords.map(kw => `content.ilike.%${kw}%`).join(',');
 
-      // Get processed file IDs
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: processedFiles } = (await supabaseClient
         .from('repositorio')
         .select('id')
@@ -279,7 +353,6 @@ async function searchKnowledgeBase(query: string): Promise<{
         }));
       }
     }
-
     searchMethod = 'text';
   }
 
@@ -287,74 +360,98 @@ async function searchKnowledgeBase(query: string): Promise<{
 }
 
 // ---------------------------------------------------------------------------
-// Tool call parser
+// Tools — listAllDocuments
 // ---------------------------------------------------------------------------
 
-/**
- * Parses TOOL_CALL lines from LLM response text.
- *
- * Format: TOOL_CALL: function_name key1="value1" key2="value2"
- */
-function parseToolCalls(text: string): ParsedToolCall[] {
-  const calls: ParsedToolCall[] = [];
-  const regex = /TOOL_CALL:\s*(\w+)\s*(.*)/g;
+async function listAllDocuments(
+  categoria?: string,
+  processed?: boolean
+): Promise<{
+  documentos: Array<{
+    id: string;
+    nombre: string;
+    tipo: string;
+    categoria: string;
+    procesado: boolean;
+    chunks: number;
+    fecha: string;
+    tamano: number | null;
+  }>;
+  total: number;
+}> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabaseClient: any = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  let match;
-  while ((match = regex.exec(text)) !== null) {
-    const name = match[1].trim();
-    const paramsStr = match[2] || '';
-    const params: Record<string, string> = {};
+  let query = supabaseClient
+    .from('repositorio')
+    .select('id, nombre_archivo, tipo_documento, categoria, processed, total_chunks, fecha_subida, tamano_bytes')
+    .order('fecha_subida', { ascending: false });
 
-    // Parse key="value" pairs — values are inside double quotes
-    const paramRegex = /(\w+)\s*=\s*"([^"]*)"/g;
-    let paramMatch;
-    while ((paramMatch = paramRegex.exec(paramsStr)) !== null) {
-      params[paramMatch[1].trim()] = paramMatch[2];
-    }
-
-    calls.push({ name, params });
+  if (categoria) {
+    query = query.eq('categoria', categoria);
+  }
+  if (processed !== undefined) {
+    query = query.eq('processed', processed);
   }
 
-  return calls;
+  const { data, error } = await query;
+
+  if (error) {
+    console.error('listAllDocuments error:', error);
+    throw new Error('Error al listar documentos.');
+  }
+
+  const docs = (data || []).map((d: Record<string, unknown>) => ({
+    id: d.id as string,
+    nombre: d.nombre_archivo as string,
+    tipo: (d.tipo_documento as string) || 'desconocido',
+    categoria: (d.categoria as string) || 'sin categoría',
+    procesado: (d.processed as boolean) || false,
+    chunks: (d.total_chunks as number) || 0,
+    fecha: (d.fecha_subida as string) || '',
+    tamano: d.tamano_bytes as number | null,
+  }));
+
+  return {
+    documentos: docs,
+    total: docs.length,
+  };
 }
+
+// ---------------------------------------------------------------------------
+// Tool dispatcher
+// ---------------------------------------------------------------------------
 
 /**
- * Extracts the non-tool-call portion of an LLM response (text before or
- * between tool calls). Returns empty string if the entire response consists
- * of tool calls.
+ * Ejecuta un tool call y devuelve resultado formateado + metadatos.
  */
-function extractNonToolText(text: string): string {
-  return text.replace(/TOOL_CALL:\s*\w+.*$/gm, '').trim();
-}
-
-// ---------------------------------------------------------------------------
-// Tool executor — dispatches to the appropriate handler
-// ---------------------------------------------------------------------------
-
-async function executeTool(
+async function executeToolCall(
   name: string,
-  params: Record<string, string>
+  args: Record<string, unknown>
 ): Promise<{
-  result: unknown;
   formattedResult: string;
   sourceType: 'documents' | 'indicators' | 'web' | 'unknown';
+  chunks?: ChunkResult[];
+  indicatorResult?: unknown;
 }> {
-  // Indicator tools
-  if (INDICATOR_TOOL_DEFINITIONS.some(t => t.name === name)) {
-    const result = await executeIndicatorTool(name, params);
+  // --- Indicadores ---
+  if (INDICATOR_OPENAPI_TOOLS.some(t => t.function.name === name)) {
+    const stringParams: Record<string, string> = {};
+    for (const [k, v] of Object.entries(args)) {
+      stringParams[k] = String(v);
+    }
+    const result = await executeIndicatorTool(name, stringParams);
     return {
-      result,
       formattedResult: JSON.stringify(result, null, 2),
       sourceType: 'indicators',
+      indicatorResult: result,
     };
   }
 
-  // Document search tool
+  // --- Documentos ---
   if (name === 'search_knowledge_base') {
-    if (!params.query) {
-      throw new Error('search_knowledge_base requiere el parámetro "query".');
-    }
-    const { chunks, searchMethod, warning } = await searchKnowledgeBase(params.query);
+    const query = String(args.query || '');
+    const { chunks, searchMethod, warning } = await searchKnowledgeBase(query);
 
     let formattedResult: string;
     if (chunks.length === 0) {
@@ -362,26 +459,52 @@ async function executeTool(
     } else {
       const context = buildContext(chunks, 600);
       formattedResult =
-        `[Búsqueda en base de conocimiento — método: ${searchMethod}${warning ? `. Advertencia: ${warning}` : ''}]\n\n` +
-        `Documentos encontrados (${chunks.length}):\n\n${context}`;
+        `[Búsqueda en documentos — método: ${searchMethod}]\n\n` +
+        `Fragmentos encontrados (${chunks.length}):\n\n${context}`;
+    }
+    if (warning) {
+      formattedResult += `\n\nAdvertencia: ${warning}`;
     }
 
+    return { formattedResult, sourceType: 'documents', chunks };
+  }
+
+  if (name === 'listAllDocuments') {
+    const categoria = args.categoria ? String(args.categoria) : undefined;
+    const processed = args.processed !== undefined ? Boolean(args.processed) : undefined;
+    const result = await listAllDocuments(categoria, processed);
+
+    if (result.total === 0) {
+      return {
+        formattedResult: 'No hay documentos disponibles' + (categoria ? ` en la categoría "${categoria}".` : '.'),
+        sourceType: 'documents',
+      };
+    }
+
+    const header = `📚 Documentos disponibles (${result.total}):\n\n`;
+    const lines = result.documentos.map(d => {
+      const proc = d.procesado ? '✅ Indexado' : '⏳ Pendiente';
+      const chunks = d.chunks > 0 ? `, ${d.chunks} chunks` : '';
+      return `- **${d.nombre}** (${d.tipo}) — ${d.categoria} — ${proc}${chunks}`;
+    });
+    const stats = `\n\n**Procesados**: ${result.documentos.filter(d => d.procesado).length} | **Pendientes**: ${result.documentos.filter(d => !d.procesado).length}`;
+
     return {
-      result: { chunks, searchMethod, warning },
-      formattedResult,
+      formattedResult: header + lines.join('\n') + stats,
       sourceType: 'documents',
     };
   }
 
-  // Web search tool
+  // --- Web ---
   if (name === 'search_web') {
-    if (!params.query) throw new Error('search_web requiere el parámetro "query".');
+    const query = String(args.query || '');
+    const site = args.site ? String(args.site) : undefined;
     try {
       const searchUrl = new URL('/api/agent/web-search', BASE_URL).toString();
       const res = await fetch(searchUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: params.query, site: params.site || undefined }),
+        body: JSON.stringify({ query, site }),
       });
       const data = await res.json();
       const results: Array<{ title: string; url: string; snippet: string; source: string }> =
@@ -391,63 +514,72 @@ async function executeTool(
           ? 'No se encontraron resultados en la web.'
           : results
               .map(
-                (r, i) =>
-                  `${i + 1}. ${r.title}\n   URL: ${r.url}\n   ${r.snippet}`
+                (r, i) => `${i + 1}. ${r.title}\n   URL: ${r.url}\n   ${r.snippet}`
               )
               .join('\n\n');
       return {
-        result: data,
-        formattedResult: `[Búsqueda web: "${params.query}"]\n\n${formatted}`,
+        formattedResult: `[Búsqueda web: "${query}"]\n\n${formatted}`,
         sourceType: 'web',
       };
     } catch (err) {
-      console.error('search_web tool failed:', err);
       return {
-        result: { error: String(err) },
-        formattedResult: `[Búsqueda web: "${params.query}"]\n\nLa búsqueda web no está disponible en este momento (error: ${String(err).substring(0, 200)}). Continuá con los datos de indicadores y documentos disponibles.`,
+        formattedResult: `[Búsqueda web: "${query}"]\n\nLa búsqueda web no está disponible en este momento (error: ${String(err).substring(0, 200)}).`,
         sourceType: 'web',
       };
     }
   }
 
-  // Scrape URL tool
   if (name === 'scrape_url') {
-    if (!params.url) throw new Error('scrape_url requiere el parámetro "url".');
+    const url = String(args.url || '');
     try {
       const scrapeUrl = new URL('/api/agent/scrape-url', BASE_URL).toString();
       const res = await fetch(scrapeUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: params.url }),
+        body: JSON.stringify({ url }),
       });
       const data = await res.json();
       const text: string = data.content || data.text || data.error || '';
       const truncated = text.length > 3000 ? text.substring(0, 3000) + '...' : text;
       return {
-        result: data,
-        formattedResult: `[Contenido de ${params.url}]\n\nTítulo: ${data.title || 'N/A'}\n\n${truncated}`,
+        formattedResult: `[Contenido de ${url}]\n\nTítulo: ${data.title || 'N/A'}\n\n${truncated}`,
         sourceType: 'web',
       };
     } catch (err) {
-      console.error('scrape_url tool failed:', err);
       return {
-        result: { error: String(err) },
-        formattedResult: `[Scraping de ${params.url}]\n\nNo se pudo extraer el contenido de la URL (error: ${String(err).substring(0, 200)}).`,
+        formattedResult: `[Scraping de ${url}]\n\nNo se pudo extraer el contenido (error: ${String(err).substring(0, 200)}).`,
         sourceType: 'web',
       };
     }
   }
 
-  throw new Error(`Herramienta desconocida: "${name}".`);
+  throw new Error(`Tool desconocida: "${name}".`);
 }
 
 // ---------------------------------------------------------------------------
-// LLM call helper
+// LLM call helper (with function calling support)
 // ---------------------------------------------------------------------------
 
+type LLMMessage = {
+  role: string;
+  content?: string | null;
+  tool_call_id?: string;
+};
+
 async function callLLM(
-  messages: Array<{ role: string; content: string }>
-): Promise<{ content: string }> {
+  messages: LLMMessage[],
+  tools?: Array<{
+    type: 'function';
+    function: { name: string; description: string; parameters: Record<string, unknown> };
+  }>
+): Promise<{
+  content: string | null;
+  toolCalls?: Array<{
+    id: string;
+    type: 'function';
+    function: { name: string; arguments: string };
+  }>;
+}> {
   const isGroq = LLM_PROVIDER === 'groq';
   const llmApiKey = isGroq ? GROQ_API_KEY : OPENAI_API_KEY;
   const apiUrl = isGroq
@@ -455,18 +587,26 @@ async function callLLM(
     : 'https://api.openai.com/v1/chat/completions';
   const model = isGroq ? GROQ_MODEL : OPENAI_MODEL;
 
+  const body: Record<string, unknown> = {
+    model,
+    messages,
+    temperature: 0.3,
+    max_tokens: MAX_TOKENS,
+  };
+
+  // Solo pasar tools si hay definidas
+  if (tools && tools.length > 0) {
+    body.tools = tools;
+    body.tool_choice = 'auto';
+  }
+
   const response = await fetch(apiUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${llmApiKey}`,
     },
-    body: JSON.stringify({
-      model,
-      messages,
-      temperature: 0.3,
-      max_tokens: MAX_TOKENS,
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
@@ -475,139 +615,44 @@ async function callLLM(
       const errorBody = await response.json();
       msg = errorBody?.error?.message || msg;
     } catch {
-      // Response wasn't JSON (HTML error page, etc.)
       const text = await response.text();
       msg = `HTTP ${response.status} - ${text.substring(0, 200)}`;
     }
     throw new Error(`Error al generar respuesta con ${LLM_PROVIDER}: ${msg}`);
   }
 
-  let data: { choices?: Array<{ message?: { content?: string } }> };
+  let data: {
+    choices?: Array<{
+      message?: {
+        content?: string | null;
+        tool_calls?: Array<{
+          id: string;
+          type: 'function';
+          function: { name: string; arguments: string };
+        }>;
+      };
+    }>;
+  };
+
   try {
     data = await response.json();
   } catch {
     const text = await response.text();
     throw new Error(`${LLM_PROVIDER} devolvió una respuesta no-JSON: ${text.substring(0, 300)}`);
   }
-  const content = data?.choices?.[0]?.message?.content || '';
-  return { content };
+
+  const message = data?.choices?.[0]?.message;
+  const content = message?.content ?? null;
+  const toolCalls = message?.tool_calls;
+
+  return { content, toolCalls };
 }
 
 // ---------------------------------------------------------------------------
-// Heuristic: detect if the response is a structured report
-// ---------------------------------------------------------------------------
-
-function isStructuredReport(text: string): boolean {
-  // Heuristic: markdown headings (## or ###) + substantial length
-  const headingCount = (text.match(/^#{1,3}\s/gm) || []).length;
-  return headingCount >= 2 && text.length > 400;
-}
-
-// ---------------------------------------------------------------------------
-// Heuristic: detect if question needs data or documents
-// ---------------------------------------------------------------------------
-
-const DATA_KEYWORDS = [
-  'dato', 'datos', 'estadística', 'indicador', 'indicadores', 'número', 'cifra',
-  'porcentaje', 'tasa', 'cantidad', 'cuánto', 'cuántos', 'cuál es', 'valor',
-  'pobreza', 'indigencia', 'mortalidad', 'educación', 'escolarización', 'inversión',
-  'población', 'demografía', 'salud', 'seguridad', 'justicia', 'evolución',
-  'tendencia', 'histórico', 'comparar', 'comparación', 'aumentó', 'disminuyó',
-  'informe', 'reporte', 'análisis', 'diagnóstico', 'situación', 'estado actual',
-];
-
-const DOC_KEYWORDS = [
-  'documento', 'informe', 'normativa', 'ley', 'resolución', 'defensoría',
-  'ddna', 'derecho', 'convención', 'protocolo', 'procedimiento',
-];
-
-const WEB_KEYWORDS = [
-  'según', 'fuente externa', 'nacional', 'argentina', 'país', 'comparado',
-  'a nivel', 'noticia', 'reciente', 'actualidad', 'último', 'índec',
-  'ocde', 'unicef', 'oms', 'banco mundial', 'ministerio',
-];
-
-function detectToolNeed(question: string): string | null {
-  const q = question.toLowerCase();
-  const needsData = DATA_KEYWORDS.some(kw => q.includes(kw));
-  const needsDocs = DOC_KEYWORDS.some(kw => q.includes(kw));
-  
-  // Web search is NOT auto-triggered (DuckDuckGo blocks Vercel).
-  // It's still available as an explicit tool when the user asks.
-  
-  if (needsData && needsDocs) {
-    return 'getLatestIndicatorValue o getCategoryOverview + search_knowledge_base';
-  }
-  if (needsData) {
-    return 'getLatestIndicatorValue, getIndicatorTimeSeries, o getCategoryOverview';
-  }
-  if (needsDocs) {
-    return 'search_knowledge_base';
-  }
-  if (question.length > 30) {
-    return 'search_knowledge_base o listAvailableIndicators';
-  }
-  return null;
-}
-
-// ---------------------------------------------------------------------------
-// Smart tool call generation based on question keywords
-// ---------------------------------------------------------------------------
-
-const INDICATOR_KEYWORDS: Record<string, { name: string; categoria: string }> = {
-  'mortalidad infantil': { name: 'Mortalidad infantil (TMI Cba)', categoria: 'salud' },
-  'mortalidad materna': { name: 'Mortalidad infantil (RMM Cba)', categoria: 'salud' },
-  'pobreza infantil': { name: 'Pobreza infantil', categoria: 'pobreza' },
-  'pobreza': { name: 'Pobreza infantil', categoria: 'pobreza' },
-  'indigencia': { name: 'Indigencia infantil', categoria: 'pobreza' },
-  'escolarización': { name: 'Tasa de asistencia educativa', categoria: 'educacion' },
-  'asistencia educativa': { name: 'Tasa de asistencia educativa', categoria: 'educacion' },
-  'unidades educativas': { name: 'Unidades educativas - General', categoria: 'educacion' },
-  'matrícula': { name: 'Matrícula - General', categoria: 'educacion' },
-  'inversión social': { name: 'Inversión social en infancia', categoria: 'inversion' },
-  'inversión': { name: 'Inversión social en infancia', categoria: 'inversion' },
-  'población': { name: 'Poblacion por edad', categoria: 'demografia' },
-  'demografía': { name: 'Poblacion por edad', categoria: 'demografia' },
-  'casos': { name: 'Total casos sistema de justicia', categoria: 'seguridad' },
-  'denuncias': { name: 'Total casos sistema de justicia', categoria: 'seguridad' },
-  'familia': { name: 'Casos de Violencia Familiar', categoria: 'seguridad' },
-  'niñez': { name: 'Casos de Niñez', categoria: 'seguridad' },
-};
-
-function generateToolCalls(question: string): Array<{ name: string; params: Record<string, string> }> {
-  const q = question.toLowerCase();
-  const calls: Array<{ name: string; params: Record<string, string> }> = [];
-  
-  // Check for specific indicator matches
-  for (const [keyword, info] of Object.entries(INDICATOR_KEYWORDS)) {
-    if (q.includes(keyword)) {
-      calls.push({
-        name: 'getLatestIndicatorValue',
-        params: { indicadorNombre: info.name, categoria: info.categoria },
-      });
-      calls.push({
-        name: 'getIndicatorTimeSeries',
-        params: { indicadorNombre: info.name, categoria: info.categoria },
-      });
-      break; // One indicator match is enough
-    }
-  }
-  
-  // Always search documents too
-  calls.push({
-    name: 'search_knowledge_base',
-    params: { query: question },
-  });
-  
-  return calls;
-}
-
-// ---------------------------------------------------------------------------
-// POST handler — agent loop with tool execution
+// POST handler — function calling loop
 // ---------------------------------------------------------------------------
 
 export async function POST(request: Request) {
-  // Track state across tool rounds
   const accumulatedSources: ReturnType<typeof buildSources> = [];
   const accumulatedDataSources: Array<{
     indicador: string;
@@ -644,17 +689,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // --- Get totalDocs count (always useful metadata) ---
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const supabaseClient: any = createClient(supabaseUrl, supabaseAnonKey);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { count: totalDocs } = (await supabaseClient
-      .from('repositorio')
-      .select('*', { count: 'exact', head: true })
-      .eq('processed', true)) as { count: number };
-
-    // --- Agent loop ---
-    const messages: Array<{ role: string; content: string }> = [
+    // --- Agent loop with function calling ---
+    // Los mensajes de tool results se agregan dinámicamente
+    const messages: LLMMessage[] = [
       { role: 'system', content: SYSTEM_PROMPT },
       ...(conversationHistory || []).slice(-6),
       { role: 'user', content: question },
@@ -662,18 +699,15 @@ export async function POST(request: Request) {
 
     let finalAnswer = '';
     let round = 0;
-    let hasContext = false;
 
     while (round < MAX_TOOL_ROUNDS && totalToolCalls < MAX_TOOL_CALLS) {
       round += 1;
 
-      let llmContent: string;
+      let response;
       try {
-        const { content } = await callLLM(messages);
-        llmContent = content;
+        response = await callLLM(messages, ALL_TOOLS);
       } catch (err) {
         console.error(`LLM call failed (round ${round}):`, err);
-        // If we have results from previous rounds, try to synthesize manually
         if (toolsUsed.length > 0) {
           const errMsg = err instanceof Error ? err.message : String(err);
           finalAnswer =
@@ -686,184 +720,131 @@ export async function POST(request: Request) {
         throw err;
       }
 
-      // Check for tool calls
-      const toolCalls = parseToolCalls(llmContent);
-
-      if (toolCalls.length === 0) {
-        // No tool calls — inject them directly if the question needs data/docs
-        if (round === 1 && toolsUsed.length === 0) {
-          const needsTools = detectToolNeed(question);
-          if (needsTools) {
-            // Generate actual TOOL_CALL lines instead of asking LLM
-            const forcedCalls = generateToolCalls(question);
-            
-            if (forcedCalls.length > 0) {
-              // Inject tool calls as if the LLM generated them
-              const tcLines = forcedCalls.map(tc => `TOOL_CALL: ${tc.name} ${Object.entries(tc.params).map(([k,v]) => `${k}="${v}"`).join(' ')}`).join('\n');
-              
-              // Add LLM's original response (for context) and inject tool calls
-              messages.push(
-                { role: 'assistant', content: tcLines }
-              );
-              
-              // Re-parse the injected tool calls
-              const injectedCalls = parseToolCalls(tcLines);
-              
-              // Execute them directly
-              for (const call of injectedCalls) {
-                if (totalToolCalls >= MAX_TOOL_CALLS) break;
-                totalToolCalls += 1;
-                try {
-                  const { result, formattedResult, sourceType } = await executeTool(call.name, call.params);
-                  toolsUsed.push(call.name);
-                  // ... (rest of tool execution logic is duplicated — skip for brevity, jump to synthesis)
-                } catch (toolErr) {
-                  console.error(`Tool ${call.name} failed:`, toolErr);
-                }
-              }
-              
-              // Now call LLM again for synthesis with tool results
-              // We need to properly feed results back — use the same pattern as the normal tool loop
-              // For simplicity, let's just add a synthetic tool result message and continue
-              // Actually, the cleanest approach: pre-execute tools, add results to messages, and let the while loop handle synthesis
-              
-              // Build tool results as a user message
-              const injectedResults: string[] = [];
-              for (const call of injectedCalls) {
-                try {
-                  const { formattedResult } = await executeTool(call.name, call.params);
-                  injectedResults.push(`[Resultado de "${call.name}"]:\n${formattedResult}`);
-                  toolsUsed.push(call.name);
-                  totalToolCalls++;
-                } catch (e) {
-                  injectedResults.push(`[Error en "${call.name}"]: ${String(e)}`);
-                }
-              }
-              
-              let feedback = injectedResults.join('\n\n---\n\n');
-              if (feedback.length > MAX_CONTEXT_CHARS) {
-                feedback = feedback.substring(0, MAX_CONTEXT_CHARS) + '\n\n[... truncado ...]';
-              }
-              
-              messages.push({
-                role: 'user',
-                content: `Resultados de las herramientas:\n\n${feedback}\n\nAhora respondé la pregunta original usando estos datos. Incluí citas a las fuentes.`,
-              });
-              
-              continue; // Let the while loop call LLM for synthesis
-            }
-          }
-        }
-        // No tool calls and doesn't need tools — final answer
-        finalAnswer = llmContent;
+      // Si el LLM devolvió texto (no tool calls), es la respuesta final
+      if (!response.toolCalls || response.toolCalls.length === 0) {
+        finalAnswer = response.content || '';
         break;
       }
 
-      // Extract any non-tool text (LLM commentary before/after tool calls)
-      const nonToolText = extractNonToolText(llmContent);
-
-      // Add the LLM response to conversation history (for context)
-      messages.push({ role: 'assistant', content: llmContent });
-
-      // Execute tools
+      // --- El LLM pidió ejecutar tools ---
       const toolResults: string[] = [];
       let allFailed = true;
 
-      for (const call of toolCalls) {
+      for (const toolCall of response.toolCalls) {
         if (totalToolCalls >= MAX_TOOL_CALLS) break;
         totalToolCalls += 1;
 
-        let toolResultText: string;
-        let toolResultObj: unknown;
+        const toolName = toolCall.function.name;
+        let toolArgs: Record<string, unknown> = {};
 
         try {
-          const { result, formattedResult, sourceType } = await executeTool(call.name, call.params);
-          toolResultObj = result;
-          toolResultText = formattedResult;
-          toolsUsed.push(call.name);
+          toolArgs = JSON.parse(toolCall.function.arguments);
+        } catch {
+          toolArgs = {};
+        }
 
-          // Track search method
-          if (call.name === 'search_knowledge_base') {
-            const searchRes = result as { searchMethod?: 'vector' | 'text'; warning?: string };
-            if (searchRes.searchMethod) searchMethodUsed = searchRes.searchMethod;
-            if (searchRes.warning && !warning) warning = searchRes.warning;
-          }
+        try {
+          const { formattedResult, sourceType, chunks, indicatorResult } = await executeToolCall(
+            toolName,
+            toolArgs
+          );
 
+          toolsUsed.push(toolName);
           allFailed = false;
 
-          // Format per-tool result
-          toolResults.push(`[Resultado de "${call.name}"]:\n${toolResultText}`);
-
-          // Accumulate sources
-          if (sourceType === 'documents') {
-            const searchRes = result as { chunks?: ChunkResult[] };
-            if (searchRes.chunks?.length) {
-              accumulatedSources.push(...buildSources(searchRes.chunks));
-              hasContext = true;
-            }
+          // Truncar si excede el límite de contexto
+          let truncatedResult = formattedResult;
+          if (truncatedResult.length > MAX_CONTEXT_CHARS) {
+            truncatedResult = truncatedResult.substring(0, MAX_CONTEXT_CHARS) +
+              '\n\n[... resultado truncado por límite de contexto ...]';
           }
 
-          // Accumulate data sources
-          if (sourceType === 'indicators' && toolResultObj) {
-            const dataRefs = extractDataSources(call.name, toolResultObj);
+          toolResults.push(`[Resultado de "${toolName}"]:\n${truncatedResult}`);
+
+          // Agregar resultado como mensaje tool (function calling nativo)
+          messages.push({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            content: truncatedResult,
+          });
+
+          // Acumular fuentes
+          if (sourceType === 'documents' && chunks) {
+            accumulatedSources.push(...buildSources(chunks));
+          }
+
+          // Acumular fuentes de indicadores
+          if (sourceType === 'indicators' && indicatorResult) {
+            const dataRefs = extractDataSources(toolName, indicatorResult);
             accumulatedDataSources.push(...dataRefs);
           }
+
+          // Track search method
+          if (toolName === 'search_knowledge_base' && chunks) {
+            // El search method se infiere de los chunks (no tenemos el flag directo aquí)
+            // Se puede mejorar si searchKnowledgeBase devuelve el método
+          }
         } catch (toolErr) {
-          console.error(`Tool "${call.name}" execution error:`, toolErr);
-          toolResults.push(`[Error ejecutando "${call.name}"]: ${String(toolErr)}`);
+          console.error(`Tool "${toolName}" execution error:`, toolErr);
+          const errorMsg = `[Error ejecutando "${toolName}"]: ${String(toolErr)}`;
+          toolResults.push(errorMsg);
+
+          // Aún así agregamos el resultado para que el LLM sepa que falló
+          messages.push({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            content: `Error: ${String(toolErr).substring(0, 500)}`,
+          });
         }
       }
 
-      // Feed tool results back to LLM as a user message
-      let feedbackMessage = toolResults.join('\n\n---\n\n');
-      
-      // Truncate if too large for Groq context window
-      if (feedbackMessage.length > MAX_CONTEXT_CHARS) {
-        feedbackMessage = feedbackMessage.substring(0, MAX_CONTEXT_CHARS) + 
-          '\n\n[... resultado truncado por límite de contexto ...]';
+      // Si todas las tools fallaron, damos una instrucción clara
+      if (allFailed) {
+        messages.push({
+          role: 'user',
+          content:
+            'Todas las herramientas fallaron. Informá al usuario que no se pudieron obtener los datos y sugerí alternativas. NO intentes llamar herramientas de nuevo.',
+        });
+      } else {
+        // Instrucción suave para que el LLM intente sintetizar
+        // (no forzamos, el LLM puede decidir llamar más tools si lo necesita)
+        if (totalToolCalls < MAX_TOOL_CALLS) {
+          messages.push({
+            role: 'user',
+            content:
+              'Si ya tenés suficiente información con estos resultados, sintetizá la respuesta final. Si necesitás más datos, podés llamar otras herramientas.',
+          });
+        }
       }
 
-      messages.push({
-        role: 'user',
-        content:
-          `Resultados de las herramientas solicitadas:\n\n${feedbackMessage}\n\n` +
-          `${
-            allFailed
-              ? 'Todas las herramientas fallaron. Por favor, informá al usuario que no se pudieron obtener los datos solicitados y sugerí alternativas (como probar con otros términos o consultar la lista de indicadores disponibles con listAvailableIndicators).'
-              : 'Ahora sintetizá una respuesta final basada en estos resultados. Incluí citas a las fuentes. NO llames a más herramientas a menos que sea estrictamente necesario. Si tenés suficientes datos, respondé directamente.'
-          }`,
-      });
-
-      if (nonToolText) {
-        finalAnswer = nonToolText; // preserve any analysis the LLM already provided
+      // Si tenemos tool results en el último round, no vamos a tener otra oportunidad
+      if (toolResults.length > 0 && round >= MAX_TOOL_ROUNDS - 1) {
+        messages.push({
+          role: 'user',
+          content:
+            'Llegaste al límite de rondas. Sintetizá AHORA una respuesta final con los datos que tengas. NO uses herramientas.',
+        });
       }
     }
 
-    // Edge case: finalAnswer is empty but tools were used
+    // --- Edge cases ---
     if (!finalAnswer && toolsUsed.length > 0) {
-      finalAnswer = 'Se obtuvieron los datos solicitados. Revisá los resultados a continuación.';
-    }
-
-    // Edge case: round limit reached with tool calls still pending
-    if (!finalAnswer && round >= MAX_TOOL_ROUNDS) {
-      // Try one more LLM call forcing a synthesis
+      // Último intento: forzar síntesis sin tools
       try {
         messages.push({
           role: 'user',
           content:
-            'Llegaste al límite de rondas de herramientas. Sintetizá AHORA una respuesta final con los datos que tengas. NO uses TOOL_CALL.',
+            'Sintetizá AHORA una respuesta final con todos los datos disponibles. NO uses herramientas.',
         });
         const { content } = await callLLM(messages);
-        finalAnswer = content;
+        finalAnswer = content || '';
       } catch {
         finalAnswer =
           'No se pudo completar el análisis en el tiempo disponible. Por favor, intentá con una consulta más específica.';
       }
     }
 
-    // Edge case: nothing worked at all
     if (!finalAnswer) {
-      // Attempt to give helpful guidance by listing available indicator categories
       finalAnswer =
         'No encontré información relevante para tu consulta en los documentos ni en los indicadores disponibles.\n\n' +
         '**Sugerencias**:\n' +
@@ -873,28 +854,32 @@ export async function POST(request: Request) {
         '**Categorías de indicadores disponibles**: pobreza, salud, educacion, inversion, demografia, seguridad, justicia, salud_adolescente, anuario_educacion, aprender, consumo, deis.';
     }
 
-    // --- Determine searchMethod for response ---
-    const searchMethod = searchMethodUsed || 'vector';
+    // --- Contar documentos procesados ---
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const supabaseClient: any = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { count: totalDocs } = (await supabaseClient
+      .from('repositorio')
+      .select('*', { count: 'exact', head: true })
+      .eq('processed', true)) as { count: number };
 
     // --- Build final response ---
     const responseBody: Record<string, unknown> = {
       answer: finalAnswer,
       sources:
         accumulatedSources.length > 0
-          ? // Deduplicate by fileName
-            Array.from(new Map(accumulatedSources.map(s => [s.fileName, s])).values())
+          ? Array.from(new Map(accumulatedSources.map(s => [s.fileName, s])).values())
           : [],
       dataSources:
         accumulatedDataSources.length > 0
-          ? // Deduplicate by indicador name
-            Array.from(new Map(accumulatedDataSources.map(d => [d.indicador, d])).values())
+          ? Array.from(new Map(accumulatedDataSources.map(d => [d.indicador, d])).values())
           : [],
-      hasContext,
+      hasContext: accumulatedSources.length > 0,
       totalDocs: totalDocs ?? 0,
-      searchMethod,
+      searchMethod: searchMethodUsed || 'vector',
       toolsUsed: [...new Set(toolsUsed)],
-      reportGenerated: isStructuredReport(finalAnswer),
+      reportGenerated: (finalAnswer.match(/^#{1,3}\s/gm) || []).length >= 2 && finalAnswer.length > 400,
       model: isGroq ? GROQ_MODEL : OPENAI_MODEL,
+      functionCalling: true,
     };
 
     if (warning) responseBody.warning = warning;

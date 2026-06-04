@@ -541,7 +541,7 @@ export async function getIndicatorBreakdown(
 }
 
 // ---------------------------------------------------------------------------
-// Tool definitions (for the LLM system prompt)
+// Tool definitions (for the LLM system prompt — legacy format)
 // ---------------------------------------------------------------------------
 
 export interface ToolDefinition {
@@ -582,6 +582,138 @@ export const INDICATOR_TOOL_DEFINITIONS: ToolDefinition[] = [
       'Desglosa un indicador por una dimensión específica (ej: grupo de edad, género, región). Usala cuando el usuario pregunta por diferencias entre grupos o quiere ver la composición de un indicador (ej: "Pobreza infantil por grupo de edad").',
     parameters:
       'indicadorNombre (requerido), categoria (opcional), desgloseField (opcional — se auto-detecta si no se especifica)',
+  },
+];
+
+// ---------------------------------------------------------------------------
+// OpenAI-compatible tool definitions (for native function calling)
+// ---------------------------------------------------------------------------
+
+/**
+ * OpenAI-compatible tool definitions for indicator tools.
+ * Use these with Groq/OpenAI function calling API via the `tools` parameter.
+ */
+export const INDICATOR_OPENAPI_TOOLS: Array<{
+  type: 'function';
+  function: {
+    name: string;
+    description: string;
+    parameters: Record<string, unknown>;
+  };
+}> = [
+  {
+    type: 'function',
+    function: {
+      name: 'listAvailableIndicators',
+      description:
+        'Lista todos los indicadores disponibles agrupados por categoría (pobreza, salud, educacion, inversion, demografia, seguridad, etc). Usala cuando el usuario pregunte qué datos hay disponibles o quiera explorar el catálogo.',
+      parameters: {
+        type: 'object',
+        properties: {},
+        required: [],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getLatestIndicatorValue',
+      description:
+        'Obtiene los valores más recientes de un indicador específico. Usala para preguntas sobre el estado actual (ej: "¿Cuál es la tasa de pobreza infantil actual?").',
+      parameters: {
+        type: 'object',
+        properties: {
+          indicadorNombre: {
+            type: 'string',
+            description:
+              'Nombre exacto del indicador (ej: "Mortalidad infantil (TMI Cba)", "Pobreza infantil", "Tasa de asistencia educativa"). Usá listAvailableIndicators primero si no sabés el nombre exacto.',
+          },
+          categoria: {
+            type: 'string',
+            description:
+              'Categoría del indicador (pobreza, salud, educacion, inversion, demografia, seguridad). Opcional pero ayuda a desambiguar.',
+          },
+        },
+        required: ['indicadorNombre'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getIndicatorTimeSeries',
+      description:
+        'Obtiene la serie temporal completa de un indicador para análisis de tendencias. Usala cuando pregunten por evolución histórica, tendencias, o cambios a lo largo del tiempo.',
+      parameters: {
+        type: 'object',
+        properties: {
+          indicadorNombre: {
+            type: 'string',
+            description:
+              'Nombre exacto del indicador (ej: "Mortalidad infantil (TMI Cba)"). Usá listAvailableIndicators primero si no sabés el nombre exacto.',
+          },
+          categoria: {
+            type: 'string',
+            description:
+              'Categoría del indicador para desambiguar si hay nombres similares en distintas categorías.',
+          },
+          limit: {
+            type: 'number',
+            description:
+              'Cantidad máxima de períodos a retornar (default: 50, máximo: 200).',
+          },
+        },
+        required: ['indicadorNombre'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getCategoryOverview',
+      description:
+        'Obtiene un resumen de todos los indicadores dentro de una categoría con sus últimos valores. Usala para tener una visión general de un tema o cuando pregunten por "datos sobre educación" sin especificar un indicador concreto.',
+      parameters: {
+        type: 'object',
+        properties: {
+          categoria: {
+            type: 'string',
+            description:
+              'Categoría a consultar. Valores válidos: pobreza, salud, educacion, inversion, demografia, seguridad, justicia, salud_adolescente, anuario_educacion, aprender, consumo, deis.',
+          },
+        },
+        required: ['categoria'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getIndicatorBreakdown',
+      description:
+        'Desglosa un indicador por una dimensión específica (grupo de edad, género, región). Usala cuando pregunten por diferencias entre grupos o quieran ver la composición de un indicador.',
+      parameters: {
+        type: 'object',
+        properties: {
+          indicadorNombre: {
+            type: 'string',
+            description:
+              'Nombre exacto del indicador a desglosar.',
+          },
+          categoria: {
+            type: 'string',
+            description:
+              'Categoría del indicador para desambiguar.',
+          },
+          desgloseField: {
+            type: 'string',
+            description:
+              'Campo de desglose (grupo_edad, genero, region). Opcional — se auto-detecta si no se especifica.',
+          },
+        },
+        required: ['indicadorNombre'],
+      },
+    },
   },
 ];
 
