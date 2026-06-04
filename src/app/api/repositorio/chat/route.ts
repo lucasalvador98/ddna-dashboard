@@ -35,8 +35,8 @@ const OPENAI_MODEL = 'gpt-4o-mini';
 
 const MAX_TOOL_ROUNDS = 4;
 const MAX_TOOL_CALLS = 8;
-const MAX_TOKENS = 4096;
-const MAX_CONTEXT_CHARS = 32000;
+const MAX_TOKENS = 2000;
+const MAX_CONTEXT_CHARS = 20000;
 
 const BASE_URL = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -600,52 +600,96 @@ async function callLLM(
     body.tool_choice = 'auto';
   }
 
-  const response = await fetch(apiUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${llmApiKey}`,
-    },
-    body: JSON.stringify(body),
-  });
+  // Retry logic for rate limits (up to 3 attempts with exponential backoff)
+  let lastError: Error | null = null;
+  const maxRetries = 3;
 
-  if (!response.ok) {
-    let msg = `HTTP ${response.status}`;
-    try {
-      const errorBody = await response.json();
-      msg = errorBody?.error?.message || msg;
-    } catch {
-      const text = await response.text();
-      msg = `HTTP ${response.status} - ${text.substring(0, 200)}`;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    if (attempt > 0) {
+      // Esperar antes de reintentar: 1s, 3s, 7s
+      const delay = Math.pow(2, attempt + 1) * 1000 - 1000;
+      await new Promise(resolve => setTimeout(resolve, delay));
     }
-    throw new Error(`Error al generar respuesta con ${LLM_PROVIDER}: ${msg}`);
+
+    try {
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${llmApiKey}`,
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (response.ok) {
+        // Success — parse and return
+        let data: {
+          choices?: Array<{
+            message?: {
+              content?: string | null;
+              tool_calls?: Array<{
+                id: string;
+                type: 'function';
+                function: { name: string; arguments: string };
+              }>;
+            };
+          }>;
+        };
+        try {
+          data = await response.json();
+        } catch {
+          const text = await response.text();
+          throw new Error(`${LLM_PROVIDER} devolvió una respuesta no-JSON: ${text.substring(0, 300)}`);
+        }
+
+        const message = data?.choices?.[0]?.message;
+        return {
+          content: message?.content ?? null,
+          toolCalls: message?.tool_calls,
+        };
+      }
+
+      // Try to extract error message
+      let msg = `HTTP ${response.status}`;
+      try {
+        const errorBody = await response.json();
+        msg = errorBody?.error?.message || msg;
+      } catch {
+        const text = await response.text();
+        msg = `HTTP ${response.status} - ${text.substring(0, 200)}`;
+      }
+
+      // If it's a rate limit error, retry; otherwise throw immediately
+      const isRateLimit =
+        response.status === 429 ||
+        msg.toLowerCase().includes('rate limit') ||
+        msg.toLowerCase().includes('rate_limit') ||
+        msg.toLowerCase().includes('tokens per minute');
+
+      if (!isRateLimit) {
+        throw new Error(`Error al generar respuesta con ${LLM_PROVIDER}: ${msg}`);
+      }
+
+      lastError = new Error(`Error al generar respuesta con ${LLM_PROVIDER}: ${msg}`);
+      console.warn(
+        `Groq rate limit (attempt ${attempt + 1}/${maxRetries}): ${msg}`
+      );
+      // Continue to next attempt
+    } catch (err) {
+      if (err instanceof Error && (
+        err.message.includes('Rate limit') ||
+        err.message.includes('rate limit') ||
+        err.message.includes('rate_limit')
+      )) {
+        lastError = err;
+        console.warn(`Groq rate limit (attempt ${attempt + 1}/${maxRetries})`);
+        continue;
+      }
+      throw err; // Non-rate-limit errors propagate immediately
+    }
   }
 
-  let data: {
-    choices?: Array<{
-      message?: {
-        content?: string | null;
-        tool_calls?: Array<{
-          id: string;
-          type: 'function';
-          function: { name: string; arguments: string };
-        }>;
-      };
-    }>;
-  };
-
-  try {
-    data = await response.json();
-  } catch {
-    const text = await response.text();
-    throw new Error(`${LLM_PROVIDER} devolvió una respuesta no-JSON: ${text.substring(0, 300)}`);
-  }
-
-  const message = data?.choices?.[0]?.message;
-  const content = message?.content ?? null;
-  const toolCalls = message?.tool_calls;
-
-  return { content, toolCalls };
+  throw lastError || new Error(`Error al generar respuesta con ${LLM_PROVIDER}: max retries exceeded`);
 }
 
 // ---------------------------------------------------------------------------
