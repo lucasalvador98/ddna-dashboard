@@ -19,14 +19,17 @@ import type { ExecutiveReport } from '@/lib/informe-ejecutivo';
 
 // ─── Constants ──────────────────────────────────────────────────
 
-const ALL_CATEGORIES = [
-  { id: 'pobreza', label: 'Pobreza' },
-  { id: 'salud', label: 'Salud' },
-  { id: 'educacion', label: 'Educación' },
-  { id: 'inversion', label: 'Inversión Social' },
-  { id: 'seguridad', label: 'Seguridad' },
-  { id: 'demografia', label: 'Demografía' },
+// Thematic axes shown to the user — each maps to one or more DB categories server-side
+const THEMATIC_AXES = [
+  { id: 'educacion',          label: 'Educación',          description: 'Matrícula, Aprender, Anuario' },
+  { id: 'salud',              label: 'Salud',               description: 'TMI, RMM, DEIS, salud adolescente' },
+  { id: 'pobreza',            label: 'Pobreza',             description: 'Pobreza, indigencia, alimentación, empleo' },
+  { id: 'inversion',          label: 'Inversión Social',    description: 'Inversión en infancia por rubro' },
+  { id: 'seguridad_justicia', label: 'Seguridad y Justicia',description: 'Violencia familiar, justicia penal juvenil' },
+  { id: 'demografia',         label: 'Demografía',          description: 'Población por edad y departamento' },
 ] as const;
+
+const ALL_AXIS_IDS = THEMATIC_AXES.map((a) => a.id);
 
 // ─── Props ──────────────────────────────────────────────────────
 
@@ -46,8 +49,8 @@ type ModalState =
 // ─── Component ─────────────────────────────────────────────────
 
 export function ReportModal({ isOpen, onClose }: ReportModalProps) {
-  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(
-    () => new Set(ALL_CATEGORIES.map((c) => c.id)),
+  const [selectedAxes, setSelectedAxes] = useState<Set<string>>(
+    () => new Set(ALL_AXIS_IDS),
   );
   const [state, setState] = useState<ModalState>({ phase: 'form' });
   const backdropRef = useRef<HTMLDivElement>(null);
@@ -55,7 +58,7 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
   // ── Reset form when modal opens ──────────────────────────────
   useEffect(() => {
     if (isOpen) {
-      setSelectedCategories(new Set(ALL_CATEGORIES.map((c) => c.id)));
+      setSelectedAxes(new Set(ALL_AXIS_IDS));
       setState({ phase: 'form' });
     }
   }, [isOpen]);
@@ -91,38 +94,35 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
     [onClose],
   );
 
-  // ── Toggle category ──────────────────────────────────────────
-  const toggleCategory = (catId: string) => {
-    setSelectedCategories((prev) => {
+  // ── Toggle axis ──────────────────────────────────────────────
+  const toggleAxis = (axisId: string) => {
+    setSelectedAxes((prev) => {
       const next = new Set(prev);
-      if (next.has(catId)) {
-        next.delete(catId);
+      if (next.has(axisId)) {
+        next.delete(axisId);
       } else {
-        next.add(catId);
+        next.add(axisId);
       }
       return next;
     });
   };
 
   // ── Toggle all ───────────────────────────────────────────────
-  const allSelected = selectedCategories.size === ALL_CATEGORIES.length;
+  const allSelected = selectedAxes.size === ALL_AXIS_IDS.length;
   const toggleAll = () => {
     if (allSelected) {
-      setSelectedCategories(new Set());
+      setSelectedAxes(new Set());
     } else {
-      setSelectedCategories(new Set(ALL_CATEGORIES.map((c) => c.id)));
+      setSelectedAxes(new Set(ALL_AXIS_IDS));
     }
   };
 
   // ── Generate report ──────────────────────────────────────────
   const generateReport = async () => {
-    // If none selected, select all
-    const categories =
-      selectedCategories.size > 0
-        ? Array.from(selectedCategories)
-        : ALL_CATEGORIES.map((c) => c.id);
+    const axes =
+      selectedAxes.size > 0 ? Array.from(selectedAxes) : ALL_AXIS_IDS;
 
-    setSelectedCategories(new Set(categories));
+    setSelectedAxes(new Set(axes));
     setState({ phase: 'loading' });
 
     try {
@@ -131,7 +131,7 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ categories }),
+          body: JSON.stringify({ axes }),
         },
       );
 
@@ -211,9 +211,9 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
                 basado en los datos disponibles.
               </p>
 
-              {/* Selector de categorías */}
+              {/* Selector de ejes temáticos */}
               <div className="space-y-3">
-                {/* "Todas" toggle */}
+                {/* "Todos" toggle */}
                 <label className="flex items-center gap-3 cursor-pointer group">
                   <input
                     type="checkbox"
@@ -222,28 +222,37 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
                     className="w-4 h-4 rounded border-gray-300 text-[#00074E] focus:ring-[#00074E]"
                   />
                   <span className="font-accent text-sm font-semibold text-[#00074E]">
-                    Todas las categorías
+                    Todos los ejes temáticos
                   </span>
                 </label>
 
                 <div className="border-t border-gray-100 pt-3" />
 
-                {/* Individual categories */}
-                <div className="grid grid-cols-2 gap-2">
-                  {ALL_CATEGORIES.map((cat) => (
+                <div className="grid grid-cols-1 gap-2">
+                  {THEMATIC_AXES.map((axis) => (
                     <label
-                      key={cat.id}
-                      className="flex items-center gap-3 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                      key={axis.id}
+                      className={clsx(
+                        'flex items-start gap-3 cursor-pointer p-3 rounded-lg border transition-colors',
+                        selectedAxes.has(axis.id)
+                          ? 'border-[#FF7F11]/40 bg-[#FF7F11]/5'
+                          : 'border-gray-100 hover:bg-gray-50',
+                      )}
                     >
                       <input
                         type="checkbox"
-                        checked={selectedCategories.has(cat.id)}
-                        onChange={() => toggleCategory(cat.id)}
-                        className="w-4 h-4 rounded border-gray-300 text-[#FF7F11] focus:ring-[#FF7F11]"
+                        checked={selectedAxes.has(axis.id)}
+                        onChange={() => toggleAxis(axis.id)}
+                        className="w-4 h-4 rounded border-gray-300 text-[#FF7F11] focus:ring-[#FF7F11] mt-0.5"
                       />
-                      <span className="font-body text-sm text-gray-700 group-hover:text-gray-900">
-                        {cat.label}
-                      </span>
+                      <div>
+                        <span className="font-accent text-sm font-semibold text-gray-800">
+                          {axis.label}
+                        </span>
+                        <p className="font-body text-xs text-gray-500 mt-0.5">
+                          {axis.description}
+                        </p>
+                      </div>
                     </label>
                   ))}
                 </div>

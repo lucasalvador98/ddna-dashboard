@@ -12,6 +12,7 @@ import {
   buildReportPayload,
   buildSystemPrompt,
   ALL_CATEGORIES,
+  expandAxesToCategories,
   searchDocuments,
   searchWebContext,
   type IndicadorRow,
@@ -28,7 +29,7 @@ const MAX_RETRIES = 3;
 // ─── Types ──────────────────────────────────────────────────────
 
 interface RequestBody {
-  categories?: string[];
+  axes?: string[];
 }
 
 // ─── LLM Call Helper ────────────────────────────────────────────
@@ -65,7 +66,7 @@ async function callLLM(
             { role: 'user', content: userPayload },
           ],
           temperature: 0.3,
-          max_tokens: 4000,
+          max_tokens: 8000,
           response_format: { type: 'json_object' as const },
         }),
       });
@@ -138,13 +139,14 @@ async function fetchIndicators(
   const activeCategories =
     categories.length > 0 ? categories : [...ALL_CATEGORIES];
 
-  // Fetch all indicators for the selected categories
+  // Use v_informe_contexto: excludes duplicate justicia rows (es_duplicado=true)
+  // and only returns active indicators via the view's WHERE activo=true filter.
   const { data, error } = await supabase
-    .from('indicadores')
-    .select(
-      'id, indicador_nombre, categoria, valor, unidad, periodo, region, desglose, fuente',
-    )
-    .in('categoria', activeCategories)
+    .from('v_informe_contexto')
+    .select('id, titulo, categoria_db, contenido, fuente, periodo, ejes_relacionados')
+    .eq('tipo', 'indicador')
+    .eq('es_duplicado', false)
+    .in('categoria_db', activeCategories)
     .order('periodo', { ascending: false });
 
   if (error) {
@@ -152,17 +154,28 @@ async function fetchIndicators(
     throw new Error('Error al consultar indicadores en Supabase');
   }
 
-  return (data || []).map((row: RawIndicadorRow) => ({
-    id: row.id,
-    indicador_nombre: row.indicador_nombre,
-    categoria: row.categoria,
-    valor: row.valor,
-    unidad: row.unidad,
-    periodo: String(row.periodo), // el DB puede devolver número o string
-    region: row.region,
-    desglose: row.desglose || {},
-    fuente: row.fuente,
-  }));
+  return (data || []).map((row: Record<string, unknown>) => {
+    // contenido format: "categoria | nombre | valor: X unidad | período: P | región: R"
+    // We re-parse into IndicadorRow fields from the view columns
+    const content = String(row.contenido ?? '');
+    const parts = content.split(' | ');
+    const valorPart = parts[2] ?? '';
+    const valorMatch = valorPart.match(/valor:\s*([\d.,]+)\s*(.*)/);
+    const valor = valorMatch ? parseFloat(valorMatch[1].replace(',', '.')) : 0;
+    const unidad = valorMatch ? valorMatch[2].trim() : '';
+
+    return {
+      id: String(row.id ?? ''),
+      indicador_nombre: String(row.titulo ?? ''),
+      categoria: String(row.categoria_db ?? ''),
+      valor,
+      unidad,
+      periodo: String(row.periodo ?? ''),
+      region: parts[4]?.replace('región: ', '').trim() ?? 'Córdoba',
+      desglose: {},
+      fuente: String(row.fuente ?? ''),
+    } satisfies IndicadorRow;
+  });
 }
 
 // ─── POST Handler ───────────────────────────────────────────────
@@ -191,24 +204,19 @@ export async function POST(request: Request) {
       );
     }
 
-    // --- Validate categories ---
-    const categories = body.categories;
-    if (categories !== undefined) {
-      if (
-        !Array.isArray(categories) ||
-        !categories.every((c) => typeof c === 'string')
-      ) {
+    // --- Validate axes ---
+    const axes = body.axes;
+    if (axes !== undefined) {
+      if (!Array.isArray(axes) || !axes.every((a) => typeof a === 'string')) {
         return NextResponse.json(
-          {
-            error:
-              'categories debe ser un array de strings (ej: ["salud", "educacion"])',
-          },
+          { error: 'axes debe ser un array de strings (ej: ["educacion", "salud"])' },
           { status: 400 },
         );
       }
     }
 
-    const activeCategories = categories ?? [];
+    // Expand thematic axes to actual DB categories
+    const activeCategories = expandAxesToCategories(axes ?? []);
 
     // ── Phase 1: Fetch indicators ─────────────────────────────
     const indicators = await fetchIndicators(activeCategories);
@@ -224,14 +232,23 @@ export async function POST(request: Request) {
     }
 
     // ── Phase 2: Multi-source gathering (parallel) ────────────
+    // Deduplicate to one query per thematic axis — multiple DB categories
+    // (e.g. educacion + aprender + anuario_educacion) map to the same axis
+    // in v_informe_contexto, so we avoid redundant queries.
     const searchClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const DB_TO_AXIS: Record<string, string> = {
+      educacion: 'educacion', aprender: 'educacion', anuario_educacion: 'educacion',
+      salud: 'salud', salud_adolescente: 'salud', deis: 'salud',
+      pobreza: 'pobreza', consumo: 'pobreza',
+      inversion: 'inversion',
+      seguridad: 'seguridad_justicia', justicia: 'seguridad_justicia',
+      demografia: 'demografia',
+    };
+    const uniqueAxes = [...new Set(activeCategories.map((cat) => DB_TO_AXIS[cat] ?? cat))];
+
     const [docSettled, webSettled] = await Promise.allSettled([
-      Promise.all(
-        activeCategories.map((cat) => searchDocuments(searchClient, cat)),
-      ),
-      Promise.all(
-        activeCategories.map((cat) => searchWebContext(cat)),
-      ),
+      Promise.all(uniqueAxes.map((axis) => searchDocuments(searchClient, axis))),
+      Promise.all(uniqueAxes.map((axis) => searchWebContext(axis))),
     ]);
 
     const documents =
@@ -272,14 +289,13 @@ export async function POST(request: Request) {
     // ── Phase 6: Return structured response with all fields ──
     return NextResponse.json({
       report: {
-        // ExecutiveReport fields
         title: report.title || 'Informe Ejecutivo DDNA',
         date: report.date || new Date().toLocaleDateString('es-AR'),
         overview: report.overview || '',
+        kpis: report.kpis || [],
         sections: report.sections || [],
         conclusion: report.conclusion || '',
         recommendations: report.recommendations || [],
-        // CriticalReport fields (optional — may be absent in simple exec reports)
         dataQuality: report.dataQuality || [],
         discrepancies: report.discrepancies || [],
         crossReferences: report.crossReferences || [],

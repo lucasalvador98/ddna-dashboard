@@ -36,6 +36,9 @@ const mockReport: ExecutiveReport = {
 
 const criticalReport: CriticalReport = {
   ...mockReport,
+  kpis: [
+    { label: 'Mortalidad infantil', value: '8.5', unit: '‰', period: '2022', source: 'DEIS', trend: 'down', trendNote: 'vs 9.1 en 2021', alert: false, axis: 'salud' },
+  ],
   dataQuality: [
     { category: 'salud', rating: 'alta', issues: ['Datos actualizados a 2022'] },
     { category: 'pobreza', rating: 'baja', issues: ['Datos desactualizados desde 2021', 'Fuente no verificada'] },

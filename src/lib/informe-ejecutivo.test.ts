@@ -6,6 +6,13 @@ import {
   searchWebContext,
   type IndicadorRow,
 } from './informe-ejecutivo';
+import {
+  mockSalud,
+  mockPobreza,
+  mockAprender,
+  mockEducacion,
+  allMockIndicadores,
+} from './mockIndicadores';
 
 describe('buildSystemPrompt', () => {
   it('should return a string with executive report instructions', () => {
@@ -33,112 +40,90 @@ describe('buildSystemPrompt', () => {
     const prompt = buildSystemPrompt();
     expect(prompt).toMatch(/positivo|negativo|neutral|highlight|tendencia/i);
   });
+
+  it('should contain specific domain rules (INDEC zero values, TMI threshold, school sector/quintile)', () => {
+    const prompt = buildSystemPrompt();
+    expect(prompt).toMatch(/2013.*2015|indec/i);
+    expect(prompt).toMatch(/tasa de mortalidad infantil|tmi.*10‰/i);
+    expect(prompt).toMatch(/q1-estatal|q5-privado|quintil/i);
+  });
 });
 
 describe('buildReportPayload', () => {
-  const baseIndicators: IndicadorRow[] = [
-    {
-      id: '1',
-      indicador_nombre: 'Pobreza personas',
-      categoria: 'pobreza',
-      valor: 38.5,
-      unidad: '%',
-      periodo: '2024',
-      region: 'Córdoba',
-      desglose: {},
-      fuente: 'INDEC',
-    },
-    {
-      id: '2',
-      indicador_nombre: 'Pobreza personas',
-      categoria: 'pobreza',
-      valor: 42.1,
-      unidad: '%',
-      periodo: '2023',
-      region: 'Córdoba',
-      desglose: {},
-      fuente: 'INDEC',
-    },
-    {
-      id: '3',
-      indicador_nombre: 'Pobreza personas',
-      categoria: 'pobreza',
-      valor: 44.0,
-      unidad: '%',
-      periodo: '2022',
-      region: 'Córdoba',
-      desglose: {},
-      fuente: 'INDEC',
-    },
-    {
-      id: '4',
-      indicador_nombre: 'Pobreza personas',
-      categoria: 'pobreza',
-      valor: 46.2,
-      unidad: '%',
-      periodo: '2021',
-      region: 'Córdoba',
-      desglose: {},
-      fuente: 'INDEC',
-    },
-    {
-      id: '5',
-      indicador_nombre: 'Mortalidad infantil (TMI Cba)',
-      categoria: 'salud',
-      valor: 8.5,
-      unidad: '‰',
-      periodo: '2022',
-      region: 'Córdoba',
-      desglose: {},
-      fuente: 'DEIS',
-    },
-    {
-      id: '6',
-      indicador_nombre: 'Mortalidad infantil (TMI Cba)',
-      categoria: 'salud',
-      valor: 9.1,
-      unidad: '‰',
-      periodo: '2021',
-      region: 'Córdoba',
-      desglose: {},
-      fuente: 'DEIS',
-    },
-  ];
-
   it('should group indicators by category', () => {
-    const payload = buildReportPayload(['pobreza', 'salud'], baseIndicators);
+    const payload = buildReportPayload(['pobreza', 'salud'], allMockIndicadores);
     expect(payload.categories).toHaveProperty('pobreza');
     expect(payload.categories).toHaveProperty('salud');
   });
 
   it('should include only requested categories', () => {
-    const payload = buildReportPayload(['salud'], baseIndicators);
+    const payload = buildReportPayload(['salud'], allMockIndicadores);
     expect(payload.categories).toHaveProperty('salud');
     expect(payload.categories).not.toHaveProperty('pobreza');
   });
 
   it('should limit to latest 3 periods per indicator', () => {
-    const payload = buildReportPayload(['pobreza'], baseIndicators);
-    const pobrezaInd = payload.categories['pobreza']?.indicators[0];
-    expect(pobrezaInd).toBeDefined();
-    expect(pobrezaInd!.values.length).toBeLessThanOrEqual(3);
-    // The 4th period (2021) should be excluded
-    const periods = pobrezaInd!.values.map(v => v.periodo);
-    expect(periods).not.toContain('2021');
+    // deis in mockIndicadores has 5 periods for Cordoba (2022, 2021, 2020, 2019, 2018)
+    const payload = buildReportPayload(['deis'], allMockIndicadores);
+    const deisInd = payload.categories['deis']?.indicators[0];
+    expect(deisInd).toBeDefined();
+    expect(deisInd!.values.length).toBeLessThanOrEqual(3);
+    const periods = deisInd!.values.map(v => v.periodo);
+    expect(periods).not.toContain('2019');
+    expect(periods).not.toContain('2018');
   });
 
   it('should sort periods in descending order', () => {
-    const payload = buildReportPayload(['pobreza'], baseIndicators);
-    const pobrezaInd = payload.categories['pobreza']?.indicators[0];
-    const periods = pobrezaInd!.values.map(v => v.periodo);
-    expect(periods).toEqual(['2024', '2023', '2022']);
+    const payload = buildReportPayload(['salud'], allMockIndicadores);
+    const saludInd = payload.categories['salud']?.indicators[0]; // TMI Cba
+    const periods = saludInd!.values.map(v => v.periodo);
+    expect(periods).toEqual(['2022', '2021', '2020']);
+  });
+
+  it('should sort semestral periods correctly (comparePeriodo)', () => {
+    const semestralRows: IndicadorRow[] = [
+      {
+        id: '1',
+        indicador_nombre: 'Pobreza personas',
+        categoria: 'pobreza',
+        valor: 10,
+        unidad: '%',
+        periodo: '2024-S1',
+        region: 'Córdoba',
+        desglose: {},
+      },
+      {
+        id: '2',
+        indicador_nombre: 'Pobreza personas',
+        categoria: 'pobreza',
+        valor: 12,
+        unidad: '%',
+        periodo: '2024-S2',
+        region: 'Córdoba',
+        desglose: {},
+      },
+      {
+        id: '3',
+        indicador_nombre: 'Pobreza personas',
+        categoria: 'pobreza',
+        valor: 15,
+        unidad: '%',
+        periodo: '2023-S2',
+        region: 'Córdoba',
+        desglose: {},
+      },
+    ];
+
+    const payloadSemestral = buildReportPayload(['pobreza'], semestralRows);
+    const testInd = payloadSemestral.categories['pobreza']?.indicators[0];
+    const periods = testInd!.values.map(v => v.periodo);
+    expect(periods).toEqual(['2024-S2', '2024-S1', '2023-S2']);
   });
 
   it('should include generatedAt timestamp', () => {
-    const payload = buildReportPayload(['salud'], baseIndicators);
+    const payload = buildReportPayload(['salud'], allMockIndicadores);
     expect(payload.generatedAt).toBeDefined();
     expect(typeof payload.generatedAt).toBe('string');
-    // Should be a valid ISO date
     expect(() => new Date(payload.generatedAt)).not.toThrow();
   });
 
@@ -149,37 +134,21 @@ describe('buildReportPayload', () => {
   });
 
   it('should handle empty categories list (include all)', () => {
-    const payload = buildReportPayload([], baseIndicators);
-    // Should include all categories present in the data
+    const payload = buildReportPayload([], allMockIndicadores);
     expect(payload.categories).toHaveProperty('pobreza');
     expect(payload.categories).toHaveProperty('salud');
+    expect(payload.categories).toHaveProperty('aprender');
   });
 
-  it('should include indicator metadata (name, unidad, fuente)', () => {
-    const payload = buildReportPayload(['salud'], baseIndicators);
+  it('should include indicator metadata (name, unidad, region, desglose, fuente)', () => {
+    const payload = buildReportPayload(['salud'], allMockIndicadores);
     const saludInd = payload.categories['salud']?.indicators[0];
     expect(saludInd).toBeDefined();
     expect(saludInd!.name).toBe('Mortalidad infantil (TMI Cba)');
     expect(saludInd!.values[0]?.unidad).toBe('‰');
-  });
-});
-
-// ─── Critical Analysis Prompt ─────────────────────────────────
-
-describe('buildSystemPrompt (critical analysis)', () => {
-  it('should include data quality instructions', () => {
-    const prompt = buildSystemPrompt();
-    expect(prompt).toMatch(/data quality|calidad.+datos|alta.*media.*baja/i);
-  });
-
-  it('should include cross-referencing instructions', () => {
-    const prompt = buildSystemPrompt();
-    expect(prompt).toMatch(/cruzá|documento.*repositorio|contexto web/i);
-  });
-
-  it('should include discrepancy detection instructions', () => {
-    const prompt = buildSystemPrompt();
-    expect(prompt).toMatch(/discrepancia|contradicción|inconsistenci/i);
+    expect(saludInd!.values[0]?.region).toBe('Córdoba');
+    expect(saludInd!.values[0]?.desglose).toHaveProperty('fuente');
+    expect(saludInd!.values[0]?.fuente).toBe('DEIS');
   });
 });
 

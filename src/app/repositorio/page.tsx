@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { FileText, FileSpreadsheet, File, FolderOpen, Search, Upload, X, CheckCircle, Bot, Download } from "lucide-react";
+import { FileText, FileSpreadsheet, File, FolderOpen, Search, Upload, CheckCircle, Bot, Download, RefreshCw, AlertCircle, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 interface RepoFile {
@@ -15,6 +15,16 @@ interface RepoFile {
   url_storage: string | null;
   fecha_subida: string;
   notas: string;
+  processed: boolean;
+  total_chunks: number;
+}
+
+interface ProcessResult {
+  id: string;
+  nombre: string;
+  status: 'pending' | 'processing' | 'done' | 'error' | 'skipped';
+  chunks?: number;
+  error?: string;
 }
 
 const categoryColors: Record<string, { bg: string; text: string }> = {
@@ -38,6 +48,8 @@ export default function RepositorioPage() {
   const [uploadNotas, setUploadNotas] = useState("");
   const [uploadError, setUploadError] = useState("");
   const [uploadSuccess, setUploadSuccess] = useState("");
+  const [processing, setProcessing] = useState(false);
+  const [processResults, setProcessResults] = useState<ProcessResult[]>([]);
 
   useEffect(() => {
     fetchRepo();
@@ -91,6 +103,52 @@ export default function RepositorioPage() {
       setUploading(false);
     }
   };
+
+  const processPending = async () => {
+    const pending = files.filter((f) => !f.processed && f.url_storage);
+    if (pending.length === 0) return;
+
+    setProcessing(true);
+    setProcessResults(pending.map((f) => ({ id: f.id, nombre: f.nombre_archivo, status: 'pending' })));
+
+    for (const file of pending) {
+      setProcessResults((prev) =>
+        prev.map((r) => r.id === file.id ? { ...r, status: 'processing' } : r)
+      );
+
+      try {
+        const res = await fetch('/api/repositorio/process', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileId: file.id }),
+        });
+        const data = await res.json();
+
+        if (!res.ok || data.error) {
+          setProcessResults((prev) =>
+            prev.map((r) => r.id === file.id ? { ...r, status: 'error', error: data.error || `HTTP ${res.status}` } : r)
+          );
+        } else if (data.message === 'File already processed') {
+          setProcessResults((prev) =>
+            prev.map((r) => r.id === file.id ? { ...r, status: 'skipped', chunks: data.totalChunks } : r)
+          );
+        } else {
+          setProcessResults((prev) =>
+            prev.map((r) => r.id === file.id ? { ...r, status: 'done', chunks: data.totalChunks } : r)
+          );
+        }
+      } catch (err) {
+        setProcessResults((prev) =>
+          prev.map((r) => r.id === file.id ? { ...r, status: 'error', error: String(err) } : r)
+        );
+      }
+    }
+
+    setProcessing(false);
+    fetchRepo();
+  };
+
+  const pendingCount = files.filter((f) => !f.processed && f.url_storage).length;
 
   const filteredFiles = files.filter((f) => {
     const matchesSearch =
@@ -147,6 +205,57 @@ export default function RepositorioPage() {
             </svg>
           </Link>
         </div>
+
+        {/* Procesar pendientes */}
+        {pendingCount > 0 && (
+          <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-accent text-sm font-semibold text-amber-800">
+                    {pendingCount} archivo{pendingCount > 1 ? 's' : ''} sin procesar para el RAG
+                  </p>
+                  <p className="font-body text-xs text-amber-700 mt-0.5">
+                    Procesalos para que el informe ejecutivo pueda leerlos como fuente de contexto
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={processPending}
+                disabled={processing}
+                className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-60 text-white font-accent text-sm font-semibold rounded-lg transition-colors flex-shrink-0"
+              >
+                {processing
+                  ? <Loader2 className="w-4 h-4 animate-spin" />
+                  : <RefreshCw className="w-4 h-4" />
+                }
+                {processing ? 'Procesando...' : 'Procesar pendientes'}
+              </button>
+            </div>
+
+            {/* Resultados en tiempo real */}
+            {processResults.length > 0 && (
+              <div className="mt-4 space-y-1.5">
+                {processResults.map((r) => (
+                  <div key={r.id} className="flex items-center gap-3 text-sm">
+                    {r.status === 'pending'    && <div className="w-4 h-4 rounded-full bg-gray-200 flex-shrink-0" />}
+                    {r.status === 'processing' && <Loader2 className="w-4 h-4 text-amber-600 animate-spin flex-shrink-0" />}
+                    {r.status === 'done'       && <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />}
+                    {r.status === 'skipped'    && <CheckCircle className="w-4 h-4 text-gray-400 flex-shrink-0" />}
+                    {r.status === 'error'      && <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />}
+                    <span className={`font-mono truncate max-w-xs ${r.status === 'error' ? 'text-red-700' : 'text-gray-700'}`}>
+                      {r.nombre.length > 40 ? r.nombre.substring(0, 40) + '...' : r.nombre}
+                    </span>
+                    {r.status === 'done'    && <span className="text-green-600 font-body text-xs ml-auto flex-shrink-0">{r.chunks} chunks</span>}
+                    {r.status === 'skipped' && <span className="text-gray-400 font-body text-xs ml-auto flex-shrink-0">ya procesado</span>}
+                    {r.status === 'error'   && <span className="text-red-500 font-body text-xs ml-auto flex-shrink-0 max-w-[200px] truncate">{r.error}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -274,6 +383,7 @@ export default function RepositorioPage() {
                   <th className="text-left px-4 py-3 font-accent text-sm text-gray-500">Tipo</th>
                   <th className="text-left px-4 py-3 font-accent text-sm text-gray-500">Descripción</th>
                   <th className="text-left px-4 py-3 font-accent text-sm text-gray-500">Fecha</th>
+                  <th className="text-center px-4 py-3 font-accent text-sm text-gray-500 w-24">RAG</th>
                   <th className="text-center px-4 py-3 font-accent text-sm text-gray-500 w-16"></th>
                 </tr>
               </thead>
@@ -306,6 +416,23 @@ export default function RepositorioPage() {
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-500">
                         {file.fecha_subida ? new Date(file.fecha_subida).toLocaleDateString("es-AR") : "—"}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {file.processed ? (
+                          <span className="inline-flex items-center gap-1 text-xs text-green-700 bg-green-50 px-2 py-0.5 rounded-full font-body">
+                            <CheckCircle className="w-3 h-3" />
+                            {file.total_chunks} chunks
+                          </span>
+                        ) : file.url_storage ? (
+                          <span className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full font-body">
+                            <AlertCircle className="w-3 h-3" />
+                            pendiente
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-xs text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full font-body">
+                            sin storage
+                          </span>
+                        )}
                       </td>
                       <td className="px-2 py-3 text-center">
                         <a
