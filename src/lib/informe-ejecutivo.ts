@@ -1,8 +1,8 @@
 /**
- * informe-ejecutivo — Data aggregation and prompt builder for AI executive reports.
+ * informe-ejecutivo — Data aggregation, prompt builder, and multi-source search
+ * helpers for AI executive / critical reports.
  *
- * Pure functions only — no React, no Supabase, no OpenAI calls.
- * Designed for testability and token efficiency (~4K tokens budget).
+ * Pure functions / helpers — no React. Designed for testability.
  */
 
 import { INDICATOR_NAMES } from './indicator-names';
@@ -65,6 +65,38 @@ export interface ExecutiveReport {
   recommendations: string[];
 }
 
+// ─── Critical Report Types (multi-source) ─────────────────────────
+
+/** Data quality assessment for a single category. */
+export interface DataQuality {
+  category: string;
+  rating: 'alta' | 'media' | 'baja';
+  issues: string[];
+}
+
+/** A cross-reference from one of the three sources. */
+export interface CrossReference {
+  source: 'documento' | 'web' | 'indicador';
+  title: string;
+  content: string;
+  relevance: string;
+}
+
+/** A discrepancy detected between sources. */
+export interface Discrepancy {
+  description: string;
+  sources: string[];
+  severity: 'alta' | 'media' | 'baja';
+}
+
+/** Extended report with critical analysis fields. */
+export interface CriticalReport extends ExecutiveReport {
+  dataQuality: DataQuality[];
+  discrepancies: Discrepancy[];
+  crossReferences: CrossReference[];
+  suggestedImprovements: string[];
+}
+
 // ─── Key indicators per category ───────────────────────────────
 
 /** Known categories in the DDNA dashboard. */
@@ -83,7 +115,7 @@ export type Category = (typeof ALL_CATEGORIES)[number];
  * Map of category → list of canonical INDICATOR_NAMES keys.
  * Categories not listed include ALL their indicators.
  */
-const CATEGORY_KEY_INDICATORS: Record<string, readonly string[]> = {
+export const CATEGORY_KEY_INDICATORS: Record<string, readonly string[]> = {
   pobreza: [
     INDICATOR_NAMES.POBREZA_HOGARES,
     INDICATOR_NAMES.POBREZA_PERSONAS,
@@ -136,6 +168,118 @@ function isKeyIndicator(name: string, category: string): boolean {
   const keys = CATEGORY_KEY_INDICATORS[category];
   if (!keys || keys.length === 0) return true; // include all
   return keys.some(key => name.toLowerCase().includes(key.toLowerCase()));
+}
+
+// ─── Multi-source Search Helpers ────────────────────────────────
+
+/**
+ * Search the doc_chunks table for excerpts related to a category.
+ * Tries the category name and up to 3 key indicator names for the category.
+ * Returns max `maxResults` results.
+ */
+export async function searchDocuments(
+  supabaseClient: unknown,
+  category: string,
+  maxResults: number = 3,
+): Promise<{ title: string; content: string }[]> {
+  const keyIndicators = CATEGORY_KEY_INDICATORS[category] || [];
+  const searchTerms = [category, ...keyIndicators.slice(0, 3)];
+
+  const results: { title: string; content: string }[] = [];
+
+  // Cast to minimal queryable shape — safe because Supabase's client
+  // structually matches { from → select → ilike → limit }
+  const db = supabaseClient as {
+    from(table: string): {
+      select(cols: string): {
+        ilike(col: string, pattern: string): {
+          limit(n: number): Promise<{ data: unknown[] | null; error: unknown }>;
+        };
+      };
+    };
+  };
+
+  for (const term of searchTerms) {
+    if (results.length >= maxResults) break;
+
+    const { data, error } = await db
+      .from('doc_chunks')
+      .select('content, metadata')
+      .ilike('content', `%${term}%`)
+      .limit(maxResults - results.length);
+
+    if (error) {
+      console.warn(`searchDocuments error for term "${term}":`, error);
+      continue;
+    }
+
+    if (data) {
+      for (const raw of data) {
+        const row = (raw ?? {}) as Record<string, unknown>;
+        const metadata = (row.metadata ?? {}) as Record<string, unknown>;
+        const title =
+          (metadata?.source as string) ||
+          (metadata?.fileName as string) ||
+          'Documento';
+        const content =
+          typeof row.content === 'string'
+            ? (row.content as string).substring(0, 500)
+            : String(row.content ?? '').substring(0, 500);
+        results.push({ title, content });
+
+        if (results.length >= maxResults) break;
+      }
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Search the web via DuckDuckGo HTML scraper for context on a category.
+ * Returns max `maxResults` results. Guarantees graceful fallback on error.
+ */
+export async function searchWebContext(
+  category: string,
+  maxResults: number = 3,
+): Promise<{ title: string; snippet: string; url: string }[]> {
+  const query = encodeURIComponent(
+    `indicadores ${category} niños niñas adolescentes Argentina`,
+  );
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+
+    const response = await fetch(
+      `https://html.duckduckgo.com/html/?q=${query}`,
+      {
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; DDNA-Bot/1.0)' },
+        signal: controller.signal,
+      },
+    );
+    clearTimeout(timeout);
+
+    const html = await response.text();
+
+    // Parse basic results from HTML (simple regex approach)
+    const results: { title: string; snippet: string; url: string }[] = [];
+    const snippetRegex =
+      /<a rel="nofollow" class="result__a" href="([^"]+)">([^<]*)<\/a>[\s\S]*?<a class="result__snippet"[^>]*>([^<]*)<\/a>/g;
+    let match;
+    while ((match = snippetRegex.exec(html)) !== null && results.length < maxResults) {
+      results.push({
+        url: match[1],
+        title: match[2].replace(/<[^>]+>/g, '').trim(),
+        snippet: match[3].replace(/<[^>]+>/g, '').trim(),
+      });
+    }
+
+    return results;
+  } catch {
+    // Graceful fallback — DDG may be blocked in some environments
+    return [];
+  }
 }
 
 // ─── Public API ─────────────────────────────────────────────────
@@ -215,55 +359,78 @@ export function buildReportPayload(
  * Build the system prompt for gpt-4o-mini executive report generation.
  *
  * The prompt instructs the model to:
- * - Act as a DDNA data analyst
+ * - Act as a DDNA critical data analyst
  * - Analyze NNyA indicators with exact numbers only
- * - Identify positive (green) and negative (red) trends
- * - Return structured JSON matching ExecutiveReport shape
+ * - Cross-reference indicators with document excerpts and web context
+ * - Rate data quality per category
+ * - Flag discrepancies between sources
+ * - Return structured JSON matching CriticalReport shape
  */
 export function buildSystemPrompt(): string {
-  return `Eres un analista de datos especializado en la Defensoría de los Derechos de Niñas, Niños y Adolescentes (DDNA) de la Provincia de Córdoba, Argentina.
+  return `Eres un ANALISTA DE DATOS CRÍTICO especializado en la Defensoría de los Derechos de Niñas, Niños y Adolescentes (DDNA) de la Provincia de Córdoba, Argentina.
 
-Tu tarea es generar un INFORME EJECUTIVO basado ÚNICAMENTE en los indicadores proporcionados en el payload de datos.
+Tu tarea es ANALIZAR CRÍTICAMENTE los indicadores, documentos del repositorio y contexto web proporcionados. NO te limites a describir los números.
 
 ## Reglas estrictas
 
-1. **SOLO datos proporcionados**: No inventes cifras, fuentes, ni tendencias. Usa EXCLUSIVAMENTE los números incluidos en el payload. Si mencionás un valor, precedelo con "según los datos proporcionados" o equivalente.
+1. **SÉ CRÍTICO**: No te limites a repetir los números. Evaluá:
+   - ¿El número es realista? ¿Tiene sentido?
+   - ¿Hay coherencia entre indicadores relacionados?
+   - ¿Los datos están actualizados o son viejos?
+   - ¿Las fuentes son confiables?
 
-2. **Idioma**: Respondé SIEMPRE en español argentino, tono formal y profesional, apto para funcionarios públicos y tomadores de decisiones.
+2. **CRUZÁ FUENTES**: Se te proporcionan:
+   - Indicadores de la base de datos (payload principal)
+   - Extractos de documentos/bibliografía del repositorio
+   - Resultados de búsqueda web para contexto comparativo
+   Usá TODO para tu análisis. Si hay contradicciones, INDICALO.
 
-3. **Estructura de análisis**: Para cada categoría, analizá:
-   - Tendencia general (mejora, empeora, o estable)
-   - Comparación entre períodos si hay datos históricos
-   - Identificación de alertas (valores que requieren atención)
+3. **DATA QUALITY**: Para cada categoría, asigná una calificación:
+   - "alta": datos actualizados, fuente conocida, coherente
+   - "media": datos algo antiguos o con fuente parcial
+   - "baja": datos muy viejos, fuente no identificada, valores inconsistentes
 
-4. **Highlights (destacados)**: Identificá hallazgos clave como:
-   - "positive": mejora o tendencia favorable (se muestra en VERDE)
-   - "negative": deterioro o tendencia desfavorable (se muestra en ROJO)
-   - "neutral": dato relevante sin connotación positiva o negativa
+4. **DISCREPANCIAS**: Si encontrás diferencias entre:
+   - Lo que dice un documento vs el indicador
+   - Lo que muestra el indicador vs contexto web
+   - Dos indicadores relacionados que se contradicen
+   → REPORTALO como discrepancia
 
-5. **Highlights basados en datos**: Cada highlight debe referenciar un número específico del payload. Nada de afirmaciones genéricas sin respaldo numérico.
+5. **HIGHLIGHTS**: Identificá hallazgos como:
+   - "positive": indicador positivo, mejora, o dato alentador
+   - "negative": indicador preocupante, empeoramiento, alerta
+   - "neutral": dato relevante sin connotación clara
+   Cada highlight debe referenciar un número específico del payload. Nada de afirmaciones genéricas sin respaldo numérico.
 
-6. **Formato JSON**: Respondé ÚNICAMENTE con un objeto JSON válido con esta estructura:
+6. **SOLO DATOS REALES**: No inventes cifras. Usá EXCLUSIVAMENTE los números proporcionados. Si mencionás un valor, precedelo con "según los datos proporcionados" o equivalente.
+
+7. **IDIOMA**: Español argentino formal, para funcionarios públicos y tomadores de decisiones.
+
+8. **Longitud**: El overview debe ser conciso (2-3 párrafos). Cada analysis de sección debe ser sustantivo pero no exceder 1-2 párrafos. Máximo 5 recomendaciones.
+
+9. **No markdown**: No incluyas markdown, código, ni texto fuera del objeto JSON. SOLO JSON.
+
+10. **Formato JSON**: Respondé ÚNICAMENTE con un objeto JSON válido con esta estructura:
 {
-  "title": "string — Título del informe ejecutivo",
+  "title": "string — Título con fecha y alcance",
   "date": "string — Fecha del informe en formato legible",
-  "overview": "string — Resumen ejecutivo de 2-3 párrafos que sintetiza los hallazgos principales",
+  "overview": "string — Resumen crítico de 2-3 párrafos destacando hallazgos principales y alertas",
   "sections": [
     {
-      "category": "string — Identificador de la categoría (pobreza, salud, educacion, etc.)",
+      "category": "string — Identificador (pobreza, salud, educacion, etc.)",
       "title": "string — Título descriptivo de la sección",
-      "analysis": "string — Análisis narrativo con números específicos del payload",
+      "analysis": "string — Análisis narrativo con números específicos",
       "highlights": [
         { "type": "positive" | "negative" | "neutral", "text": "string — Hallazgo concreto con valor numérico" }
       ]
     }
   ],
-  "conclusion": "string — Conclusión general del informe",
+  "dataQuality": [{ "category": "string", "rating": "alta"|"media"|"baja", "issues": ["string"] }],
+  "discrepancies": [{ "description": "string", "sources": ["string"], "severity": "alta"|"media"|"baja" }],
+  "crossReferences": [{ "source": "documento"|"web"|"indicador", "title": "string", "content": "string", "relevance": "string" }],
+  "conclusion": "string — Conclusión general con llamado a la acción",
+  "suggestedImprovements": ["string — Mejora sugerida 1"],
   "recommendations": ["string — Recomendación 1", "string — Recomendación 2"]
 }
-
-7. **Longitud**: El overview debe ser conciso (2-3 párrafos). Cada analysis de sección debe ser sustantivo pero no exceder 1-2 párrafos. Máximo 5 recomendaciones.
-
-8. **No markdown**: No incluyas markdown, código, ni texto fuera del objeto JSON. SOLO JSON.
 `;
 }

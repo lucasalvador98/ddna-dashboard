@@ -1,8 +1,9 @@
 /**
  * POST /api/repositorio/informe-ejecutivo
  *
- * Generates an AI-powered executive report using gpt-4o-mini.
- * Accepts a list of categories and returns a structured ExecutiveReport.
+ * Generates an AI-powered executive/critical report using gpt-4o-mini.
+ * Gathers from 3 sources in parallel: indicators + doc_chunks + web context.
+ * Accepts a list of categories and returns a structured CriticalReport.
  */
 
 import { NextResponse } from 'next/server';
@@ -11,6 +12,8 @@ import {
   buildReportPayload,
   buildSystemPrompt,
   ALL_CATEGORIES,
+  searchDocuments,
+  searchWebContext,
   type IndicadorRow,
 } from '@/lib/informe-ejecutivo';
 
@@ -62,7 +65,7 @@ async function callLLM(
             { role: 'user', content: userPayload },
           ],
           temperature: 0.3,
-          max_tokens: 3000,
+          max_tokens: 4000,
           response_format: { type: 'json_object' as const },
         }),
       });
@@ -207,7 +210,7 @@ export async function POST(request: Request) {
 
     const activeCategories = categories ?? [];
 
-    // --- Fetch data ---
+    // ── Phase 1: Fetch indicators ─────────────────────────────
     const indicators = await fetchIndicators(activeCategories);
 
     if (indicators.length === 0) {
@@ -220,14 +223,42 @@ export async function POST(request: Request) {
       );
     }
 
-    // --- Build payload ---
+    // ── Phase 2: Multi-source gathering (parallel) ────────────
+    const searchClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const [docSettled, webSettled] = await Promise.allSettled([
+      Promise.all(
+        activeCategories.map((cat) => searchDocuments(searchClient, cat)),
+      ),
+      Promise.all(
+        activeCategories.map((cat) => searchWebContext(cat)),
+      ),
+    ]);
+
+    const documents =
+      docSettled.status === 'fulfilled'
+        ? docSettled.value.flat()
+        : [];
+    const webContext =
+      webSettled.status === 'fulfilled'
+        ? webSettled.value.flat()
+        : [];
+
+    // ── Phase 3: Build enriched payload ───────────────────────
     const payload = buildReportPayload(activeCategories, indicators);
+    const enrichedPayload = {
+      indicators: payload,
+      documents: documents.slice(0, 20),
+      webContext: webContext.slice(0, 15),
+    };
     const systemPrompt = buildSystemPrompt();
 
-    // --- Call OpenAI ---
-    const llmResponse = await callLLM(systemPrompt, JSON.stringify(payload));
+    // ── Phase 4: Call OpenAI ──────────────────────────────────
+    const llmResponse = await callLLM(
+      systemPrompt,
+      JSON.stringify(enrichedPayload),
+    );
 
-    // --- Parse response ---
+    // ── Phase 5: Parse response ───────────────────────────────
     let report: Record<string, unknown>;
     try {
       report = JSON.parse(llmResponse);
@@ -238,15 +269,21 @@ export async function POST(request: Request) {
       );
     }
 
-    // --- Return structured response ---
+    // ── Phase 6: Return structured response with all fields ──
     return NextResponse.json({
       report: {
+        // ExecutiveReport fields
         title: report.title || 'Informe Ejecutivo DDNA',
         date: report.date || new Date().toLocaleDateString('es-AR'),
         overview: report.overview || '',
         sections: report.sections || [],
         conclusion: report.conclusion || '',
         recommendations: report.recommendations || [],
+        // CriticalReport fields (optional — may be absent in simple exec reports)
+        dataQuality: report.dataQuality || [],
+        discrepancies: report.discrepancies || [],
+        crossReferences: report.crossReferences || [],
+        suggestedImprovements: report.suggestedImprovements || [],
       },
       generatedAt: new Date().toISOString(),
     });

@@ -1,7 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   buildSystemPrompt,
   buildReportPayload,
+  searchDocuments,
+  searchWebContext,
   type IndicadorRow,
 } from './informe-ejecutivo';
 
@@ -159,5 +161,177 @@ describe('buildReportPayload', () => {
     expect(saludInd).toBeDefined();
     expect(saludInd!.name).toBe('Mortalidad infantil (TMI Cba)');
     expect(saludInd!.values[0]?.unidad).toBe('‰');
+  });
+});
+
+// ─── Critical Analysis Prompt ─────────────────────────────────
+
+describe('buildSystemPrompt (critical analysis)', () => {
+  it('should include data quality instructions', () => {
+    const prompt = buildSystemPrompt();
+    expect(prompt).toMatch(/data quality|calidad.+datos|alta.*media.*baja/i);
+  });
+
+  it('should include cross-referencing instructions', () => {
+    const prompt = buildSystemPrompt();
+    expect(prompt).toMatch(/cruzá|documento.*repositorio|contexto web/i);
+  });
+
+  it('should include discrepancy detection instructions', () => {
+    const prompt = buildSystemPrompt();
+    expect(prompt).toMatch(/discrepancia|contradicción|inconsistenci/i);
+  });
+});
+
+// ─── searchDocuments ──────────────────────────────────────────
+
+describe('searchDocuments', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const mockDocData = [
+    {
+      content:
+        'La mortalidad infantil en Córdoba se ha reducido significativamente en la última década, alcanzando una tasa de 8.5 por mil nacidos vivos en 2022.',
+      metadata: { source: 'Ministerio de Salud', fileName: 'informe-salud-2022.pdf' },
+    },
+    {
+      content:
+        'Los indicadores de salud muestran una tendencia positiva en la reducción de la mortalidad infantil en la provincia.',
+      metadata: { source: 'Observatorio de Salud' },
+    },
+  ];
+
+  function createMockSupabase(data: unknown[]) {
+    return {
+      from: () => ({
+        select: () => ({
+          ilike: () => ({
+            limit: () => Promise.resolve({ data, error: null }),
+          }),
+        }),
+      }),
+    } as never;
+  }
+
+  it('should return results from doc_chunks for a known category', async () => {
+    const client = createMockSupabase(mockDocData);
+    const results = await searchDocuments(client, 'salud', 2);
+    expect(results).toHaveLength(2);
+    expect(results[0].title).toContain('Ministerio de Salud');
+    expect(results[0].content.length).toBeLessThanOrEqual(500);
+  });
+
+  it('should truncate content to 500 characters', async () => {
+    const longContent = 'A'.repeat(1000);
+    const client = createMockSupabase([
+      { content: longContent, metadata: {} },
+    ]);
+    const results = await searchDocuments(client, 'salud', 1);
+    expect(results[0].content.length).toBe(500);
+  });
+
+  it('should return empty array when no results found', async () => {
+    const client = createMockSupabase([]);
+    const results = await searchDocuments(client, 'inexistente', 3);
+    expect(results).toHaveLength(0);
+  });
+
+  it('should handle supabase error gracefully', async () => {
+    const client = {
+      from: () => ({
+        select: () => ({
+          ilike: () => ({
+            limit: () => Promise.resolve({ data: null, error: new Error('DB error') }),
+          }),
+        }),
+      }),
+    } as never;
+    const results = await searchDocuments(client, 'salud', 3);
+    expect(results).toHaveLength(0);
+  });
+
+  it('should use "Documento" as title when no source metadata', async () => {
+    const client = createMockSupabase([
+      { content: 'Some content', metadata: {} },
+    ]);
+    const results = await searchDocuments(client, 'test', 1);
+    expect(results[0].title).toBe('Documento');
+  });
+});
+
+// ─── searchWebContext ─────────────────────────────────────────
+
+describe('searchWebContext', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const mockDdgHtml = `
+    <html>
+    <body>
+      <a rel="nofollow" class="result__a" href="https://example.com/salud-infantil">
+        Salud Infantil en Argentina
+      </a>
+      <a class="result__snippet">Indicadores de salud infantil muestran mejora en tasa de mortalidad.</a>
+      <a rel="nofollow" class="result__a" href="https://example.com/nnya-cordoba">
+        NNyA Córdoba - Informe 2024
+      </a>
+      <a class="result__snippet">Córdoba redujo la tasa de mortalidad infantil a 8.5 por mil.</a>
+    </body>
+    </html>
+  `;
+
+  it('should parse results from DuckDuckGo HTML', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        text: vi.fn().mockResolvedValue(mockDdgHtml),
+      }),
+    );
+
+    const results = await searchWebContext('salud', 2);
+    expect(results).toHaveLength(2);
+    expect(results[0].title).toBe('Salud Infantil en Argentina');
+    expect(results[0].url).toBe('https://example.com/salud-infantil');
+    expect(results[0].snippet).toContain('mejora');
+  });
+
+  it('should limit results to maxResults', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        text: vi.fn().mockResolvedValue(mockDdgHtml),
+      }),
+    );
+
+    const results = await searchWebContext('salud', 1);
+    expect(results).toHaveLength(1);
+  });
+
+  it('should return empty array on fetch failure', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockRejectedValue(new Error('Network error')),
+    );
+
+    const results = await searchWebContext('salud', 3);
+    expect(results).toEqual([]);
+  });
+
+  it('should return empty array on empty HTML', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        text: vi.fn().mockResolvedValue('<html></html>'),
+      }),
+    );
+
+    const results = await searchWebContext('salud', 3);
+    expect(results).toEqual([]);
   });
 });

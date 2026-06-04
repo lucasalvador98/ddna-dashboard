@@ -3,23 +3,38 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // ─── Mock Supabase ──────────────────────────────────────────────
 let mockSupabaseData: unknown[] = [];
 let mockSupabaseError: unknown = null;
+let mockDocChunksData: unknown[] = [];
+let mockDocChunksError: unknown = null;
 
 vi.mock('@supabase/supabase-js', () => ({
   createClient: () => ({
-    from: () => ({
-      select: () => ({
-        in: () => ({
-          order: () => Promise.resolve({
-            data: mockSupabaseData,
-            error: mockSupabaseError,
+    from: (table: string) => {
+      // Return different data/error based on table
+      const isDoc = table === 'doc_chunks';
+      return {
+        select: () => ({
+          in: () => ({
+            order: () =>
+              Promise.resolve({
+                data: isDoc ? mockDocChunksData : mockSupabaseData,
+                error: isDoc ? mockDocChunksError : mockSupabaseError,
+              }),
+          }),
+          order: () =>
+            Promise.resolve({
+              data: isDoc ? mockDocChunksData : mockSupabaseData,
+              error: isDoc ? mockDocChunksError : mockSupabaseError,
+            }),
+          ilike: () => ({
+            limit: () =>
+              Promise.resolve({
+                data: mockDocChunksData,
+                error: mockDocChunksError,
+              }),
           }),
         }),
-        order: () => Promise.resolve({
-          data: mockSupabaseData,
-          error: mockSupabaseError,
-        }),
-      }),
-    }),
+      };
+    },
   }),
 }));
 
@@ -49,6 +64,16 @@ const mockOpenAIResponse = {
               ],
             },
           ],
+          dataQuality: [
+            {
+              category: 'salud',
+              rating: 'alta',
+              issues: ['Datos actualizados hasta 2022'],
+            },
+          ],
+          discrepancies: [],
+          crossReferences: [],
+          suggestedImprovements: ['Mejorar frecuencia de actualización'],
           conclusion: 'En conclusión, se observan avances en salud...',
           recommendations: [
             'Fortalecer las políticas de salud infantil.',
@@ -78,7 +103,9 @@ describe('POST /api/repositorio/informe-ejecutivo', () => {
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://test.supabase.co');
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', 'test-anon-key');
     mockSupabaseData = [];
+    mockDocChunksData = [];
     mockSupabaseError = null;
+    mockDocChunksError = null;
   });
 
   afterEach(() => {
@@ -295,5 +322,149 @@ describe('POST /api/repositorio/informe-ejecutivo', () => {
 
     const data = await res.json();
     expect(data.error).toContain('No se encontraron indicadores');
+  });
+
+  // ── New tests for enriched flow ────────────────────────────────
+
+  it('includes critical report fields (dataQuality, discrepancies, etc.) in response', async () => {
+    mockSupabaseData = [
+      {
+        id: '1',
+        indicador_nombre: 'Mortalidad infantil (TMI Cba)',
+        categoria: 'salud',
+        valor: 8.5,
+        unidad: '‰',
+        periodo: '2022',
+        region: 'Córdoba',
+        desglose: {},
+        fuente: 'DEIS',
+      },
+    ];
+
+    vi.resetModules();
+    vi.stubGlobal('fetch', createMockFetch(true, mockOpenAIResponse));
+    const { POST } = await import('./route');
+
+    const req = new Request(
+      'http://localhost:3000/api/repositorio/informe-ejecutivo',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ categories: ['salud'] }),
+      },
+    );
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+
+    const data = await res.json();
+    expect(data.report).toBeDefined();
+
+    // Verify all critical report fields exist with correct types
+    expect(data.report.dataQuality).toBeDefined();
+    expect(Array.isArray(data.report.dataQuality)).toBe(true);
+    if (data.report.dataQuality.length > 0) {
+      expect(data.report.dataQuality[0]).toHaveProperty('category');
+      expect(data.report.dataQuality[0]).toHaveProperty('rating');
+      expect(data.report.dataQuality[0]).toHaveProperty('issues');
+    }
+
+    expect(data.report.discrepancies).toBeDefined();
+    expect(Array.isArray(data.report.discrepancies)).toBe(true);
+
+    expect(data.report.crossReferences).toBeDefined();
+    expect(Array.isArray(data.report.crossReferences)).toBe(true);
+
+    expect(data.report.suggestedImprovements).toBeDefined();
+    expect(Array.isArray(data.report.suggestedImprovements)).toBe(true);
+  });
+
+  it('handles doc chunks query error gracefully (still returns report)', async () => {
+    mockSupabaseData = [
+      {
+        id: '1',
+        indicador_nombre: 'Pobreza personas',
+        categoria: 'pobreza',
+        valor: 38.5,
+        unidad: '%',
+        periodo: '2024',
+        region: 'Córdoba',
+        desglose: {},
+        fuente: 'INDEC',
+      },
+    ];
+    // Only doc_chunks query fails
+    mockDocChunksError = new Error('Doc chunks query failed');
+
+    vi.resetModules();
+    vi.stubGlobal('fetch', createMockFetch(true, mockOpenAIResponse));
+    const { POST } = await import('./route');
+
+    const req = new Request(
+      'http://localhost:3000/api/repositorio/informe-ejecutivo',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ categories: ['pobreza'] }),
+      },
+    );
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+
+    const data = await res.json();
+    expect(data.report).toBeDefined();
+    expect(data.report.title).toBeTruthy();
+  });
+
+  it('handles web search failure gracefully (still returns report)', async () => {
+    mockSupabaseData = [
+      {
+        id: '1',
+        indicador_nombre: 'Pobreza personas',
+        categoria: 'pobreza',
+        valor: 38.5,
+        unidad: '%',
+        periodo: '2024',
+        region: 'Córdoba',
+        desglose: {},
+        fuente: 'INDEC',
+      },
+    ];
+
+    vi.resetModules();
+    // Web search call will fail (first fetch call), OpenAI call will succeed
+    let fetchCallCount = 0;
+    const webSearchFails = vi.fn().mockImplementation(() => {
+      fetchCallCount++;
+      if (fetchCallCount === 1) {
+        return Promise.reject(new Error('Web search failed'));
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => mockOpenAIResponse,
+        text: async () => JSON.stringify(mockOpenAIResponse),
+        status: 200,
+      });
+    });
+    vi.stubGlobal('fetch', webSearchFails);
+
+    const { POST } = await import('./route');
+
+    const req = new Request(
+      'http://localhost:3000/api/repositorio/informe-ejecutivo',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ categories: ['pobreza'] }),
+      },
+    );
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+
+    const data = await res.json();
+    expect(data.report).toBeDefined();
+    expect(data.report.title).toBeTruthy();
   });
 });

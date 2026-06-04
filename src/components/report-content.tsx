@@ -1,17 +1,29 @@
 /**
- * report-content — Renders the ExecutiveReport as styled HTML.
+ * report-content — Renders the ExecutiveReport / CriticalReport as styled HTML.
  *
  * Pure presentational component (no 'use client' needed, but kept as
  * it's always used within the client modal).
  */
 
-import type { ExecutiveReport } from '@/lib/informe-ejecutivo';
+import type {
+  ExecutiveReport,
+  DataQuality,
+  CrossReference,
+  Discrepancy,
+} from '@/lib/informe-ejecutivo';
 import clsx from 'clsx';
 
 // ─── Props ──────────────────────────────────────────────────────
 
 interface ReportContentProps {
-  report?: ExecutiveReport | null;
+  report?:
+    | (ExecutiveReport & {
+        dataQuality?: DataQuality[];
+        discrepancies?: Discrepancy[];
+        crossReferences?: CrossReference[];
+        suggestedImprovements?: string[];
+      })
+    | null;
   generatedAt?: string;
 }
 
@@ -38,6 +50,30 @@ const HIGHLIGHT_BADGES: Record<string, string> = {
   positive: 'bg-green-500',
   negative: 'bg-red-500',
   neutral: 'bg-gray-400',
+};
+
+// ─── Data Quality helpers ──────────────────────────────────────
+
+const DQ_STYLES: Record<string, { bg: string; text: string; label: string }> = {
+  alta: { bg: 'bg-green-100', text: 'text-green-800', label: 'Alta' },
+  media: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Media' },
+  baja: { bg: 'bg-red-100', text: 'text-red-800', label: 'Baja' },
+};
+
+// ─── Discrepancy severity helpers ──────────────────────────────
+
+const SEVERITY_STYLES: Record<string, string> = {
+  alta: 'border-red-400 bg-red-50',
+  media: 'border-yellow-400 bg-yellow-50',
+  baja: 'border-gray-300 bg-gray-50',
+};
+
+// ─── Cross-reference source badges ─────────────────────────────
+
+const SOURCE_BADGES: Record<string, { bg: string; label: string }> = {
+  documento: { bg: 'bg-blue-100 text-blue-800', label: 'Documento' },
+  web: { bg: 'bg-purple-100 text-purple-800', label: 'Web' },
+  indicador: { bg: 'bg-orange-100 text-orange-800', label: 'Indicador' },
 };
 
 // ─── Component ─────────────────────────────────────────────────
@@ -141,6 +177,151 @@ export function ReportContent({ report, generatedAt }: ReportContentProps) {
           )}
         </section>
       ))}
+
+      {/* ── Data Quality Section ─────────────────────────────── */}
+      {report.dataQuality && report.dataQuality.length > 0 && (
+        <section className="border border-gray-200 rounded-lg p-4">
+          <h2 className="font-accent text-sm uppercase tracking-wider text-[#FF7F11] mb-3">
+            Calidad de Datos por Categoría
+          </h2>
+          <div className="space-y-3">
+            {report.dataQuality.map((dq, dqIdx) => {
+              const style = DQ_STYLES[dq.rating] || DQ_STYLES.media;
+              return (
+                <div
+                  key={`dq-${dqIdx}`}
+                  className="flex items-start gap-3 text-sm"
+                >
+                  <span
+                    className={clsx(
+                      'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-accent font-semibold flex-shrink-0',
+                      style.bg,
+                      style.text,
+                    )}
+                  >
+                    {style.label}
+                  </span>
+                  <div>
+                    <span className="font-semibold text-gray-800">
+                      {CATEGORY_LABELS[dq.category] || dq.category}
+                    </span>
+                    {dq.issues.length > 0 && (
+                      <ul className="mt-1 space-y-0.5">
+                        {dq.issues.map((issue, iIdx) => (
+                          <li
+                            key={`dq-issue-${iIdx}`}
+                            className="text-gray-600 list-disc list-inside"
+                          >
+                            {issue}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* ── Discrepancies Section ────────────────────────────── */}
+      {report.discrepancies && report.discrepancies.length > 0 && (
+        <section className="border border-gray-200 rounded-lg p-4">
+          <h2 className="font-accent text-sm uppercase tracking-wider text-red-600 mb-3">
+            Discrepancias Detectadas
+          </h2>
+          <div className="space-y-3">
+            {report.discrepancies.map((d, dIdx) => {
+              const severityStyle =
+                SEVERITY_STYLES[d.severity] || SEVERITY_STYLES.baja;
+              return (
+                <div
+                  key={`disc-${dIdx}`}
+                  className={clsx(
+                    'border-l-4 rounded-r-lg p-3 text-sm',
+                    severityStyle,
+                  )}
+                >
+                  <p className="text-gray-800 font-medium">
+                    {d.description}
+                  </p>
+                  {d.sources.length > 0 && (
+                    <p className="text-gray-500 mt-1 text-xs">
+                      Fuentes: {d.sources.join(', ')}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* ── Cross-References Section ─────────────────────────── */}
+      {report.crossReferences && report.crossReferences.length > 0 && (
+        <section className="border border-gray-200 rounded-lg p-4">
+          <h2 className="font-accent text-sm uppercase tracking-wider text-[#00074E] mb-3">
+            Referencias Cruzadas
+          </h2>
+          <div className="space-y-3">
+            {report.crossReferences.map((cr, crIdx) => {
+              const badge = SOURCE_BADGES[cr.source] || SOURCE_BADGES.indicador;
+              return (
+                <div
+                  key={`cr-${crIdx}`}
+                  className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg"
+                >
+                  <span
+                    className={clsx(
+                      'inline-flex items-center px-2 py-0.5 rounded text-xs font-accent font-semibold flex-shrink-0',
+                      badge.bg,
+                    )}
+                  >
+                    {badge.label}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-800">
+                      {cr.title}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
+                      {cr.content}
+                    </p>
+                    {cr.relevance && (
+                      <p className="text-xs text-gray-400 mt-1 italic">
+                        {cr.relevance}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* ── Suggested Improvements Section ──────────────────── */}
+      {report.suggestedImprovements &&
+        report.suggestedImprovements.length > 0 && (
+          <section className="border border-gray-200 rounded-lg p-4">
+            <h2 className="font-accent text-sm uppercase tracking-wider text-[#FF7F11] mb-3">
+              Mejoras Sugeridas
+            </h2>
+            <ul className="space-y-2">
+              {report.suggestedImprovements.map((imp, iIdx) => (
+                <li
+                  key={`imp-${iIdx}`}
+                  className="flex items-start gap-3 font-body text-gray-700 text-sm"
+                >
+                  <span className="w-5 h-5 rounded-full bg-[#FF7F11]/10 text-[#FF7F11] flex items-center justify-center flex-shrink-0 text-xs font-accent font-bold">
+                    {iIdx + 1}
+                  </span>
+                  <span className="leading-relaxed">{imp}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
       {/* Conclusion */}
       <section className="bg-[#00074E]/5 border border-[#00074E]/20 rounded-lg p-4 print:bg-gray-50 print:border-gray-300">

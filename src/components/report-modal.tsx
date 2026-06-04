@@ -12,7 +12,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { X, Loader2, FileText, Printer, AlertCircle } from 'lucide-react';
+import { X, Loader2, FileText, Printer, AlertCircle, Check } from 'lucide-react';
 import clsx from 'clsx';
 import { ReportContent } from './report-content';
 import type { ExecutiveReport } from '@/lib/informe-ejecutivo';
@@ -260,18 +260,9 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
             </div>
           )}
 
-          {/* ── Loading Phase ────────────────────────────────── */}
+          {/* ── Loading Phase (multi-step) ──────────────────── */}
           {state.phase === 'loading' && (
-            <div className="flex flex-col items-center justify-center py-16 space-y-4">
-              <Loader2 className="w-12 h-12 text-[#FF7F11] animate-spin" />
-              <p className="font-body text-gray-600 text-lg">
-                Generando...
-              </p>
-              <p className="font-body text-gray-400 text-sm">
-                Analizando indicadores y generando el informe. Esto puede
-                tomar unos segundos.
-              </p>
-            </div>
+            <LoadingSteps />
           )}
 
           {/* ── Error Phase ──────────────────────────────────── */}
@@ -324,6 +315,101 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
             </button>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Multi-step Loading Animation ───────────────────────────────
+
+const LOADING_STEPS = [
+  {
+    label: 'Consultando base de datos...',
+    description: 'Recuperando indicadores de las categorías seleccionadas',
+  },
+  {
+    label: 'Buscando documentos relacionados...',
+    description: 'Revisando documentos del repositorio',
+  },
+  {
+    label: 'Consultando fuentes web...',
+    description: 'Buscando contexto comparativo en línea',
+  },
+  {
+    label: 'Generando informe crítico...',
+    description: 'Analizando y cruzando todas las fuentes con IA',
+  },
+] as const;
+
+function LoadingSteps() {
+  const [currentStep, setCurrentStep] = useState(0);
+
+  useEffect(() => {
+    if (currentStep >= LOADING_STEPS.length - 1) return;
+    const timer = setTimeout(() => setCurrentStep((s) => s + 1), 3500);
+    return () => clearTimeout(timer);
+  }, [currentStep]);
+
+  return (
+    <div className="flex flex-col items-center justify-center py-12 space-y-6">
+      <Loader2 className="w-12 h-12 text-[#FF7F11] animate-spin" />
+      <div className="space-y-4 w-full max-w-sm">
+        {LOADING_STEPS.map((step, idx) => {
+          const isActive = idx === currentStep;
+          const isDone = idx < currentStep;
+          return (
+            <div
+              key={step.label}
+              className={clsx(
+                'flex items-start gap-3 transition-opacity duration-300',
+                isActive
+                  ? 'opacity-100'
+                  : isDone
+                    ? 'opacity-60'
+                    : 'opacity-30',
+              )}
+            >
+              <div
+                className={clsx(
+                  'w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5',
+                  isDone
+                    ? 'bg-green-100'
+                    : isActive
+                      ? 'bg-[#FF7F11]/10'
+                      : 'bg-gray-100',
+                )}
+              >
+                {isDone ? (
+                  <Check className="w-3.5 h-3.5 text-green-600" />
+                ) : (
+                  <div
+                    className={clsx(
+                      'w-2 h-2 rounded-full',
+                      isActive ? 'bg-[#FF7F11] animate-pulse' : 'bg-gray-300',
+                    )}
+                  />
+                )}
+              </div>
+              <div className="min-w-0">
+                <p
+                  className={clsx(
+                    'font-body text-sm font-medium',
+                    isDone
+                      ? 'text-green-700'
+                      : isActive
+                        ? 'text-gray-800'
+                        : 'text-gray-400',
+                  )}
+                >
+                  {step.label}
+                </p>
+                <p className="font-body text-xs text-gray-400 mt-0.5">
+                  {step.description}
+                </p>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
