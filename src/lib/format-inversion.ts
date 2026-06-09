@@ -146,8 +146,13 @@ function extractLatestPeriod(data: Indicador[]): string | undefined {
 
 /**
  * Safely extract categoria from desglose, handling the triple-encoded JSONB.
+ * Checks desglose.area first (new ponderador pipeline), then desglose.categoria (legacy).
  */
 function getCategoria(ind: Indicador): string {
+  // New data stores area in desglose.area
+  const area = ind.desglose?.area;
+  if (typeof area === 'string' && area) return area;
+  // Fallback for legacy data with desglose.categoria
   const raw = ind.desglose?.categoria;
   if (typeof raw === 'string') return raw;
   if (typeof raw === 'object' && raw !== null) return String(raw);

@@ -14,8 +14,17 @@ export const SCALE_LABEL = 'Md';
 /**
  * Full category names that are directly relevant to childhood/adolescence.
  * Used by getInversionTotal and getInversionInversion to filter.
+ *
+ * Includes both old fine-grained categories AND the new high-level areas
+ * from the ponderador-based pipeline (desglose.area).
  */
 export const CHILD_RELEVANT_CATEGORIES: string[] = [
+  // New high-level areas (post-ponderador migration)
+  'Educación',
+  'Salud',
+  'Desarrollo Social',
+  'Niñez y Adolescencia',
+  // Legacy fine-grained categories
   'Educación básica (inicial, elemental y media)',
   'Comedores escolares y copa de leche',
   'Niños en riesgo',

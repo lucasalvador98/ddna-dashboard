@@ -338,6 +338,9 @@ export function calculateChange(
 /**
  * Sum child-relevant inversion for the latest available period.
  * BUG FIX: previously did a blind sum of ALL inversion rows.
+ *
+ * Handles both old data (desglose.categoria) and new ponderador pipeline
+ * data (desglose.area). New data is always child-relevant by construction.
  */
 export function getInversionTotal(inversionData: Indicador[]): number {
   if (!inversionData || inversionData.length === 0) return 0;
@@ -348,9 +351,15 @@ export function getInversionTotal(inversionData: Indicador[]): number {
 
   if (!latestPeriod) return 0;
 
+  // If any row has desglose.area, it's new ponderador-pipeline data
+  // and ALL rows are child-relevant (no need for CHILD_RELEVANT_CATEGORIES filter).
+  const hasAreaField = inversionData.some(ind => ind.desglose?.area);
+
   return inversionData
     .filter(ind => {
       if (ind.periodo !== latestPeriod) return false;
+      if (hasAreaField) return true; // New data: all rows are child-relevant
+      // Legacy data: filter by CHILD_RELEVANT_CATEGORIES
       const cat = String(ind.desglose?.categoria ?? '');
       const catLower = cat.toLowerCase();
       return CHILD_RELEVANT_CATEGORIES.some(rc => catLower.includes(rc.toLowerCase()));

@@ -57,7 +57,8 @@ function sumInversionByKeyword(inversionData: Indicador[], keyword: string): num
   return inversionData
     .filter((ind) => {
       if (ind.periodo !== latestPeriod) return false;
-      const cat = String(ind.desglose?.categoria ?? "").toLowerCase();
+      // Check desglose.area first (new ponderador pipeline), then desglose.categoria (legacy)
+      const cat = String(ind.desglose?.area ?? ind.desglose?.categoria ?? "").toLowerCase();
       return cat.includes(keywordLower);
     })
     .reduce((sum, ind) => sum + Number(ind.valor || 0), 0);
