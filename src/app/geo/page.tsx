@@ -1091,15 +1091,15 @@ function SaludLayer({ features }: { features: GeoJSONFeature[] }) {
 // ===========================================================================
 // MAIN GEO PAGE
 // ===========================================================================
-const TABS: { id: TabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: 'educativo', label: 'Educativo', icon: GraduationCap },
-  { id: 'nacimientos', label: 'Nacimientos', icon: Baby },
-  { id: 'nbi', label: 'NBI', icon: AlertTriangle },
-  { id: 'salud', label: 'Salud', icon: HeartPulse },
+const TABS: { id: TabId; label: string; desc: string; icon: React.ComponentType<{ className?: string }>; color: string }[] = [
+  { id: 'educativo', label: 'Establecimientos Educativos', desc: '5.471 escuelas en Córdoba', icon: GraduationCap, color: '#3777FF' },
+  { id: 'nacimientos', label: 'Nacimientos por Departamento', desc: 'Datos 2020-2023 por género', icon: Baby, color: '#BF1363' },
+  { id: 'nbi', label: 'Necesidades Básicas Insatisfechas', desc: 'NBI por departamento (Censo 2010)', icon: AlertTriangle, color: '#FF7F11' },
+  { id: 'salud', label: 'Centros de Salud', desc: '~300 establecimientos sanitarios', icon: HeartPulse, color: '#E07A5F' },
 ];
 
 export default function GeoPage() {
-  const [activeTab, setActiveTab] = useState<TabId>('educativo');
+  const [activeTab, setActiveTab] = useState<TabId | null>(null);
 
   return (
     <div className="space-y-6">
@@ -1130,32 +1130,49 @@ export default function GeoPage() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 border-b border-gray-200 overflow-x-auto">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={clsx(
-              'flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap',
-              activeTab === tab.id
-                ? 'border-[#3777FF] text-[#3777FF]'
-                : 'border-transparent text-[#4D4D4D] hover:text-[#1a2556] hover:border-gray-300',
-            )}
-          >
-            <tab.icon className="w-4 h-4" />
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      {/* Card grid — click to open map */}
+      {!activeTab && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className="group bg-white rounded-xl border border-gray-200 p-6 text-left hover:shadow-lg hover:border-[#1a2556]/20 transition-all hover:-translate-y-1"
+            >
+              <div
+                className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"
+                style={{ backgroundColor: tab.color + '15' }}
+              >
+                <span style={{ color: tab.color, display: 'flex' }}>
+                  <tab.icon className="w-6 h-6" />
+                </span>
+              </div>
+              <h3 className="font-accent font-semibold text-[#1a2556] mb-1">{tab.label}</h3>
+              <p className="text-sm text-gray-500">{tab.desc}</p>
+            </button>
+          ))}
+        </div>
+      )}
 
-      {/* Tab content */}
-      <div className="min-h-[400px]">
-        {activeTab === 'educativo' && <EducativoMap />}
-        {activeTab === 'nacimientos' && <NacimientosMap />}
-        {activeTab === 'nbi' && <NBIMap />}
-        {activeTab === 'salud' && <SaludMap />}
-      </div>
+      {/* Active map */}
+      {activeTab && (
+        <>
+          {/* Back button */}
+          <button
+            onClick={() => setActiveTab(null)}
+            className="flex items-center gap-2 text-sm text-gray-500 hover:text-[#1a2556] mb-4 transition-colors"
+          >
+            <X className="w-4 h-4" />
+            Volver a todos los mapas
+          </button>
+          <div className="min-h-[400px]">
+            {activeTab === 'educativo' && <EducativoMap />}
+            {activeTab === 'nacimientos' && <NacimientosMap />}
+            {activeTab === 'nbi' && <NBIMap />}
+            {activeTab === 'salud' && <SaludMap />}
+          </div>
+        </>
+      )}
 
       {/* Footer attribution */}
       <div className="bg-white rounded-xl border border-[#E0E0E0] p-4">
