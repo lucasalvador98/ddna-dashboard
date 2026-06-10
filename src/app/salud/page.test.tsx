@@ -1,9 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 
-// ─── Deferred promise for controlling Supabase responses ─────────
-let resolveOrder: (value: unknown) => void;
-let rejectOrder: (reason: unknown) => void;
+// ─── Deferred promises for controlling Supabase responses ─────────
+// Now handles 2 parallel queries (salud + salud_adolescente)
+let resolveSalud: (value: unknown) => void;
+let resolveAdolescente: (value: unknown) => void;
+let rejectQuery: (reason: unknown) => void;
+
+let queryCount = 0;
 
 function createDeferred() {
   let resolver: (value: unknown) => void;
@@ -12,8 +16,14 @@ function createDeferred() {
     resolver = resolve;
     rejecter = reject;
   });
-  resolveOrder = resolver!;
-  rejectOrder = rejecter!;
+  // Track which query this is (first = salud, second = salud_adolescente)
+  if (queryCount === 0) {
+    resolveSalud = resolver!;
+    rejectQuery = rejecter!;
+  } else {
+    resolveAdolescente = resolver!;
+  }
+  queryCount++;
   return promise;
 }
 
@@ -65,7 +75,9 @@ vi.mock('recharts', () => {
 // Mock chart-with-table
 vi.mock('@/components/charts/chart-with-table', () => ({
   ChartWithTable: ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <div data-testid="chart-with-table" data-title={title}>{children}</div>
+    <div data-testid="chart-with-table" data-title={title}>
+      {children}
+    </div>
   ),
   SimpleLineChart: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="simple-line-chart">{children}</div>
@@ -78,7 +90,9 @@ vi.mock('@/components/charts/chart-with-table', () => ({
 // Mock section-header
 vi.mock('@/components/section-header', () => ({
   SectionHeader: ({ title }: { title: string }) => (
-    <div data-testid="section-header" data-title={title}>{title}</div>
+    <div data-testid="section-header" data-title={title}>
+      {title}
+    </div>
   ),
 }));
 
@@ -98,14 +112,16 @@ import SaludPage from './page';
 describe('SaludPage — Nacimientos KPI', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    queryCount = 0;
   });
 
   it('should show loading state initially', async () => {
     render(<SaludPage />);
     expect(screen.getByText('Cargando datos...')).toBeInTheDocument();
 
-    // Resolve the deferred promise to clean up
-    resolveOrder({ data: [], error: null });
+    // Resolve both deferred promises to clean up
+    resolveSalud({ data: [], error: null });
+    resolveAdolescente({ data: [], error: null });
     await vi.waitFor(() => {
       expect(screen.queryByText('Cargando datos...')).not.toBeInTheDocument();
     });
@@ -114,7 +130,8 @@ describe('SaludPage — Nacimientos KPI', () => {
   it('should show empty state when no data returned', async () => {
     render(<SaludPage />);
 
-    resolveOrder({ data: [], error: null });
+    resolveSalud({ data: [], error: null });
+    resolveAdolescente({ data: [], error: null });
 
     await vi.waitFor(() => {
       expect(screen.getByText('No hay datos de salud disponibles')).toBeInTheDocument();
@@ -124,22 +141,30 @@ describe('SaludPage — Nacimientos KPI', () => {
   it('should show Nacimientos KPI with data when Nacimientos adolescentes exists', async () => {
     render(<SaludPage />);
 
-    resolveOrder({
+    // First query: salud (TMI data)
+    resolveSalud({
+      data: [
+        {
+          id: 't1',
+          indicador_nombre: 'Mortalidad infantil (TMI Cba)',
+          valor: 8.5,
+          unidad: '‰',
+          periodo: '2022',
+          region: 'Córdoba',
+          desglose: {},
+        },
+      ],
+      error: null,
+    });
+
+    // Second query: salud_adolescente (nacimientos)
+    resolveAdolescente({
       data: [
         {
           id: 'n1',
           indicador_nombre: 'Nacimientos adolescentes',
           valor: 4450,
           unidad: 'unidad',
-          periodo: '2022',
-          region: 'Córdoba',
-          desglose: {},
-        },
-        {
-          id: 't1',
-          indicador_nombre: 'Mortalidad infantil (TMI Cba)',
-          valor: 8.5,
-          unidad: '‰',
           periodo: '2022',
           region: 'Córdoba',
           desglose: {},
@@ -161,7 +186,8 @@ describe('SaludPage — Nacimientos KPI', () => {
   it('should show "—" when Nacimientos adolescentes data is not in the DB', async () => {
     render(<SaludPage />);
 
-    resolveOrder({
+    // Only salud data, no adolescentes
+    resolveSalud({
       data: [
         {
           id: 't1',
@@ -175,6 +201,7 @@ describe('SaludPage — Nacimientos KPI', () => {
       ],
       error: null,
     });
+    resolveAdolescente({ data: [], error: null });
 
     await vi.waitFor(() => {
       expect(screen.queryByText('Cargando datos...')).not.toBeInTheDocument();
@@ -184,7 +211,7 @@ describe('SaludPage — Nacimientos KPI', () => {
 
     const kpiCards = screen.getAllByTestId('kpi-card');
     const nacimientoCard = kpiCards.find(
-      card => card.getAttribute('data-title') === 'Nacimientos adolescentes',
+      card => card.getAttribute('data-title') === 'Nacimientos adolescentes'
     );
     expect(nacimientoCard).toBeDefined();
     expect(nacimientoCard!.getAttribute('data-value')).toBe('—');
@@ -194,8 +221,9 @@ describe('SaludPage — Nacimientos KPI', () => {
   it('should show error state when fetch fails', async () => {
     render(<SaludPage />);
 
-    // Reject the deferred promise to simulate network error
-    rejectOrder(new Error('Network error'));
+    // Reject both deferred promises to simulate network error
+    rejectQuery(new Error('Network error'));
+    resolveAdolescente({ data: [], error: null });
 
     await vi.waitFor(() => {
       expect(screen.getByText(/Error al cargar los datos/)).toBeInTheDocument();
@@ -205,7 +233,7 @@ describe('SaludPage — Nacimientos KPI', () => {
   it('should not show loading/error/empty after successful data load', async () => {
     render(<SaludPage />);
 
-    resolveOrder({
+    resolveSalud({
       data: [
         {
           id: 'n1',
@@ -219,6 +247,7 @@ describe('SaludPage — Nacimientos KPI', () => {
       ],
       error: null,
     });
+    resolveAdolescente({ data: [], error: null });
 
     await vi.waitFor(() => {
       expect(screen.queryByText('Cargando datos...')).not.toBeInTheDocument();

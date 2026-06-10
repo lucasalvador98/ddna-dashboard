@@ -76,8 +76,12 @@ export function normalizeIndicador(ind: Record<string, unknown>): Indicador {
   // Sanitize encoding issues in unidad (Ã¢â‚¬Â° → ‰)
   const unidad = String(ind.unidad || '')
     .replace(/Ã¢â‚¬Â°/g, '‰')
-    .replace(/Ã¡/g, 'á').replace(/Ã©/g, 'é').replace(/Ã­/g, 'í')
-    .replace(/Ã³/g, 'ó').replace(/Ãº/g, 'ú').replace(/Ã±/g, 'ñ');
+    .replace(/Ã¡/g, 'á')
+    .replace(/Ã©/g, 'é')
+    .replace(/Ã­/g, 'í')
+    .replace(/Ã³/g, 'ó')
+    .replace(/Ãº/g, 'ú')
+    .replace(/Ã±/g, 'ñ');
   const fuente = ind.fuente ? String(ind.fuente) : undefined;
 
   return {
@@ -197,7 +201,9 @@ export function useDashboardData(): {
           categories.map(cat =>
             supabase
               .from('indicadores')
-              .select('id, indicador_nombre, categoria, valor, unidad, periodo, region, desglose, fuente')
+              .select(
+                'id, indicador_nombre, categoria, valor, unidad, periodo, region, desglose, fuente'
+              )
               .eq('categoria', cat)
               .order('periodo', { ascending: false })
               .limit(cat === 'inversion' ? 10000 : 500)
@@ -374,9 +380,13 @@ export function getInversionTotal(inversionData: Indicador[]): number {
 export function getPoblacion0a17(demografiaData: Indicador[]): number {
   if (!demografiaData || demografiaData.length === 0) return 0;
 
-  // Filter "Poblacion por edad" indicators, sorted by period DESC
+  // Filter "Población por edad" indicators, sorted by period DESC
+  // Use accent-insensitive matching (DB has "Población por edad" with tilde)
   const relevant = [...demografiaData]
-    .filter(ind => ind.indicador_nombre.toLowerCase().includes('poblacion por edad'))
+    .filter(ind => {
+      const name = ind.indicador_nombre.toLowerCase();
+      return name.includes('poblacion por edad') || name.includes('población por edad');
+    })
     .sort((a, b) => comparePeriodo(b.periodo, a.periodo));
 
   const latestPeriod = relevant[0]?.periodo;
@@ -386,6 +396,9 @@ export function getPoblacion0a17(demografiaData: Indicador[]): number {
   return relevant
     .filter(ind => {
       if (ind.periodo !== latestPeriod) return false;
+      // Only count "total" sex to avoid triple-counting (femenino + masculino + total)
+      const sexo = String(ind.desglose?.sexo ?? '');
+      if (sexo && sexo !== 'total') return false;
       const ageGroup = ind.desglose?.grupo_edad ?? ind.desglose?.edad ?? ind.desglose?.age ?? '';
       if (ageGroup === '') return false;
       const ageStr = String(ageGroup);
@@ -441,5 +454,3 @@ export function findStatSum(indicadores: Indicador[], nombreBuscar: string): num
 
   return total;
 }
-
-

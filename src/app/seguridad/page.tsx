@@ -1,22 +1,30 @@
-"use client";
+'use client';
 
-import { Shield, AlertTriangle, TrendingUp } from "lucide-react";
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
-import { parseDesglose } from "@/lib/parse-desglose";
-import { INDICATOR_NAMES } from "@/lib/indicator-names";
-import { SectionHeader } from "@/components/section-header";
-import { KpiCard } from "@/components/kpi-card";
-import { ChartWithTable } from "@/components/charts/chart-with-table";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import type { Indicador } from "@/lib/use-dashboard-data";
+import { Shield, AlertTriangle, TrendingUp } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+import { parseDesglose } from '@/lib/parse-desglose';
+import { SectionHeader } from '@/components/section-header';
+import { KpiCard } from '@/components/kpi-card';
+import { ChartWithTable } from '@/components/charts/chart-with-table';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from 'recharts';
+import type { Indicador } from '@/lib/use-dashboard-data';
 
-const COLORS = ["#3777FF", "#BF1363", "#F3A712", "#E07A5F", "#3599B8", "#A66999"];
+const COLORS = ['#3777FF', '#BF1363', '#F3A712', '#E07A5F', '#3599B8', '#A66999'];
 
-// Known security-case indicator names from canonical constants
-const CASOS_NAMES: string[] = Object.values(INDICATOR_NAMES).filter(n =>
-  n.toLowerCase().includes("casos")
-);
+// Filter for "Casos de ..." indicators directly from data (not just INDICATOR_NAMES)
+const isCasosIndicator = (name: string) => name.toLowerCase().startsWith('casos de');
 
 export default function SeguridadPage() {
   const [loading, setLoading] = useState(true);
@@ -26,13 +34,19 @@ export default function SeguridadPage() {
   useEffect(() => {
     async function fetchData() {
       const { data: indicadores, error } = await supabase
-        .from("indicadores")
-        .select("id, indicador_nombre, valor, unidad, periodo, region, desglose")
-        .eq("categoria", "seguridad")
-        .order("periodo", { ascending: false });
+        .from('indicadores')
+        .select('id, indicador_nombre, valor, unidad, periodo, region, desglose')
+        .eq('categoria', 'seguridad')
+        .order('periodo', { ascending: false });
 
       if (error) setError(error.message);
-      else setData((indicadores || []).map(d => ({ ...d, desglose: parseDesglose(d.desglose) })) as Indicador[]);
+      else
+        setData(
+          (indicadores || []).map(d => ({
+            ...d,
+            desglose: parseDesglose(d.desglose),
+          })) as Indicador[]
+        );
       setLoading(false);
     }
     fetchData();
@@ -41,9 +55,9 @@ export default function SeguridadPage() {
   // Distribución por tipo de denuncia
   const getDistribucion = () => {
     return data
-      .filter(d => CASOS_NAMES.includes(d.indicador_nombre))
+      .filter(d => isCasosIndicator(d.indicador_nombre))
       .map(d => ({
-        name: d.indicador_nombre.replace("Casos de ", ""),
+        name: d.indicador_nombre.replace('Casos de ', ''),
         value: Number(d.valor) || 0,
       }))
       .sort((a, b) => b.value - a.value);
@@ -51,9 +65,11 @@ export default function SeguridadPage() {
 
   const distribucionData = getDistribucion();
   const total = distribucionData.reduce((sum, d) => sum + d.value, 0);
-  
+
   // Latest period from data (sorted by periodo, not by value)
-  const periodos = [...new Set(data.map(d => d.periodo))].sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
+  const periodos = [...new Set(data.map(d => d.periodo))].sort((a, b) =>
+    b.localeCompare(a, undefined, { numeric: true })
+  );
   const latestPeriod = periodos[0] || '';
 
   return (
@@ -68,21 +84,27 @@ export default function SeguridadPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <KpiCard
           title="Total casos"
-          value={total > 0 ? total.toLocaleString("es-AR") : "—"}
+          value={total > 0 ? total.toLocaleString('es-AR') : '—'}
           subtitle={`${latestPeriod} — Casos registrados en el sistema`}
           icon={Shield}
           color="blue"
         />
         <KpiCard
           title="Violencia Familiar"
-          value={distribucionData.find(d => d.name === "Violencia Familiar")?.value.toLocaleString("es-AR") || "—"}
+          value={
+            distribucionData
+              .find(d => d.name === 'Violencia Familiar')
+              ?.value.toLocaleString('es-AR') || '—'
+          }
           subtitle={`${latestPeriod} — Denuncias por violencia familiar`}
           icon={AlertTriangle}
           color="magenta"
         />
         <KpiCard
           title="Niñez y Adolescencia"
-          value={distribucionData.find(d => d.name === "Niñez")?.value.toLocaleString("es-AR") || "—"}
+          value={
+            distribucionData.find(d => d.name === 'Niñez')?.value.toLocaleString('es-AR') || '—'
+          }
           subtitle={`${latestPeriod} — Casos de niños, niñas y adolescentes`}
           icon={Shield}
           color="orange"
@@ -100,11 +122,27 @@ export default function SeguridadPage() {
       >
         <div className="h-72">
           <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={distribucionData} layout="vertical" margin={{ top: 10, right: 30, left: 100, bottom: 10 }}>
+            <BarChart
+              data={distribucionData}
+              layout="vertical"
+              margin={{ top: 10, right: 30, left: 100, bottom: 10 }}
+            >
               <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" horizontal={false} />
-              <XAxis type="number" tick={{ fill: "#4D4D4D", fontSize: 12 }} />
-              <YAxis type="category" dataKey="name" tick={{ fill: "#4D4D4D", fontSize: 11 }} width={90} />
-              <Tooltip contentStyle={{ backgroundColor: "#FFF", border: "1px solid #E0E0E0", borderRadius: "8px" }} formatter={(v) => [v?.toLocaleString("es-AR") ?? 0, "Casos"]} />
+              <XAxis type="number" tick={{ fill: '#4D4D4D', fontSize: 12 }} />
+              <YAxis
+                type="category"
+                dataKey="name"
+                tick={{ fill: '#4D4D4D', fontSize: 11 }}
+                width={90}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: '#FFF',
+                  border: '1px solid #E0E0E0',
+                  borderRadius: '8px',
+                }}
+                formatter={v => [v?.toLocaleString('es-AR') ?? 0, 'Casos']}
+              />
               <Bar dataKey="value" fill="#3777FF" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -116,7 +154,10 @@ export default function SeguridadPage() {
         subtitle="Porcentaje de casos por tipo"
         color="blue"
         fuente="Ministerio Público Córdoba"
-        data={distribucionData.map(d => ({ tipo: d.name, porcentaje: total > 0 ? ((d.value / total) * 100).toFixed(1) : 0 }))}
+        data={distribucionData.map(d => ({
+          tipo: d.name,
+          porcentaje: total > 0 ? ((d.value / total) * 100).toFixed(1) : 0,
+        }))}
         dataKey="porcentaje"
         xAxisKey="tipo"
       >
@@ -137,14 +178,24 @@ export default function SeguridadPage() {
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(v) => [v?.toLocaleString("es-AR") ?? 0, "Casos"]} />
+              <Tooltip formatter={v => [v?.toLocaleString('es-AR') ?? 0, 'Casos']} />
             </PieChart>
           </ResponsiveContainer>
         </div>
       </ChartWithTable>
 
       {loading && <div className="py-12 text-center text-gray-500">Cargando...</div>}
-      {error && <div className="bg-red-50 p-4 rounded"><p className="text-red-700 mb-2">Error: {error}</p><button onClick={() => window.location.reload()} className="text-sm text-red-600 underline hover:text-red-800">Reintentar</button></div>}
+      {error && (
+        <div className="bg-red-50 p-4 rounded">
+          <p className="text-red-700 mb-2">Error: {error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="text-sm text-red-600 underline hover:text-red-800"
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
     </div>
   );
 }

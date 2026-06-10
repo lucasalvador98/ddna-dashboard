@@ -1,6 +1,15 @@
 'use client';
 
-import { Heart, Baby, Syringe, TrendingDown, TrendingUp, Loader2, AlertCircle, Info } from 'lucide-react';
+import {
+  Heart,
+  Baby,
+  Syringe,
+  TrendingDown,
+  TrendingUp,
+  Loader2,
+  AlertCircle,
+  Info,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { parseDesglose } from '@/lib/parse-desglose';
@@ -39,25 +48,38 @@ export default function SaludPage() {
   const [data, setData] = useState<DashboardIndicador[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  // Cargar datos de Supabase
+  // Cargar datos de Supabase — salud + salud_adolescente (nacimientos)
   useEffect(() => {
     async function fetchData() {
       try {
-        const { data: indicadores, error } = await supabase
-          .from('indicadores')
-          .select('id, indicador_nombre, valor, unidad, periodo, region, desglose')
-          .eq('categoria', 'salud')
-          .order('periodo', { ascending: true });
+        const [saludRes, adolesRes] = await Promise.all([
+          supabase
+            .from('indicadores')
+            .select('id, indicador_nombre, valor, unidad, periodo, region, desglose')
+            .eq('categoria', 'salud')
+            .order('periodo', { ascending: true }),
+          supabase
+            .from('indicadores')
+            .select('id, indicador_nombre, valor, unidad, periodo, region, desglose')
+            .eq('categoria', 'salud_adolescente')
+            .order('periodo', { ascending: true }),
+        ]);
 
-        if (error) {
-          setError(error.message);
-        } else {
-        const parsed = (indicadores || []).map(d => ({
+        if (saludRes.error) {
+          setError(saludRes.error.message);
+          return;
+        }
+        if (adolesRes.error) {
+          setError(adolesRes.error.message);
+          return;
+        }
+
+        const allRaw = [...(saludRes.data || []), ...(adolesRes.data || [])];
+        const parsed = allRaw.map(d => ({
           ...d,
           desglose: parseDesglose(d.desglose),
         })) as DashboardIndicador[];
         setData(parsed);
-        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error al cargar datos');
       } finally {
@@ -121,7 +143,9 @@ export default function SaludPage() {
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <Info className="w-12 h-12 text-gray-300 mb-4" />
           <p className="font-body text-gray-600">No hay datos de salud disponibles</p>
-          <p className="text-sm text-gray-400 mt-1">Los datos de salud aún no se han cargado en la base.</p>
+          <p className="text-sm text-gray-400 mt-1">
+            Los datos de salud aún no se han cargado en la base.
+          </p>
         </div>
       </div>
     );
@@ -177,24 +201,13 @@ export default function SaludPage() {
       .sort((a, b) => Number(a.periodo) - Number(b.periodo));
   };
 
-  // Cobertura vacunal
-  // NOTE: 'cobertura' fuzzy match — may return 0 rows if the exact DB name differs.
-  // TODO: investigate exact DB name for cobertura and use canonical constant
-  const coberturaData = data
-    .filter(d => d.indicador_nombre.toLowerCase().includes('cobertura'))
-    .map(d => ({
-      name: d.desglose?.vacuna || d.desglose?.tipo || 'General',
-      value: Number(d.valor) || 0,
-    }));
-  
-  const coberturaPeriod = data
-    .find(d => d.indicador_nombre.toLowerCase().includes('cobertura'))?.periodo;
+  // RMM Córdoba (defunciones posneonatales)
+  const rmmData = getTimeSeries(INDICATOR_NAMES.TMI_RMM_CBA);
+  const latestRmm = rmmData.length > 0 ? rmmData[rmmData.length - 1] : null;
 
   // Últimos valores
   const latestMortalidad =
     mortalidadData.length > 0 ? mortalidadData[mortalidadData.length - 1] : null;
-
-  const latestCobertura = coberturaData.length > 0 ? coberturaData[coberturaData.length - 1] : null;
 
   // Calcular cambio
   const getCambio = (arr: { periodo: string; valor: number }[]) => {
@@ -232,9 +245,9 @@ export default function SaludPage() {
         />
 
         <KpiCard
-          title="Cobertura vacunal"
-          value={latestCobertura ? `${latestCobertura.value}%` : '—'}
-          subtitle={`${coberturaPeriod || ''} — Promedio de esquemas completos`}
+          title="RMM Córdoba"
+          value={latestRmm ? `${Number(latestRmm.valor).toFixed(1)}‰` : '—'}
+          subtitle={`RMM ${latestRmm?.periodo || ''} — Mortalidad posneonatal`}
           icon={Syringe}
           color="blue"
         />
@@ -242,7 +255,11 @@ export default function SaludPage() {
         <KpiCard
           title="Nacimientos adolescentes"
           value={nacimientosValor !== null ? nacimientosValor.toLocaleString('es-AR') : '—'}
-          subtitle={nacimientosValor !== null ? `Registrados en ${latestNacimientos?.periodo || ''}` : 'Sin datos disponibles'}
+          subtitle={
+            nacimientosValor !== null
+              ? `Registrados en ${latestNacimientos?.periodo || ''}`
+              : 'Sin datos disponibles'
+          }
           icon={Heart}
           color="magenta"
         />
@@ -304,50 +321,86 @@ export default function SaludPage() {
         </div>
       </ChartWithTable>
 
-      {/* Gráfico 2: Cobertura Vacunal */}
-      <ChartWithTable
-        title="Cobertura Vacunal por Tipo"
-        subtitle="Porcentaje de esquemas completos por vacuna"
-        color="blue"
-        fuente="DEIS"
-        data={coberturaData}
-        dataKey="value"
-        xAxisKey="name"
-      >
-        <div className="h-72">
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart
-              data={coberturaData}
-              layout="vertical"
-              margin={{ top: 10, right: 30, left: 80, bottom: 10 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" horizontal={false} />
-              <XAxis
-                type="number"
-                domain={[0, 100]}
-                tick={{ fill: '#4D4D4D', fontSize: 12 }}
-                tickFormatter={v => `${v}%`}
-              />
-              <YAxis
-                type="category"
-                dataKey="name"
-                tick={{ fill: '#4D4D4D', fontSize: 11 }}
-                width={70}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: '#FFF',
-                  border: '1px solid #E0E0E0',
-                  borderRadius: '8px',
-                }}
-                formatter={value => [`${value ?? 0}%`, 'Cobertura']}
-              />
-              <Bar dataKey="value" fill={COLORS.blue} radius={[0, 4, 4, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </ChartWithTable>
+      {/* Gráfico 2: RMM Córdoba vs Nacional */}
+      {rmmData.length > 0 &&
+        (() => {
+          const rmmNacional = getTimeSeries(INDICATOR_NAMES.TMI_RMM);
+          const rmmComparativa = () => {
+            const series = [
+              { nombre: 'RMM Cba', data: rmmData },
+              ...(rmmNacional.length > 0 ? [{ nombre: 'RMM Nacional', data: rmmNacional }] : []),
+            ];
+            const periodos = [...new Set(series.flatMap(s => s.data.map(d => d.periodo)))];
+            return periodos
+              .map(periodo => {
+                const row: Record<string, unknown> = { periodo };
+                for (const s of series) {
+                  row[s.nombre] = s.data.find(d => d.periodo === periodo)?.valor || null;
+                }
+                return row;
+              })
+              .sort((a, b) => Number(a.periodo) - Number(b.periodo));
+          };
 
+          return (
+            <ChartWithTable
+              title="Mortalidad Posneonatal (RMM)"
+              subtitle="Evolución histórica - Comparación Córdoba vs Total Nacional (por cada mil nacidos vivos)"
+              color="blue"
+              fuente="DEIS - Dirección de Estadísticas e Información de Salud"
+              data={rmmComparativa()}
+              dataKey="valor"
+              xAxisKey="periodo"
+            >
+              <div className="h-72">
+                <ResponsiveContainer width="100%" height={280}>
+                  <LineChart
+                    data={rmmComparativa()}
+                    margin={{ top: 10, right: 30, left: 10, bottom: 10 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
+                    <XAxis dataKey="periodo" tick={{ fill: '#4D4D4D', fontSize: 12 }} />
+                    <YAxis
+                      tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                      domain={[0, 'auto']}
+                      tickFormatter={v => `${Number(v).toFixed(1)}‰`}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#FFF',
+                        border: '1px solid #E0E0E0',
+                        borderRadius: '8px',
+                      }}
+                      formatter={(value, name) => [`${value ?? 0}‰`, name]}
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="RMM Cba"
+                      stroke={COLORS.blue}
+                      strokeWidth={2}
+                      dot={{ fill: COLORS.blue, r: 4 }}
+                      name="Córdoba"
+                      connectNulls
+                    />
+                    {rmmNacional.length > 0 && (
+                      <Line
+                        type="monotone"
+                        dataKey="RMM Nacional"
+                        stroke={COLORS.magenta}
+                        strokeWidth={2}
+                        dot={{ fill: COLORS.magenta, r: 4 }}
+                        name="Nacional"
+                        strokeDasharray="5 5"
+                        connectNulls
+                      />
+                    )}
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </ChartWithTable>
+          );
+        })()}
     </div>
   );
 }
