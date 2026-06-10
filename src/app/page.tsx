@@ -106,7 +106,13 @@ export default function HomePage() {
   // Latest period from inversion data for the Inversión social KPI subtitle
   const latestInversionPeriod =
     inversionData.length > 0
-      ? [...inversionData].sort((a, b) => b.periodo.localeCompare(a.periodo))[0]?.periodo
+      ? [...inversionData].sort((a, b) => {
+          const aNum =
+            typeof a.periodo === 'string' ? parseInt(a.periodo, 10) : (a.periodo as number);
+          const bNum =
+            typeof b.periodo === 'string' ? parseInt(b.periodo, 10) : (b.periodo as number);
+          return bNum - aNum;
+        })[0]?.periodo
       : null;
 
   // Stats banner values (real data from indicators, non-redundant with KPIs)

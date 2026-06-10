@@ -79,9 +79,11 @@ export default function InversionPage() {
   // ── Derive periods ──────────────────────────────────────────────────────────
 
   const periods = useMemo(() => {
-    const unique = [...new Set(inversionData.map(d => d.periodo))].sort((a, b) =>
-      b.localeCompare(a)
-    );
+    const unique = [...new Set(inversionData.map(d => d.periodo))].sort((a, b) => {
+      const aNum = typeof a === 'string' ? parseInt(a, 10) : (a as number);
+      const bNum = typeof b === 'string' ? parseInt(b, 10) : (b as number);
+      return bNum - aNum;
+    });
     return unique;
   }, [inversionData]);
 

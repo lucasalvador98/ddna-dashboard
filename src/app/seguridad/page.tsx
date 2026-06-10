@@ -66,10 +66,12 @@ export default function SeguridadPage() {
   const distribucionData = getDistribucion();
   const total = distribucionData.reduce((sum, d) => sum + d.value, 0);
 
-  // Latest period from data (sorted by periodo, not by value)
-  const periodos = [...new Set(data.map(d => d.periodo))].sort((a, b) =>
-    b.localeCompare(a, undefined, { numeric: true })
-  );
+  // Latest period from data (sorted by periodo — periodo is integer from Supabase)
+  const periodos = [...new Set(data.map(d => d.periodo))].sort((a, b) => {
+    const aNum = typeof a === 'string' ? parseInt(a, 10) : (a as number);
+    const bNum = typeof b === 'string' ? parseInt(b, 10) : (b as number);
+    return bNum - aNum;
+  });
   const latestPeriod = periodos[0] || '';
 
   return (

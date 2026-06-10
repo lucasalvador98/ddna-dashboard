@@ -49,7 +49,11 @@ function fmtPerMille(val: number | null, fallback: string): string {
 function sumInversionByKeyword(inversionData: Indicador[], keyword: string): number {
   if (!inversionData || inversionData.length === 0) return 0;
 
-  const sorted = [...inversionData].sort((a, b) => b.periodo.localeCompare(a.periodo));
+  const sorted = [...inversionData].sort((a, b) => {
+    const aNum = typeof a.periodo === 'string' ? parseInt(a.periodo, 10) : (a.periodo as number);
+    const bNum = typeof b.periodo === 'string' ? parseInt(b.periodo, 10) : (b.periodo as number);
+    return bNum - aNum;
+  });
   const latestPeriod = sorted[0]?.periodo;
   if (!latestPeriod) return 0;
 
@@ -116,7 +120,13 @@ export default function ExecutiveDashboard() {
   const inversionTotal = getInversionTotal(dashboardData?.inversion ?? []);
   const inversionPeriod =
     dashboardData?.inversion && dashboardData.inversion.length > 0
-      ? [...dashboardData.inversion].sort((a, b) => b.periodo.localeCompare(a.periodo))[0]?.periodo
+      ? [...dashboardData.inversion].sort((a, b) => {
+          const aNum =
+            typeof a.periodo === 'string' ? parseInt(a.periodo, 10) : (a.periodo as number);
+          const bNum =
+            typeof b.periodo === 'string' ? parseInt(b.periodo, 10) : (b.periodo as number);
+          return bNum - aNum;
+        })[0]?.periodo
       : null;
 
   const inversionEducacion = sumInversionByKeyword(dashboardData?.inversion ?? [], 'educación');
