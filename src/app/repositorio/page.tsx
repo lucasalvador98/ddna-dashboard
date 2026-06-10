@@ -1,9 +1,22 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { FileText, FileSpreadsheet, File, FolderOpen, Search, Upload, CheckCircle, Bot, Download, RefreshCw, AlertCircle, Loader2 } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import {
+  FileText,
+  FileSpreadsheet,
+  File,
+  FolderOpen,
+  Search,
+  Upload,
+  CheckCircle,
+  Bot,
+  Download,
+  RefreshCw,
+  AlertCircle,
+  Loader2,
+} from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 interface RepoFile {
   id: string;
@@ -28,26 +41,26 @@ interface ProcessResult {
 }
 
 const categoryColors: Record<string, { bg: string; text: string }> = {
-  encuestas: { bg: "bg-blue-100", text: "text-blue-700" },
-  inversion: { bg: "bg-orange-100", text: "text-orange-700" },
-  proteccion: { bg: "bg-red-100", text: "text-red-700" },
-  consumos: { bg: "bg-purple-100", text: "text-purple-700" },
-  medios: { bg: "bg-gray-100", text: "text-gray-700" },
-  informes: { bg: "bg-green-100", text: "text-green-700" },
+  encuestas: { bg: 'bg-blue-100', text: 'text-blue-700' },
+  inversion: { bg: 'bg-orange-100', text: 'text-orange-700' },
+  proteccion: { bg: 'bg-red-100', text: 'text-red-700' },
+  consumos: { bg: 'bg-purple-100', text: 'text-purple-700' },
+  medios: { bg: 'bg-gray-100', text: 'text-gray-700' },
+  informes: { bg: 'bg-green-100', text: 'text-green-700' },
 };
 
 export default function RepositorioPage() {
   const [files, setFiles] = useState<RepoFile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("");
-  const [category, setCategory] = useState("all");
+  const [filter, setFilter] = useState('');
+  const [category, setCategory] = useState('all');
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [uploadCategory, setUploadCategory] = useState("informes");
-  const [uploadDesc, setUploadDesc] = useState("");
-  const [uploadNotas, setUploadNotas] = useState("");
-  const [uploadError, setUploadError] = useState("");
-  const [uploadSuccess, setUploadSuccess] = useState("");
+  const [uploadCategory, setUploadCategory] = useState('informes');
+  const [uploadDesc, setUploadDesc] = useState('');
+  const [uploadNotas, setUploadNotas] = useState('');
+  const [uploadError, setUploadError] = useState('');
+  const [uploadSuccess, setUploadSuccess] = useState('');
   const [processing, setProcessing] = useState(false);
   const [processResults, setProcessResults] = useState<ProcessResult[]>([]);
 
@@ -57,10 +70,10 @@ export default function RepositorioPage() {
 
   const fetchRepo = async () => {
     const { data, error } = await supabase
-      .from("repositorio")
-      .select("*")
-      .order("categoria", { ascending: true })
-      .order("nombre_archivo", { ascending: true });
+      .from('repositorio')
+      .select('*')
+      .order('categoria', { ascending: true })
+      .order('nombre_archivo', { ascending: true });
 
     if (!error) setFiles(data || []);
     setLoading(false);
@@ -71,19 +84,19 @@ export default function RepositorioPage() {
     if (!file) return;
 
     setSelectedFile(file);
-    setUploadError("");
-    setUploadSuccess("");
+    setUploadError('');
+    setUploadSuccess('');
     setUploading(true);
 
     const formData = new FormData();
-    formData.append("file", file);
-    formData.append("categoria", uploadCategory);
-    formData.append("descripcion", uploadDesc);
-    formData.append("notas", uploadNotas);
+    formData.append('file', file);
+    formData.append('categoria', uploadCategory);
+    formData.append('descripcion', uploadDesc);
+    formData.append('notas', uploadNotas);
 
     try {
-      const res = await fetch("/api/repositorio/upload", {
-        method: "POST",
+      const res = await fetch('/api/repositorio/upload', {
+        method: 'POST',
         body: formData,
       });
       const data = await res.json();
@@ -91,10 +104,10 @@ export default function RepositorioPage() {
       if (data.error) {
         setUploadError(data.error);
       } else {
-        setUploadSuccess("Archivo subido exitosamente!");
+        setUploadSuccess('Archivo subido exitosamente!');
         setSelectedFile(null);
-        setUploadDesc("");
-        setUploadNotas("");
+        setUploadDesc('');
+        setUploadNotas('');
         fetchRepo(); // Refresh list
       }
     } catch (err) {
@@ -105,15 +118,17 @@ export default function RepositorioPage() {
   };
 
   const processPending = async () => {
-    const pending = files.filter((f) => !f.processed && f.url_storage);
+    const pending = files.filter(f => !f.processed && f.url_storage);
     if (pending.length === 0) return;
 
     setProcessing(true);
-    setProcessResults(pending.map((f) => ({ id: f.id, nombre: f.nombre_archivo, status: 'pending' })));
+    setProcessResults(
+      pending.map(f => ({ id: f.id, nombre: f.nombre_archivo, status: 'pending' }))
+    );
 
     for (const file of pending) {
-      setProcessResults((prev) =>
-        prev.map((r) => r.id === file.id ? { ...r, status: 'processing' } : r)
+      setProcessResults(prev =>
+        prev.map(r => (r.id === file.id ? { ...r, status: 'processing' } : r))
       );
 
       try {
@@ -125,21 +140,29 @@ export default function RepositorioPage() {
         const data = await res.json();
 
         if (!res.ok || data.error) {
-          setProcessResults((prev) =>
-            prev.map((r) => r.id === file.id ? { ...r, status: 'error', error: data.error || `HTTP ${res.status}` } : r)
+          setProcessResults(prev =>
+            prev.map(r =>
+              r.id === file.id
+                ? { ...r, status: 'error', error: data.error || `HTTP ${res.status}` }
+                : r
+            )
           );
         } else if (data.message === 'File already processed') {
-          setProcessResults((prev) =>
-            prev.map((r) => r.id === file.id ? { ...r, status: 'skipped', chunks: data.totalChunks } : r)
+          setProcessResults(prev =>
+            prev.map(r =>
+              r.id === file.id ? { ...r, status: 'skipped', chunks: data.totalChunks } : r
+            )
           );
         } else {
-          setProcessResults((prev) =>
-            prev.map((r) => r.id === file.id ? { ...r, status: 'done', chunks: data.totalChunks } : r)
+          setProcessResults(prev =>
+            prev.map(r =>
+              r.id === file.id ? { ...r, status: 'done', chunks: data.totalChunks } : r
+            )
           );
         }
       } catch (err) {
-        setProcessResults((prev) =>
-          prev.map((r) => r.id === file.id ? { ...r, status: 'error', error: String(err) } : r)
+        setProcessResults(prev =>
+          prev.map(r => (r.id === file.id ? { ...r, status: 'error', error: String(err) } : r))
         );
       }
     }
@@ -148,28 +171,28 @@ export default function RepositorioPage() {
     fetchRepo();
   };
 
-  const pendingCount = files.filter((f) => !f.processed && f.url_storage).length;
+  const pendingCount = files.filter(f => !f.processed && f.url_storage).length;
 
-  const filteredFiles = files.filter((f) => {
+  const filteredFiles = files.filter(f => {
     const matchesSearch =
       !filter ||
       f.nombre_archivo.toLowerCase().includes(filter.toLowerCase()) ||
       f.descripcion?.toLowerCase().includes(filter.toLowerCase());
-    const matchesCategory = category === "all" || f.categoria === category;
+    const matchesCategory = category === 'all' || f.categoria === category;
     return matchesSearch && matchesCategory;
   });
 
-  const categories = ["all", ...new Set(files.map((f) => f.categoria))];
+  const categories = ['all', ...new Set(files.map(f => f.categoria))];
   const stats = {
     total: files.length,
-    pdf: files.filter((f) => f.tipo_documento === "pdf").length,
-    xlsx: files.filter((f) => f.tipo_documento === "xlsx").length,
-    docx: files.filter((f) => f.tipo_documento === "docx").length,
+    pdf: files.filter(f => f.tipo_documento === 'pdf').length,
+    xlsx: files.filter(f => f.tipo_documento === 'xlsx').length,
+    docx: files.filter(f => f.tipo_documento === 'docx').length,
   };
 
   const getFileIcon = (tipo: string) => {
-    if (tipo === "pdf") return <FileText className="w-5 h-5" />;
-    if (tipo === "xlsx") return <FileSpreadsheet className="w-5 h-5" />;
+    if (tipo === 'pdf') return <FileText className="w-5 h-5" />;
+    if (tipo === 'xlsx') return <FileSpreadsheet className="w-5 h-5" />;
     return <File className="w-5 h-5" />;
   };
 
@@ -177,7 +200,7 @@ export default function RepositorioPage() {
     <div className="space-y-6">
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 py-8">
-          <h1 className="font-display text-3xl text-[#00074E]">Repositorio DDNA</h1>
+          <h1 className="font-display text-3xl text-[#1a2556]">Repositorio DDNA</h1>
           <p className="font-body text-gray-600 mt-2">
             Archivos propios de la Defensoría — Fuentes primarias, encuestas, informes
           </p>
@@ -189,7 +212,7 @@ export default function RepositorioPage() {
         <div className="mb-6">
           <Link
             href="/repositorio/chat"
-            className="flex items-center justify-between w-full px-6 py-4 bg-gradient-to-r from-[#3777FF] to-[#00074E] text-white rounded-2xl font-accent text-lg hover:shadow-xl hover:scale-[1.02] transition-all group"
+            className="flex items-center justify-between w-full px-6 py-4 bg-gradient-to-r from-[#3777FF] to-[#1a2556] text-white rounded-2xl font-accent text-lg hover:shadow-xl hover:scale-[1.02] transition-all group"
           >
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center group-hover:rotate-12 transition-transform">
@@ -197,10 +220,17 @@ export default function RepositorioPage() {
               </div>
               <div className="text-left">
                 <p className="font-bold text-xl">Chat con la bibliografía</p>
-                <p className="text-sm opacity-90">Consultá todos nuestros documentos como en NotebookLM</p>
+                <p className="text-sm opacity-90">
+                  Consultá todos nuestros documentos como en NotebookLM
+                </p>
               </div>
             </div>
-            <svg className="w-6 h-6 group-hover:translate-x-2 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg
+              className="w-6 h-6 group-hover:translate-x-2 transition-transform"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </Link>
@@ -226,10 +256,11 @@ export default function RepositorioPage() {
                 disabled={processing}
                 className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-60 text-white font-accent text-sm font-semibold rounded-lg transition-colors flex-shrink-0"
               >
-                {processing
-                  ? <Loader2 className="w-4 h-4 animate-spin" />
-                  : <RefreshCw className="w-4 h-4" />
-                }
+                {processing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4" />
+                )}
                 {processing ? 'Procesando...' : 'Procesar pendientes'}
               </button>
             </div>
@@ -237,19 +268,43 @@ export default function RepositorioPage() {
             {/* Resultados en tiempo real */}
             {processResults.length > 0 && (
               <div className="mt-4 space-y-1.5">
-                {processResults.map((r) => (
+                {processResults.map(r => (
                   <div key={r.id} className="flex items-center gap-3 text-sm">
-                    {r.status === 'pending'    && <div className="w-4 h-4 rounded-full bg-gray-200 flex-shrink-0" />}
-                    {r.status === 'processing' && <Loader2 className="w-4 h-4 text-amber-600 animate-spin flex-shrink-0" />}
-                    {r.status === 'done'       && <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />}
-                    {r.status === 'skipped'    && <CheckCircle className="w-4 h-4 text-gray-400 flex-shrink-0" />}
-                    {r.status === 'error'      && <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />}
-                    <span className={`font-mono truncate max-w-xs ${r.status === 'error' ? 'text-red-700' : 'text-gray-700'}`}>
+                    {r.status === 'pending' && (
+                      <div className="w-4 h-4 rounded-full bg-gray-200 flex-shrink-0" />
+                    )}
+                    {r.status === 'processing' && (
+                      <Loader2 className="w-4 h-4 text-amber-600 animate-spin flex-shrink-0" />
+                    )}
+                    {r.status === 'done' && (
+                      <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+                    )}
+                    {r.status === 'skipped' && (
+                      <CheckCircle className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                    )}
+                    {r.status === 'error' && (
+                      <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                    )}
+                    <span
+                      className={`font-mono truncate max-w-xs ${r.status === 'error' ? 'text-red-700' : 'text-gray-700'}`}
+                    >
                       {r.nombre.length > 40 ? r.nombre.substring(0, 40) + '...' : r.nombre}
                     </span>
-                    {r.status === 'done'    && <span className="text-green-600 font-body text-xs ml-auto flex-shrink-0">{r.chunks} chunks</span>}
-                    {r.status === 'skipped' && <span className="text-gray-400 font-body text-xs ml-auto flex-shrink-0">ya procesado</span>}
-                    {r.status === 'error'   && <span className="text-red-500 font-body text-xs ml-auto flex-shrink-0 max-w-[200px] truncate">{r.error}</span>}
+                    {r.status === 'done' && (
+                      <span className="text-green-600 font-body text-xs ml-auto flex-shrink-0">
+                        {r.chunks} chunks
+                      </span>
+                    )}
+                    {r.status === 'skipped' && (
+                      <span className="text-gray-400 font-body text-xs ml-auto flex-shrink-0">
+                        ya procesado
+                      </span>
+                    )}
+                    {r.status === 'error' && (
+                      <span className="text-red-500 font-body text-xs ml-auto flex-shrink-0 max-w-[200px] truncate">
+                        {r.error}
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>
@@ -260,32 +315,32 @@ export default function RepositorioPage() {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <p className="text-2xl font-display text-[#00074E]">{stats.total}</p>
+            <p className="text-2xl font-display text-[#1a2556]">{stats.total}</p>
             <p className="text-sm text-gray-500">Total archivos</p>
           </div>
           <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <p className="text-2xl font-display text-[#00074E]">{stats.pdf}</p>
+            <p className="text-2xl font-display text-[#1a2556]">{stats.pdf}</p>
             <p className="text-sm text-gray-500">PDF</p>
           </div>
           <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <p className="text-2xl font-display text-[#00074E]">{stats.xlsx}</p>
+            <p className="text-2xl font-display text-[#1a2556]">{stats.xlsx}</p>
             <p className="text-sm text-gray-500">Excel</p>
           </div>
           <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <p className="text-2xl font-display text-[#00074E]">{stats.docx}</p>
+            <p className="text-2xl font-display text-[#1a2556]">{stats.docx}</p>
             <p className="text-sm text-gray-500">Word</p>
           </div>
         </div>
 
         {/* Upload Form */}
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
-          <h3 className="font-accent text-lg text-[#00074E] mb-4">Subir nuevo archivo</h3>
+          <h3 className="font-accent text-lg text-[#1a2556] mb-4">Subir nuevo archivo</h3>
           <div className="flex flex-wrap gap-4 items-end">
             <div>
               <label className="block text-sm text-gray-600 mb-1">Categoría</label>
               <select
                 value={uploadCategory}
-                onChange={(e) => setUploadCategory(e.target.value)}
+                onChange={e => setUploadCategory(e.target.value)}
                 className="px-3 py-2 border border-gray-300 rounded-lg"
               >
                 <option value="encuestas">Encuestas</option>
@@ -301,7 +356,7 @@ export default function RepositorioPage() {
               <input
                 type="text"
                 value={uploadDesc}
-                onChange={(e) => setUploadDesc(e.target.value)}
+                onChange={e => setUploadDesc(e.target.value)}
                 placeholder="Descripción del archivo"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               />
@@ -311,14 +366,14 @@ export default function RepositorioPage() {
               <input
                 type="text"
                 value={uploadNotas}
-                onChange={(e) => setUploadNotas(e.target.value)}
+                onChange={e => setUploadNotas(e.target.value)}
                 placeholder="Notas adicionales"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               />
             </div>
-            <label className="flex items-center gap-2 px-4 py-2 bg-[#00074E] text-white rounded-lg font-accent text-sm cursor-pointer hover:bg-[#00063E]">
-              {uploading ? "Subiendo..." : <Upload className="w-4 h-4" />}
-              {uploading ? "Subiendo..." : "Seleccionar archivo"}
+            <label className="flex items-center gap-2 px-4 py-2 bg-[#1a2556] text-white rounded-lg font-accent text-sm cursor-pointer hover:bg-[#00063E]">
+              {uploading ? 'Subiendo...' : <Upload className="w-4 h-4" />}
+              {uploading ? 'Subiendo...' : 'Seleccionar archivo'}
               <input
                 type="file"
                 className="hidden"
@@ -328,9 +383,7 @@ export default function RepositorioPage() {
               />
             </label>
           </div>
-          {uploadError && (
-            <p className="text-red-600 mt-2 text-sm">{uploadError}</p>
-          )}
+          {uploadError && <p className="text-red-600 mt-2 text-sm">{uploadError}</p>}
           {uploadSuccess && (
             <p className="text-green-600 mt-2 text-sm flex items-center gap-1">
               <CheckCircle className="w-4 h-4" />
@@ -347,21 +400,23 @@ export default function RepositorioPage() {
               type="text"
               placeholder="Buscar archivos..."
               value={filter}
-              onChange={(e) => setFilter(e.target.value)}
+              onChange={e => setFilter(e.target.value)}
               aria-label="Buscar archivos en el repositorio"
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00074E] focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a2556] focus:border-transparent"
             />
           </div>
           <div className="flex flex-wrap gap-2">
-            {categories.map((cat) => (
+            {categories.map(cat => (
               <button
                 key={cat}
                 onClick={() => setCategory(cat)}
                 className={`px-3 py-2 rounded-lg font-accent text-sm transition-colors ${
-                  category === cat ? "bg-[#00074E] text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  category === cat
+                    ? 'bg-[#1a2556] text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                {cat === "all" ? "Todos" : cat.charAt(0).toUpperCase() + cat.slice(1)}
+                {cat === 'all' ? 'Todos' : cat.charAt(0).toUpperCase() + cat.slice(1)}
               </button>
             ))}
           </div>
@@ -370,7 +425,7 @@ export default function RepositorioPage() {
         {/* Files table */}
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00074E]" />
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1a2556]" />
             <span className="ml-3 text-gray-500">Cargando...</span>
           </div>
         ) : (
@@ -379,16 +434,22 @@ export default function RepositorioPage() {
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="text-left px-4 py-3 font-accent text-sm text-gray-500">Archivo</th>
-                  <th className="text-left px-4 py-3 font-accent text-sm text-gray-500">Categoría</th>
+                  <th className="text-left px-4 py-3 font-accent text-sm text-gray-500">
+                    Categoría
+                  </th>
                   <th className="text-left px-4 py-3 font-accent text-sm text-gray-500">Tipo</th>
-                  <th className="text-left px-4 py-3 font-accent text-sm text-gray-500">Descripción</th>
+                  <th className="text-left px-4 py-3 font-accent text-sm text-gray-500">
+                    Descripción
+                  </th>
                   <th className="text-left px-4 py-3 font-accent text-sm text-gray-500">Fecha</th>
-                  <th className="text-center px-4 py-3 font-accent text-sm text-gray-500 w-24">RAG</th>
+                  <th className="text-center px-4 py-3 font-accent text-sm text-gray-500 w-24">
+                    RAG
+                  </th>
                   <th className="text-center px-4 py-3 font-accent text-sm text-gray-500 w-16"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {filteredFiles.map((file) => {
+                {filteredFiles.map(file => {
                   const catStyle = categoryColors[file.categoria] || categoryColors.informes;
                   const TypeIcon = getFileIcon(file.tipo_documento);
                   return (
@@ -398,24 +459,30 @@ export default function RepositorioPage() {
                           {TypeIcon}
                           <span className="font-mono text-sm text-gray-700">
                             {file.nombre_archivo.length > 30
-                              ? file.nombre_archivo.substring(0, 30) + "..."
+                              ? file.nombre_archivo.substring(0, 30) + '...'
                               : file.nombre_archivo}
                           </span>
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${catStyle.bg} ${catStyle.text}`}>
+                        <span
+                          className={`px-2 py-1 rounded text-xs font-medium ${catStyle.bg} ${catStyle.text}`}
+                        >
                           {file.categoria}
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-xs text-gray-500 uppercase">{file.tipo_documento}</span>
+                        <span className="text-xs text-gray-500 uppercase">
+                          {file.tipo_documento}
+                        </span>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate">
-                        {file.descripcion || "—"}
+                        {file.descripcion || '—'}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-500">
-                        {file.fecha_subida ? new Date(file.fecha_subida).toLocaleDateString("es-AR") : "—"}
+                        {file.fecha_subida
+                          ? new Date(file.fecha_subida).toLocaleDateString('es-AR')
+                          : '—'}
                       </td>
                       <td className="px-4 py-3 text-center">
                         {file.processed ? (

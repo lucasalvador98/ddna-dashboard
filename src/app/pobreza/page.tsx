@@ -2,8 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import {
-  Users, Home, PersonStanding, AlertCircle, Loader2, Info,
-  Briefcase, UtensilsCrossed, Layers, TrendingUp, TrendingDown
+  Users,
+  Home,
+  PersonStanding,
+  AlertCircle,
+  Loader2,
+  Info,
+  Briefcase,
+  UtensilsCrossed,
+  Layers,
+  TrendingUp,
+  TrendingDown,
 } from 'lucide-react';
 import { SectionHeader } from '@/components/section-header';
 import { KpiCard } from '@/components/kpi-card';
@@ -12,7 +21,15 @@ import { supabase } from '@/lib/supabase';
 import { parseDesglose } from '@/lib/parse-desglose';
 import { INDICATOR_NAMES } from '@/lib/indicator-names';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+  Cell,
 } from 'recharts';
 
 // ─── Types ──────────────────────────────────────────────────────
@@ -51,12 +68,22 @@ const INDEC_FUENTE = 'EPH-INDEC / datos.gob.ar';
 //       indicador_nombre in the DB. The current values are approximate estimates based on
 //       UCA-ODSA historical reports and should be validated before production use.
 const DIMENSIONES_UCA = [
-  { dimension: 'Déficit en alimentación y salud', valor: 26.6, fill: '#BF1363', desc: '% de hogares' },
+  {
+    dimension: 'Déficit en alimentación y salud',
+    valor: 26.6,
+    fill: '#BF1363',
+    desc: '% de hogares',
+  },
   { dimension: 'Déficit en servicios básicos', valor: 30, fill: '#E07A5F', desc: '% de hogares' },
   { dimension: 'Déficit en vivienda digna', valor: 25, fill: '#F3A712', desc: '% de hogares' },
   { dimension: 'Déficit en medio ambiente', valor: 40, fill: '#FF7F11', desc: '% de hogares' },
   { dimension: 'Déficit en acceso a educación', valor: 20, fill: '#3777FF', desc: '% de hogares' },
-  { dimension: 'Déficit en empleo y seg. social', valor: 35, fill: '#10B981', desc: '% de hogares' },
+  {
+    dimension: 'Déficit en empleo y seg. social',
+    valor: 35,
+    fill: '#10B981',
+    desc: '% de hogares',
+  },
 ];
 
 // ─── Helpers ────────────────────────────────────────────────────
@@ -121,13 +148,13 @@ export default function PobrezaPage() {
 
         if (!cancelled) {
           setIndecData(
-            (indecRes.data || []).map((r) => ({
+            (indecRes.data || []).map(r => ({
               ...r,
               desglose: parseDesglose(r.desglose),
             })) as IndicadorRow[]
           );
           setUcaData(
-            (ucaRes.data || []).map((r) => ({
+            (ucaRes.data || []).map(r => ({
               ...r,
               desglose: parseDesglose(r.desglose),
             })) as IndicadorRow[]
@@ -143,7 +170,9 @@ export default function PobrezaPage() {
     }
 
     load();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // ─── Loading ──────────────────────────────────────────────────
@@ -204,7 +233,9 @@ export default function PobrezaPage() {
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <Info className="w-12 h-12 text-gray-300 mb-4" />
           <p className="font-body text-gray-600">No hay datos disponibles</p>
-          <p className="text-sm text-gray-400 mt-1">Los datos de pobreza aún no se han cargado en la base.</p>
+          <p className="text-sm text-gray-400 mt-1">
+            Los datos de pobreza aún no se han cargado en la base.
+          </p>
         </div>
       </div>
     );
@@ -214,8 +245,8 @@ export default function PobrezaPage() {
   // Get all data points for an indicator — no semester filter, all periods
   const indecGetAll = (indicatorName: string) => {
     return indecData
-      .filter((r) => r.indicador_nombre === indicatorName)
-      .map((r) => ({ year: r.periodo, semestre: Number(r.desglose?.semestre) || 0, valor: r.valor }));
+      .filter(r => r.indicador_nombre === indicatorName)
+      .map(r => ({ year: r.periodo, semestre: Number(r.desglose?.semestre) || 0, valor: r.valor }));
   };
 
   const phAll = indecGetAll(INDICATOR_NAMES.POBREZA_HOGARES);
@@ -238,23 +269,23 @@ export default function PobrezaPage() {
     a.year !== b.year ? a.year - b.year : a.semestre - b.semestre
   );
 
-  const evoChartData = sortedPeriods.map((p) => ({
+  const evoChartData = sortedPeriods.map(p => ({
     label: p.label,
-    'Hogares': phAll.find((d) => d.year === p.year && d.semestre === p.semestre)?.valor ?? undefined,
-    'Personas': ppAll.find((d) => d.year === p.year && d.semestre === p.semestre)?.valor ?? undefined,
+    Hogares: phAll.find(d => d.year === p.year && d.semestre === p.semestre)?.valor ?? undefined,
+    Personas: ppAll.find(d => d.year === p.year && d.semestre === p.semestre)?.valor ?? undefined,
   }));
 
   // Latest KPIs (INDEC)
   const getLatest = (name: string, semestre?: number) => {
     let filtered = indecData
-      .filter((r) => r.indicador_nombre === name)
+      .filter(r => r.indicador_nombre === name)
       .sort((a, b) => b.periodo - a.periodo);
-    if (semestre !== undefined) filtered = filtered.filter((r) => r.desglose?.semestre === semestre);
+    if (semestre !== undefined) filtered = filtered.filter(r => r.desglose?.semestre === semestre);
     return filtered[0];
   };
 
   const getPrev = (name: string, latestPeriodo: number, semestre?: number) => {
-    const candidates = indecData.filter((r) => {
+    const candidates = indecData.filter(r => {
       if (r.indicador_nombre !== name) return false;
       const rPeriodo = Number(r.periodo);
       if (isNaN(rPeriodo)) return false;
@@ -285,8 +316,20 @@ export default function PobrezaPage() {
   const latestPP = getLatest(INDICATOR_NAMES.POBREZA_PERSONAS);
   const latestDesempleo = getLatest(INDICATOR_NAMES.TASA_DESEMPLEO);
 
-  const prevPH = latestPH ? getPrev(INDICATOR_NAMES.POBREZA_HOGARES, latestPH.periodo, Number(latestPH.desglose?.semestre)) : undefined;
-  const prevPP = latestPP ? getPrev(INDICATOR_NAMES.POBREZA_PERSONAS, latestPP.periodo, Number(latestPP.desglose?.semestre)) : undefined;
+  const prevPH = latestPH
+    ? getPrev(
+        INDICATOR_NAMES.POBREZA_HOGARES,
+        latestPH.periodo,
+        Number(latestPH.desglose?.semestre)
+      )
+    : undefined;
+  const prevPP = latestPP
+    ? getPrev(
+        INDICATOR_NAMES.POBREZA_PERSONAS,
+        latestPP.periodo,
+        Number(latestPP.desglose?.semestre)
+      )
+    : undefined;
 
   const changePH = calcChange(latestPH?.valor, prevPH?.valor);
   const changePP = calcChange(latestPP?.valor, prevPP?.valor);
@@ -294,14 +337,14 @@ export default function PobrezaPage() {
   // Table data: last 5 periods (both indicators)
   // TODO: table semestre cardinality — currently takes latest semestre per year.
   // Business decision needed: show BOTH semesters as separate rows or just latest?
-  const allPeriods = [...new Set(indecData.map((r) => r.periodo))].sort((a, b) => b - a).slice(0, 5);
-  const tableRows = allPeriods.map((p) => {
+  const allPeriods = [...new Set(indecData.map(r => r.periodo))].sort((a, b) => b - a).slice(0, 5);
+  const tableRows = allPeriods.map(p => {
     // Sort by semestre DESC so latest semestre per year wins
     const ph = indecData
-      .filter((r) => r.indicador_nombre === INDICATOR_NAMES.POBREZA_HOGARES && r.periodo === p)
+      .filter(r => r.indicador_nombre === INDICATOR_NAMES.POBREZA_HOGARES && r.periodo === p)
       .sort((a, b) => getSemestre(b) - getSemestre(a))[0];
     const pp = indecData
-      .filter((r) => r.indicador_nombre === INDICATOR_NAMES.POBREZA_PERSONAS && r.periodo === p)
+      .filter(r => r.indicador_nombre === INDICATOR_NAMES.POBREZA_PERSONAS && r.periodo === p)
       .sort((a, b) => getSemestre(b) - getSemestre(a))[0];
     return {
       periodo: periodoLabel(p, ph?.desglose ?? pp?.desglose ?? {}),
@@ -313,7 +356,7 @@ export default function PobrezaPage() {
   // ─── UCA processed data ───────────────────────────────────────
   const ucaLatest = (name: string) => {
     return ucaData
-      .filter((r) => r.indicador_nombre === name)
+      .filter(r => r.indicador_nombre === name)
       .sort((a, b) => b.periodo - a.periodo)[0];
   };
 
@@ -334,7 +377,7 @@ export default function PobrezaPage() {
 
       {/* ── Tab navigation ────────────────────────────────── */}
       <nav className="flex gap-1 bg-gray-100 rounded-lg p-1" role="tablist">
-        {TABS.map((t) => (
+        {TABS.map(t => (
           <button
             key={t.id}
             role="tab"
@@ -342,7 +385,7 @@ export default function PobrezaPage() {
             onClick={() => setTab(t.id)}
             className={`flex-1 px-4 py-2.5 rounded-md text-sm font-medium transition-colors ${
               tab === t.id
-                ? 'bg-white text-[#00074E] shadow-sm'
+                ? 'bg-white text-[#1a2556] shadow-sm'
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
@@ -377,9 +420,7 @@ export default function PobrezaPage() {
       )}
 
       {/* ── Tab 3: Infancia (UCA) ──────────────────────────── */}
-      {tab === 'infancia' && (
-        <TabInfancia ucaData={ucaData} />
-      )}
+      {tab === 'infancia' && <TabInfancia ucaData={ucaData} />}
     </div>
   );
 }
@@ -409,7 +450,9 @@ function TabIngresos({
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <Info className="w-12 h-12 text-gray-300 mb-4" />
         <p className="font-body text-gray-600">No hay datos disponibles</p>
-        <p className="text-sm text-gray-400 mt-1">Los datos de INDEC para Córdoba no están disponibles.</p>
+        <p className="text-sm text-gray-400 mt-1">
+          Los datos de INDEC para Córdoba no están disponibles.
+        </p>
       </div>
     );
   }
@@ -440,16 +483,20 @@ function TabIngresos({
           title="Indigencia Hogares"
           value={fmt(
             indecData
-              .filter((r) => r.indicador_nombre === INDICATOR_NAMES.INDIGENCIA_HOGARES)
+              .filter(r => r.indicador_nombre === INDICATOR_NAMES.INDIGENCIA_HOGARES)
               .sort((a, b) => b.periodo - a.periodo)[0]?.valor
           )}
           subtitle={
             indecData
-              .filter((r) => r.indicador_nombre === INDICATOR_NAMES.INDIGENCIA_HOGARES)
+              .filter(r => r.indicador_nombre === INDICATOR_NAMES.INDIGENCIA_HOGARES)
               .sort((a, b) => b.periodo - a.periodo)[0]
               ? periodoLabel(
-                  indecData.filter((r) => r.indicador_nombre === INDICATOR_NAMES.INDIGENCIA_HOGARES).sort((a, b) => b.periodo - a.periodo)[0]!.periodo,
-                  indecData.filter((r) => r.indicador_nombre === INDICATOR_NAMES.INDIGENCIA_HOGARES).sort((a, b) => b.periodo - a.periodo)[0]!.desglose
+                  indecData
+                    .filter(r => r.indicador_nombre === INDICATOR_NAMES.INDIGENCIA_HOGARES)
+                    .sort((a, b) => b.periodo - a.periodo)[0]!.periodo,
+                  indecData
+                    .filter(r => r.indicador_nombre === INDICATOR_NAMES.INDIGENCIA_HOGARES)
+                    .sort((a, b) => b.periodo - a.periodo)[0]!.desglose
                 )
               : 'Sin datos'
           }
@@ -459,7 +506,11 @@ function TabIngresos({
         <KpiCard
           title="Desempleo Gran Córdoba"
           value={fmt(latestDesempleo?.valor)}
-          subtitle={latestDesempleo ? `${periodoLabel(latestDesempleo.periodo, latestDesempleo.desglose)}` : 'Sin datos'}
+          subtitle={
+            latestDesempleo
+              ? `${periodoLabel(latestDesempleo.periodo, latestDesempleo.desglose)}`
+              : 'Sin datos'
+          }
           icon={Briefcase}
           color="amber"
         />
@@ -497,11 +548,21 @@ function TabIngresos({
                   borderRadius: '8px',
                   fontSize: '13px',
                 }}
-                formatter={(value) => [`${value ?? '—'}%`, '']}
+                formatter={value => [`${value ?? '—'}%`, '']}
               />
               <Legend />
-              <Bar dataKey="Personas" fill={COLORS.magenta} radius={[4, 4, 0, 0]} name="Pobreza Personas" />
-              <Bar dataKey="Hogares" fill={COLORS.terracotta} radius={[4, 4, 0, 0]} name="Pobreza Hogares" />
+              <Bar
+                dataKey="Personas"
+                fill={COLORS.magenta}
+                radius={[4, 4, 0, 0]}
+                name="Pobreza Personas"
+              />
+              <Bar
+                dataKey="Hogares"
+                fill={COLORS.terracotta}
+                radius={[4, 4, 0, 0]}
+                name="Pobreza Hogares"
+              />
             </BarChart>
           </ResponsiveContainer>
         )}
@@ -512,7 +573,7 @@ function TabIngresos({
         <div className="p-5 border-b border-[#E0E0E0]">
           <div className="flex items-center gap-3">
             <div className="w-1 h-6 rounded-full" style={{ backgroundColor: COLORS.magenta }} />
-            <h3 className="font-display text-lg text-[#00074E]">Últimos Períodos</h3>
+            <h3 className="font-display text-lg text-[#1a2556]">Últimos Períodos</h3>
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -562,7 +623,9 @@ function TabMultidimensional({
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <Info className="w-12 h-12 text-gray-300 mb-4" />
         <p className="font-body text-gray-600">No hay datos disponibles</p>
-        <p className="text-sm text-gray-400 mt-1">Los datos de UCA-ODSA aún no están disponibles.</p>
+        <p className="text-sm text-gray-400 mt-1">
+          Los datos de UCA-ODSA aún no están disponibles.
+        </p>
       </div>
     );
   }
@@ -575,7 +638,10 @@ function TabMultidimensional({
           <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
           <div className="text-sm text-blue-900 leading-relaxed">
             <p>
-              La <strong>UCA-ODSA</strong> mide la pobreza desde un <strong>enfoque de derechos</strong>. No solo ingresos: evalúa <strong>6 dimensiones</strong> del desarrollo humano (alimentación, servicios, vivienda, ambiente, educación, empleo).
+              La <strong>UCA-ODSA</strong> mide la pobreza desde un{' '}
+              <strong>enfoque de derechos</strong>. No solo ingresos: evalúa{' '}
+              <strong>6 dimensiones</strong> del desarrollo humano (alimentación, servicios,
+              vivienda, ambiente, educación, empleo).
             </p>
           </div>
         </div>
@@ -607,7 +673,9 @@ function TabMultidimensional({
         <KpiCard
           title="Pobreza Multidimensional"
           value={fmt(ucMultidimensional?.valor)}
-          subtitle={ucMultidimensional ? `${ucMultidimensional.periodo} — 2+ carencias` : 'Sin datos'}
+          subtitle={
+            ucMultidimensional ? `${ucMultidimensional.periodo} — 2+ carencias` : 'Sin datos'
+          }
           icon={Layers}
           color="amber"
         />
@@ -618,10 +686,13 @@ function TabMultidimensional({
         <div className="flex gap-3">
           <Info className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
           <div className="text-sm text-yellow-800 leading-relaxed">
-            <p className="font-medium">Aviso: datos de dimensiones no disponibles en la base de datos</p>
+            <p className="font-medium">
+              Aviso: datos de dimensiones no disponibles en la base de datos
+            </p>
             <p className="mt-1">
-              Los valores de las dimensiones que se muestran a continuación son <strong>estimaciones aproximadas</strong> basadas en
-              informes históricos de UCA-ODSA, no datos extraídos de la base. La evolución por dimensión no está disponible
+              Los valores de las dimensiones que se muestran a continuación son{' '}
+              <strong>estimaciones aproximadas</strong> basadas en informes históricos de UCA-ODSA,
+              no datos extraídos de la base. La evolución por dimensión no está disponible
               actualmente en el sistema. Se requiere carga de datos desde los informes completos.
             </p>
           </div>
@@ -660,7 +731,7 @@ function TabMultidimensional({
                 borderRadius: '8px',
                 fontSize: '13px',
               }}
-              formatter={(value) => [`${value ?? '—'}%`, '']}
+              formatter={value => [`${value ?? '—'}%`, '']}
             />
             <Bar dataKey="valor" radius={[0, 4, 4, 0]}>
               {DIMENSIONES_UCA.map((d, i) => (
@@ -683,11 +754,10 @@ function TabMultidimensional({
           <Info className="w-5 h-5 text-[#F3A712] flex-shrink-0 mt-0.5" />
           <div className="text-sm text-amber-900 leading-relaxed">
             <p>
-              La UCA mide <strong>pobreza multidimensional</strong>: no solo ingreso, sino también acceso a derechos (alimentación, salud, vivienda, educación, empleo). El <strong>{fmt(ucInseguridad?.valor)}</strong> de personas sufre inseguridad alimentaria — incluso el{' '}
-              <strong>
-                26.7%
-              </strong>{' '}
-              de quienes <em>NO</em> son pobres por ingreso.
+              La UCA mide <strong>pobreza multidimensional</strong>: no solo ingreso, sino también
+              acceso a derechos (alimentación, salud, vivienda, educación, empleo). El{' '}
+              <strong>{fmt(ucInseguridad?.valor)}</strong> de personas sufre inseguridad alimentaria
+              — incluso el <strong>26.7%</strong> de quienes <em>NO</em> son pobres por ingreso.
             </p>
           </div>
         </div>
@@ -698,7 +768,8 @@ function TabMultidimensional({
 
 // ─── Tab 3: Infancia (UCA) ─────────────────────────────────────────
 function TabInfancia({ ucaData }: { ucaData: IndicadorRow[] }) {
-  const findVal = (keyword: string) => ucaData.find(d => d.indicador_nombre?.toLowerCase().includes(keyword.toLowerCase()));
+  const findVal = (keyword: string) =>
+    ucaData.find(d => d.indicador_nombre?.toLowerCase().includes(keyword.toLowerCase()));
 
   if (ucaData.length === 0) {
     return (
@@ -717,17 +788,49 @@ function TabInfancia({ ucaData }: { ucaData: IndicadorRow[] }) {
           <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
           <div className="text-sm text-blue-900 leading-relaxed">
             <p>
-              El <strong>Barómetro de la Deuda Social de la Infancia (UCA)</strong> monitorea <strong>7 dimensiones</strong> de derechos de NNyA (0-17 años) en áreas urbanas de Argentina desde 2010.
+              El <strong>Barómetro de la Deuda Social de la Infancia (UCA)</strong> monitorea{' '}
+              <strong>7 dimensiones</strong> de derechos de NNyA (0-17 años) en áreas urbanas de
+              Argentina desde 2010.
             </p>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard title="Inseguridad Alimentaria Total" value={`${findVal('Inseguridad alimentaria total')?.valor ?? '—'}%`} subtitle="2025 — NNyA 0-17 (UCA)" icon={UtensilsCrossed} color="magenta" change="⬇️ -6.7pp vs 2024" changeType="down" />
-        <KpiCard title="Inseg. Alimentaria Severa" value={`${findVal('severa')?.valor ?? '—'}%`} subtitle="2025 — pasan hambre" icon={AlertCircle} color="orange" change="⬇️ -3.3pp vs 2024" changeType="down" />
-        <KpiCard title="Sin internet en casa" value={`${findVal('sin internet')?.valor ?? '—'}%`} subtitle="2025 — era 73.5% en 2010" icon={Layers} color="blue" change="⬇️ -57.7pp vs 2010" changeType="down" />
-        <KpiCard title="Sin actividad física" value={`${findVal('física')?.valor ?? '—'}%`} subtitle="2025 — interior del país" icon={Users} color="terracotta" />
+        <KpiCard
+          title="Inseguridad Alimentaria Total"
+          value={`${findVal('Inseguridad alimentaria total')?.valor ?? '—'}%`}
+          subtitle="2025 — NNyA 0-17 (UCA)"
+          icon={UtensilsCrossed}
+          color="magenta"
+          change="⬇️ -6.7pp vs 2024"
+          changeType="down"
+        />
+        <KpiCard
+          title="Inseg. Alimentaria Severa"
+          value={`${findVal('severa')?.valor ?? '—'}%`}
+          subtitle="2025 — pasan hambre"
+          icon={AlertCircle}
+          color="orange"
+          change="⬇️ -3.3pp vs 2024"
+          changeType="down"
+        />
+        <KpiCard
+          title="Sin internet en casa"
+          value={`${findVal('sin internet')?.valor ?? '—'}%`}
+          subtitle="2025 — era 73.5% en 2010"
+          icon={Layers}
+          color="blue"
+          change="⬇️ -57.7pp vs 2010"
+          changeType="down"
+        />
+        <KpiCard
+          title="Sin actividad física"
+          value={`${findVal('física')?.valor ?? '—'}%`}
+          subtitle="2025 — interior del país"
+          icon={Users}
+          color="terracotta"
+        />
       </div>
 
       {/* NNyA Time Series */}
@@ -768,9 +871,14 @@ function TabInfancia({ ucaData }: { ucaData: IndicadorRow[] }) {
                       borderRadius: '8px',
                       fontSize: '13px',
                     }}
-                    formatter={(value) => [`${value ?? '—'}%`, 'Inseguridad Alimentaria']}
+                    formatter={value => [`${value ?? '—'}%`, 'Inseguridad Alimentaria']}
                   />
-                  <Bar dataKey="valor" fill={COLORS.magenta} radius={[4, 4, 0, 0]} name="NNyA 0-17" />
+                  <Bar
+                    dataKey="valor"
+                    fill={COLORS.magenta}
+                    radius={[4, 4, 0, 0]}
+                    name="NNyA 0-17"
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </ChartCard>
@@ -782,7 +890,11 @@ function TabInfancia({ ucaData }: { ucaData: IndicadorRow[] }) {
             <div className="flex gap-3">
               <TrendingUp className="w-5 h-5 text-gray-500 flex-shrink-0 mt-0.5" />
               <div className="text-sm text-gray-700 leading-relaxed">
-                <p>Los datos de evolución temporal para NNyA están disponibles en los informes anuales completos del <strong>Barómetro de la Deuda Social de la Infancia (UCA)</strong>.</p>
+                <p>
+                  Los datos de evolución temporal para NNyA están disponibles en los informes
+                  anuales completos del{' '}
+                  <strong>Barómetro de la Deuda Social de la Infancia (UCA)</strong>.
+                </p>
               </div>
             </div>
           </div>
@@ -793,9 +905,12 @@ function TabInfancia({ ucaData }: { ucaData: IndicadorRow[] }) {
         <div className="flex gap-3">
           <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
           <div>
-            <h3 className="font-accent text-red-700 font-semibold text-lg mb-2">La desigualdad que no cede</h3>
+            <h3 className="font-accent text-red-700 font-semibold text-lg mb-2">
+              La desigualdad que no cede
+            </h3>
             <p className="text-sm text-red-600 font-body mb-3">
-              NNyA de nivel <strong>muy bajo</strong>: <strong>28 veces más</strong> probabilidad de pasar hambre que nivel medio-alto.
+              NNyA de nivel <strong>muy bajo</strong>: <strong>28 veces más</strong> probabilidad de
+              pasar hambre que nivel medio-alto.
             </p>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="bg-white/50 rounded-lg p-3 text-center">
@@ -816,12 +931,16 @@ function TabInfancia({ ucaData }: { ucaData: IndicadorRow[] }) {
       <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 flex gap-3">
         <Info className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
         <div className="text-sm text-amber-800 font-body">
-          <p className="mb-2"><strong>Fuente:</strong> Barómetro de la Deuda Social de la Infancia — UCA (2010-2025). Infancia en Argentina: avances en la coyuntura, deudas estructurales.</p>
-          <p>7 dimensiones monitoreadas: Alimentación, Salud, Hábitat, Subsistencia, Crianza, Educación, Información.</p>
+          <p className="mb-2">
+            <strong>Fuente:</strong> Barómetro de la Deuda Social de la Infancia — UCA (2010-2025).
+            Infancia en Argentina: avances en la coyuntura, deudas estructurales.
+          </p>
+          <p>
+            7 dimensiones monitoreadas: Alimentación, Salud, Hábitat, Subsistencia, Crianza,
+            Educación, Información.
+          </p>
         </div>
       </div>
     </div>
   );
 }
-
-

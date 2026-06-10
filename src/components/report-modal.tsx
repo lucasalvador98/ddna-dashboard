@@ -21,15 +21,19 @@ import type { ExecutiveReport } from '@/lib/informe-ejecutivo';
 
 // Thematic axes shown to the user — each maps to one or more DB categories server-side
 const THEMATIC_AXES = [
-  { id: 'educacion',          label: 'Educación',          description: 'Matrícula, Aprender, Anuario' },
-  { id: 'salud',              label: 'Salud',               description: 'TMI, RMM, DEIS, salud adolescente' },
-  { id: 'pobreza',            label: 'Pobreza',             description: 'Pobreza, indigencia, alimentación, empleo' },
-  { id: 'inversion',          label: 'Inversión Social',    description: 'Inversión en infancia por rubro' },
-  { id: 'seguridad_justicia', label: 'Seguridad y Justicia',description: 'Violencia familiar, justicia penal juvenil' },
-  { id: 'demografia',         label: 'Demografía',          description: 'Población por edad y departamento' },
+  { id: 'educacion', label: 'Educación', description: 'Matrícula, Aprender, Anuario' },
+  { id: 'salud', label: 'Salud', description: 'TMI, RMM, DEIS, salud adolescente' },
+  { id: 'pobreza', label: 'Pobreza', description: 'Pobreza, indigencia, alimentación, empleo' },
+  { id: 'inversion', label: 'Inversión Social', description: 'Inversión en infancia por rubro' },
+  {
+    id: 'seguridad_justicia',
+    label: 'Seguridad y Justicia',
+    description: 'Violencia familiar, justicia penal juvenil',
+  },
+  { id: 'demografia', label: 'Demografía', description: 'Población por edad y departamento' },
 ] as const;
 
-const ALL_AXIS_IDS = THEMATIC_AXES.map((a) => a.id);
+const ALL_AXIS_IDS = THEMATIC_AXES.map(a => a.id);
 
 // ─── Props ──────────────────────────────────────────────────────
 
@@ -49,9 +53,7 @@ type ModalState =
 // ─── Component ─────────────────────────────────────────────────
 
 export function ReportModal({ isOpen, onClose }: ReportModalProps) {
-  const [selectedAxes, setSelectedAxes] = useState<Set<string>>(
-    () => new Set(ALL_AXIS_IDS),
-  );
+  const [selectedAxes, setSelectedAxes] = useState<Set<string>>(() => new Set(ALL_AXIS_IDS));
   const [state, setState] = useState<ModalState>({ phase: 'form' });
   const backdropRef = useRef<HTMLDivElement>(null);
 
@@ -70,7 +72,7 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
         onClose();
       }
     },
-    [isOpen, onClose],
+    [isOpen, onClose]
   );
 
   useEffect(() => {
@@ -91,12 +93,12 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
         onClose();
       }
     },
-    [onClose],
+    [onClose]
   );
 
   // ── Toggle axis ──────────────────────────────────────────────
   const toggleAxis = (axisId: string) => {
-    setSelectedAxes((prev) => {
+    setSelectedAxes(prev => {
       const next = new Set(prev);
       if (next.has(axisId)) {
         next.delete(axisId);
@@ -119,27 +121,21 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
 
   // ── Generate report ──────────────────────────────────────────
   const generateReport = async () => {
-    const axes =
-      selectedAxes.size > 0 ? Array.from(selectedAxes) : ALL_AXIS_IDS;
+    const axes = selectedAxes.size > 0 ? Array.from(selectedAxes) : ALL_AXIS_IDS;
 
     setSelectedAxes(new Set(axes));
     setState({ phase: 'loading' });
 
     try {
-      const response = await fetch(
-        '/api/repositorio/informe-ejecutivo',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ axes }),
-        },
-      );
+      const response = await fetch('/api/repositorio/informe-ejecutivo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ axes }),
+      });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.error || `Error HTTP ${response.status}`,
-        );
+        throw new Error(errorData.error || `Error HTTP ${response.status}`);
       }
 
       const data = await response.json();
@@ -149,8 +145,7 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
         generatedAt: data.generatedAt as string,
       });
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'Error desconocido';
+      const message = err instanceof Error ? err.message : 'Error desconocido';
       setState({ phase: 'error', error: message });
     }
   };
@@ -173,22 +168,20 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
         className={clsx(
           'bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col',
           'print:shadow-none print:rounded-none print:max-h-none print:h-auto',
-          'report-modal-print-area',
+          'report-modal-print-area'
         )}
       >
         {/* ── Header ─────────────────────────────────────────── */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 print:hidden">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#00074E]/10 rounded-lg flex items-center justify-center">
-              <FileText className="w-5 h-5 text-[#00074E]" />
+            <div className="w-10 h-10 bg-[#1a2556]/10 rounded-lg flex items-center justify-center">
+              <FileText className="w-5 h-5 text-[#1a2556]" />
             </div>
             <div>
-              <h2 className="font-accent text-lg text-[#00074E] font-semibold">
+              <h2 className="font-accent text-lg text-[#1a2556] font-semibold">
                 Informe Ejecutivo
               </h2>
-              <p className="text-xs text-gray-500 font-body">
-                Análisis de indicadores de NNyA
-              </p>
+              <p className="text-xs text-gray-500 font-body">Análisis de indicadores de NNyA</p>
             </div>
           </div>
           <button
@@ -206,9 +199,8 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
           {state.phase === 'form' && (
             <div className="space-y-6">
               <p className="font-body text-gray-600">
-                Seleccioná las categorías de indicadores que querés incluir
-                en el informe ejecutivo. El análisis será generado por IA
-                basado en los datos disponibles.
+                Seleccioná las categorías de indicadores que querés incluir en el informe ejecutivo.
+                El análisis será generado por IA basado en los datos disponibles.
               </p>
 
               {/* Selector de ejes temáticos */}
@@ -219,9 +211,9 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
                     type="checkbox"
                     checked={allSelected}
                     onChange={toggleAll}
-                    className="w-4 h-4 rounded border-gray-300 text-[#00074E] focus:ring-[#00074E]"
+                    className="w-4 h-4 rounded border-gray-300 text-[#1a2556] focus:ring-[#1a2556]"
                   />
-                  <span className="font-accent text-sm font-semibold text-[#00074E]">
+                  <span className="font-accent text-sm font-semibold text-[#1a2556]">
                     Todos los ejes temáticos
                   </span>
                 </label>
@@ -229,14 +221,14 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
                 <div className="border-t border-gray-100 pt-3" />
 
                 <div className="grid grid-cols-1 gap-2">
-                  {THEMATIC_AXES.map((axis) => (
+                  {THEMATIC_AXES.map(axis => (
                     <label
                       key={axis.id}
                       className={clsx(
                         'flex items-start gap-3 cursor-pointer p-3 rounded-lg border transition-colors',
                         selectedAxes.has(axis.id)
                           ? 'border-[#FF7F11]/40 bg-[#FF7F11]/5'
-                          : 'border-gray-100 hover:bg-gray-50',
+                          : 'border-gray-100 hover:bg-gray-50'
                       )}
                     >
                       <input
@@ -249,9 +241,7 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
                         <span className="font-accent text-sm font-semibold text-gray-800">
                           {axis.label}
                         </span>
-                        <p className="font-body text-xs text-gray-500 mt-0.5">
-                          {axis.description}
-                        </p>
+                        <p className="font-body text-xs text-gray-500 mt-0.5">{axis.description}</p>
                       </div>
                     </label>
                   ))}
@@ -261,7 +251,7 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
               {/* Generate button */}
               <button
                 onClick={generateReport}
-                className="w-full py-3 bg-[#00074E] hover:bg-[#00074E]/90 text-white font-accent font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+                className="w-full py-3 bg-[#1a2556] hover:bg-[#1a2556]/90 text-white font-accent font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
               >
                 <FileText className="w-5 h-5" />
                 Generar Informe
@@ -270,9 +260,7 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
           )}
 
           {/* ── Loading Phase (multi-step) ──────────────────── */}
-          {state.phase === 'loading' && (
-            <LoadingSteps />
-          )}
+          {state.phase === 'loading' && <LoadingSteps />}
 
           {/* ── Error Phase ──────────────────────────────────── */}
           {state.phase === 'error' && (
@@ -283,9 +271,7 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
               <p className="font-body text-gray-700 text-lg font-medium">
                 Error al generar el informe
               </p>
-              <p className="font-body text-gray-500 text-sm text-center max-w-md">
-                {state.error}
-              </p>
+              <p className="font-body text-gray-500 text-sm text-center max-w-md">{state.error}</p>
               <button
                 onClick={generateReport}
                 className="px-6 py-2.5 bg-[#FF7F11] hover:bg-[#FF7F11]/90 text-white font-accent font-semibold rounded-lg transition-colors"
@@ -298,10 +284,7 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
           {/* ── Done Phase ───────────────────────────────────── */}
           {state.phase === 'done' && (
             <div>
-              <ReportContent
-                report={state.report}
-                generatedAt={state.generatedAt}
-              />
+              <ReportContent report={state.report} generatedAt={state.generatedAt} />
             </div>
           )}
         </div>
@@ -317,7 +300,7 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
             </button>
             <button
               onClick={handlePrint}
-              className="px-4 py-2 bg-[#00074E] hover:bg-[#00074E]/90 text-white font-accent font-semibold rounded-lg transition-colors flex items-center gap-2"
+              className="px-4 py-2 bg-[#1a2556] hover:bg-[#1a2556]/90 text-white font-accent font-semibold rounded-lg transition-colors flex items-center gap-2"
             >
               <Printer className="w-4 h-4" />
               Imprimir
@@ -355,7 +338,7 @@ function LoadingSteps() {
 
   useEffect(() => {
     if (currentStep >= LOADING_STEPS.length - 1) return;
-    const timer = setTimeout(() => setCurrentStep((s) => s + 1), 3500);
+    const timer = setTimeout(() => setCurrentStep(s => s + 1), 3500);
     return () => clearTimeout(timer);
   }, [currentStep]);
 
@@ -371,21 +354,13 @@ function LoadingSteps() {
               key={step.label}
               className={clsx(
                 'flex items-start gap-3 transition-opacity duration-300',
-                isActive
-                  ? 'opacity-100'
-                  : isDone
-                    ? 'opacity-60'
-                    : 'opacity-30',
+                isActive ? 'opacity-100' : isDone ? 'opacity-60' : 'opacity-30'
               )}
             >
               <div
                 className={clsx(
                   'w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5',
-                  isDone
-                    ? 'bg-green-100'
-                    : isActive
-                      ? 'bg-[#FF7F11]/10'
-                      : 'bg-gray-100',
+                  isDone ? 'bg-green-100' : isActive ? 'bg-[#FF7F11]/10' : 'bg-gray-100'
                 )}
               >
                 {isDone ? (
@@ -394,7 +369,7 @@ function LoadingSteps() {
                   <div
                     className={clsx(
                       'w-2 h-2 rounded-full',
-                      isActive ? 'bg-[#FF7F11] animate-pulse' : 'bg-gray-300',
+                      isActive ? 'bg-[#FF7F11] animate-pulse' : 'bg-gray-300'
                     )}
                   />
                 )}
@@ -403,18 +378,12 @@ function LoadingSteps() {
                 <p
                   className={clsx(
                     'font-body text-sm font-medium',
-                    isDone
-                      ? 'text-green-700'
-                      : isActive
-                        ? 'text-gray-800'
-                        : 'text-gray-400',
+                    isDone ? 'text-green-700' : isActive ? 'text-gray-800' : 'text-gray-400'
                   )}
                 >
                   {step.label}
                 </p>
-                <p className="font-body text-xs text-gray-400 mt-0.5">
-                  {step.description}
-                </p>
+                <p className="font-body text-xs text-gray-400 mt-0.5">{step.description}</p>
               </div>
             </div>
           );

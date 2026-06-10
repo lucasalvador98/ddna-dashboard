@@ -1,8 +1,8 @@
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
-import clsx from "clsx";
+import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
+import clsx from 'clsx';
 
-type SectionColor = "amber" | "magenta" | "blue" | "terracotta" | "navy" | "orange";
+type SectionColor = 'amber' | 'magenta' | 'blue' | 'terracotta' | 'navy' | 'orange';
 
 interface SectionCardProps {
   title: string;
@@ -21,52 +21,52 @@ const colorClasses: Record<
   { bg: string; border: string; iconBg: string; iconText: string; hover: string; hoverText: string }
 > = {
   amber: {
-    bg: "bg-[#F3A712]/5",
-    border: "border-[#F3A712]/30",
-    iconBg: "bg-[#F3A712]",
-    iconText: "text-[#00074E]",
-    hover: "hover:border-[#F3A712]/60",
-    hoverText: "#F3A712",
+    bg: 'bg-[#F3A712]/5',
+    border: 'border-[#F3A712]/30',
+    iconBg: 'bg-[#F3A712]',
+    iconText: 'text-[#1a2556]',
+    hover: 'hover:border-[#F3A712]/60',
+    hoverText: '#F3A712',
   },
   magenta: {
-    bg: "bg-[#BF1363]/5",
-    border: "border-[#BF1363]/30",
-    iconBg: "bg-[#BF1363]",
-    iconText: "text-white",
-    hover: "hover:border-[#BF1363]/60",
-    hoverText: "#BF1363",
+    bg: 'bg-[#BF1363]/5',
+    border: 'border-[#BF1363]/30',
+    iconBg: 'bg-[#BF1363]',
+    iconText: 'text-white',
+    hover: 'hover:border-[#BF1363]/60',
+    hoverText: '#BF1363',
   },
   blue: {
-    bg: "bg-[#3777FF]/5",
-    border: "border-[#3777FF]/30",
-    iconBg: "bg-[#3777FF]",
-    iconText: "text-white",
-    hover: "hover:border-[#3777FF]/60",
-    hoverText: "#3777FF",
+    bg: 'bg-[#3777FF]/5',
+    border: 'border-[#3777FF]/30',
+    iconBg: 'bg-[#3777FF]',
+    iconText: 'text-white',
+    hover: 'hover:border-[#3777FF]/60',
+    hoverText: '#3777FF',
   },
   terracotta: {
-    bg: "bg-[#E07A5F]/5",
-    border: "border-[#E07A5F]/30",
-    iconBg: "bg-[#E07A5F]",
-    iconText: "text-white",
-    hover: "hover:border-[#E07A5F]/60",
-    hoverText: "#E07A5F",
+    bg: 'bg-[#E07A5F]/5',
+    border: 'border-[#E07A5F]/30',
+    iconBg: 'bg-[#E07A5F]',
+    iconText: 'text-white',
+    hover: 'hover:border-[#E07A5F]/60',
+    hoverText: '#E07A5F',
   },
   navy: {
-    bg: "bg-[#00074E]/5",
-    border: "border-[#00074E]/30",
-    iconBg: "bg-[#00074E]",
-    iconText: "text-white",
-    hover: "hover:border-[#00074E]/60",
-    hoverText: "#00074E",
+    bg: 'bg-[#1a2556]/5',
+    border: 'border-[#1a2556]/30',
+    iconBg: 'bg-[#1a2556]',
+    iconText: 'text-white',
+    hover: 'hover:border-[#1a2556]/60',
+    hoverText: '#1a2556',
   },
   orange: {
-    bg: "bg-[#FF7F11]/5",
-    border: "border-[#FF7F11]/30",
-    iconBg: "bg-[#FF7F11]",
-    iconText: "text-white",
-    hover: "hover:border-[#FF7F11]/60",
-    hoverText: "#FF7F11",
+    bg: 'bg-[#FF7F11]/5',
+    border: 'border-[#FF7F11]/30',
+    iconBg: 'bg-[#FF7F11]',
+    iconText: 'text-white',
+    hover: 'hover:border-[#FF7F11]/60',
+    hoverText: '#FF7F11',
   },
 };
 
@@ -84,8 +84,8 @@ export function SectionCard({
     <Link
       href={href}
       className={clsx(
-        "group block bg-white rounded-xl border p-6 transition-all duration-200",
-        "hover:shadow-lg hover:-translate-y-1",
+        'group block bg-white rounded-xl border p-6 transition-all duration-200',
+        'hover:shadow-lg hover:-translate-y-1',
         colors.border,
         colors.hover
       )}
@@ -94,8 +94,8 @@ export function SectionCard({
         {/* Icon */}
         <div
           className={clsx(
-            "w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-200",
-            "group-hover:scale-110",
+            'w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-200',
+            'group-hover:scale-110',
             colors.iconBg,
             colors.iconText
           )}
@@ -105,27 +105,25 @@ export function SectionCard({
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <h3 
-            className="text-lg font-bold text-[#00074E] group-hover:transition-colors"
-            style={{ ["--hover-text"]: colors.hoverText } as React.CSSProperties}
-            onMouseEnter={(e) => e.currentTarget.style.color = colors.hoverText}
-            onMouseLeave={(e) => e.currentTarget.style.color = "#00074E"}
+          <h3
+            className="text-lg font-bold text-[#1a2556] group-hover:transition-colors"
+            style={{ ['--hover-text']: colors.hoverText } as React.CSSProperties}
+            onMouseEnter={e => (e.currentTarget.style.color = colors.hoverText)}
+            onMouseLeave={e => (e.currentTarget.style.color = '#1a2556')}
           >
             {title}
           </h3>
-          <p className="text-sm text-[#4D4D4D] mt-1 leading-relaxed">
-            {description}
-          </p>
+          <p className="text-sm text-[#4D4D4D] mt-1 leading-relaxed">{description}</p>
         </div>
 
         {/* Arrow */}
         <ArrowRight
           className={clsx(
-            "w-5 h-5 text-[#4D4D4D] flex-shrink-0 transition-transform duration-200 group-hover:translate-x-1"
+            'w-5 h-5 text-[#4D4D4D] flex-shrink-0 transition-transform duration-200 group-hover:translate-x-1'
           )}
-          style={{ ["--arrow-hover"]: colors.hoverText } as React.CSSProperties}
-          onMouseEnter={(e) => (e.currentTarget.style.color = colors.hoverText)}
-          onMouseLeave={(e) => (e.currentTarget.style.color = "#4D4D4D")}
+          style={{ ['--arrow-hover']: colors.hoverText } as React.CSSProperties}
+          onMouseEnter={e => (e.currentTarget.style.color = colors.hoverText)}
+          onMouseLeave={e => (e.currentTarget.style.color = '#4D4D4D')}
         />
       </div>
 
@@ -135,12 +133,8 @@ export function SectionCard({
           <div className="grid grid-cols-2 gap-4">
             {stats.map((stat, index) => (
               <div key={index}>
-                <p className="text-xs text-[#4D4D4D]/60 uppercase tracking-wide">
-                  {stat.label}
-                </p>
-                <p className="text-lg font-bold text-[#00074E] mt-0.5">
-                  {stat.value}
-                </p>
+                <p className="text-xs text-[#4D4D4D]/60 uppercase tracking-wide">{stat.label}</p>
+                <p className="text-lg font-bold text-[#1a2556] mt-0.5">{stat.value}</p>
               </div>
             ))}
           </div>
