@@ -57,3 +57,6 @@ openspec/
 
 # Windows special device file
 nul
+
+# Gentleman Guardian Angel temp
+%TEMP%gentleman-guardian-angel/
