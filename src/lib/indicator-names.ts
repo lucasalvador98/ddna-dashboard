@@ -32,7 +32,13 @@ export const INDICATOR_NAMES = {
   TMI_NAC: 'Mortalidad infantil (TMI)',
   TMI_RMM_CBA: 'Mortalidad infantil (RMM Cba)',
   TMI_RMM: 'Mortalidad infantil (RMM)',
+  TMNEO_CBA: 'Mortalidad infantil (TMNEO Cba)',
+  TMPOS_CBA: 'Mortalidad infantil (TMPOS cba)',
   TASA_FECUNDIDAD_ADOLESCENTE: 'Tasa fecundidad adolescente',
+
+  // Vacunación
+  DPT4_NACIONAL: 'Cobertura DPT4 - Nacional',
+  TRIPLE_VIRAL: 'Cobertura Triple Viral (SRP) - 1ra dosis',
 
   // Educación
   TASA_ASISTENCIA_EDUCATIVA: 'Tasa de asistencia educativa',
@@ -44,6 +50,10 @@ export const INDICATOR_NAMES = {
   // Seguridad
   CASOS_VIOLENCIA_FAMILIAR: 'Casos de Violencia Familiar',
   TOTAL_CASOS_JUSTICIA: 'Total casos sistema de justicia',
+  TENTATIVAS_HURTO: 'Tentativas de hurto',
+  TASA_TENTATIVAS_HURTO: 'Tasa de tentativas de hurto',
+  CONTRAVENCIONES: 'Contravenciones',
+  ROBOS_TENTATIVA_ROBO: 'Robos y tentativa de robo',
 } as const;
 
 export type IndicatorName = (typeof INDICATOR_NAMES)[keyof typeof INDICATOR_NAMES];

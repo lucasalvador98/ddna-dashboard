@@ -18,8 +18,12 @@ import {
   PieChart,
   Pie,
   Cell,
+  LineChart,
+  Line,
+  Legend,
 } from 'recharts';
 import type { Indicador } from '@/lib/use-dashboard-data';
+import { INDICATOR_NAMES } from '@/lib/indicator-names';
 
 const COLORS = ['#3777FF', '#BF1363', '#F3A712', '#E07A5F', '#3599B8', '#A66999'];
 
@@ -35,7 +39,7 @@ export default function SeguridadPage() {
     async function fetchData() {
       const { data: indicadores, error } = await supabase
         .from('indicadores')
-        .select('id, indicador_nombre, valor, unidad, periodo, region, desglose')
+        .select('id, indicador_nombre, valor, unidad, periodo, region, desglose, fuente')
         .eq('categoria', 'seguridad')
         .order('periodo', { ascending: false });
 
@@ -73,6 +77,47 @@ export default function SeguridadPage() {
     return bNum - aNum;
   });
   const latestPeriod = periodos[0] || '';
+
+  // ─── Crime evolution (datos.gob.ar source) ──────────────────────
+  const crimeIndicators = [
+    { name: INDICATOR_NAMES.TENTATIVAS_HURTO, label: 'Tentativas de hurto', color: '#3777FF' },
+    { name: INDICATOR_NAMES.TASA_TENTATIVAS_HURTO, label: 'Tasa tentativas hurto (x100K)', color: '#BF1363' },
+    { name: INDICATOR_NAMES.CONTRAVENCIONES, label: 'Contravenciones', color: '#F3A712' },
+    { name: INDICATOR_NAMES.ROBOS_TENTATIVA_ROBO, label: 'Robos y tentativa', color: '#E07A5F' },
+  ];
+
+  const getCrimeSeries = (nombreIndicador: string) => {
+    return data
+      .filter(d => d.indicador_nombre === nombreIndicador)
+      .map(d => ({
+        periodo: d.periodo,
+        valor: Number(d.valor) || 0,
+      }))
+      .sort((a, b) => Number(a.periodo) - Number(b.periodo));
+  };
+
+  const crimeSeries = crimeIndicators
+    .map(ind => ({ ...ind, data: getCrimeSeries(ind.name) }))
+    .filter(s => s.data.length > 0);
+
+  const crimeChartData = (() => {
+    if (crimeSeries.length === 0) return [];
+    const allPeriods = [...new Set(crimeSeries.flatMap(s => s.data.map(d => d.periodo)))];
+    return allPeriods
+      .map(periodo => {
+        const row: Record<string, unknown> = { periodo };
+        for (const s of crimeSeries) {
+          row[s.label] = s.data.find(d => d.periodo === periodo)?.valor ?? null;
+        }
+        return row;
+      })
+      .sort((a, b) => Number(a.periodo) - Number(b.periodo));
+  })();
+
+  const crimeYearRange =
+    crimeChartData.length > 0
+      ? `${crimeChartData[0].periodo}–${crimeChartData[crimeChartData.length - 1].periodo}`
+      : '';
 
   return (
     <div className="space-y-6">
@@ -185,6 +230,60 @@ export default function SeguridadPage() {
           </ResponsiveContainer>
         </div>
       </ChartWithTable>
+
+      {/* Evolución de delitos — datos.gob.ar */}
+      {crimeChartData.length > 0 && (
+        <ChartWithTable
+          title="Evolución de Delitos"
+          subtitle={`Series históricas de delitos y contravenciones (${crimeYearRange})`}
+          color="blue"
+          fuente="datos.gob.ar — Sistema Nacional de Información Criminal"
+          data={crimeChartData}
+          dataKey="valor"
+          xAxisKey="periodo"
+        >
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height={320}>
+              <LineChart
+                data={crimeChartData}
+                margin={{ top: 10, right: 30, left: 10, bottom: 10 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
+                <XAxis
+                  dataKey="periodo"
+                  tick={{ fill: '#4D4D4D', fontSize: 11 }}
+                  interval="preserveStartEnd"
+                />
+                <YAxis tick={{ fill: '#4D4D4D', fontSize: 12 }} domain={[0, 'auto']} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#FFF',
+                    border: '1px solid #E0E0E0',
+                    borderRadius: '8px',
+                  }}
+                  formatter={(value, name) => [
+                    typeof value === 'number' ? value.toLocaleString('es-AR') : value,
+                    name,
+                  ]}
+                />
+                <Legend />
+                {crimeSeries.map(s => (
+                  <Line
+                    key={s.label}
+                    type="monotone"
+                    dataKey={s.label}
+                    stroke={s.color}
+                    strokeWidth={2}
+                    dot={false}
+                    name={s.label}
+                    connectNulls
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartWithTable>
+      )}
 
       {loading && <div className="py-12 text-center text-gray-500">Cargando...</div>}
       {error && (

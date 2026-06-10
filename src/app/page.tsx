@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Users, Heart, BookOpen, Coins, UserCircle, AlertTriangle, FileText } from 'lucide-react';
+import { Users, Heart, BookOpen, Coins, UserCircle, AlertTriangle, FileText, Briefcase } from 'lucide-react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { KpiCard } from '@/components/kpi-card';
@@ -97,6 +97,10 @@ export default function HomePage() {
   // FIXED: compute population 0-17 from demografia data
   const poblacion = getPoblacion0a17(demografiaData);
 
+  // Desempleo — latest value from pobreza category
+  const desempleoInd = getLatestValue(pobrezaData, INDICATOR_NAMES.TASA_DESEMPLEO);
+  const desempleo = desempleoInd?.valor ?? null;
+
   // Poverty time series — uses canonical Pobreza personas (no child-specific indicator in DB)
   const pobrezaSerie = getTimeSeries(pobrezaData, INDICATOR_NAMES.POBREZA_PERSONAS);
   const pobrezaChanges = calculateChange(pobrezaSerie);
@@ -167,7 +171,7 @@ export default function HomePage() {
               <span className="ml-3 font-body text-gray-500">Cargando...</span>
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
               <KpiCard
                 title="Pobreza infantil"
                 value={formatValue(pobreza, '%')}
@@ -222,6 +226,14 @@ export default function HomePage() {
                 subtitle={`${latestInversionPeriod || ''} — Destinado a infancia y adolescencia`}
                 icon={categoryConfig.inversion.icon}
                 color={categoryConfig.inversion.color}
+              />
+
+              <KpiCard
+                title="Desempleo"
+                value={formatValue(desempleo, '%')}
+                subtitle={`${desempleoInd?.periodo || ''} — Tasa de desempleo EPH-INDEC`}
+                icon={Briefcase}
+                color="amber"
               />
             </div>
           )}

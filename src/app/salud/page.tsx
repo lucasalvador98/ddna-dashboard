@@ -55,12 +55,12 @@ export default function SaludPage() {
         const [saludRes, adolesRes] = await Promise.all([
           supabase
             .from('indicadores')
-            .select('id, indicador_nombre, valor, unidad, periodo, region, desglose')
+            .select('id, indicador_nombre, valor, unidad, periodo, region, desglose, fuente')
             .eq('categoria', 'salud')
             .order('periodo', { ascending: true }),
           supabase
             .from('indicadores')
-            .select('id, indicador_nombre, valor, unidad, periodo, region, desglose')
+            .select('id, indicador_nombre, valor, unidad, periodo, region, desglose, fuente')
             .eq('categoria', 'salud_adolescente')
             .order('periodo', { ascending: true }),
         ]);
@@ -191,7 +191,7 @@ export default function SaludPage() {
     const periodos = [...new Set(series.flatMap(s => s.data.map(d => d.periodo)))];
     return periodos
       .map(periodo => {
-        const row: Record<string, any> = { periodo };
+        const row: Record<string, unknown> = { periodo };
         for (const s of series) {
           row[s.nombre.replace('Mortalidad infantil (', '').replace(')', '')] =
             s.data.find(d => d.periodo === periodo)?.valor || null;
@@ -204,6 +204,29 @@ export default function SaludPage() {
   // RMM Córdoba (defunciones posneonatales)
   const rmmData = getTimeSeries(INDICATOR_NAMES.TMI_RMM_CBA);
   const latestRmm = rmmData.length > 0 ? rmmData[rmmData.length - 1] : null;
+
+  // TMNEO Córdoba (mortalidad neonatal)
+  const tmneoData = getTimeSeries(INDICATOR_NAMES.TMNEO_CBA);
+  const latestTmneo = tmneoData.length > 0 ? tmneoData[tmneoData.length - 1] : null;
+
+  // TMPOS Córdoba (mortalidad post-neonatal)
+  const tmposData = getTimeSeries(INDICATOR_NAMES.TMPOS_CBA);
+  const latestTmpos = tmposData.length > 0 ? tmposData[tmposData.length - 1] : null;
+
+  // Vacunación
+  const dpt4Data = data.filter(
+    d => d.indicador_nombre === INDICATOR_NAMES.DPT4_NACIONAL
+  );
+  const latestDpt4 = dpt4Data.length > 0
+    ? [...dpt4Data].sort((a, b) => Number(b.periodo) - Number(a.periodo))[0]
+    : null;
+
+  const tripleViralData = data.filter(
+    d => d.indicador_nombre === INDICATOR_NAMES.TRIPLE_VIRAL
+  );
+  const latestTripleViral = tripleViralData.length > 0
+    ? [...tripleViralData].sort((a, b) => Number(b.periodo) - Number(a.periodo))[0]
+    : null;
 
   // Últimos valores
   const latestMortalidad =
@@ -262,6 +285,22 @@ export default function SaludPage() {
           }
           icon={Heart}
           color="magenta"
+        />
+
+        <KpiCard
+          title="Mortalidad Neonatal Córdoba"
+          value={latestTmneo ? `${Number(latestTmneo.valor).toFixed(1)}‰` : '—'}
+          subtitle={`TMNEO ${latestTmneo?.periodo || ''} — Tasa mortalidad neonatal`}
+          icon={Baby}
+          color="orange"
+        />
+
+        <KpiCard
+          title="Mortalidad Post-Neonatal Córdoba"
+          value={latestTmpos ? `${Number(latestTmpos.valor).toFixed(1)}‰` : '—'}
+          subtitle={`TMPOS ${latestTmpos?.periodo || ''} — Tasa mortalidad post-neonatal`}
+          icon={Syringe}
+          color="amber"
         />
       </div>
 
@@ -401,6 +440,120 @@ export default function SaludPage() {
             </ChartWithTable>
           );
         })()}
+
+      {/* Gráfico 3: Desglose de Mortalidad Infantil (4 indicadores) */}
+      {(mortalidadData.length > 0 || rmmData.length > 0 || tmneoData.length > 0 || tmposData.length > 0) &&
+        (() => {
+          const series = [
+            { key: 'TMI Cba', data: mortalidadData, color: COLORS.terracotta },
+            { key: 'RMM Cba', data: rmmData, color: COLORS.blue },
+            { key: 'TMNEO Cba', data: tmneoData, color: '#FF7F11' },
+            { key: 'TMPOS Cba', data: tmposData, color: COLORS.amber },
+          ].filter(s => s.data.length > 0);
+
+          if (series.length === 0) return null;
+
+          const periodos = [...new Set(series.flatMap(s => s.data.map(d => d.periodo)))];
+          const chartData = periodos
+            .map(periodo => {
+              const row: Record<string, unknown> = { periodo };
+              for (const s of series) {
+                row[s.key] = s.data.find(d => d.periodo === periodo)?.valor ?? null;
+              }
+              return row;
+            })
+            .sort((a, b) => Number(a.periodo) - Number(b.periodo));
+
+          return (
+            <ChartWithTable
+              title="Desglose de Mortalidad Infantil — Córdoba"
+              subtitle="Evolución de los 4 indicadores de mortalidad infantil (por cada mil nacidos vivos)"
+              color="terracotta"
+              fuente="DEIS / datos.gob.ar"
+              data={chartData}
+              dataKey="valor"
+              xAxisKey="periodo"
+            >
+              <div className="h-72">
+                <ResponsiveContainer width="100%" height={280}>
+                  <LineChart
+                    data={chartData}
+                    margin={{ top: 10, right: 30, left: 10, bottom: 10 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
+                    <XAxis dataKey="periodo" tick={{ fill: '#4D4D4D', fontSize: 12 }} />
+                    <YAxis
+                      tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                      domain={[0, 'auto']}
+                      tickFormatter={v => `${Number(v).toFixed(1)}‰`}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#FFF',
+                        border: '1px solid #E0E0E0',
+                        borderRadius: '8px',
+                      }}
+                      formatter={(value, name) => [`${Number(value ?? 0).toFixed(1)}‰`, name]}
+                    />
+                    <Legend />
+                    {series.map(s => (
+                      <Line
+                        key={s.key}
+                        type="monotone"
+                        dataKey={s.key}
+                        stroke={s.color}
+                        strokeWidth={2}
+                        dot={{ fill: s.color, r: 3 }}
+                        name={s.key}
+                        connectNulls
+                      />
+                    ))}
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </ChartWithTable>
+          );
+        })()}
+
+      {/* Vacunación */}
+      {latestDpt4 && (
+        <div className="space-y-4">
+          <SectionHeader
+            icon={Syringe}
+            title="Cobertura de Vacunación"
+            description="Porcentaje de cobertura de vacunación en población objetivo"
+            color="terracotta"
+          />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <KpiCard
+              title="Cobertura DPT4 — Nacional"
+              value={latestDpt4 ? `${Number(latestDpt4.valor).toFixed(1)}%` : '—'}
+              subtitle={`${latestDpt4.periodo || ''} — Cobertura nacional DPT4`}
+              icon={Syringe}
+              color="terracotta"
+            />
+            {latestTripleViral && (
+              <KpiCard
+                title="Triple Viral (SRP) — 1ra dosis"
+                value={`${Number(latestTripleViral.valor).toFixed(1)}%`}
+                subtitle={`${latestTripleViral.periodo || ''} — Cobertura nacional SRP`}
+                icon={Syringe}
+                color="blue"
+              />
+            )}
+          </div>
+
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
+            <Info className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+            <p className="text-sm text-amber-800 font-body">
+              Datos provenientes de SAP (Sistema de Atención Primaria) y Ministerio de Salud de la
+              Nación. Las coberturas reflejan el porcentaje de la población objetivo que recibió las
+              dosis correspondientes según el Calendario Nacional de Vacunación.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
