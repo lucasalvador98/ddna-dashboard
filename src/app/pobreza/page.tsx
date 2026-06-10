@@ -796,132 +796,69 @@ function TabInfancia({ ucaData }: { ucaData: IndicadorRow[] }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard
-          title="Inseguridad Alimentaria Total"
-          value={`${findVal('Inseguridad alimentaria total')?.valor ?? '—'}%`}
-          subtitle="2025 — NNyA 0-17 (UCA)"
-          icon={UtensilsCrossed}
-          color="magenta"
-          change="⬇️ -6.7pp vs 2024"
-          changeType="down"
-        />
-        <KpiCard
-          title="Inseg. Alimentaria Severa"
-          value={`${findVal('severa')?.valor ?? '—'}%`}
-          subtitle="2025 — pasan hambre"
-          icon={AlertCircle}
-          color="orange"
-          change="⬇️ -3.3pp vs 2024"
-          changeType="down"
-        />
-        <KpiCard
-          title="Sin internet en casa"
-          value={`${findVal('sin internet')?.valor ?? '—'}%`}
-          subtitle="2025 — era 73.5% en 2010"
-          icon={Layers}
-          color="blue"
-          change="⬇️ -57.7pp vs 2010"
-          changeType="down"
-        />
-        <KpiCard
-          title="Sin actividad física"
-          value={`${findVal('física')?.valor ?? '—'}%`}
-          subtitle="2025 — interior del país"
-          icon={Users}
-          color="terracotta"
-        />
-      </div>
+      {/* Sección 1: Alimentación */}
+      <section>
+        <h2 className="font-accent text-sm text-[#BF1363] uppercase tracking-wide mb-3">
+          <span className="w-2 h-2 rounded-full bg-[#BF1363] inline-block mr-2" />
+          Alimentación y Salud
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <KpiCard title="Inseguridad Alimentaria Total" value={`${findVal('Inseguridad alimentaria total')?.valor ?? '—'}%`} subtitle="2025 — NNyA 0-17" icon={UtensilsCrossed} color="magenta" change="⬇️ -6.7pp vs 2024" changeType="down" />
+          <KpiCard title="Inseg. Alimentaria Severa" value={`${findVal('severa')?.valor ?? '—'}%`} subtitle="2025 — pasan hambre" icon={AlertCircle} color="orange" change="⬇️ -3.3pp vs 2024" changeType="down" />
+          <KpiCard title="Sin cobertura de salud" value="—" subtitle="Déficit persistente (UCA)" icon={TrendingDown} color="terracotta" />
+          <KpiCard title="Sin consulta odontológica" value="—" subtitle="Déficit muy elevado (UCA)" icon={TrendingDown} color="amber" />
+        </div>
+      </section>
 
-      {/* NNyA Time Series */}
-      {(() => {
-        const nnIaData = ucaData
-          .filter(d => d.indicador_nombre?.toLowerCase().includes('inseguridad alimentaria total'))
-          .sort((a, b) => a.periodo - b.periodo);
+      {/* Sección 2: Crianza y Socialización */}
+      <section>
+        <h2 className="font-accent text-sm text-[#F3A712] uppercase tracking-wide mb-3">
+          <span className="w-2 h-2 rounded-full bg-[#F3A712] inline-block mr-2" />
+          Crianza y Socialización
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <KpiCard title="Sin cuentos en familia" value={`${findVal('cuentos')?.valor ?? '—'}%`} subtitle="2025 — brecha por nivel social" icon={Users} color="magenta" />
+          <KpiCard title="No festejó cumpleaños" value={`${findVal('cumpleaños')?.valor ?? '—'}%`} subtitle="2023 — mínimo histórico" icon={TrendingDown} color="orange" change="⬇️ vs 23.3% en 2019" changeType="down" />
+          <KpiCard title="Comparte cama/colchón (0-4)" value={`${findVal('comparten cama')?.valor ?? '—'}%`} subtitle="2025 — 1 de cada 2 bebés" icon={AlertCircle} color="terracotta" />
+          <KpiCard title="Comparte cama (nivel bajo)" value={`${findVal('48.8')?.valor ?? findVal('nivel muy bajo')?.valor ?? '—'}%`} subtitle="2025 — pobreza extrema" icon={AlertCircle} color="orange" />
+        </div>
+      </section>
 
-        if (nnIaData.length >= 2) {
-          const chartData = nnIaData.map(d => ({
-            year: d.periodo,
-            valor: d.valor,
-          }));
-          return (
-            <ChartCard
-              title="Evolución — Inseguridad Alimentaria NNyA"
-              subtitle="Porcentaje de NNyA (0-17 años) con inseguridad alimentaria total. Argentina urbana."
-              color="magenta"
-              fuente="UCA-ODSA — Barómetro de la Deuda Social de la Infancia"
-            >
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                  <XAxis
-                    dataKey="year"
-                    tick={{ fill: '#4D4D4D', fontSize: 12 }}
-                    tickLine={{ stroke: '#E5E7EB' }}
-                  />
-                  <YAxis
-                    tick={{ fill: '#4D4D4D', fontSize: 12 }}
-                    tickLine={{ stroke: '#E5E7EB' }}
-                    tickFormatter={(v: number) => `${v}%`}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#FFF',
-                      border: '1px solid #E0E0E0',
-                      borderRadius: '8px',
-                      fontSize: '13px',
-                    }}
-                    formatter={value => [`${value ?? '—'}%`, 'Inseguridad Alimentaria']}
-                  />
-                  <Bar
-                    dataKey="valor"
-                    fill={COLORS.magenta}
-                    radius={[4, 4, 0, 0]}
-                    name="NNyA 0-17"
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartCard>
-          );
-        }
+      {/* Sección 3: Hábitat y Desarrollo */}
+      <section>
+        <h2 className="font-accent text-sm text-[#3777FF] uppercase tracking-wide mb-3">
+          <span className="w-2 h-2 rounded-full bg-[#3777FF] inline-block mr-2" />
+          Hábitat y Desarrollo
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <KpiCard title="Sin biblioteca familiar" value={`${findVal('biblioteca')?.valor ?? '—'}%`} subtitle="2025 — 7 de cada 10 NNyA" icon={Layers} color="navy" />
+          <KpiCard title="No lee textos impresos" value={`${findVal('no leen textos')?.valor ?? '—'}%`} subtitle="2025 — post-pandemia" icon={Layers} color="blue" change="⬇️ vs 66.5% en 2021" changeType="down" />
+          <KpiCard title="Hacinamiento (pobres)" value={`${findVal('hacinamiento')?.valor ?? '—'}%`} subtitle="2025 — 5× más que no pobres" icon={Home} color="orange" />
+          <KpiCard title="Sin internet en casa" value={`${findVal('sin internet')?.valor ?? '—'}%`} subtitle="2025 — era 73.5% en 2010" icon={Layers} color="blue" change="⬇️ -57.7pp vs 2010" changeType="down" />
+        </div>
+      </section>
 
-        return (
-          <div className="bg-gray-50 border border-gray-200 rounded-xl p-5">
-            <div className="flex gap-3">
-              <TrendingUp className="w-5 h-5 text-gray-500 flex-shrink-0 mt-0.5" />
-              <div className="text-sm text-gray-700 leading-relaxed">
-                <p>
-                  Los datos de evolución temporal para NNyA están disponibles en los informes
-                  anuales completos del{' '}
-                  <strong>Barómetro de la Deuda Social de la Infancia (UCA)</strong>.
-                </p>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-
+      {/* Sección 4: Brechas */}
       <div className="bg-red-50 border-2 border-red-200 rounded-xl p-5">
         <div className="flex gap-3">
           <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
           <div>
-            <h3 className="font-accent text-red-700 font-semibold text-lg mb-2">
-              La desigualdad que no cede
-            </h3>
-            <p className="text-sm text-red-600 font-body mb-3">
-              NNyA de nivel <strong>muy bajo</strong>: <strong>28 veces más</strong> probabilidad de
-              pasar hambre que nivel medio-alto.
-            </p>
-            <div className="grid grid-cols-2 gap-4 text-sm">
+            <h3 className="font-accent text-red-700 font-semibold text-lg mb-3">Las brechas que no ceden</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
               <div className="bg-white/50 rounded-lg p-3 text-center">
-                <p className="font-accent text-red-700">Nivel muy bajo</p>
-                <p className="text-2xl font-bold text-red-600">31.1%</p>
-                <p className="text-xs text-red-500">inseguridad severa</p>
+                <p className="font-accent text-red-700 mb-1">Inseguridad alimentaria</p>
+                <p className="text-2xl font-bold text-red-600">×28</p>
+                <p className="text-xs text-red-500">nivel muy bajo vs medio-alto</p>
               </div>
               <div className="bg-white/50 rounded-lg p-3 text-center">
-                <p className="font-accent text-green-700">Nivel medio-alto</p>
-                <p className="text-2xl font-bold text-green-600">1.1%</p>
-                <p className="text-xs text-green-500">inseguridad severa</p>
+                <p className="font-accent text-red-700 mb-1">No lee textos</p>
+                <p className="text-2xl font-bold text-red-600">×1.7</p>
+                <p className="text-xs text-red-500">68.6% muy bajo vs 41.3% medio-alto</p>
+              </div>
+              <div className="bg-white/50 rounded-lg p-3 text-center">
+                <p className="font-accent text-red-700 mb-1">Cama compartida</p>
+                <p className="text-2xl font-bold text-red-600">×3</p>
+                <p className="text-xs text-red-500">48.8% muy bajo vs 16.1% CABA</p>
               </div>
             </div>
           </div>
@@ -931,14 +868,8 @@ function TabInfancia({ ucaData }: { ucaData: IndicadorRow[] }) {
       <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 flex gap-3">
         <Info className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
         <div className="text-sm text-amber-800 font-body">
-          <p className="mb-2">
-            <strong>Fuente:</strong> Barómetro de la Deuda Social de la Infancia — UCA (2010-2025).
-            Infancia en Argentina: avances en la coyuntura, deudas estructurales.
-          </p>
-          <p>
-            7 dimensiones monitoreadas: Alimentación, Salud, Hábitat, Subsistencia, Crianza,
-            Educación, Información.
-          </p>
+          <p className="mb-2"><strong>Fuente:</strong> Barómetro de la Deuda Social de la Infancia — UCA (2010-2025).</p>
+          <p>7 dimensiones: Alimentación, Salud, Hábitat, Subsistencia, Crianza y Socialización, Educación, Información.</p>
         </div>
       </div>
     </div>
