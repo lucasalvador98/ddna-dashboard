@@ -1,63 +1,63 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /* DDNA Design Tokens - Primary Theme */
 :root {
   /* Primary Colors */
-  --ddna-amber: #F3A712;
-  --ddna-magenta: #BF1363;
-  --ddna-orange: #FF7F11;
-  --ddna-cream: #FFE2BF;
+  --ddna-amber: #f3a712;
+  --ddna-magenta: #bf1363;
+  --ddna-orange: #ff7f11;
+  --ddna-cream: #ffe2bf;
 
   /* Accent Colors */
-  --ddna-blue: #3777FF;
-  --ddna-navy: #00074E;
-  --ddna-mauve: #A66999;
+  --ddna-blue: #3777ff;
+  --ddna-navy: #1a2556;
+  --ddna-mauve: #a66999;
 
   /* Background Colors */
-  --ddna-background: #FFF0DE;
-  --ddna-outspace: #FFE8CD;
+  --ddna-background: #fff0de;
+  --ddna-outspace: #ffe8cd;
 
   /* Text */
-  --ddna-text: #4D4D4D;
+  --ddna-text: #4d4d4d;
   --ddna-text-dark: #000000;
 
   /* Secondary Theme Colors */
-  --ddna-sky-blue: #1E9AD8;
-  --ddna-light-blue: #A7DBF9;
-  --ddna-terracotta: #E07A5F;
-  --ddna-light-orange: #FFB347;
-  --ddna-secondary-bg: #FDF3E7;
+  --ddna-sky-blue: #1e9ad8;
+  --ddna-light-blue: #a7dbf9;
+  --ddna-terracotta: #e07a5f;
+  --ddna-light-orange: #ffb347;
+  --ddna-secondary-bg: #fdf3e7;
 
   /* Borders */
-  --ddna-border: #E0E0E0;
+  --ddna-border: #e0e0e0;
 
   /* Semantic Colors */
-  --ddna-success: #22C55E;
-  --ddna-warning: #F59E0B;
-  --ddna-error: #EF4444;
-  --ddna-info: #F3A712;
+  --ddna-success: #22c55e;
+  --ddna-warning: #f59e0b;
+  --ddna-error: #ef4444;
+  --ddna-info: #f3a712;
 
   /* Extended Data Colors from Tema.json */
-  --ddna-data-1: #F3A712;   /* Amber */
-  --ddna-data-2: #BF1363;   /* Magenta */
-  --ddna-data-3: #FF7F11;   /* Orange */
-  --ddna-data-4: #FFE2BF;   /* Cream */
-  --ddna-data-5: #3777FF;   /* Blue */
-  --ddna-data-6: #00074E;   /* Navy */
-  --ddna-data-7: #A66999;   /* Mauve */
-  --ddna-data-8: #3599B8;   /* Teal */
-  --ddna-data-9: #DFBFBF;   /* Light Gray */
-  --ddna-data-10: #4AC5BB;  /* Cyan */
-  --ddna-data-11: #5F6B6D;  /* Gray */
-  --ddna-data-12: #FB8281;  /* Salmon */
-  --ddna-data-13: #F4D25A;  /* Yellow */
-  --ddna-data-14: #7F898A;  /* Gray */
-  --ddna-data-15: #A4DDEE;  /* Light Cyan */
-  --ddna-data-16: #FDAB89;  /* Peach */
-  --ddna-data-17: #B687AC;  /* Purple */
-  --ddna-data-18: #28738A;  /* Dark Teal */
-  --ddna-data-19: #A78F8F;  /* Brown Gray */
-  --ddna-data-20: #168980;  /* Green */
+  --ddna-data-1: #f3a712; /* Amber */
+  --ddna-data-2: #bf1363; /* Magenta */
+  --ddna-data-3: #ff7f11; /* Orange */
+  --ddna-data-4: #ffe2bf; /* Cream */
+  --ddna-data-5: #3777ff; /* Blue */
+  --ddna-data-6: #00074e; /* Navy */
+  --ddna-data-7: #a66999; /* Mauve */
+  --ddna-data-8: #3599b8; /* Teal */
+  --ddna-data-9: #dfbfbf; /* Light Gray */
+  --ddna-data-10: #4ac5bb; /* Cyan */
+  --ddna-data-11: #5f6b6d; /* Gray */
+  --ddna-data-12: #fb8281; /* Salmon */
+  --ddna-data-13: #f4d25a; /* Yellow */
+  --ddna-data-14: #7f898a; /* Gray */
+  --ddna-data-15: #a4ddee; /* Light Cyan */
+  --ddna-data-16: #fdab89; /* Peach */
+  --ddna-data-17: #b687ac; /* Purple */
+  --ddna-data-18: #28738a; /* Dark Teal */
+  --ddna-data-19: #a78f8f; /* Brown Gray */
+  --ddna-data-20: #168980; /* Green */
 }
 
 @theme inline {
@@ -136,7 +136,7 @@ html {
 }
 
 body {
-  background: linear-gradient(135deg, #FFF8F2 0%, #FFF0E6 50%, #FFE8CC 100%);
+  background: linear-gradient(135deg, #fff8f2 0%, #fff0e6 50%, #ffe8cc 100%);
   color: var(--ddna-text);
   font-family: var(--font-epilogue), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;

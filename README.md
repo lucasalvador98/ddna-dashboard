@@ -33,13 +33,13 @@ Este proyecto moderniza ese flujo con una **arquitectura abierta**: Next.js + Su
 └─────────────────────────────────────────────┘
 ```
 
-| Componente | Tecnología | Justificación |
-|-----------|-----------|---------------|
-| Framework Web | Next.js 16 (App Router, TypeScript) | SSR/SSG, API Routes integradas, deploy en Vercel |
-| Visualización | Recharts + Plotly.js | Recharts para KPIs/líneas, Plotly para mapas interactivos |
-| Backend / BD | Supabase (PostgreSQL) | Auth, storage, real-time, API REST autogenerada |
-| ETL | Python + Pandas | Estándar en análisis de datos, ingesta programada |
-| Control de versiones | Git + GitHub | CI/CD, LFS para datos grandes |
+| Componente           | Tecnología                          | Justificación                                             |
+| -------------------- | ----------------------------------- | --------------------------------------------------------- |
+| Framework Web        | Next.js 16 (App Router, TypeScript) | SSR/SSG, API Routes integradas, deploy en Vercel          |
+| Visualización        | Recharts + Plotly.js                | Recharts para KPIs/líneas, Plotly para mapas interactivos |
+| Backend / BD         | Supabase (PostgreSQL)               | Auth, storage, real-time, API REST autogenerada           |
+| ETL                  | Python + Pandas                     | Estándar en análisis de datos, ingesta programada         |
+| Control de versiones | Git + GitHub                        | CI/CD, LFS para datos grandes                             |
 
 ### Recuperación de datos (híbrida)
 
@@ -119,44 +119,44 @@ src/
 
 ## Paleta de colores DDNA
 
-| Token | Color | Uso |
-|-------|-------|-----|
-| `--ddna-amber` | #F3A712 | Primario, Educación |
-| `--ddna-magenta` | #BF1363 | Pobreza, alertas |
-| `--ddna-blue` | #3777FF | Seguridad, links |
-| `--ddna-navy` | #00074E | Sidebar, títulos |
-| `--ddna-orange` | #FF7F11 | Inversión |
-| `--ddna-terracotta` | #E07A5F | Salud |
-| `--ddna-sky-blue` | #1E9AD8 | Acentos |
-| `--ddna-cream` | #FFE2BF | Acentos claros |
-| `--ddna-background` | #FFF0DE | Fondo general |
+| Token               | Color   | Uso                 |
+| ------------------- | ------- | ------------------- |
+| `--ddna-amber`      | #F3A712 | Primario, Educación |
+| `--ddna-magenta`    | #BF1363 | Pobreza, alertas    |
+| `--ddna-blue`       | #3777FF | Seguridad, links    |
+| `--ddna-navy`       | #1a2556 | Sidebar, títulos    |
+| `--ddna-orange`     | #FF7F11 | Inversión           |
+| `--ddna-terracotta` | #E07A5F | Salud               |
+| `--ddna-sky-blue`   | #1E9AD8 | Acentos             |
+| `--ddna-cream`      | #FFE2BF | Acentos claros      |
+| `--ddna-background` | #FFF0DE | Fondo general       |
 
 ---
 
 ## Fuentes de datos integradas
 
-| Categoría | Fuente | Origen |
-|-----------|--------|--------|
-| Salud | DEIS — Mortalidad infantil | API / CSV |
-| Salud | Cobertura vacunal | CSV manual |
-| Educación | Evaluación Aprender | CSV |
-| Educación | Escolarización por nivel | Censo 2022 / CSV |
-| Pobreza | INDEC — Pobreza e indigencia | API datos.gob.ar |
-| Censales | Censo Nacional 2022 | CSV |
-| Seguridad | Ministerio Público de Cba | CSV manual |
-| Inversión | Presupuesto provincial | CSV manual |
-| Demografía | Proyecciones poblacionales | CSV |
+| Categoría  | Fuente                       | Origen           |
+| ---------- | ---------------------------- | ---------------- |
+| Salud      | DEIS — Mortalidad infantil   | API / CSV        |
+| Salud      | Cobertura vacunal            | CSV manual       |
+| Educación  | Evaluación Aprender          | CSV              |
+| Educación  | Escolarización por nivel     | Censo 2022 / CSV |
+| Pobreza    | INDEC — Pobreza e indigencia | API datos.gob.ar |
+| Censales   | Censo Nacional 2022          | CSV              |
+| Seguridad  | Ministerio Público de Cba    | CSV manual       |
+| Inversión  | Presupuesto provincial       | CSV manual       |
+| Demografía | Proyecciones poblacionales   | CSV              |
 
 ---
 
 ## Usuarios destinatarios
 
-| Usuario | Uso | Requisito |
-|---------|-----|-----------|
-| Autoridades | Presentaciones ejecutivas | Interfaz profesional, estética |
-| Equipo técnico | Mantenimiento, carga de datos | Acceso admin, documentación |
-| Investigadores | Consulta de fuentes, análisis | Repositorio con metadatos |
-| Ciudadanos | Consulta pública de indicadores | Acceso abierto vía navegador |
+| Usuario        | Uso                             | Requisito                      |
+| -------------- | ------------------------------- | ------------------------------ |
+| Autoridades    | Presentaciones ejecutivas       | Interfaz profesional, estética |
+| Equipo técnico | Mantenimiento, carga de datos   | Acceso admin, documentación    |
+| Investigadores | Consulta de fuentes, análisis   | Repositorio con metadatos      |
+| Ciudadanos     | Consulta pública de indicadores | Acceso abierto vía navegador   |
 
 ---
 
@@ -181,14 +181,14 @@ src/
 
 ## Contenido en Supabase (al 15/04/2026)
 
-| Categoría | Registros |
-|----------|-----------|
-| Salud | 145 (Mortalidad infantil, DEIS) |
-| Educación | 1056 (Aprender + Censo 2022) |
-| Pobreza | 48 (INDEC + ENCOPRAC) |
-| Seguridad | 7 (Ministerio Público Córdoba) |
-| Demografía | 411 (Censo 2022 + DEIS) |
-| **Total** | **1667** |
+| Categoría  | Registros                       |
+| ---------- | ------------------------------- |
+| Salud      | 145 (Mortalidad infantil, DEIS) |
+| Educación  | 1056 (Aprender + Censo 2022)    |
+| Pobreza    | 48 (INDEC + ENCOPRAC)           |
+| Seguridad  | 7 (Ministerio Público Córdoba)  |
+| Demografía | 411 (Censo 2022 + DEIS)         |
+| **Total**  | **1667**                        |
 
 ---
 
@@ -207,12 +207,12 @@ El dashboard funciona con datos que se ingestan desde archivos Excel/CSV through
   │   RAW    │     │   EXTRACT    │     │  TRANSFORM │     │    LOAD      │
   │  DATA    │────▶│   (Excel)    │────▶│  (Python)   │────▶│  (Supabase)  │
   └──────────┘     └──────────────┘     └─────────────┘     └──────────────┘
-                                                                             
-  datos/raw/         read_excel.py        salud.py          sql_generator.py  
+
+  datos/raw/         read_excel.py        salud.py          sql_generator.py
   - DEIS.xlsx        + fallback           + demografia.py    + supabase_loader
-  - INDEC.csv         openpyxl            + educacion.py     
-  - Aprender.xlsx     cuando no            + pobreza.py       
-                      hay pandas           + seguridad.py    
+  - INDEC.csv         openpyxl            + educacion.py
+  - Aprender.xlsx     cuando no            + pobreza.py
+                      hay pandas           + seguridad.py
 
   Output:             Limpieza/            datos_indicadores
   datos/raw/          normalización        indicadores
@@ -223,13 +223,13 @@ El dashboard funciona con datos que se ingestan desde archivos Excel/CSV through
 
 ### Comandos
 
-| Comando | Descripción |
-|---------|-------------|
-| `python -m etl.main transform --category salud` | Transforma solo la categoría "salud" |
-| `python -m etl.main transform --all` | Transforma todas las categorías |
-| `python -m etl.main load --method sql` | Genera archivos SQL en `etl/output/` |
-| `python -m etl.main load --method api` | Carga directo a Supabase (requiere SERVICE_ROLE_KEY) |
-| `python -m etl.main etl --all` | Pipeline completo (transform + load) |
+| Comando                                         | Descripción                                          |
+| ----------------------------------------------- | ---------------------------------------------------- |
+| `python -m etl.main transform --category salud` | Transforma solo la categoría "salud"                 |
+| `python -m etl.main transform --all`            | Transforma todas las categorías                      |
+| `python -m etl.main load --method sql`          | Genera archivos SQL en `etl/output/`                 |
+| `python -m etl.main load --method api`          | Carga directo a Supabase (requiere SERVICE_ROLE_KEY) |
+| `python -m etl.main etl --all`                  | Pipeline completo (transform + load)                 |
 
 ### Estructura de datos crudos
 
@@ -274,15 +274,16 @@ DATA_FILES = {
 
 Cada categoría tiene su propio transformador en `etl/transform/`:
 
-| Archivo | Categoría |
-|---------|-----------|
-| `salud.py` | Mortalidad infantil, cobertura vacunal, edad madre |
-| `educacion.py` | Escolarización, aprender, abandono |
-| `pobreza.py` | Pobreza e indigencia, brecha |
-| `seguridad.py` | Denuncias, justicia |
-| `demografia.py` | Población, estructura |
+| Archivo         | Categoría                                          |
+| --------------- | -------------------------------------------------- |
+| `salud.py`      | Mortalidad infantil, cobertura vacunal, edad madre |
+| `educacion.py`  | Escolarización, aprender, abandono                 |
+| `pobreza.py`    | Pobreza e indigencia, brecha                       |
+| `seguridad.py`  | Denuncias, justicia                                |
+| `demografia.py` | Población, estructura                              |
 
 Cada transformador:
+
 1. Lee los Excel correspondientes usando `read_excel()`
 2. Limpia y normaliza columnas
 3. Genera registros para `datos_indicadores`
@@ -291,16 +292,20 @@ Cada transformador:
 ### Cargar a Supabase
 
 **Opción 1 — SQL (recomendado para testing):**
+
 ```bash
 python -m etl.main load --method sql
 ```
+
 Genera archivos `.sql` en `etl/output/`. Copiar y pegar en el SQL Editor de Supabase.
 
 **Opción 2 — API (para producción):**
+
 ```bash
 export SUPABASE_SERVICE_ROLE_KEY="tu-key"
 python -m etl.main load --method api
 ```
+
 Sube directo a Supabase. Requiere `SERVICE_ROLE_KEY`.
 
 ---

@@ -1,58 +1,79 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { usePathname } from "next/navigation";
-import Image from "next/image";
-import Link from "next/link";
-import { Bell, Menu, X, Globe } from "lucide-react";
-import clsx from "clsx";
+import { useState } from 'react';
+import { usePathname } from 'next/navigation';
+import Image from 'next/image';
+import Link from 'next/link';
+import { Bell, Menu, X, Globe, ChevronRight } from 'lucide-react';
+import clsx from 'clsx';
+import { navigation, routeTitles } from '@/lib/navigation';
 
-const routeTitles: Record<string, string> = {
-  "/": "Tablero General de Monitoreo",
-  "/salud": "Indicadores de Salud",
-  "/salud-adolescente": "Salud Adolescente",
-  "/educacion": "Indicadores de Educación",
-  "/aprender": "Pruebas Aprender",
-  "/pobreza": "Indicadores de Pobreza",
-  "/seguridad": "Indicadores de Seguridad",
-  "/inversion": "Inversión Social",
-  "/fuentes": "Catálogo de Fuentes y APIs",
-  "/repositorio": "Repositorio Documental",
-  "/repositorio/chat": "Chat con la Bibliografía",
-  "/geo": "Mapas",
-};
+// Build flat nav links from grouped navigation for mobile menu
+const navLinks = navigation.flatMap(group =>
+  group.items.map(item => ({
+    label: item.label,
+    href: item.href,
+    group: group.label,
+  }))
+);
+
+function Breadcrumb() {
+  const pathname = usePathname();
+  if (pathname === '/') return null;
+
+  const segments = pathname.split('/').filter(Boolean);
+  const crumbs = segments.map((seg, i) => {
+    const href = '/' + segments.slice(0, i + 1).join('/');
+    const title = routeTitles[href] || seg;
+    const isLast = i === segments.length - 1;
+    return { href, title, isLast };
+  });
+
+  return (
+    <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-sm text-[#9CA3AF]">
+      <Link href="/" className="hover:text-[#E07A5F] transition-colors">
+        Inicio
+      </Link>
+      {crumbs.map(crumb => (
+        <span key={crumb.href} className="flex items-center gap-1">
+          <ChevronRight className="w-3 h-3" />
+          {crumb.isLast ? (
+            <span className="text-[#1a2556] font-medium">{crumb.title}</span>
+          ) : (
+            <Link href={crumb.href} className="hover:text-[#E07A5F] transition-colors">
+              {crumb.title}
+            </Link>
+          )}
+        </span>
+      ))}
+    </nav>
+  );
+}
 
 export function Header() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLangOpen, setIsLangOpen] = useState(false);
 
-  const title = routeTitles[pathname] || "DDNA";
-
-  const navLinks = [
-    { label: "Inicio", href: "/" },
-    { label: "Salud", href: "/salud" },
-    { label: "Educación", href: "/educacion" },
-    { label: "Pobreza", href: "/pobreza" },
-    { label: "Seguridad", href: "/seguridad" },
-    { label: "Inversión Social", href: "/inversion" },
-    { label: "Repositorio", href: "/repositorio" },
-    { label: "Fuentes de Datos", href: "/fuentes" },
-  ];
+  const title = routeTitles[pathname] || 'DDNA';
 
   return (
     <header className="bg-white border-b border-[#E0E0E0] sticky top-0 z-40">
-      {/* Gradient accent strip — matches sidebar */}
+      {/* Gradient accent strip */}
       <div className="h-1.5 bg-gradient-to-r from-[#FF7F11] via-[#F3A712] to-[#FF7F11]" />
+
       {/* Desktop Header */}
-      <div className={clsx(
-        "hidden md:flex items-center px-6 lg:px-8 py-4",
-        pathname === '/' ? "justify-end" : "justify-between"
-      )}>
-        {/* Breadcrumb / Title — hidden on homepage (page has its own banner) */}
+      <div
+        className={clsx(
+          'hidden md:flex items-center px-6 lg:px-8 py-4',
+          pathname === '/' ? 'justify-end' : 'justify-between'
+        )}
+      >
+        {/* Breadcrumb — hidden on homepage */}
         {pathname !== '/' && (
           <div>
-            <h1 className="font-display text-2xl text-[#00074E] tracking-tight">{title}</h1>
+            <h1 className="font-display text-2xl text-[#1a2556] tracking-tight">{title}</h1>
+            <Breadcrumb />
           </div>
         )}
 
@@ -93,14 +114,13 @@ export function Header() {
 
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between px-6 py-3">
-        {/* Mobile Logo */}
         <div className="flex items-center gap-2">
           <Image
             src="/logos/Cba.png"
             alt="Córdoba"
             width={28}
             height={28}
-            style={{ height: "auto" }}
+            style={{ height: 'auto' }}
             className="rounded-sm"
           />
           <Image
@@ -108,39 +128,34 @@ export function Header() {
             alt="DDNA"
             width={100}
             height={24}
-            style={{ height: "auto" }}
+            style={{ height: 'auto' }}
             className="object-contain"
           />
         </div>
 
-        {/* Mobile Menu Toggle */}
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           className="p-2 rounded-lg hover:bg-[#FDF3E7] transition-colors text-[#4D4D4D]"
-          aria-label={isMobileMenuOpen ? "Cerrar menú" : "Abrir menú"}
+          aria-label={isMobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
         >
-          {isMobileMenuOpen ? (
-            <X className="w-6 h-6" />
-          ) : (
-            <Menu className="w-6 h-6" />
-          )}
+          {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
       </div>
 
       {/* Mobile Navigation Menu */}
       {isMobileMenuOpen && (
-        <nav className="md:hidden border-t border-[#E0E0E0] bg-white">
+        <nav className="md:hidden border-t border-[#E0E0E0] bg-white max-h-[70vh] overflow-y-auto">
           <ul className="py-2">
-            {navLinks.map((link) => (
+            {navLinks.map(link => (
               <li key={link.href}>
                 <Link
                   href={link.href}
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={clsx(
-                    "block px-4 py-3 font-body text-sm transition-colors",
+                    'block px-4 py-3 font-body text-sm transition-colors',
                     pathname === link.href
-                      ? "bg-[#F3A712]/10 text-[#F3A712] font-medium border-l-4 border-[#F3A712]"
-                      : "text-[#4D4D4D] hover:bg-[#FDF3E7]"
+                      ? 'bg-[#E07A5F]/10 text-[#E07A5F] font-medium border-l-4 border-[#E07A5F]'
+                      : 'text-[#4D4D4D] hover:bg-[#FDF3E7]'
                   )}
                 >
                   {link.label}

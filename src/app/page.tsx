@@ -22,9 +22,9 @@ import { INDICATOR_NAMES } from '@/lib/indicator-names';
 import type { CategoriaIndicador } from '@/lib/supabase';
 
 // Dynamic import of ReportModal to avoid client bundle impact
-const ReportModal = dynamic(() =>
-  import('@/components/report-modal').then((mod) => mod.ReportModal),
-  { ssr: false },
+const ReportModal = dynamic(
+  () => import('@/components/report-modal').then(mod => mod.ReportModal),
+  { ssr: false }
 );
 
 const categoryConfig = {
@@ -80,7 +80,10 @@ export default function HomePage() {
   // TODO: validate with DDNA which indicator to display — DB has no child-specific indigence indicator
   const indigenciaInd = getLatestValue(pobrezaData, INDICATOR_NAMES.INDIGENCIA_PERSONAS);
   const mortalidadInd = getLatestValue(saludData, INDICATOR_NAMES.TMI_CBA);
-  const escolarizacionInd = getLatestValue(educacionData, INDICATOR_NAMES.TASA_ASISTENCIA_EDUCATIVA);
+  const escolarizacionInd = getLatestValue(
+    educacionData,
+    INDICATOR_NAMES.TASA_ASISTENCIA_EDUCATIVA
+  );
   const denunciasInd = getLatestValue(seguridadData, INDICATOR_NAMES.TOTAL_CASOS_JUSTICIA);
   const pobreza = pobrezaInd?.valor ?? null;
   const indigencia = indigenciaInd?.valor ?? null;
@@ -101,27 +104,30 @@ export default function HomePage() {
     pobrezaChanges.length > 0 ? pobrezaChanges[pobrezaChanges.length - 1].cambio : null;
 
   // Latest period from inversion data for the Inversión social KPI subtitle
-  const latestInversionPeriod = inversionData.length > 0
-    ? [...inversionData].sort((a, b) => b.periodo.localeCompare(a.periodo))[0]?.periodo
-    : null;
+  const latestInversionPeriod =
+    inversionData.length > 0
+      ? [...inversionData].sort((a, b) => b.periodo.localeCompare(a.periodo))[0]?.periodo
+      : null;
 
   // Stats banner values (real data from indicators, non-redundant with KPIs)
   const statsEstablecimientos = findStatSum(educacionData, 'Unidades educativas');
   const statsMatricula = findStatSum(educacionData, 'Matrícula - General');
-  const statsCategorias = data ? Object.keys(data).filter(k => data[k as CategoriaIndicador]?.length > 0).length : 6;
+  const statsCategorias = data
+    ? Object.keys(data).filter(k => data[k as CategoriaIndicador]?.length > 0).length
+    : 6;
   const statsFuentes = data
     ? new Set(
         Object.values(data)
           .flat()
           .map(ind => ind.fuente)
-          .filter((f): f is string => Boolean(f)),
+          .filter((f): f is string => Boolean(f))
       ).size
     : 0;
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
       {/* Page title */}
-      <div className="bg-[#00074E]">
+      <div className="bg-gradient-to-r from-[#1a2556] to-[#2a3570]">
         <div className="max-w-7xl mx-auto px-6 lg:px-8 py-8 lg:py-12 flex items-center justify-between">
           <div>
             <h1 className="font-display text-3xl lg:text-4xl text-white">Tablero de Monitoreo</h1>
@@ -130,7 +136,9 @@ export default function HomePage() {
             </p>
           </div>
           <div className="flex items-center gap-2 text-sm text-white/70">
-            <span className={`w-2 h-2 rounded-full ${source === 'supabase' ? 'bg-green-400' : 'bg-amber-400'}`} />
+            <span
+              className={`w-2 h-2 rounded-full ${source === 'supabase' ? 'bg-green-400' : 'bg-amber-400'}`}
+            />
             <span className="hidden sm:inline">
               {source === 'supabase' ? 'Datos en vivo' : 'Datos de referencia'}
             </span>
@@ -143,7 +151,7 @@ export default function HomePage() {
         {/* KPIs */}
         <section className="mb-10">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="font-display text-xl text-[#00074E]">Indicadores Clave</h2>
+            <h2 className="font-display text-xl text-[#1a2556]">Indicadores Clave</h2>
             {source === 'supabase' && <span className="text-sm text-gray-400">Datos en vivo</span>}
           </div>
 
@@ -214,7 +222,7 @@ export default function HomePage() {
         </section>
 
         {/* Stats banner — complementary metrics */}
-        <section className="bg-[#00074E] rounded-xl p-6 lg:p-8">
+        <section className="bg-[#1a2556] rounded-xl p-6 lg:p-8">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="text-center">
               <p className="font-display text-2xl lg:text-3xl text-white">
@@ -229,15 +237,11 @@ export default function HomePage() {
               <p className="font-accent text-xs text-white/60 mt-1">Matrícula escolar</p>
             </div>
             <div className="text-center">
-              <p className="font-display text-2xl lg:text-3xl text-white">
-                {statsCategorias}
-              </p>
+              <p className="font-display text-2xl lg:text-3xl text-white">{statsCategorias}</p>
               <p className="font-accent text-xs text-white/60 mt-1">Categorías de indicadores</p>
             </div>
             <div className="text-center">
-              <p className="font-display text-2xl lg:text-3xl text-white">
-                {statsFuentes}
-              </p>
+              <p className="font-display text-2xl lg:text-3xl text-white">{statsFuentes}</p>
               <p className="font-accent text-xs text-white/60 mt-1">Fuentes de datos</p>
             </div>
           </div>
@@ -248,7 +252,7 @@ export default function HomePage() {
           <button
             type="button"
             onClick={() => setReportModalOpen(true)}
-            className="flex items-center justify-between w-full px-6 py-5 bg-gradient-to-r from-[#00074E] to-[#1a1a6e] rounded-xl hover:shadow-xl hover:scale-[1.01] transition-all group text-left cursor-pointer"
+            className="flex items-center justify-between w-full px-6 py-5 bg-gradient-to-r from-[#1a2556] to-[#1a1a6e] rounded-xl hover:shadow-xl hover:scale-[1.01] transition-all group text-left cursor-pointer"
           >
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -256,7 +260,9 @@ export default function HomePage() {
               </div>
               <div className="text-left">
                 <p className="font-accent text-lg text-white font-semibold">Informe Ejecutivo</p>
-                <p className="text-sm text-white/70 font-body">Análisis general con indicadores clave, alertas y recomendaciones</p>
+                <p className="text-sm text-white/70 font-body">
+                  Análisis general con indicadores clave, alertas y recomendaciones
+                </p>
               </div>
             </div>
             <span className="text-white/60 text-sm font-accent hidden sm:inline">Generar →</span>
@@ -264,21 +270,54 @@ export default function HomePage() {
         </section>
 
         {/* Report Modal */}
-        <ReportModal
-          isOpen={reportModalOpen}
-          onClose={() => setReportModalOpen(false)}
-        />
+        <ReportModal isOpen={reportModalOpen} onClose={() => setReportModalOpen(false)} />
 
         {/* Quick access to sections */}
         <section className="mt-8">
-          <h2 className="font-display text-xl text-[#00074E] mb-4">Explorar por tema</h2>
+          <h2 className="font-display text-xl text-[#1a2556] mb-4">Explorar por tema</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <SectionCard title="Salud" description="Mortalidad infantil, materna y neonatal" href="/salud" icon={Heart} color="terracotta" />
-            <SectionCard title="Educación" description="Asistencia, matrícula, unidades educativas" href="/educacion" icon={BookOpen} color="amber" />
-            <SectionCard title="Pobreza" description="Pobreza e indigencia infantil y por hogares" href="/pobreza" icon={Users} color="magenta" />
-            <SectionCard title="Seguridad" description="Casos de niñez, violencia familiar y justicia" href="/seguridad" icon={AlertTriangle} color="orange" />
-            <SectionCard title="Inversión Social" description="Presupuesto provincial destinado a niñez" href="/inversion" icon={Coins} color="terracotta" />
-            <SectionCard title="Repositorio" description="Documentos, informes y bibliografía DDNA" href="/repositorio" icon={BookOpen} color="navy" />
+            <SectionCard
+              title="Salud"
+              description="Mortalidad infantil, materna y neonatal"
+              href="/salud"
+              icon={Heart}
+              color="terracotta"
+            />
+            <SectionCard
+              title="Educación"
+              description="Asistencia, matrícula, unidades educativas"
+              href="/educacion"
+              icon={BookOpen}
+              color="amber"
+            />
+            <SectionCard
+              title="Pobreza"
+              description="Pobreza e indigencia infantil y por hogares"
+              href="/pobreza"
+              icon={Users}
+              color="magenta"
+            />
+            <SectionCard
+              title="Seguridad"
+              description="Casos de niñez, violencia familiar y justicia"
+              href="/seguridad"
+              icon={AlertTriangle}
+              color="orange"
+            />
+            <SectionCard
+              title="Inversión Social"
+              description="Presupuesto provincial destinado a niñez"
+              href="/inversion"
+              icon={Coins}
+              color="terracotta"
+            />
+            <SectionCard
+              title="Repositorio"
+              description="Documentos, informes y bibliografía DDNA"
+              href="/repositorio"
+              icon={BookOpen}
+              color="navy"
+            />
           </div>
         </section>
       </main>
