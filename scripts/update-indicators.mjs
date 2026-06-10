@@ -14,8 +14,13 @@ const BASE_URL = 'https://apis.datos.gob.ar/series/api/series/';
 const SERIES = [
   { id: '64.2_POBLACION_NUA_0_0_41_96', nombre: 'Pobreza personas', categoria: 'pobreza', unidad: '%', fuente: 'EPH-INDEC / datos.gob.ar' },
   { id: '63.2_HOGARES_PONUA_0_0_40_49', nombre: 'Pobreza hogares', categoria: 'pobreza', unidad: '%', fuente: 'EPH-INDEC / datos.gob.ar' },
+  { id: '45.1_ECTDTGC_0_A_46', nombre: 'Tasa de desempleo', categoria: 'pobreza', unidad: '%', fuente: 'EPH-INDEC / datos.gob.ar' },
   { id: 'tmi_14', nombre: 'Mortalidad infantil (TMI Cba)', categoria: 'salud', unidad: '‰', fuente: 'DEIS / datos.gob.ar' },
   { id: 'tmi_arg', nombre: 'Mortalidad infantil (TMI)', categoria: 'salud', unidad: '‰', fuente: 'DEIS / datos.gob.ar' },
+  { id: 'snic_20_hechos_14', nombre: 'Tentativas de hurto', categoria: 'seguridad', unidad: 'hechos', fuente: 'SNIC / datos.gob.ar' },
+  { id: 't_snic_20_hechos_14', nombre: 'Tasa de tentativas de hurto', categoria: 'seguridad', unidad: 'tasa x100K', fuente: 'SNIC / datos.gob.ar' },
+  { id: 'snic_30_hechos_14', nombre: 'Contravenciones', categoria: 'seguridad', unidad: 'casos', fuente: 'SNIC / datos.gob.ar' },
+  { id: 'sneep_pto_14', nombre: 'Población carcelaria', categoria: 'seguridad', unidad: 'personas', fuente: 'SNEEP / datos.gob.ar' },
 ];
 
 async function fetchSeries(id) {
