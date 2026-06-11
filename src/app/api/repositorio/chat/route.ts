@@ -19,6 +19,9 @@ import {
   extractDataSources,
   INDICATOR_OPENAPI_TOOLS,
 } from '@/lib/agent/indicator-tools';
+import { searchWeb } from '@/lib/agent/web-search';
+import { scrapeUrl } from '@/lib/agent/scrape-url';
+import { withRateLimit } from '@/lib/agent/rate-limit';
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -34,9 +37,6 @@ const MAX_TOOL_CALLS = 8;
 const MAX_TOKENS = 2000;
 const MAX_CONTEXT_CHARS = 20000;
 
-const BASE_URL = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : 'http://localhost:3000';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -496,15 +496,8 @@ async function executeToolCall(
     const query = String(args.query || '');
     const site = args.site ? String(args.site) : undefined;
     try {
-      const searchUrl = new URL('/api/agent/web-search', BASE_URL).toString();
-      const res = await fetch(searchUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, site }),
-      });
-      const data = await res.json();
-      const results: Array<{ title: string; url: string; snippet: string; source: string }> =
-        data.results || [];
+      const data = await searchWeb(query, 10, site);
+      const results = data.results ?? [];
       const formatted =
         results.length === 0
           ? 'No se encontraron resultados en la web.'
@@ -528,14 +521,8 @@ async function executeToolCall(
   if (name === 'scrape_url') {
     const url = String(args.url || '');
     try {
-      const scrapeUrl = new URL('/api/agent/scrape-url', BASE_URL).toString();
-      const res = await fetch(scrapeUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url }),
-      });
-      const data = await res.json();
-      const text: string = data.content || data.text || data.error || '';
+      const data = await scrapeUrl(url, 'text', 3000);
+      const text: string = data.content || '';
       const truncated = text.length > 3000 ? text.substring(0, 3000) + '...' : text;
       return {
         formattedResult: `[Contenido de ${url}]\n\nTítulo: ${data.title || 'N/A'}\n\n${truncated}`,
@@ -691,10 +678,40 @@ async function callLLM(
 }
 
 // ---------------------------------------------------------------------------
+// Cached doc count (avoids SELECT count(*) on every chat request)
+// ---------------------------------------------------------------------------
+
+interface DocCountCache {
+  count: number;
+  expiresAt: number;
+}
+
+let docCountCache: DocCountCache | null = null;
+const DOC_COUNT_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+async function getCachedDocCount(supabaseClient: unknown): Promise<number> {
+  const now = Date.now();
+  if (docCountCache && now < docCountCache.expiresAt) {
+    return docCountCache.count;
+  }
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { count } = (await (supabaseClient as any)
+      .from('repositorio')
+      .select('*', { count: 'exact', head: true })
+      .eq('processed', true)) as { count: number };
+    docCountCache = { count: count ?? 0, expiresAt: now + DOC_COUNT_TTL_MS };
+    return docCountCache.count;
+  } catch {
+    return docCountCache?.count ?? 0;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // POST handler — function calling loop
 // ---------------------------------------------------------------------------
 
-export async function POST(request: Request) {
+async function handleChatPOST(request: Request) {
   const accumulatedSources: ReturnType<typeof buildSources> = [];
   const accumulatedDataSources: Array<{
     indicador: string;
@@ -906,13 +923,10 @@ export async function POST(request: Request) {
         '**Categorías de indicadores disponibles**: pobreza, salud, educacion, inversion, demografia, seguridad, justicia, salud_adolescente, anuario_educacion, aprender, consumo, deis.';
     }
 
-    // --- Contar documentos procesados ---
+    // --- Contar documentos procesados (cacheado 5 min) ---
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const supabaseClient: any = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const { count: totalDocs } = (await supabaseClient
-      .from('repositorio')
-      .select('*', { count: 'exact', head: true })
-      .eq('processed', true)) as { count: number };
+    const totalDocs = await getCachedDocCount(supabaseClient);
 
     // --- Build final response ---
     const responseBody: Record<string, unknown> = {
@@ -942,3 +956,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: `Error interno: ${String(err)}` }, { status: 500 });
   }
 }
+
+// Exported with rate limiting (30 requests/min per IP)
+export const POST = withRateLimit(handleChatPOST, {
+  maxRequests: 30,
+  windowMs: 60_000,
+  keyPrefix: 'repositorio-chat',
+});

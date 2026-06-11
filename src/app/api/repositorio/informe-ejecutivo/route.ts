@@ -17,6 +17,7 @@ import {
   searchWebContext,
   type IndicadorRow,
 } from '@/lib/informe-ejecutivo';
+import { withRateLimit } from '@/lib/agent/rate-limit';
 
 // ─── Configuration ──────────────────────────────────────────────
 
@@ -180,7 +181,7 @@ async function fetchIndicators(
 
 // ─── POST Handler ───────────────────────────────────────────────
 
-export async function POST(request: Request) {
+async function handleInformeEjecutivoPOST(request: Request) {
   try {
     // --- Check API key ---
     if (!OPENAI_API_KEY) {
@@ -319,3 +320,10 @@ export async function POST(request: Request) {
     );
   }
 }
+
+// Exported with rate limiting (15 requests/min per IP — informe is expensive)
+export const POST = withRateLimit(handleInformeEjecutivoPOST, {
+  maxRequests: 15,
+  windowMs: 60_000,
+  keyPrefix: 'repositorio-informe',
+});
