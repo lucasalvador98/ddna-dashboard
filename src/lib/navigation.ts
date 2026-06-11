@@ -60,7 +60,7 @@ export const navigation: NavGroup[] = [
     items: [
       { label: 'Pobreza e Indigencia', href: '/pobreza', icon: Users },
       { label: 'Encuestas 2024', href: '/encuestas', icon: ClipboardList },
-      { label: 'Condiciones de Vida', href: '/condiciones', icon: ClipboardList },
+      { label: 'Infancias', href: '/infancias', icon: Users },
     ],
   },
   {
@@ -102,7 +102,7 @@ export const routeTitles: Record<string, string> = {
 
   '/encuestas': 'Encuestas 2024',
   '/pobreza': 'Indicadores de Pobreza',
-  '/condiciones': 'Condiciones de Vida',
+  '/infancias': 'Infancias — Barómetro UCA',
   '/seguridad': 'Indicadores de Seguridad',
   '/inversion': 'Inversión Social',
   '/geo': 'Mapas',
