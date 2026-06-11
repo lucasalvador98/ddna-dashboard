@@ -3,39 +3,24 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // ─── Mock Supabase ──────────────────────────────────────────────
 let mockSupabaseData: unknown[] = [];
 let mockSupabaseError: unknown = null;
-let mockDocChunksData: unknown[] = [];
-let mockDocChunksError: unknown = null;
 
 vi.mock('@supabase/supabase-js', () => ({
-  createClient: () => ({
-    from: (table: string) => {
-      // Return different data/error based on table
-      const isDoc = table === 'doc_chunks';
+  createClient: () => {
+    function chain(data: unknown[], error: unknown) {
+      const end = () => Promise.resolve({ data, error });
       return {
-        select: () => ({
-          in: () => ({
-            order: () =>
-              Promise.resolve({
-                data: isDoc ? mockDocChunksData : mockSupabaseData,
-                error: isDoc ? mockDocChunksError : mockSupabaseError,
-              }),
-          }),
-          order: () =>
-            Promise.resolve({
-              data: isDoc ? mockDocChunksData : mockSupabaseData,
-              error: isDoc ? mockDocChunksError : mockSupabaseError,
-            }),
-          ilike: () => ({
-            limit: () =>
-              Promise.resolve({
-                data: mockDocChunksData,
-                error: mockDocChunksError,
-              }),
-          }),
-        }),
+        eq: () => chain(data, error),
+        in: () => chain(data, error),
+        order: end,
+        limit: end,
       };
-    },
-  }),
+    }
+    return {
+      from: () => ({
+        select: () => chain(mockSupabaseData, mockSupabaseError),
+      }),
+    };
+  },
 }));
 
 // ─── Mock OpenAI response ───────────────────────────────────────
@@ -103,9 +88,7 @@ describe('POST /api/repositorio/informe-ejecutivo', () => {
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://test.supabase.co');
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', 'test-anon-key');
     mockSupabaseData = [];
-    mockDocChunksData = [];
     mockSupabaseError = null;
-    mockDocChunksError = null;
   });
 
   afterEach(() => {
@@ -113,7 +96,7 @@ describe('POST /api/repositorio/informe-ejecutivo', () => {
     vi.restoreAllMocks();
   });
 
-  it('returns 400 when categories is not an array', async () => {
+  it('returns 400 when axes is not an array', async () => {
     vi.resetModules();
     vi.stubGlobal('fetch', undefined);
     const { POST } = await import('./route');
@@ -123,7 +106,7 @@ describe('POST /api/repositorio/informe-ejecutivo', () => {
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ categories: 'salud' }),
+        body: JSON.stringify({ axes: 'salud' }),
       },
     );
 
@@ -131,7 +114,7 @@ describe('POST /api/repositorio/informe-ejecutivo', () => {
     expect(res.status).toBe(400);
 
     const data = await res.json();
-    expect(data.error).toContain('categories');
+    expect(data.error).toContain('axes');
   });
 
   it('returns 400 when body is not valid JSON', async () => {
@@ -163,7 +146,7 @@ describe('POST /api/repositorio/informe-ejecutivo', () => {
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ categories: ['salud'] }),
+        body: JSON.stringify({}),
       },
     );
 
@@ -173,29 +156,25 @@ describe('POST /api/repositorio/informe-ejecutivo', () => {
     expect(data.error).toContain('OPENAI_API_KEY');
   });
 
-  it('returns 200 with report for valid categories', async () => {
+  it('returns 200 with report for valid axes', async () => {
     mockSupabaseData = [
       {
         id: '1',
-        indicador_nombre: 'Mortalidad infantil (TMI Cba)',
-        categoria: 'salud',
-        valor: 8.5,
-        unidad: '‰',
-        periodo: '2022',
-        region: 'Córdoba',
-        desglose: {},
+        titulo: 'Mortalidad infantil (TMI Cba)',
+        categoria_db: 'salud',
+        contenido: 'salud | Mortalidad infantil (TMI Cba) | valor: 8.5 ‰ | período: 2022 | región: Córdoba',
         fuente: 'DEIS',
+        periodo: '2022',
+        ejes_relacionados: null,
       },
       {
         id: '2',
-        indicador_nombre: 'Mortalidad infantil (TMI Cba)',
-        categoria: 'salud',
-        valor: 9.1,
-        unidad: '‰',
-        periodo: '2021',
-        region: 'Córdoba',
-        desglose: {},
+        titulo: 'Mortalidad infantil (TMI Cba)',
+        categoria_db: 'salud',
+        contenido: 'salud | Mortalidad infantil (TMI Cba) | valor: 9.1 ‰ | período: 2021 | región: Córdoba',
         fuente: 'DEIS',
+        periodo: '2021',
+        ejes_relacionados: null,
       },
     ];
 
@@ -208,7 +187,7 @@ describe('POST /api/repositorio/informe-ejecutivo', () => {
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ categories: ['salud'] }),
+        body: JSON.stringify({ axes: ['salud'] }),
       },
     );
 
@@ -226,18 +205,16 @@ describe('POST /api/repositorio/informe-ejecutivo', () => {
     expect(data.generatedAt).toBeDefined();
   });
 
-  it('returns 200 with all categories when categories is empty', async () => {
+  it('returns 200 with all axes when axes is empty', async () => {
     mockSupabaseData = [
       {
         id: '1',
-        indicador_nombre: 'Pobreza personas',
-        categoria: 'pobreza',
-        valor: 38.5,
-        unidad: '%',
-        periodo: '2024',
-        region: 'Córdoba',
-        desglose: {},
+        titulo: 'Pobreza personas',
+        categoria_db: 'pobreza',
+        contenido: 'pobreza | Pobreza personas | valor: 38.5 % | período: 2024 | región: Córdoba',
         fuente: 'INDEC',
+        periodo: '2024',
+        ejes_relacionados: null,
       },
     ];
 
@@ -266,14 +243,12 @@ describe('POST /api/repositorio/informe-ejecutivo', () => {
     mockSupabaseData = [
       {
         id: '1',
-        indicador_nombre: 'Mortalidad infantil (TMI Cba)',
-        categoria: 'salud',
-        valor: 8.5,
-        unidad: '‰',
-        periodo: '2022',
-        region: 'Córdoba',
-        desglose: {},
+        titulo: 'Mortalidad infantil (TMI Cba)',
+        categoria_db: 'salud',
+        contenido: 'salud | Mortalidad infantil (TMI Cba) | valor: 8.5 ‰ | período: 2022 | región: Córdoba',
         fuente: 'DEIS',
+        periodo: '2022',
+        ejes_relacionados: null,
       },
     ];
 
@@ -290,7 +265,7 @@ describe('POST /api/repositorio/informe-ejecutivo', () => {
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ categories: ['salud'] }),
+        body: JSON.stringify({ axes: ['salud'] }),
       },
     );
 
@@ -313,7 +288,7 @@ describe('POST /api/repositorio/informe-ejecutivo', () => {
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ categories: ['inversion'] }),
+        body: JSON.stringify({ axes: ['inversion'] }),
       },
     );
 
@@ -330,14 +305,12 @@ describe('POST /api/repositorio/informe-ejecutivo', () => {
     mockSupabaseData = [
       {
         id: '1',
-        indicador_nombre: 'Mortalidad infantil (TMI Cba)',
-        categoria: 'salud',
-        valor: 8.5,
-        unidad: '‰',
-        periodo: '2022',
-        region: 'Córdoba',
-        desglose: {},
+        titulo: 'Mortalidad infantil (TMI Cba)',
+        categoria_db: 'salud',
+        contenido: 'salud | Mortalidad infantil (TMI Cba) | valor: 8.5 ‰ | período: 2022 | región: Córdoba',
         fuente: 'DEIS',
+        periodo: '2022',
+        ejes_relacionados: null,
       },
     ];
 
@@ -350,7 +323,7 @@ describe('POST /api/repositorio/informe-ejecutivo', () => {
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ categories: ['salud'] }),
+        body: JSON.stringify({ axes: ['salud'] }),
       },
     );
 
@@ -379,22 +352,18 @@ describe('POST /api/repositorio/informe-ejecutivo', () => {
     expect(Array.isArray(data.report.suggestedImprovements)).toBe(true);
   });
 
-  it('handles doc chunks query error gracefully (still returns report)', async () => {
+  it('handles empty documents gracefully (still returns report)', async () => {
     mockSupabaseData = [
       {
         id: '1',
-        indicador_nombre: 'Pobreza personas',
-        categoria: 'pobreza',
-        valor: 38.5,
-        unidad: '%',
-        periodo: '2024',
-        region: 'Córdoba',
-        desglose: {},
+        titulo: 'Pobreza personas',
+        categoria_db: 'pobreza',
+        contenido: 'pobreza | Pobreza personas | valor: 38.5 % | período: 2024 | región: Córdoba',
         fuente: 'INDEC',
+        periodo: '2024',
+        ejes_relacionados: null,
       },
     ];
-    // Only doc_chunks query fails
-    mockDocChunksError = new Error('Doc chunks query failed');
 
     vi.resetModules();
     vi.stubGlobal('fetch', createMockFetch(true, mockOpenAIResponse));
@@ -405,7 +374,7 @@ describe('POST /api/repositorio/informe-ejecutivo', () => {
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ categories: ['pobreza'] }),
+        body: JSON.stringify({ axes: ['pobreza'] }),
       },
     );
 
@@ -421,14 +390,12 @@ describe('POST /api/repositorio/informe-ejecutivo', () => {
     mockSupabaseData = [
       {
         id: '1',
-        indicador_nombre: 'Pobreza personas',
-        categoria: 'pobreza',
-        valor: 38.5,
-        unidad: '%',
-        periodo: '2024',
-        region: 'Córdoba',
-        desglose: {},
+        titulo: 'Pobreza personas',
+        categoria_db: 'pobreza',
+        contenido: 'pobreza | Pobreza personas | valor: 38.5 % | período: 2024 | región: Córdoba',
         fuente: 'INDEC',
+        periodo: '2024',
+        ejes_relacionados: null,
       },
     ];
 
@@ -456,7 +423,7 @@ describe('POST /api/repositorio/informe-ejecutivo', () => {
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ categories: ['pobreza'] }),
+        body: JSON.stringify({ axes: ['pobreza'] }),
       },
     );
 

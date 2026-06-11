@@ -20,6 +20,7 @@ export interface AprenderRow {
 
 export interface AprenderPorQuintil {
   quintil: string;
+  avanzado: number;
   satisfactorio: number;
   basico: number;
   debajo: number;
@@ -29,14 +30,17 @@ export interface AprenderPorQuintil {
 
 /**
  * Normalize level names from DB to our internal keys.
+ * - 'Avanzado' → 'avanzado'
  * - 'Satisfactorio' → 'satisfactorio'
  * - 'Básico' → 'basico'
  * - 'Por debajo del básico' (or the DB typo 'básicos') → 'debajo'
- * - 'Avanzado' → undefined (excluded)
  */
-function mapLevel(name: string): 'satisfactorio' | 'basico' | 'debajo' | undefined {
+function mapLevel(name: string): 'avanzado' | 'satisfactorio' | 'basico' | 'debajo' | undefined {
   const lower = name.toLowerCase();
 
+  if (lower === 'avanzado') {
+    return 'avanzado';
+  }
   if (lower === 'satisfactorio' || lower.startsWith('satisfactorio')) {
     return 'satisfactorio';
   }
@@ -47,7 +51,7 @@ function mapLevel(name: string): 'satisfactorio' | 'basico' | 'debajo' | undefin
   if (lower.includes('por debajo del básico') || lower.includes('por debajo del basico')) {
     return 'debajo';
   }
-  return undefined; // Avanzado or unknown → excluded
+  return undefined;
 }
 
 // ─── Main transform ─────────────────────────────────────────────
@@ -99,14 +103,14 @@ export function computeAprenderByQuintil(
   }
 
   // ── 3. Group by quintil and pivot to levels ───────────────────
-  const quintilsMap = new Map<string, { satisfactorio: number; basico: number; debajo: number }>();
+  const quintilsMap = new Map<string, { avanzado: number; satisfactorio: number; basico: number; debajo: number }>();
 
   for (const [groupKey, { sum, count }] of groups) {
-    const [quintil, levelKey] = groupKey.split('|') as [string, 'satisfactorio' | 'basico' | 'debajo'];
+    const [quintil, levelKey] = groupKey.split('|') as [string, 'avanzado' | 'satisfactorio' | 'basico' | 'debajo'];
     const avg = round1(sum / count);
 
     if (!quintilsMap.has(quintil)) {
-      quintilsMap.set(quintil, { satisfactorio: 0, basico: 0, debajo: 0 });
+      quintilsMap.set(quintil, { avanzado: 0, satisfactorio: 0, basico: 0, debajo: 0 });
     }
     quintilsMap.get(quintil)![levelKey] = avg;
   }

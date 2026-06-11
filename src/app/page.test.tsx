@@ -168,8 +168,9 @@ describe('HomePage — KPI data presence', () => {
   it('should show real poverty data (not placeholder "—")', () => {
     render(<HomePage />);
 
-    // Pobreza personas should show 39.2%
-    expect(screen.getByText('39.2%')).toBeInTheDocument();
+    // Pobreza personas should show 39.2% (may also appear in Desempleo KPI)
+    const matches = screen.getAllByText('39.2%');
+    expect(matches.length).toBeGreaterThanOrEqual(1);
   });
 
   it('should show real mortality data (not placeholder "—")', () => {
@@ -200,11 +201,11 @@ describe('HomePage — KPI data presence', () => {
     expect(screen.getByText('64.466')).toBeInTheDocument();
   });
 
-  it('should show all 6 KPI cards', () => {
+  it('should show all KPI cards', () => {
     render(<HomePage />);
 
     const kpiCards = screen.getAllByTestId('kpi-card');
-    expect(kpiCards.length).toBe(6);
+    expect(kpiCards.length).toBe(7);
   });
 
   it('should show data source indicator', () => {

@@ -51,7 +51,6 @@ export const navigation: NavGroup[] = [
     color: '#F3A712',
     items: [
       { label: 'Indicadores', href: '/educacion', icon: BookOpen },
-      { label: 'Evaluación Aprender', href: '/aprender', icon: GraduationCap },
     ],
   },
   {
@@ -100,7 +99,7 @@ export const routeTitles: Record<string, string> = {
   '/salud': 'Indicadores de Salud',
   '/salud-adolescente': 'Salud Adolescente',
   '/educacion': 'Indicadores de Educación',
-  '/aprender': 'Pruebas Aprender',
+
   '/encuestas': 'Encuestas 2024',
   '/pobreza': 'Indicadores de Pobreza',
   '/condiciones': 'Condiciones de Vida',

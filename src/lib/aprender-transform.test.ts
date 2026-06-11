@@ -79,6 +79,7 @@ describe('computeAprenderByQuintil', () => {
     expect(result).toHaveLength(1);
     expect(result[0]).toEqual({
       quintil: 'Q1',
+      avanzado: 0,
       satisfactorio: 40,
       basico: 30,
       debajo: 20,
@@ -99,19 +100,18 @@ describe('computeAprenderByQuintil', () => {
     expect(result[0].satisfactorio).toBe(45);
   });
 
-  it('should exclude Avanzado level from results', () => {
+  it('should include Avanzado level in results', () => {
     const data: AprenderRow[] = [
       mockRow('Satisfactorio', 50, 'Q1-Estatal'),
       mockRow('Satisfactorio', 40, 'Q1-Privado'),
-      mockRow('Avanzado', 1, 'Q1-Estatal'),
-      mockRow('Avanzado', 0, 'Q1-Privado'),
+      mockRow('Avanzado', 10, 'Q1-Estatal'),
+      mockRow('Avanzado', 6, 'Q1-Privado'),
     ];
     const result = computeAprenderByQuintil(data, 'Lengua');
-    // Only 1 row (Q1), and avanzado should not appear in the result
     expect(result).toHaveLength(1);
     expect(result[0].satisfactorio).toBe(45);
-    // No key like "avanzado" in the result
-    expect(Object.keys(result[0])).toEqual(['quintil', 'satisfactorio', 'basico', 'debajo']);
+    expect(result[0].avanzado).toBe(8);
+    expect(Object.keys(result[0])).toEqual(['quintil', 'avanzado', 'satisfactorio', 'basico', 'debajo']);
   });
 
   it('should set missing levels to 0', () => {
@@ -124,6 +124,7 @@ describe('computeAprenderByQuintil', () => {
     expect(result).toHaveLength(1);
     expect(result[0]).toEqual({
       quintil: 'Q1',
+      avanzado: 0,
       satisfactorio: 45,
       basico: 0,
       debajo: 0,

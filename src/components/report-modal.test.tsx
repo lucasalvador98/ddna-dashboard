@@ -70,14 +70,14 @@ describe('ReportModal', () => {
     });
   });
 
-  it('shows "Todas" checkbox that toggles all', () => {
+  it('shows "Todos los ejes temáticos" checkbox that toggles all', () => {
     render(<ReportModal isOpen={true} onClose={onClose} />);
 
-    // "Todas" should be checked initially
-    const todasCheckbox = screen.getByLabelText(/todas/i);
+    // "Todos los ejes temáticos" should be checked initially
+    const todasCheckbox = screen.getByLabelText(/todos los ejes temáticos/i);
     expect(todasCheckbox).toBeChecked();
 
-    // Uncheck "Todas"
+    // Uncheck "Todos"
     fireEvent.click(todasCheckbox);
     expect(todasCheckbox).not.toBeChecked();
 

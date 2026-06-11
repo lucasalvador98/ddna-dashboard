@@ -161,25 +161,27 @@ describe('searchDocuments', () => {
 
   const mockDocData = [
     {
-      content:
+      titulo: 'Ministerio de Salud - informe-salud-2022.pdf',
+      contenido:
         'La mortalidad infantil en Córdoba se ha reducido significativamente en la última década, alcanzando una tasa de 8.5 por mil nacidos vivos en 2022.',
-      metadata: { source: 'Ministerio de Salud', fileName: 'informe-salud-2022.pdf' },
     },
     {
-      content:
+      titulo: 'Observatorio de Salud',
+      contenido:
         'Los indicadores de salud muestran una tendencia positiva en la reducción de la mortalidad infantil en la provincia.',
-      metadata: { source: 'Observatorio de Salud' },
     },
   ];
 
   function createMockSupabase(data: unknown[]) {
+    function chain() {
+      return {
+        eq: () => chain(),
+        limit: (n: number) => Promise.resolve({ data: data.slice(0, n), error: null }),
+      };
+    }
     return {
       from: () => ({
-        select: () => ({
-          ilike: () => ({
-            limit: () => Promise.resolve({ data, error: null }),
-          }),
-        }),
+        select: () => chain(),
       }),
     } as never;
   }
@@ -195,7 +197,7 @@ describe('searchDocuments', () => {
   it('should truncate content to 500 characters', async () => {
     const longContent = 'A'.repeat(1000);
     const client = createMockSupabase([
-      { content: longContent, metadata: {} },
+      { titulo: 'Test', contenido: longContent },
     ]);
     const results = await searchDocuments(client, 'salud', 1);
     expect(results[0].content.length).toBe(500);
@@ -208,22 +210,24 @@ describe('searchDocuments', () => {
   });
 
   it('should handle supabase error gracefully', async () => {
+    function errorChain() {
+      return {
+        eq: () => errorChain(),
+        limit: () => Promise.resolve({ data: null, error: new Error('DB error') }),
+      };
+    }
     const client = {
       from: () => ({
-        select: () => ({
-          ilike: () => ({
-            limit: () => Promise.resolve({ data: null, error: new Error('DB error') }),
-          }),
-        }),
+        select: () => errorChain(),
       }),
     } as never;
     const results = await searchDocuments(client, 'salud', 3);
     expect(results).toHaveLength(0);
   });
 
-  it('should use "Documento" as title when no source metadata', async () => {
+  it('should use "Documento" as title when no titulo field', async () => {
     const client = createMockSupabase([
-      { content: 'Some content', metadata: {} },
+      { titulo: null, contenido: 'Some content' },
     ]);
     const results = await searchDocuments(client, 'test', 1);
     expect(results[0].title).toBe('Documento');
