@@ -36,9 +36,28 @@ export const INDICATOR_NAMES = {
   TMPOS_CBA: 'Mortalidad infantil (TMPOS cba)',
   TASA_FECUNDIDAD_ADOLESCENTE: 'Tasa fecundidad adolescente',
 
-  // Vacunación
+  // Vacunación — Coberturas nacionales
+  DPT3_NACIONAL: 'Cobertura DPT3 - Nacional',
   DPT4_NACIONAL: 'Cobertura DPT4 - Nacional',
+  SRP1_NACIONAL: 'Cobertura SRP1 - Nacional',
+  SRP2_NACIONAL: 'Cobertura SRP2 - Nacional',
+  PCV13_NACIONAL: 'Cobertura PCV13 - Nacional',
   TRIPLE_VIRAL: 'Cobertura Triple Viral (SRP) - 1ra dosis',
+
+  // Vacunación — Por quintil
+  DPT4_QUINTIL_1: 'Cobertura DPT4 - Quintil 1 (mayor pobreza)',
+  DPT4_QUINTIL_5: 'Cobertura DPT4 - Quintil 5 (menor pobreza)',
+
+  // Vacunación — Córdoba
+  DPT4_CORDOBA: 'Cobertura DPT4 - Córdoba',
+  SRP2_CORDOBA: 'Cobertura SRP2 - Córdoba',
+  DPT_ESCOLAR_CORDOBA: 'Cobertura DPT escolar - Córdoba',
+
+  // Vacunación — Esquemas incompletos
+  ESQUEMAS_INCOMPLETOS: 'Esquemas incompletos <1 año',
+  SIN_DPT4_REFUERZO: 'Sin DPT4 refuerzo',
+  SIN_SRP1_HAV: 'Sin SRP1 y Hepatitis A',
+  SIN_PCV13: 'Sin refuerzo PCV13',
 
   // Educación
   TASA_ASISTENCIA_EDUCATIVA: 'Tasa de asistencia educativa',
@@ -97,7 +116,10 @@ export function indicatorName(keyword: string): string | undefined {
  * @example formatChangeLabel(-0.3, '‰') → '-0.3‰'
  * @example formatChangeLabel(0, '%') → '+0.0 pp'
  */
-export function formatChangeLabel(diff: number | null | undefined, unidad: string): string | undefined {
+export function formatChangeLabel(
+  diff: number | null | undefined,
+  unidad: string
+): string | undefined {
   if (diff === null || diff === undefined) return undefined;
   const prefix = diff >= 0 ? '+' : '';
   const suffix = unidad === '%' ? 'pp' : unidad;

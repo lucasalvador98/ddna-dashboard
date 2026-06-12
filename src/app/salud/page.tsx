@@ -16,11 +16,7 @@ import { parseDesglose } from '@/lib/parse-desglose';
 import { INDICATOR_NAMES } from '@/lib/indicator-names';
 import { SectionHeader } from '@/components/section-header';
 import { KpiCard } from '@/components/kpi-card';
-import {
-  ChartWithTable,
-  SimpleLineChart,
-  SimpleBarChart,
-} from '@/components/charts/chart-with-table';
+import { ChartWithTable } from '@/components/charts/chart-with-table';
 import type { Indicador as DashboardIndicador } from '@/lib/use-dashboard-data';
 import {
   LineChart,
@@ -213,22 +209,76 @@ export default function SaludPage() {
   const tmposData = getTimeSeries(INDICATOR_NAMES.TMPOS_CBA);
   const latestTmpos = tmposData.length > 0 ? tmposData[tmposData.length - 1] : null;
 
-  // Vacunación
-  const dpt4Data = data.filter(
-    d => d.indicador_nombre === INDICATOR_NAMES.DPT4_NACIONAL
-  );
-  const latestDpt4 = dpt4Data.length > 0
-    ? [...dpt4Data].sort((a, b) => Number(b.periodo) - Number(a.periodo))[0]
-    : null;
+  // ─── Vacunación: compute data ────────────────────────────────────
+  const getVaccinationSeries = (nombreIndicador: string) =>
+    data
+      .filter(d => d.indicador_nombre === nombreIndicador)
+      .map(d => ({
+        periodo: d.periodo,
+        valor: Number(d.valor) || 0,
+        region: d.region,
+      }))
+      .sort((a, b) => Number(a.periodo) - Number(b.periodo));
 
-  const tripleViralData = data.filter(
-    d => d.indicador_nombre === INDICATOR_NAMES.TRIPLE_VIRAL
-  );
-  const latestTripleViral = tripleViralData.length > 0
-    ? [...tripleViralData].sort((a, b) => Number(b.periodo) - Number(a.periodo))[0]
-    : null;
+  const dpt3Series = getVaccinationSeries(INDICATOR_NAMES.DPT3_NACIONAL);
+  const dpt4Series = getVaccinationSeries(INDICATOR_NAMES.DPT4_NACIONAL);
+  const srp1Series = getVaccinationSeries(INDICATOR_NAMES.SRP1_NACIONAL);
+  const srp2Series = getVaccinationSeries(INDICATOR_NAMES.SRP2_NACIONAL);
+  const pcv13Series = getVaccinationSeries(INDICATOR_NAMES.PCV13_NACIONAL);
 
-  // Últimos valores
+  const latestDpt3 = dpt3Series[dpt3Series.length - 1] ?? null;
+  const latestDpt4 = dpt4Series[dpt4Series.length - 1] ?? null;
+  const latestSrp1 = srp1Series[srp1Series.length - 1] ?? null;
+  const latestSrp2 = srp2Series[srp2Series.length - 1] ?? null;
+  const latestPcv13 = pcv13Series[pcv13Series.length - 1] ?? null;
+
+  // Esquemas incompletos
+  const esquemasIncompletos = data.find(
+    d => d.indicador_nombre === INDICATOR_NAMES.ESQUEMAS_INCOMPLETOS
+  );
+  const sinDpt4 = data.find(d => d.indicador_nombre === INDICATOR_NAMES.SIN_DPT4_REFUERZO);
+  const sinSrp1 = data.find(d => d.indicador_nombre === INDICATOR_NAMES.SIN_SRP1_HAV);
+  const sinPcv13 = data.find(d => d.indicador_nombre === INDICATOR_NAMES.SIN_PCV13);
+
+  // Córdoba
+  const dpt4Cba = data.find(d => d.indicador_nombre === INDICATOR_NAMES.DPT4_CORDOBA);
+  const srp2Cba = data.find(d => d.indicador_nombre === INDICATOR_NAMES.SRP2_CORDOBA);
+  const dptEscolarCba = data.find(d => d.indicador_nombre === INDICATOR_NAMES.DPT_ESCOLAR_CORDOBA);
+
+  // Evolución histórica combinada para el gráfico principal
+  const buildVaccinationChart = () => {
+    const periodos = [
+      ...new Set(
+        [...dpt3Series, ...dpt4Series, ...srp1Series, ...srp2Series, ...pcv13Series].map(
+          d => d.periodo
+        )
+      ),
+    ].sort();
+
+    return periodos.map(periodo => ({
+      periodo,
+      DPT3: dpt3Series.find(d => d.periodo === periodo)?.valor ?? null,
+      DPT4: dpt4Series.find(d => d.periodo === periodo)?.valor ?? null,
+      'SRP 1ra dosis': srp1Series.find(d => d.periodo === periodo)?.valor ?? null,
+      'SRP 2da dosis': srp2Series.find(d => d.periodo === periodo)?.valor ?? null,
+      PCV13: pcv13Series.find(d => d.periodo === periodo)?.valor ?? null,
+    }));
+  };
+
+  // Quintil comparison
+  const quintil1Dpt4 = data.filter(d => d.indicador_nombre === INDICATOR_NAMES.DPT4_QUINTIL_1);
+  const quintil5Dpt4 = data.filter(d => d.indicador_nombre === INDICATOR_NAMES.DPT4_QUINTIL_5);
+
+  const buildQuintilChart = () => {
+    const periodos = [...new Set([...quintil1Dpt4, ...quintil5Dpt4].map(d => d.periodo))].sort();
+    return periodos.map(periodo => ({
+      periodo,
+      'Q1 — Mayor pobreza': quintil1Dpt4.find(d => d.periodo === periodo)?.valor ?? null,
+      'Q5 — Menor pobreza': quintil5Dpt4.find(d => d.periodo === periodo)?.valor ?? null,
+    }));
+  };
+
+  // Últimos valores de series
   const latestMortalidad =
     mortalidadData.length > 0 ? mortalidadData[mortalidadData.length - 1] : null;
 
@@ -442,7 +492,10 @@ export default function SaludPage() {
         })()}
 
       {/* Gráfico 3: Desglose de Mortalidad Infantil (4 indicadores) */}
-      {(mortalidadData.length > 0 || rmmData.length > 0 || tmneoData.length > 0 || tmposData.length > 0) &&
+      {(mortalidadData.length > 0 ||
+        rmmData.length > 0 ||
+        tmneoData.length > 0 ||
+        tmposData.length > 0) &&
         (() => {
           const series = [
             { key: 'TMI Cba', data: mortalidadData, color: COLORS.terracotta },
@@ -476,10 +529,7 @@ export default function SaludPage() {
             >
               <div className="h-72">
                 <ResponsiveContainer width="100%" height={280}>
-                  <LineChart
-                    data={chartData}
-                    margin={{ top: 10, right: 30, left: 10, bottom: 10 }}
-                  >
+                  <LineChart data={chartData} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
                     <XAxis dataKey="periodo" tick={{ fill: '#4D4D4D', fontSize: 12 }} />
                     <YAxis
@@ -515,45 +565,329 @@ export default function SaludPage() {
           );
         })()}
 
-      {/* Vacunación */}
-      {latestDpt4 && (
-        <div className="space-y-4">
-          <SectionHeader
+      {/* ═══════════════════════════════════════════════════════════════
+          VACUNACIÓN — Evolución histórica, cobertura por vacuna,
+          quintiles, Córdoba, esquemas incompletos
+          ═══════════════════════════════════════════════════════════════ */}
+      <div className="space-y-4">
+        <SectionHeader
+          icon={Syringe}
+          title="Cobertura de Vacunación"
+          description="Evolución histórica 2015-2024 — Calendario Nacional de Vacunación"
+          color="terracotta"
+        />
+
+        {/* KPIs de cobertura por vacuna */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <KpiCard
+            title="DPT3"
+            value={latestDpt3 ? `${latestDpt3.valor}%` : '—'}
+            subtitle={`3ra dosis ${latestDpt3?.periodo ?? ''}`}
             icon={Syringe}
-            title="Cobertura de Vacunación"
-            description="Porcentaje de cobertura de vacunación en población objetivo"
             color="terracotta"
           />
+          <KpiCard
+            title="DPT4"
+            value={latestDpt4 ? `${latestDpt4.valor}%` : '—'}
+            subtitle={`Refuerzo ${latestDpt4?.periodo ?? ''}`}
+            icon={Syringe}
+            color="blue"
+          />
+          <KpiCard
+            title="SRP 1ra dosis"
+            value={latestSrp1 ? `${latestSrp1.valor}%` : '—'}
+            subtitle={`${latestSrp1?.periodo ?? ''}`}
+            icon={Syringe}
+            color="magenta"
+          />
+          <KpiCard
+            title="SRP 2da dosis"
+            value={latestSrp2 ? `${latestSrp2.valor}%` : '—'}
+            subtitle={`${latestSrp2?.periodo ?? ''}`}
+            icon={Syringe}
+            color="amber"
+          />
+          <KpiCard
+            title="PCV13"
+            value={latestPcv13 ? `${latestPcv13.valor}%` : '—'}
+            subtitle={`Neumococo ${latestPcv13?.periodo ?? ''}`}
+            icon={Syringe}
+            color="orange"
+          />
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Esquemas incompletos KPIs */}
+        {(esquemasIncompletos || sinDpt4 || sinSrp1 || sinPcv13) && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <KpiCard
-              title="Cobertura DPT4 — Nacional"
-              value={latestDpt4 ? `${Number(latestDpt4.valor).toFixed(1)}%` : '—'}
-              subtitle={`${latestDpt4.periodo || ''} — Cobertura nacional DPT4`}
-              icon={Syringe}
+              title="Esquemas incompletos <1 año"
+              value={
+                esquemasIncompletos
+                  ? `${Number(esquemasIncompletos.valor).toLocaleString('es-AR')}`
+                  : '—'
+              }
+              subtitle="Niños con esquema incompleto"
+              icon={AlertCircle}
+              color="magenta"
+            />
+            <KpiCard
+              title="Sin DPT4 refuerzo"
+              value={sinDpt4 ? `${Number(sinDpt4.valor).toLocaleString('es-AR')}` : '—'}
+              subtitle="15-18 meses sin refuerzo"
+              icon={AlertCircle}
               color="terracotta"
             />
-            {latestTripleViral && (
-              <KpiCard
-                title="Triple Viral (SRP) — 1ra dosis"
-                value={`${Number(latestTripleViral.valor).toFixed(1)}%`}
-                subtitle={`${latestTripleViral.periodo || ''} — Cobertura nacional SRP`}
-                icon={Syringe}
-                color="blue"
-              />
-            )}
+            <KpiCard
+              title="Sin SRP1 + Hepatitis A"
+              value={sinSrp1 ? `${Number(sinSrp1.valor).toLocaleString('es-AR')}` : '—'}
+              subtitle="12 meses sin vacunar"
+              icon={AlertCircle}
+              color="blue"
+            />
+            <KpiCard
+              title="Sin PCV13"
+              value={sinPcv13 ? `${Number(sinPcv13.valor).toLocaleString('es-AR')}` : '—'}
+              subtitle="Sin refuerzo neumococo"
+              icon={AlertCircle}
+              color="amber"
+            />
           </div>
+        )}
 
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
-            <Info className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
-            <p className="text-sm text-amber-800 font-body">
-              Datos provenientes de SAP (Sistema de Atención Primaria) y Ministerio de Salud de la
-              Nación. Las coberturas reflejan el porcentaje de la población objetivo que recibió las
-              dosis correspondientes según el Calendario Nacional de Vacunación.
+        {/* Gráfico: Evolución histórica 2015-2024 con línea de herd immunity 95% */}
+        <ChartWithTable
+          title="Evolución de Cobertura — Todas las Vacunas (2015-2024)"
+          subtitle="Ninguna vacuna alcanzó el 95% necesario para inmunidad de rebaño en los últimos 7 años"
+          color="terracotta"
+          fuente="SAP/UNICEF Observatorio de la Infancia — Ministerio de Salud DiCEI"
+          data={buildVaccinationChart()}
+          dataKey="valor"
+          xAxisKey="periodo"
+        >
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height={320}>
+              <LineChart
+                data={buildVaccinationChart()}
+                margin={{ top: 10, right: 30, left: 10, bottom: 10 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
+                <XAxis dataKey="periodo" tick={{ fill: '#4D4D4D', fontSize: 12 }} />
+                <YAxis
+                  tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                  domain={[40, 100]}
+                  tickFormatter={v => `${v}%`}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#FFF',
+                    border: '1px solid #E0E0E0',
+                    borderRadius: '8px',
+                  }}
+                  formatter={(value, name) => [value !== null ? `${value}%` : '—', name]}
+                />
+                <Legend />
+                {/* Línea de referencia: 95% herd immunity */}
+                <Line
+                  type="monotone"
+                  dataKey={() => 95}
+                  stroke="#94A3B8"
+                  strokeWidth={1.5}
+                  strokeDasharray="8 4"
+                  dot={false}
+                  name="95% Inmunidad de rebaño"
+                  legendType="line"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="DPT3"
+                  stroke={COLORS.terracotta}
+                  strokeWidth={2.5}
+                  dot={{ fill: COLORS.terracotta, r: 3 }}
+                  name="DPT3 (6 meses)"
+                  connectNulls
+                />
+                <Line
+                  type="monotone"
+                  dataKey="DPT4"
+                  stroke={COLORS.blue}
+                  strokeWidth={2.5}
+                  dot={{ fill: COLORS.blue, r: 3 }}
+                  name="DPT4 (refuerzo 2do año)"
+                  connectNulls
+                />
+                <Line
+                  type="monotone"
+                  dataKey="SRP 1ra dosis"
+                  stroke={COLORS.magenta}
+                  strokeWidth={2}
+                  dot={{ fill: COLORS.magenta, r: 3 }}
+                  name="SRP 1ra dosis (12 meses)"
+                  connectNulls
+                />
+                <Line
+                  type="monotone"
+                  dataKey="SRP 2da dosis"
+                  stroke={COLORS.amber}
+                  strokeWidth={2}
+                  dot={{ fill: COLORS.amber, r: 3 }}
+                  name="SRP 2da dosis (5 años)"
+                  connectNulls
+                />
+                <Line
+                  type="monotone"
+                  dataKey="PCV13"
+                  stroke="#FF7F11"
+                  strokeWidth={2}
+                  dot={{ fill: '#FF7F11', r: 3 }}
+                  name="PCV13 Neumococo"
+                  connectNulls
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartWithTable>
+
+        {/* Gráfico: Comparación por quintil socioeconómico */}
+        {buildQuintilChart().length > 0 && (
+          <ChartWithTable
+            title="Cobertura DPT4 por Quintil Socioeconómico"
+            subtitle="Paradoja: el quintil más pobre a veces supera al más rico — posible efecto complacencia"
+            color="blue"
+            fuente="SAP CONARPE 2023"
+            data={buildQuintilChart()}
+            dataKey="valor"
+            xAxisKey="periodo"
+          >
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height={256}>
+                <BarChart
+                  data={buildQuintilChart()}
+                  margin={{ top: 10, right: 30, left: 10, bottom: 10 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
+                  <XAxis dataKey="periodo" tick={{ fill: '#4D4D4D', fontSize: 12 }} />
+                  <YAxis
+                    tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                    domain={[0, 100]}
+                    tickFormatter={v => `${v}%`}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#FFF',
+                      border: '1px solid #E0E0E0',
+                      borderRadius: '8px',
+                    }}
+                    formatter={(value, name) => [value !== null ? `${value}%` : '—', name]}
+                  />
+                  <Legend />
+                  <Bar
+                    dataKey="Q1 — Mayor pobreza"
+                    fill={COLORS.terracotta}
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <Bar dataKey="Q5 — Menor pobreza" fill={COLORS.blue} radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </ChartWithTable>
+        )}
+
+        {/* Datos Córdoba */}
+        {(dpt4Cba || srp2Cba || dptEscolarCba) && (
+          <ChartWithTable
+            title="Cobertura Vacunación — Córdoba"
+            subtitle="Jurisdicción provincial vs. nacional"
+            color="magenta"
+            fuente="SAP 2022"
+            data={
+              [
+                dpt4Cba && {
+                  indicador: 'DPT4 (refuerzo)',
+                  Córdoba: Number(dpt4Cba.valor),
+                  Nacional: latestDpt4?.valor ?? null,
+                  periodo: dpt4Cba.periodo,
+                },
+                srp2Cba && {
+                  indicador: 'SRP 2da dosis',
+                  Córdoba: Number(srp2Cba.valor),
+                  Nacional: latestSrp2?.valor ?? null,
+                  periodo: srp2Cba.periodo,
+                },
+                dptEscolarCba && {
+                  indicador: 'DPT escolar',
+                  Córdoba: Number(dptEscolarCba.valor),
+                  Nacional: null,
+                  periodo: dptEscolarCba.periodo,
+                },
+              ].filter(Boolean) as Record<string, unknown>[]
+            }
+            dataKey="Córdoba"
+            xAxisKey="indicador"
+          >
+            <div className="h-48">
+              <ResponsiveContainer width="100%" height={192}>
+                <BarChart
+                  data={
+                    [
+                      dpt4Cba && {
+                        indicador: 'DPT4',
+                        Córdoba: Number(dpt4Cba.valor),
+                        Nacional: latestDpt4?.valor ?? null,
+                      },
+                      srp2Cba && {
+                        indicador: 'SRP2',
+                        Córdoba: Number(srp2Cba.valor),
+                        Nacional: latestSrp2?.valor ?? null,
+                      },
+                      dptEscolarCba && {
+                        indicador: 'DPT Escolar',
+                        Córdoba: Number(dptEscolarCba.valor),
+                      },
+                    ].filter(Boolean) as Record<string, unknown>[]
+                  }
+                  margin={{ top: 10, right: 30, left: 10, bottom: 10 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
+                  <XAxis dataKey="indicador" tick={{ fill: '#4D4D4D', fontSize: 12 }} />
+                  <YAxis
+                    tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                    domain={[0, 100]}
+                    tickFormatter={v => `${v}%`}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#FFF',
+                      border: '1px solid #E0E0E0',
+                      borderRadius: '8px',
+                    }}
+                    formatter={(value, name) => [value !== null ? `${value}%` : '—', name]}
+                  />
+                  <Legend />
+                  <Bar dataKey="Córdoba" fill={COLORS.magenta} radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Nacional" fill={COLORS.blue} radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </ChartWithTable>
+        )}
+
+        {/* Contexto */}
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
+          <Info className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+          <div className="text-sm text-amber-800 font-body space-y-1">
+            <p>
+              <strong>Contexto:</strong> La pandemia COVID-19 provocó caídas de 10-20 puntos en
+              coberturas durante 2020. La recuperación fue desigual: DPT4 tardó 3 años en volver a
+              niveles pre-pandémicos (y en 2024 volvió a caer a 46%).
+            </p>
+            <p>
+              <strong>Calendario Nacional:</strong> DPT3 (6 meses), DPT4 refuerzo (15-18 meses), SRP
+              1ra dosis (12 meses), SRP 2da dosis (5 años ingreso escolar), PCV13 refuerzo (12
+              meses).
             </p>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
