@@ -196,18 +196,23 @@ body {
 /* ─── Print Styles ──────────────────────────────────────────── */
 
 @media print {
-  /* Hide everything except the report modal content */
+  /* Force backgrounds and colors */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide everything by default */
   body * {
     visibility: hidden;
   }
 
-  /* Show only the report modal content */
+  /* ── Informe ejecutivo print ─────────────────────────────── */
   .report-modal-print-area,
   .report-modal-print-area * {
     visibility: visible;
   }
 
-  /* Reset positioning for print */
   .report-modal-print-area {
     position: absolute;
     left: 0;
@@ -218,25 +223,49 @@ body {
     box-shadow: none;
   }
 
-  /* Force backgrounds on highlighted items */
-  * {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
+  /* ── Presentación IA print ───────────────────────────────── */
+  .slide-print-page {
+    display: block !important;
+    visibility: visible !important;
+    position: relative !important;
+    width: 100% !important;
+    height: 100vh !important;
+    overflow: hidden !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 
-  /* Avoid page breaks inside sections */
+  .slide-print-page * {
+    visibility: visible !important;
+  }
+
+  .slide-print-page:last-child {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  .slide-print-page > div {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  @page {
+    size: A4 landscape;
+    margin: 0;
+  }
+
   section {
     break-inside: avoid;
     page-break-inside: avoid;
-  }
-
-  /* Page margins */
-  @page {
-    margin: 1.5cm;
-  }
-
-  /* Remove scrollbar artifacts */
-  ::-webkit-scrollbar {
-    display: none;
   }
 }
