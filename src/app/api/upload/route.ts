@@ -1,7 +1,33 @@
 import { NextResponse } from "next/server";
 import { getSupabaseClient } from "@/lib/supabase";
+import { checkRateLimit } from "@/lib/agent/rate-limit";
+
+const MAX_UPLOAD_BODY_BYTES = 5 * 1024 * 1024; // 5 MB max for JSON upload body
 
 export async function POST(request: Request) {
+  // ── Rate limiting: 10 req/min per IP ──────────────────────────────────────
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    request.headers.get("x-real-ip") ||
+    "unknown";
+  const rl = checkRateLimit(`upload:${ip}`, 10);
+  if (!rl.allowed) {
+    const retryAfter = Math.ceil(rl.retryAfterMs / 1000);
+    return NextResponse.json(
+      { error: "Demasiadas solicitudes. Intente de nuevo en unos segundos." },
+      { status: 429, headers: { "Retry-After": String(retryAfter) } }
+    );
+  }
+
+  // ── Input validation: body size ─────────────────────────────────────────
+  const contentLength = request.headers.get("content-length");
+  if (contentLength && parseInt(contentLength, 10) > MAX_UPLOAD_BODY_BYTES) {
+    return NextResponse.json(
+      { error: "El cuerpo de la solicitud excede el tamaño máximo de 5 MB." },
+      { status: 413 }
+    );
+  }
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 

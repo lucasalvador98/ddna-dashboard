@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { checkRateLimit } from "@/lib/agent/rate-limit";
 
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
 
@@ -22,6 +23,20 @@ async function ckanFetch(baseUrl: string, action: string, params: Record<string,
 // ─── ROUTES ───────────────────────────────────────────────────────────────────
 
 export async function GET(request: Request) {
+  // ── Rate limiting: 30 req/min per IP ──────────────────────────────────────
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    request.headers.get("x-real-ip") ||
+    "unknown";
+  const rl = checkRateLimit(`external:${ip}`, 30);
+  if (!rl.allowed) {
+    const retryAfter = Math.ceil(rl.retryAfterMs / 1000);
+    return NextResponse.json(
+      { error: "Demasiadas solicitudes. Intente de nuevo en unos segundos." },
+      { status: 429, headers: { "Retry-After": String(retryAfter) } }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
   const source = searchParams.get("source"); // datosgob | cba | senaf | indec
   const action = searchParams.get("action");  // list | search | show | download

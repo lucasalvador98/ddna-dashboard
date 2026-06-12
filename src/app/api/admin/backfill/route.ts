@@ -52,13 +52,21 @@ interface BackfillSummary {
 // ---------------------------------------------------------------------------
 
 export async function POST(request: Request): Promise<NextResponse> {
-  // Auth check
+  // ── Auth check (INTERNAL_API_SECRET) ─────────────────────────────────────
+  // Si no está configurada la variable de entorno, se omite la autenticación
+  // (modo desarrollo). En producción, requerir Bearer token.
   const authHeader = request.headers.get('authorization');
   const expectedSecret = process.env.INTERNAL_API_SECRET;
 
   if (expectedSecret && authHeader !== `Bearer ${expectedSecret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json(
+      { error: 'No autorizado. Se requiere un token de API interno válido.' },
+      { status: 401 }
+    );
   }
+
+  // NOTA: No se aplica rate limiting — este es un endpoint administrativo
+  // que se ejecuta bajo demanda y ya tiene límite interno de 20 archivos.
 
   const supabase = getAdminClient();
 
