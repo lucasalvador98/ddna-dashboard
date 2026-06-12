@@ -577,6 +577,25 @@ export default function SaludPage() {
           color="terracotta"
         />
 
+        {/* Nomenclatura de vacunas */}
+        <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-gray-600 font-body">
+          <span>
+            <strong>DPT3</strong> — 3ra dosis quíntuple (6 meses)
+          </span>
+          <span>
+            <strong>DPT4</strong> — Refuerzo 2do año (15-18 meses)
+          </span>
+          <span>
+            <strong>SRP 1ra</strong> — Triple viral 12 meses
+          </span>
+          <span>
+            <strong>SRP 2da</strong> — Triple viral ingreso escolar
+          </span>
+          <span>
+            <strong>PCV13</strong> — Neumococo conjugado (12 meses)
+          </span>
+        </div>
+
         {/* KPIs de cobertura por vacuna */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <KpiCard
