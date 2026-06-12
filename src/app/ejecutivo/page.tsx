@@ -7,12 +7,15 @@
  * que antes estaba solo como modal en el homepage.
  */
 
+import { useRouter } from 'next/navigation';
 import { ReportModal } from '@/components/report-modal';
 
 export default function EjecutivoPage() {
+  const router = useRouter();
+
   return (
     <div className="space-y-6">
-      <ReportModal isOpen onClose={() => {}} />
+      <ReportModal isOpen onClose={() => router.push('/')} />
     </div>
   );
 }
