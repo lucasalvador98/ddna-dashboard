@@ -1,28 +1,10 @@
 /**
  * migrate-inversion.mjs — Data pipeline to fix "inversion social en infancia" in Supabase.
- *
- * Parses the Excel file with child-weighted budget execution data,
- * aggregates by area + year + program, cleans existing DB rows,
- * and inserts properly structured data.
- *
  * Usage: node --max-old-space-size=4096 scripts/migrate-inversion.mjs
+ * Requiere: SUPABASE_SERVICE_ROLE_KEY en .env.local
  */
-
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from './config.mjs';
 import XLSX from 'xlsx';
-
-// ─── Config ───────────────────────────────────────────────────────────────────
-
-const EXCEL_PATH =
-  'E:/Backup Luca/DDNA/Inversion/BASE DE DATOS VISUALIZADOR al PTO 2025.xlsx';
-
-const SUPABASE_URL = 'https://ppyyqrvirjqmfpqaqnxy.supabase.co';
-const SERVICE_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBweXlxcnZpcmpxbWZwcWFxbnh5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjE5MDMwNSwiZXhwIjoyMDkxNzY2MzA1fQ.g3NSsIO2Y6qGTtfvBQciTfTWyQIW0ev2tuUjY5QcYLM';
-
-const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
-  auth: { autoRefreshToken: false, persistSession: false },
-});
 
 // ─── Category Mapping ─────────────────────────────────────────────────────────
 

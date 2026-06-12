@@ -1,25 +1,10 @@
 /**
  * load-vaccination-data.mjs
- *
  * Carga datos históricos de cobertura de vacunación en Supabase.
- * Fuentes:
- *   - SAP/UNICEF: Observatorio de la Infancia — Informes 2022, 2023, 2024
- *   - Ministerio de Salud: Dirección de Control de Enfermedades Inmunoprevenibles
- *   - 4° Informe SAP (Julio 2025): coberturas 2015-2024
- *   - El Destape/Washington: datos preliminares 2024
- *
  * Run: node scripts/load-vaccination-data.mjs
+ * Requiere: SUPABASE_SERVICE_ROLE_KEY en .env.local
  */
-
-import { createClient } from '@supabase/supabase-js';
-
-const SUPABASE_URL = 'https://ppyyqrvirjqmfpqaqnxy.supabase.co';
-const SERVICE_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBweXlxcnZpcmpxbWZwcWFxbnh5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjE5MDMwNSwiZXhwIjoyMDkxNzY2MzA1fQ.g3NSsIO2Y6qGTtfvBQciTfTWyQIW0ev2tuUjY5QcYLM';
-
-const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
-  auth: { autoRefreshToken: false, persistSession: false },
-});
+import { supabase } from './config.mjs';
 
 // ─── Data ───────────────────────────────────────────────────────
 // Compiled from SAP reports + Ministerio de Salud + El Destape
