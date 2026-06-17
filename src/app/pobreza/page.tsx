@@ -104,7 +104,66 @@ export default function PobrezaPage() {
 
     async function load() {
       try {
-        const [indecRes, ucaRes] = await Promise.all([
+        // Targeted query with pagination.
+        // UCA-ODSA EDSA has 15K+ records (broken down by year/region/category).
+        // We only need 'Total' aggregates + top-level indicators (no breakdown).
+        const NEEDED_UCA_INDICATORS = [
+          'Pobreza monetaria (personas)',
+          'Indigencia (personas)',
+          'Inseguridad alimentaria total',
+          'Pobreza multidimensional (2+ carencias)',
+          'Inseguridad alimentaria total (personas)',
+          'Inseguridad alimentaria total (hogares)',
+          'No festejó el ultimo cumpleaños',
+          'No suele compartir cuentos y lecturas en familia',
+          'No suele usar internet',
+          'No suele leer textos impresos',
+          'Trabajo no registrado en la Seguridad Social',
+          'Desempleo',
+          'Empleo no registrado (informal)',
+          'Hacinamiento (I)',
+          'Déficit de saneamiento',
+          'Vivienda precaria',
+          'Calles sin pavimentar',
+          'Situación de pobreza (personas)',
+          'Situación de indigencia (personas)',
+          'Insuficiencia de ingresos (auto-percibido)',
+        ];
+
+        async function fetchAllUca(): Promise<IndicadorRow[]> {
+          const PAGE = 1000;
+          let offset = 0;
+          const rows: IndicadorRow[] = [];
+
+          while (true) {
+            const { data, error: pgErr } = await supabase
+              .from('indicadores')
+              .select('indicador_nombre, valor, periodo, desglose, fuente, region')
+              .eq('categoria', 'pobreza')
+              .eq('activo', true)
+              .in('indicador_nombre', NEEDED_UCA_INDICATORS)
+              .or('desglose->>categoria.is.null,desglose->>categoria.eq.Total')
+              .order('periodo', { ascending: true })
+              .range(offset, offset + PAGE - 1);
+
+            if (pgErr) throw pgErr;
+            if (!data || data.length === 0) break;
+
+            rows.push(
+              ...(data.map(r => ({
+                ...r,
+                desglose: parseDesglose(r.desglose),
+              })) as IndicadorRow[])
+            );
+
+            if (data.length < PAGE) break;
+            offset += PAGE;
+          }
+
+          return rows;
+        }
+
+        const [indecRes, ucaRows] = await Promise.all([
           supabase
             .from('indicadores')
             .select('indicador_nombre, valor, periodo, desglose, fuente, region')
@@ -112,17 +171,10 @@ export default function PobrezaPage() {
             .eq('fuente', INDEC_FUENTE)
             .eq('activo', true)
             .order('periodo', { ascending: true }),
-          supabase
-            .from('indicadores')
-            .select('indicador_nombre, valor, periodo, desglose, fuente, region')
-            .eq('categoria', 'pobreza')
-            .ilike('fuente', '%UCA%')
-            .eq('activo', true)
-            .order('periodo', { ascending: true }),
+          fetchAllUca(),
         ]);
 
         if (indecRes.error) throw indecRes.error;
-        if (ucaRes.error) throw ucaRes.error;
 
         if (!cancelled) {
           setIndecData(
@@ -131,12 +183,7 @@ export default function PobrezaPage() {
               desglose: parseDesglose(r.desglose),
             })) as IndicadorRow[]
           );
-          setUcaData(
-            (ucaRes.data || []).map(r => ({
-              ...r,
-              desglose: parseDesglose(r.desglose),
-            })) as IndicadorRow[]
-          );
+          setUcaData(ucaRows);
         }
       } catch (err) {
         if (!cancelled) {
@@ -606,7 +653,10 @@ function TabMultidimensional({
   }
 
   // ─── Compute dimension data from real DB records ──────────────
-  // Group by dimension and get latest value per dimension
+  // Filter to 'Total' category only (avoid subgroup breakdowns)
+  const ucaTotal = ucaData.filter(r => r.desglose?.categoria === 'Total');
+  const ucaForDimensions = ucaTotal.length > 0 ? ucaTotal : ucaData;
+
   const DIMENSION_LABELS: Record<string, string> = {
     alimentacion: 'Alimentación',
     crianza: 'Crianza',
@@ -627,7 +677,7 @@ function TabMultidimensional({
 
   // Get unique dimensions from data
   const dimensions = [
-    ...new Set(ucaData.map(r => r.desglose?.dimension as string).filter(Boolean)),
+    ...new Set(ucaForDimensions.map(r => r.desglose?.dimension as string).filter(Boolean)),
   ];
 
   // For each dimension, find the most recent "Total" record with highest-level indicator
@@ -636,15 +686,29 @@ function TabMultidimensional({
     alimentacion: [
       'Inseguridad alimentaria total (personas)',
       'Inseguridad alimentaria total (hogares)',
+      'Inseguridad alimentaria total',
     ],
     crianza: [
       'No festejó el ultimo cumpleaños',
       'No suele compartir cuentos y lecturas en familia',
     ],
     informacion: ['No suele usar internet', 'No suele leer textos impresos'],
-    empleo: ['Trabajo no registrado en la Seguridad Social', 'Desempleo'],
-    habitat: ['Hacinamiento', 'Vivienda precaria', 'Calles sin pavimentar'],
-    multidimensional: ['Situación de pobreza (personas)', 'Situación de indigencia (personas)'],
+    empleo: [
+      'Trabajo no registrado en la Seguridad Social',
+      'Desempleo',
+      'Empleo no registrado (informal)',
+    ],
+    habitat: [
+      'Hacinamiento (I)',
+      'Déficit de saneamiento',
+      'Vivienda precaria',
+      'Calles sin pavimentar',
+    ],
+    multidimensional: [
+      'Situación de pobreza (personas)',
+      'Situación de indigencia (personas)',
+      'Insuficiencia de ingresos (auto-percibido)',
+    ],
   };
 
   const getDimensionValue = (dimension: string) => {
@@ -652,17 +716,17 @@ function TabMultidimensional({
 
     // Try priority indicators first
     for (const indicatorName of priorities) {
-      const records = ucaData
+      const records = ucaForDimensions
         .filter(r => r.desglose?.dimension === dimension && r.indicador_nombre === indicatorName)
         .sort((a, b) => b.periodo - a.periodo);
 
       if (records.length > 0) return records[0];
     }
 
-    // Fallback: any record for this dimension
-    const any = ucaData
+    // Fallback: any record for this dimension (prefer higher-value indicators)
+    const any = ucaForDimensions
       .filter(r => r.desglose?.dimension === dimension)
-      .sort((a, b) => b.periodo - a.periodo);
+      .sort((a, b) => Number(b.valor) - Number(a.valor));
 
     return any[0];
   };
@@ -678,15 +742,17 @@ function TabMultidimensional({
     .sort((a, b) => b.valor - a.valor);
 
   // ─── Historical evolution for key indicators ──────────────────
+  // Use 'Total' category for historical series too
   const getHistoricSeries = (indicatorName: string) =>
-    ucaData
+    ucaForDimensions
       .filter(r => r.indicador_nombre === indicatorName)
       .map(r => ({ periodo: r.periodo, valor: Number(r.valor) || 0 }))
       .sort((a, b) => a.periodo - b.periodo);
 
+  // Use indicators with good historical coverage
   const historicAlimentaria = getHistoricSeries('Inseguridad alimentaria total (personas)');
   const historicEmpleo = getHistoricSeries('Trabajo no registrado en la Seguridad Social');
-  const historicHacinamiento = getHistoricSeries('Hacinamiento');
+  const historicHacinamiento = getHistoricSeries('Hacinamiento (I)');
   const historicInternet = getHistoricSeries('No suele usar internet');
 
   // Build combined historic chart

@@ -69,7 +69,7 @@ function findByKeyword(data: IndicadorRow[], keyword: string): IndicadorRow | un
 /** Busca el valor del indicador más reciente (mayor periodo) que matchee el keyword */
 function findLatest(data: IndicadorRow[], keyword: string): IndicadorRow | undefined {
   const matches = data.filter(d =>
-    d.indicador_nombre?.toLowerCase().includes(keyword.toLowerCase()),
+    d.indicador_nombre?.toLowerCase().includes(keyword.toLowerCase())
   );
   if (matches.length === 0) return undefined;
   return matches.reduce((a, b) => (a.periodo > b.periodo ? a : b));
@@ -87,12 +87,31 @@ export default function InfanciasPage() {
 
     async function load() {
       try {
+        // Targeted query: only fetch indicators this page actually displays.
+        // The UCA-ODSA dataset has 15K+ records; a generic query hits the
+        // Supabase 1000-row default limit and silently drops most indicators.
+        const NEEDED_INDICATORS = [
+          'Inseguridad alimentaria total (NNyA)',
+          'Inseguridad alimentaria severa (NNyA)',
+          'NNyA sin cuentos/historias orales en familia',
+          'No festejó el ultimo cumpleaños',
+          'NNyA 0-4 años que comparten cama/colchón',
+          'NNyA nivel muy bajo que comparten cama/colchón',
+          'NNyA sin biblioteca familiar',
+          'NNyA que no leen textos impresos',
+          'NNyA nivel muy bajo que no leen textos impresos',
+          'NNyA en hogares con hacinamiento (pobres)',
+          'NNyA sin internet en el hogar',
+          'NNyA sin actividad física extraescolar (interior)',
+          'NNyA en nivel muy bajo - inseguridad alimentaria severa',
+        ];
+
         const { data, error: err } = await supabase
           .from('indicadores')
           .select('indicador_nombre, valor, periodo, desglose, fuente, region')
           .eq('categoria', 'pobreza')
-          .ilike('fuente', '%UCA%')
           .eq('activo', true)
+          .in('indicador_nombre', NEEDED_INDICATORS)
           .order('periodo', { ascending: true });
 
         if (err) throw err;
@@ -102,7 +121,7 @@ export default function InfanciasPage() {
             (data || []).map(r => ({
               ...r,
               desglose: parseDesglose(r.desglose),
-            })) as IndicadorRow[],
+            })) as IndicadorRow[]
           );
         }
       } catch (err) {
@@ -252,9 +271,9 @@ function TabInfancia({
           <div className="text-sm text-blue-900 leading-relaxed space-y-2">
             <p>
               El <strong>Barómetro de la Deuda Social de la Infancia (UCA)</strong> monitorea el
-              cumplimiento de derechos de NNyA (0-17 años) en{' '}
-              <strong>7 dimensiones</strong> desde 2010: alimentación, salud, hábitat,
-              subsistencia, crianza y socialización, educación, e información.
+              cumplimiento de derechos de NNyA (0-17 años) en <strong>7 dimensiones</strong> desde
+              2010: alimentación, salud, hábitat, subsistencia, crianza y socialización, educación,
+              e información.
             </p>
             <p>
               Los datos corresponden a centros urbanos de Argentina (EDSA — Encuesta de la Deuda
@@ -285,7 +304,11 @@ function TabInfancia({
             subtitle="Redujeron ingesta de alimentos — 2025"
             icon={UtensilsCrossed}
             color="magenta"
-            change={insegTotal?.periodo ? `⬇️ vs ${insegTotal.valor > 30 ? '35.5% en 2024' : 'años anteriores'}` : undefined}
+            change={
+              insegTotal?.periodo
+                ? `⬇️ vs ${insegTotal.valor > 30 ? '35.5% en 2024' : 'años anteriores'}`
+                : undefined
+            }
             changeType="down"
           />
           <KpiCard
@@ -318,15 +341,13 @@ function TabInfancia({
       <section>
         <div className="flex items-center gap-2 mb-4">
           <span className="w-2 h-2 rounded-full bg-[#E07A5F] inline-block" />
-          <h2 className="font-accent text-sm text-[#E07A5F] uppercase tracking-wide">
-            Salud
-          </h2>
+          <h2 className="font-accent text-sm text-[#E07A5F] uppercase tracking-wide">Salud</h2>
         </div>
         <p className="font-body text-sm text-gray-600 mb-4">
           El 15.7% de NNyA no realizó ninguna consulta médica en 2025 y el 34.6% no asistió al
           odontólogo. En casi 1 de cada 5 casos la razón fue económica, exponiendo barreras de
-          acceso incluso en un sistema de salud formalmente gratuito. El déficit de cobertura
-          formal es récord: 6 de cada 10 chicos dependen exclusivamente del sistema público.
+          acceso incluso en un sistema de salud formalmente gratuito. El déficit de cobertura formal
+          es récord: 6 de cada 10 chicos dependen exclusivamente del sistema público.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <KpiCard
@@ -369,9 +390,9 @@ function TabInfancia({
           </h2>
         </div>
         <p className="font-body text-sm text-gray-600 mb-4">
-          Las privaciones en la crianza afectan el desarrollo temprano. Casi 1 de cada 3 chicos
-          no recibe estímulos de lectura oral en familia. Y 1 de cada 2 bebés de 0 a 4 años
-          duerme en cama compartida, un indicador crítico de hacinamiento extremo.
+          Las privaciones en la crianza afectan el desarrollo temprano. Casi 1 de cada 3 chicos no
+          recibe estímulos de lectura oral en familia. Y 1 de cada 2 bebés de 0 a 4 años duerme en
+          cama compartida, un indicador crítico de hacinamiento extremo.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <KpiCard
@@ -476,7 +497,9 @@ function TabInfancia({
             <div className="flex items-start gap-3">
               <UtensilsCrossed className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
               <div>
-                <h3 className="font-accent text-red-700 font-semibold">Inseguridad alimentaria severa</h3>
+                <h3 className="font-accent text-red-700 font-semibold">
+                  Inseguridad alimentaria severa
+                </h3>
                 <p className="text-3xl font-bold text-red-600 mt-2">× 28</p>
                 <p className="text-xs text-red-500 mt-1 leading-relaxed">
                   Un NNyA del nivel socioeconómico más bajo tiene <strong>28 veces más</strong>{' '}
@@ -495,8 +518,8 @@ function TabInfancia({
                 <p className="text-3xl font-bold text-red-600 mt-2">× 1.7</p>
                 <p className="text-xs text-red-500 mt-1 leading-relaxed">
                   El 68.6% de NNyA del nivel muy bajo no lee textos impresos vs 41.3% del nivel
-                  medio-alto. La brecha es de <strong>1.7 veces</strong>, y afecta al
-                  desarrollo cognitivo y educativo.
+                  medio-alto. La brecha es de <strong>1.7 veces</strong>, y afecta al desarrollo
+                  cognitivo y educativo.
                 </p>
               </div>
             </div>
@@ -506,12 +529,14 @@ function TabInfancia({
             <div className="flex items-start gap-3">
               <Home className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
               <div>
-                <h3 className="font-accent text-red-700 font-semibold">Cama compartida (hacinamiento)</h3>
+                <h3 className="font-accent text-red-700 font-semibold">
+                  Cama compartida (hacinamiento)
+                </h3>
                 <p className="text-3xl font-bold text-red-600 mt-2">× 3</p>
                 <p className="text-xs text-red-500 mt-1 leading-relaxed">
                   El 48.8% de NNyA del nivel muy bajo comparte cama o colchón vs 16.1% en niveles
-                  medios-altos. Es <strong>3 veces más</strong> frecuente, reflejando condiciones
-                  de vivienda crítica.
+                  medios-altos. Es <strong>3 veces más</strong> frecuente, reflejando condiciones de
+                  vivienda crítica.
                 </p>
               </div>
             </div>
