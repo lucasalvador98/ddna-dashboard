@@ -59,6 +59,23 @@ export const INDICATOR_NAMES = {
   SIN_SRP1_HAV: 'Sin SRP1 y Hepatitis A',
   SIN_PCV13: 'Sin refuerzo PCV13',
 
+  // UCA-ODSA dimensiones
+  UCA_INSEGURIDAD_ALIMENTARIA: 'Inseguridad alimentaria total (personas)',
+  UCA_INSEGURIDAD_ALIMENTARIA_SEVERA: 'Inseguridad alimentaria severa (personas)',
+  UCA_NO_FESTEJO_CUMPLE: 'No festejó el ultimo cumpleaños',
+  UCA_NO_CUENTOS_FAMILIA: 'No suele compartir cuentos y lecturas en familia',
+  UCA_NO_INTERNET: 'No suele usar internet',
+  UCA_NO_LEE_TEXTOS: 'No suele leer textos impresos',
+  UCA_DESSEMPEÑO: 'Desempleo',
+  UCA_EMPLEO_PLENO: 'Empleo pleno de derechos',
+  UCA_EMPLEO_NO_REGISTRADO: 'Trabajo no registrado en la Seguridad Social',
+  UCA_HACINAMIENTO: 'Hacinamiento',
+  UCA_CALLES_SIN_PAVIMENTAR: 'Calles sin pavimentar',
+  UCA_BASURALES: 'Con basurales cerca de la vivienda',
+  UCA_VIVIENDA_PRECARIA: 'Vivienda precaria',
+  UCA_POBREZA_PERSONAS: 'Situación de pobreza (personas)',
+  UCA_INDIGENCIA_PERSONAS: 'Situación de indigencia (personas)',
+
   // Educación
   TASA_ASISTENCIA_EDUCATIVA: 'Tasa de asistencia educativa',
   MATRICULA_GENERAL: 'Matrícula - General',

@@ -23,6 +23,8 @@ import { INDICATOR_NAMES } from '@/lib/indicator-names';
 import {
   BarChart,
   Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -61,29 +63,6 @@ const COLORS = {
 };
 
 const INDEC_FUENTE = 'EPH-INDEC / datos.gob.ar';
-
-// TODO: Replace hardcoded DIMENSIONES_UCA values with real data from indicadores table
-//       (categoria='pobreza', fuente ~ 'UCA'). Each dimension should come from its own
-//       indicador_nombre in the DB. The current values are approximate estimates based on
-//       UCA-ODSA historical reports and should be validated before production use.
-const DIMENSIONES_UCA = [
-  {
-    dimension: 'Déficit en alimentación y salud',
-    valor: 26.6,
-    fill: '#BF1363',
-    desc: '% de hogares',
-  },
-  { dimension: 'Déficit en servicios básicos', valor: 30, fill: '#E07A5F', desc: '% de hogares' },
-  { dimension: 'Déficit en vivienda digna', valor: 25, fill: '#F3A712', desc: '% de hogares' },
-  { dimension: 'Déficit en medio ambiente', valor: 40, fill: '#FF7F11', desc: '% de hogares' },
-  { dimension: 'Déficit en acceso a educación', valor: 20, fill: '#3777FF', desc: '% de hogares' },
-  {
-    dimension: 'Déficit en empleo y seg. social',
-    valor: 35,
-    fill: '#10B981',
-    desc: '% de hogares',
-  },
-];
 
 // ─── Helpers ────────────────────────────────────────────────────
 function fmt(val?: number | null): string {
@@ -417,7 +396,6 @@ export default function PobrezaPage() {
           ucMultidimensional={ucMultidimensional}
         />
       )}
-
     </div>
   );
 }
@@ -627,6 +605,112 @@ function TabMultidimensional({
     );
   }
 
+  // ─── Compute dimension data from real DB records ──────────────
+  // Group by dimension and get latest value per dimension
+  const DIMENSION_LABELS: Record<string, string> = {
+    alimentacion: 'Alimentación',
+    crianza: 'Crianza',
+    informacion: 'Información',
+    empleo: 'Empleo',
+    habitat: 'Hábitat',
+    multidimensional: 'Multidimensional',
+  };
+
+  const DIMENSION_COLORS: Record<string, string> = {
+    alimentacion: COLORS.magenta,
+    crianza: COLORS.terracotta,
+    informacion: COLORS.blue,
+    empleo: COLORS.amber,
+    habitat: COLORS.orange,
+    multidimensional: COLORS.green,
+  };
+
+  // Get unique dimensions from data
+  const dimensions = [
+    ...new Set(ucaData.map(r => r.desglose?.dimension as string).filter(Boolean)),
+  ];
+
+  // For each dimension, find the most recent "Total" record with highest-level indicator
+  // Priority indicators per dimension (most representative)
+  const PRIORITY_INDICATORS: Record<string, string[]> = {
+    alimentacion: [
+      'Inseguridad alimentaria total (personas)',
+      'Inseguridad alimentaria total (hogares)',
+    ],
+    crianza: [
+      'No festejó el ultimo cumpleaños',
+      'No suele compartir cuentos y lecturas en familia',
+    ],
+    informacion: ['No suele usar internet', 'No suele leer textos impresos'],
+    empleo: ['Trabajo no registrado en la Seguridad Social', 'Desempleo'],
+    habitat: ['Hacinamiento', 'Vivienda precaria', 'Calles sin pavimentar'],
+    multidimensional: ['Situación de pobreza (personas)', 'Situación de indigencia (personas)'],
+  };
+
+  const getDimensionValue = (dimension: string) => {
+    const priorities = PRIORITY_INDICATORS[dimension] || [];
+
+    // Try priority indicators first
+    for (const indicatorName of priorities) {
+      const records = ucaData
+        .filter(r => r.desglose?.dimension === dimension && r.indicador_nombre === indicatorName)
+        .sort((a, b) => b.periodo - a.periodo);
+
+      if (records.length > 0) return records[0];
+    }
+
+    // Fallback: any record for this dimension
+    const any = ucaData
+      .filter(r => r.desglose?.dimension === dimension)
+      .sort((a, b) => b.periodo - a.periodo);
+
+    return any[0];
+  };
+
+  const dimensionChartData = dimensions
+    .map(dim => ({
+      dimension: DIMENSION_LABELS[dim] || dim,
+      valor: Number(getDimensionValue(dim)?.valor) || 0,
+      fill: DIMENSION_COLORS[dim] || COLORS.blue,
+      indicator: getDimensionValue(dim)?.indicador_nombre || '',
+      periodo: getDimensionValue(dim)?.periodo || 0,
+    }))
+    .sort((a, b) => b.valor - a.valor);
+
+  // ─── Historical evolution for key indicators ──────────────────
+  const getHistoricSeries = (indicatorName: string) =>
+    ucaData
+      .filter(r => r.indicador_nombre === indicatorName)
+      .map(r => ({ periodo: r.periodo, valor: Number(r.valor) || 0 }))
+      .sort((a, b) => a.periodo - b.periodo);
+
+  const historicAlimentaria = getHistoricSeries('Inseguridad alimentaria total (personas)');
+  const historicEmpleo = getHistoricSeries('Trabajo no registrado en la Seguridad Social');
+  const historicHacinamiento = getHistoricSeries('Hacinamiento');
+  const historicInternet = getHistoricSeries('No suele usar internet');
+
+  // Build combined historic chart
+  const buildHistoricChart = () => {
+    const allYears = [
+      ...new Set([
+        ...historicAlimentaria.map(d => d.periodo),
+        ...historicEmpleo.map(d => d.periodo),
+        ...historicHacinamiento.map(d => d.periodo),
+        ...historicInternet.map(d => d.periodo),
+      ]),
+    ].sort();
+
+    return allYears.map(year => ({
+      periodo: year,
+      'Inseguridad alimentaria': historicAlimentaria.find(d => d.periodo === year)?.valor ?? null,
+      'Empleo no registrado': historicEmpleo.find(d => d.periodo === year)?.valor ?? null,
+      Hacinamiento: historicHacinamiento.find(d => d.periodo === year)?.valor ?? null,
+      'Sin internet': historicInternet.find(d => d.periodo === year)?.valor ?? null,
+    }));
+  };
+
+  const historicData = buildHistoricChart();
+
   return (
     <div className="space-y-6">
       {/* Explanatory box */}
@@ -637,8 +721,9 @@ function TabMultidimensional({
             <p>
               La <strong>UCA-ODSA</strong> mide la pobreza desde un{' '}
               <strong>enfoque de derechos</strong>. No solo ingresos: evalúa{' '}
-              <strong>6 dimensiones</strong> del desarrollo humano (alimentación, servicios,
-              vivienda, ambiente, educación, empleo).
+              <strong>6 dimensiones</strong> del desarrollo humano (alimentación, crianza,
+              información, empleo, hábitat, multidimensional). Datos extraídos de la{' '}
+              <strong>EDSA</strong> (Encuesta de la Deuda Social Argentina) 2004-2024.
             </p>
           </div>
         </div>
@@ -678,33 +763,17 @@ function TabMultidimensional({
         />
       </div>
 
-      {/* Chart: Dimensiones */}
-      <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-4">
-        <div className="flex gap-3">
-          <Info className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-          <div className="text-sm text-yellow-800 leading-relaxed">
-            <p className="font-medium">
-              Aviso: datos de dimensiones no disponibles en la base de datos
-            </p>
-            <p className="mt-1">
-              Los valores de las dimensiones que se muestran a continuación son{' '}
-              <strong>estimaciones aproximadas</strong> basadas en informes históricos de UCA-ODSA,
-              no datos extraídos de la base. La evolución por dimensión no está disponible
-              actualmente en el sistema. Se requiere carga de datos desde los informes completos.
-            </p>
-          </div>
-        </div>
-      </div>
+      {/* Chart: Dimensiones - latest values */}
       <ChartCard
         title="Dimensiones de la Pobreza Estructural"
-        subtitle="% de hogares con déficit en cada dimensión (valores estimados según UCA-ODSA 2010-2024). Cada barra indica el porcentaje de hogares urbanos que no accede adecuadamente a ese derecho."
+        subtitle="% de hogares con déficit en cada dimensión — último valor disponible (EDSA 2004-2024)"
         color="magenta"
         fuente="UCA-ODSA (EDSA)"
       >
         <ResponsiveContainer width="100%" height={360}>
           <BarChart
             layout="vertical"
-            data={DIMENSIONES_UCA}
+            data={dimensionChartData}
             margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" horizontal={false} />
@@ -719,7 +788,7 @@ function TabMultidimensional({
               type="category"
               tick={{ fill: '#4D4D4D', fontSize: 12 }}
               tickLine={false}
-              width={160}
+              width={120}
             />
             <Tooltip
               contentStyle={{
@@ -728,22 +797,100 @@ function TabMultidimensional({
                 borderRadius: '8px',
                 fontSize: '13px',
               }}
-              formatter={value => [`${value ?? '—'}%`, '']}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              formatter={
+                ((value: any, _name: any, props: any) => [
+                  `${value ?? '—'}%`,
+                  props?.payload?.indicator || _name,
+                ]) as any
+              }
             />
             <Bar dataKey="valor" radius={[0, 4, 4, 0]}>
-              {DIMENSIONES_UCA.map((d, i) => (
+              {dimensionChartData.map((d, i) => (
                 <Cell key={`uca-cell-${i}`} fill={d.fill} />
               ))}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
         <p className="text-xs text-gray-400 text-center mt-4">
-          Valores estimados según metodología UCA-ODSA. Datos exactos en informe completo.
-        </p>
-        <p className="text-xs text-gray-400 text-center mt-2">
-          Los datos de evolución por dimensión están disponibles en el informe completo de UCA-ODSA.
+          Fuente: UCA-ODSA — Encuesta de la Deuda Social Argentina (EDSA) 2004-2024
         </p>
       </ChartCard>
+
+      {/* Historical evolution chart */}
+      {historicData.length > 0 && (
+        <ChartCard
+          title="Evolución de Dimensiones Clave (2004-2024)"
+          subtitle="Indicadores seleccionados por dimensión — muestra tendencias de largo plazo"
+          color="magenta"
+          fuente="UCA-ODSA (EDSA)"
+        >
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height={320}>
+              <LineChart data={historicData} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                <XAxis
+                  dataKey="periodo"
+                  tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                  tickLine={{ stroke: '#E5E7EB' }}
+                />
+                <YAxis
+                  tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                  tickLine={{ stroke: '#E5E7EB' }}
+                  tickFormatter={(v: number) => `${v}%`}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#FFF',
+                    border: '1px solid #E0E0E0',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                  }}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  formatter={((value: any) => [value !== null ? `${value}%` : '—', '']) as any}
+                />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="Inseguridad alimentaria"
+                  stroke={COLORS.magenta}
+                  strokeWidth={2}
+                  dot={{ fill: COLORS.magenta, r: 3 }}
+                  connectNulls
+                />
+                <Line
+                  type="monotone"
+                  dataKey="Empleo no registrado"
+                  stroke={COLORS.amber}
+                  strokeWidth={2}
+                  dot={{ fill: COLORS.amber, r: 3 }}
+                  connectNulls
+                />
+                <Line
+                  type="monotone"
+                  dataKey="Hacinamiento"
+                  stroke={COLORS.orange}
+                  strokeWidth={2}
+                  dot={{ fill: COLORS.orange, r: 3 }}
+                  connectNulls
+                />
+                <Line
+                  type="monotone"
+                  dataKey="Sin internet"
+                  stroke={COLORS.blue}
+                  strokeWidth={2}
+                  dot={{ fill: COLORS.blue, r: 3 }}
+                  connectNulls
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          <p className="text-xs text-gray-400 text-center mt-4">
+            Indicadores seleccionados: uno representativo por dimensión (alimentación, empleo,
+            hábitat, información)
+          </p>
+        </ChartCard>
+      )}
 
       {/* Context Box */}
       <div className="bg-amber-50 border border-amber-200 rounded-xl p-5">
@@ -752,9 +899,9 @@ function TabMultidimensional({
           <div className="text-sm text-amber-900 leading-relaxed">
             <p>
               La UCA mide <strong>pobreza multidimensional</strong>: no solo ingreso, sino también
-              acceso a derechos (alimentación, salud, vivienda, educación, empleo). El{' '}
+              acceso a derechos. Los datos muestran que el{' '}
               <strong>{fmt(ucInseguridad?.valor)}</strong> de personas sufre inseguridad alimentaria
-              — incluso el <strong>26.7%</strong> de quienes <em>NO</em> son pobres por ingreso.
+              — incluso quienes <em>NO</em> son pobres por ingreso.
             </p>
           </div>
         </div>
@@ -762,5 +909,3 @@ function TabMultidimensional({
     </div>
   );
 }
-
-
