@@ -1,16 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { ChevronDown, ChevronLeft } from 'lucide-react';
 import clsx from 'clsx';
 import { navigation, findGroupForPath } from '@/lib/navigation';
+import { useSidebar } from '@/components/sidebar-context';
 
 export function Sidebar() {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const { isCollapsed, toggleCollapse } = useSidebar();
+  const [expandedGroups, setExpandedGroups] = React.useState<Set<string>>(new Set());
   const pathname = usePathname();
 
   // Auto-expand the group that contains the current route
@@ -47,9 +48,6 @@ export function Sidebar() {
         isCollapsed ? 'w-14 sm:w-16' : 'w-60'
       )}
     >
-      {/* Gradient accent strip */}
-      <div className="h-1.5 bg-gradient-to-r from-[#FF7F11] via-[#F3A712] to-[#FF7F11]" />
-
       {/* Logo Area */}
       <div className="flex items-center justify-center p-4 border-b border-[#E0E0E0]">
         <Image
@@ -66,7 +64,6 @@ export function Sidebar() {
       <nav className="flex-1 py-3 overflow-y-auto">
         <ul className="space-y-0.5 px-2">
           {navigation.map(group => {
-            const isActive = isItemActive(group.items[0].href);
             const isExpanded = expandedGroups.has(group.label);
             const isSingleItem = group.items.length === 1;
             const activeChild = group.items.find(item => isItemActive(item.href));
@@ -180,7 +177,7 @@ export function Sidebar() {
 
       {/* Collapse toggle */}
       <button
-        onClick={() => setIsCollapsed(!isCollapsed)}
+        onClick={toggleCollapse}
         className="absolute -right-3 top-20 w-6 h-6 bg-white border border-[#E0E0E0] rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:border-gray-300 transition-colors shadow-sm"
         aria-label={isCollapsed ? 'Expandir sidebar' : 'Colapsar sidebar'}
       >

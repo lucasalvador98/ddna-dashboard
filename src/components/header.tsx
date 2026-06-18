@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Bell, Menu, X, Globe, ChevronRight } from 'lucide-react';
 import clsx from 'clsx';
 import { navigation, routeTitles } from '@/lib/navigation';
+import { useSidebar } from '@/components/sidebar-context';
 
 // Build flat nav links from grouped navigation for mobile menu
 const navLinks = navigation.flatMap(group =>
@@ -52,6 +53,7 @@ function Breadcrumb() {
 
 export function Header() {
   const pathname = usePathname();
+  const { toggleCollapse, isCollapsed } = useSidebar();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLangOpen, setIsLangOpen] = useState(false);
 
@@ -59,26 +61,46 @@ export function Header() {
 
   return (
     <header className="bg-white border-b border-[#E0E0E0] sticky top-0 z-40">
-      {/* Gradient accent strip */}
+      {/* Single gradient accent strip — now only here */}
       <div className="h-1.5 bg-gradient-to-r from-[#FF7F11] via-[#F3A712] to-[#FF7F11]" />
 
       {/* Desktop Header */}
-      <div
-        className={clsx(
-          'hidden md:flex items-center px-6 lg:px-8 py-4',
-          pathname === '/' ? 'justify-end' : 'justify-between'
-        )}
-      >
-        {/* Breadcrumb — hidden on homepage */}
-        {pathname !== '/' && (
-          <div>
-            <h1 className="font-display text-2xl text-[#1a2556] tracking-tight">{title}</h1>
-            <Breadcrumb />
-          </div>
-        )}
+      <div className="hidden md:flex items-center gap-3 px-6 lg:px-8 py-3">
+        {/* Hamburger — toggle sidebar collapse */}
+        <button
+          onClick={toggleCollapse}
+          className="p-2 -ml-2 rounded-lg hover:bg-[#FDF3E7] transition-colors text-[#4D4D4D]"
+          aria-label={isCollapsed ? 'Expandir sidebar' : 'Colapsar sidebar'}
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+
+        {/* Compact DDNA logo */}
+        <Link href="/" className="flex-shrink-0">
+          <Image
+            src="/logos/LOGO DDNA_HORIZONTAL_COLOR.png"
+            alt="DDNA"
+            width={76}
+            height={20}
+            style={{ height: 'auto' }}
+            className="object-contain"
+            priority
+          />
+        </Link>
+
+        {/* Separator */}
+        <div className="w-px h-6 bg-[#E0E0E0]" />
+
+        {/* Page title + breadcrumb */}
+        <div className="flex-1 min-w-0">
+          <h1 className="font-display text-xl text-[#1a2556] tracking-tight truncate">
+            {title}
+          </h1>
+          <Breadcrumb />
+        </div>
 
         {/* Right Side Controls */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           {/* Language Selector */}
           <div className="relative">
             <button
