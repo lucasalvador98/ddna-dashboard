@@ -131,50 +131,83 @@ const DEFAULT_SERIES_LIMIT = 50;
 export async function listAvailableIndicators(): Promise<ListAvailableResult> {
   const client = getSupabaseClient();
 
-  const { data, error } = await client
+  // First get all distinct indicator names per category (without periodos)
+  // to avoid truncation from the raw-row LIMIT.
+  const { data: distinctData, error: distinctError } = await client
     .from('indicadores')
-    .select('categoria, indicador_nombre, unidad, periodo')
+    .select('categoria, indicador_nombre, unidad')
     .eq('activo', true)
     .order('categoria', { ascending: true })
-    .order('indicador_nombre', { ascending: true })
-    .limit(MAX_RESULTS);
+    .order('indicador_nombre', { ascending: true });
 
-  if (error) {
-    console.error('listAvailableIndicators DB error:', error);
+  if (distinctError) {
+    console.error('listAvailableIndicators distinct query error:', distinctError);
     throw new Error('Error al consultar indicadores disponibles.');
   }
 
-  if (!data || data.length === 0) {
+  if (!distinctData || distinctData.length === 0) {
     return { categorias: [], total_categorias: 0, total_indicadores: 0 };
   }
 
-  // Group rows: categoria → indicador_nombre → { unidad, periodos[], total_filas }
+  // Deduplicate (categoria, indicador_nombre, unidad) in case of repeats
+  const deduped = new Map<string, (typeof distinctData)[0]>();
+  for (const row of distinctData) {
+    const key = `${row.categoria}||${row.indicador_nombre}`;
+    if (!deduped.has(key)) {
+      deduped.set(key, row);
+    }
+  }
+
+  // Now get periodos for each indicator (separate query with limit)
+  const distinctEntries = Array.from(deduped.values());
+  const indicatorNames = [...new Set(distinctEntries.map(r => r.indicador_nombre))];
+
+  const { data: periodData, error: periodError } = await client
+    .from('indicadores')
+    .select('indicador_nombre, periodo')
+    .eq('activo', true)
+    .in('indicador_nombre', indicatorNames)
+    .order('periodo', { ascending: false })
+    .limit(MAX_RESULTS * 5);
+
+  if (periodError) {
+    console.error('listAvailableIndicators period query error:', periodError);
+    throw new Error('Error al consultar periodos de indicadores.');
+  }
+
+  // Build a map: indicador_nombre → Set of periodos
+  const periodMap = new Map<string, Set<string>>();
+  if (periodData) {
+    for (const row of periodData as Pick<IndicadorRow, 'indicador_nombre' | 'periodo'>[]) {
+      if (!periodMap.has(row.indicador_nombre)) {
+        periodMap.set(row.indicador_nombre, new Set());
+      }
+      periodMap.get(row.indicador_nombre)!.add(String(row.periodo));
+    }
+  }
+
   const catMap = new Map<
     string,
-    Map<string, { unidad: string; periodos: Set<string>; total_filas: number }>
+    Map<string, { unidad: string; periodos: string[]; total_filas: number }>
   >();
 
-  for (const row of data as Pick<
-    IndicadorRow,
-    'categoria' | 'indicador_nombre' | 'unidad' | 'periodo'
-  >[]) {
+  for (const row of distinctEntries) {
     if (!catMap.has(row.categoria)) {
       catMap.set(row.categoria, new Map());
     }
     const indMap = catMap.get(row.categoria)!;
 
     if (!indMap.has(row.indicador_nombre)) {
+      const periodos = Array.from(periodMap.get(row.indicador_nombre) ?? []).sort().reverse();
       indMap.set(row.indicador_nombre, {
         unidad: row.unidad,
-        periodos: new Set(),
-        total_filas: 0,
+        periodos,
+        total_filas: periodos.length,
       });
     }
-    const entry = indMap.get(row.indicador_nombre)!;
-    entry.periodos.add(row.periodo);
-    entry.total_filas += 1;
   }
 
+  // Build result from deduplicated entries
   const categorias: CategoriaInfo[] = [];
   let totalIndicadores = 0;
 
@@ -184,7 +217,7 @@ export async function listAvailableIndicators(): Promise<ListAvailableResult> {
       indicadores.push({
         nombre: indName,
         unidad: entry.unidad,
-        periodos: Array.from(entry.periodos).sort().reverse(),
+        periodos: entry.periodos,
         total_filas: entry.total_filas,
       });
       totalIndicadores += 1;
@@ -541,6 +574,79 @@ export async function getIndicatorBreakdown(
 }
 
 // ---------------------------------------------------------------------------
+// Search / fuzzy-match
+// ---------------------------------------------------------------------------
+
+export interface SearchResult {
+  indicador_nombre: string;
+  categoria: string;
+  ultimo_valor: number | null;
+  unidad: string;
+  ultimo_periodo: string | null;
+  fuente: string | null;
+  total_resultados: number;
+}
+
+/**
+ * Busca indicadores por nombre usando ILIKE (fuzzy match).
+ * Útil cuando el usuario pregunta con términos aproximados
+ * (ej: "pobreza infantil", "mortalidad", "desempleo jóvenes").
+ *
+ * Retorna hasta 20 resultados con el último valor disponible de cada uno.
+ */
+export async function searchIndicators(
+  query: string,
+  categoria?: string
+): Promise<SearchResult[]> {
+  const client = getSupabaseClient();
+
+  let dbQuery = client
+    .from('indicadores')
+    .select('indicador_nombre, categoria, valor, unidad, periodo, fuente')
+    .eq('activo', true)
+    .ilike('indicador_nombre', `%${query}%`)
+    .order('periodo', { ascending: false })
+    .limit(200);
+
+  if (categoria) {
+    dbQuery = dbQuery.eq('categoria', categoria);
+  }
+
+  const { data, error } = await dbQuery;
+
+  if (error) {
+    console.error('searchIndicators DB error:', error);
+    throw new Error(`Error al buscar indicadores para "${query}".`);
+  }
+
+  if (!data || data.length === 0) {
+    return [];
+  }
+
+  const rows = data as Pick<IndicadorRow, 'indicador_nombre' | 'categoria' | 'valor' | 'unidad' | 'periodo' | 'fuente'>[];
+
+  // Keep only the latest row per indicator name
+  const seen = new Map<string, (typeof rows)[0]>();
+  for (const row of rows) {
+    if (!seen.has(row.indicador_nombre)) {
+      seen.set(row.indicador_nombre, row);
+    }
+  }
+
+  const results = Array.from(seen.entries()).map(([_, row]) => ({
+    indicador_nombre: row.indicador_nombre,
+    categoria: row.categoria,
+    ultimo_valor: row.valor,
+    unidad: row.unidad,
+    ultimo_periodo: String(row.periodo),
+    fuente: row.fuente,
+    total_resultados: seen.size,
+  }));
+
+  return results;
+}
+
+// ---------------------------------------------------------------------------
 // Tool definitions (for the LLM system prompt — legacy format)
 // ---------------------------------------------------------------------------
 
@@ -582,6 +688,12 @@ export const INDICATOR_TOOL_DEFINITIONS: ToolDefinition[] = [
       'Desglosa un indicador por una dimensión específica (ej: grupo de edad, género, región). Usala cuando el usuario pregunta por diferencias entre grupos o quiere ver la composición de un indicador (ej: "Pobreza infantil por grupo de edad").',
     parameters:
       'indicadorNombre (requerido), categoria (opcional), desgloseField (opcional — se auto-detecta si no se especifica)',
+  },
+  {
+    name: 'searchIndicators',
+    description:
+      'Busca indicadores por nombre usando coincidencia aproximada (ILIKE). Usala cuando el usuario pregunta con términos generales (ej: "pobreza infantil", "mortalidad", "desempleo", "educación") y no sabés el nombre exacto del indicador. Devuelve hasta 20 resultados con su último valor.',
+    parameters: 'query (requerido) — término de búsqueda, categoria (opcional) para filtrar por categoría',
   },
 ];
 
@@ -715,6 +827,30 @@ export const INDICATOR_OPENAPI_TOOLS: Array<{
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'searchIndicators',
+      description:
+        'Busca indicadores por nombre usando coincidencia aproximada (ILIKE). Usala cuando el usuario pregunte con términos generales (ej: "pobreza infantil", "mortalidad", "desempleo", "educación") y no sabés el nombre exacto del indicador. Devuelve hasta 20 indicadores con su último valor y fuente.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: {
+            type: 'string',
+            description:
+              'Término de búsqueda en lenguaje natural (ej: "pobreza infantil", "mortalidad", "NNyA", "desempleo"). Se busca por coincidencia parcial en el nombre del indicador.',
+          },
+          categoria: {
+            type: 'string',
+            description:
+              'Categoría para filtrar (opcional). Valores: pobreza, salud, educacion, inversion, demografia, seguridad, justicia.',
+          },
+        },
+        required: ['query'],
+      },
+    },
+  },
 ];
 
 /**
@@ -760,6 +896,12 @@ export async function executeIndicatorTool(
         params.categoria || undefined,
         params.desgloseField || undefined
       );
+
+    case 'searchIndicators':
+      if (!params.query) {
+        throw new Error('searchIndicators requiere el parámetro "query".');
+      }
+      return searchIndicators(params.query, params.categoria || undefined);
 
     default:
       throw new Error(`Herramienta desconocida: "${name}".`);
@@ -835,6 +977,19 @@ export function extractDataSources(
     }
     case 'listAvailableIndicators': {
       // Listing doesn't produce specific data-source references
+      break;
+    }
+    case 'searchIndicators': {
+      const arr = Array.isArray(r) ? r as unknown as SearchResult[] : undefined;
+      if (arr) {
+        for (const res of arr) {
+          sources.push({
+            indicador: res.indicador_nombre,
+            periodo: res.ultimo_periodo ?? undefined,
+            valor: res.ultimo_valor ?? undefined,
+          });
+        }
+      }
       break;
     }
   }
