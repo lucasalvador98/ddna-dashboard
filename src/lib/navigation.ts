@@ -50,7 +50,7 @@ export const navigation: NavGroup[] = [
     icon: BookOpen,
     color: '#F3A712',
     items: [
-      { label: 'Indicadores', href: '/educacion', icon: BookOpen },
+      { label: 'Educación', href: '/educacion', icon: BookOpen },
     ],
   },
   {
