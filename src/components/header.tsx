@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Bell, Menu, X, Globe, ChevronRight } from 'lucide-react';
+import { Menu, X, ChevronRight } from 'lucide-react';
 import clsx from 'clsx';
 import { navigation, routeTitles } from '@/lib/navigation';
 import { useSidebar } from '@/components/sidebar-context';
@@ -55,7 +55,6 @@ export function Header() {
   const pathname = usePathname();
   const { toggleCollapse, isCollapsed } = useSidebar();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isLangOpen, setIsLangOpen] = useState(false);
 
   const title = routeTitles[pathname] || 'DDNA';
 
@@ -80,8 +79,8 @@ export function Header() {
           <Image
             src="/logos/LOGO DDNA_HORIZONTAL_COLOR.png"
             alt="DDNA"
-            width={110}
-            height={30}
+            width={150}
+            height={40}
             style={{ height: 'auto' }}
             className="object-contain"
             priority
@@ -101,39 +100,7 @@ export function Header() {
           </>
         )}
 
-        {/* Right Side Controls */}
-        <div className="flex items-center gap-2">
-          {/* Language Selector */}
-          <div className="relative">
-            <button
-              onClick={() => setIsLangOpen(!isLangOpen)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#FDF3E7] transition-colors text-[#4D4D4D]"
-              aria-label="Selector de idioma"
-            >
-              <Globe className="w-4 h-4" />
-              <span className="font-body text-sm font-medium">ES</span>
-            </button>
-            {isLangOpen && (
-              <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-[#E0E0E0] py-1 z-50">
-                <button className="w-full px-4 py-2 text-left font-body text-sm hover:bg-[#FDF3E7] text-[#4D4D4D]">
-                  Español
-                </button>
-                <button className="w-full px-4 py-2 text-left font-body text-sm hover:bg-[#FDF3E7] text-[#4D4D4D]">
-                  English
-                </button>
-              </div>
-            )}
-          </div>
 
-          {/* Notification Bell */}
-          <button
-            className="relative p-2 rounded-lg hover:bg-[#FDF3E7] transition-colors text-[#4D4D4D]"
-            aria-label="Notificaciones"
-          >
-            <Bell className="w-5 h-5" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-[#BF1363] rounded-full" />
-          </button>
-        </div>
       </div>
 
       {/* Mobile Header */}
