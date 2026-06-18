@@ -59,6 +59,7 @@ export interface IndicatorValue {
   periodo: string;
   valor: number;
   unidad: string;
+  region: string | null;
   desglose: Record<string, unknown>;
 }
 
@@ -88,6 +89,7 @@ export interface CategoryIndicator {
   ultimo_valor: number;
   unidad: string;
   ultimo_periodo: string;
+  region: string | null;
 }
 
 /** Return type for getCategoryOverview(). */
@@ -281,6 +283,7 @@ export async function getLatestIndicatorValue(
     periodo: row.periodo,
     valor: row.valor,
     unidad: row.unidad,
+    region: row.region,
     desglose: parseDesglose(row.desglose),
   }));
 
@@ -364,7 +367,7 @@ export async function getCategoryOverview(categoria: string): Promise<CategoryOv
   // first row per indicator is the latest.
   const { data, error } = await client
     .from('indicadores')
-    .select('indicador_nombre, valor, unidad, periodo')
+    .select('indicador_nombre, valor, unidad, periodo, region')
     .eq('activo', true)
     .eq('categoria', categoria)
     .order('periodo', { ascending: false })
@@ -385,7 +388,7 @@ export async function getCategoryOverview(categoria: string): Promise<CategoryOv
 
   for (const row of data as Pick<
     IndicadorRow,
-    'indicador_nombre' | 'valor' | 'unidad' | 'periodo'
+    'indicador_nombre' | 'valor' | 'unidad' | 'periodo' | 'region'
   >[]) {
     if (seen.has(row.indicador_nombre)) continue;
     seen.add(row.indicador_nombre);
@@ -394,6 +397,7 @@ export async function getCategoryOverview(categoria: string): Promise<CategoryOv
       ultimo_valor: row.valor,
       unidad: row.unidad,
       ultimo_periodo: row.periodo,
+      region: row.region,
     });
   }
 
@@ -583,6 +587,7 @@ export interface SearchResult {
   ultimo_valor: number | null;
   unidad: string;
   ultimo_periodo: string | null;
+  region: string | null;
   fuente: string | null;
   total_resultados: number;
 }
@@ -602,7 +607,7 @@ export async function searchIndicators(
 
   let dbQuery = client
     .from('indicadores')
-    .select('indicador_nombre, categoria, valor, unidad, periodo, fuente')
+    .select('indicador_nombre, categoria, valor, unidad, periodo, region, fuente')
     .eq('activo', true)
     .ilike('indicador_nombre', `%${query}%`)
     .order('periodo', { ascending: false })
@@ -623,7 +628,7 @@ export async function searchIndicators(
     return [];
   }
 
-  const rows = data as Pick<IndicadorRow, 'indicador_nombre' | 'categoria' | 'valor' | 'unidad' | 'periodo' | 'fuente'>[];
+  const rows = data as Pick<IndicadorRow, 'indicador_nombre' | 'categoria' | 'valor' | 'unidad' | 'periodo' | 'region' | 'fuente'>[];
 
   // Keep only the latest row per indicator name
   const seen = new Map<string, (typeof rows)[0]>();
@@ -639,6 +644,7 @@ export async function searchIndicators(
     ultimo_valor: row.valor,
     unidad: row.unidad,
     ultimo_periodo: String(row.periodo),
+    region: row.region,
     fuente: row.fuente,
     total_resultados: seen.size,
   }));
