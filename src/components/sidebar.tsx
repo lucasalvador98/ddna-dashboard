@@ -2,7 +2,6 @@
 
 import React, { useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { ChevronDown, ChevronLeft } from 'lucide-react';
 import clsx from 'clsx';
@@ -48,18 +47,6 @@ export function Sidebar() {
         isCollapsed ? 'w-14 sm:w-16' : 'w-60'
       )}
     >
-      {/* Logo Area */}
-      <div className="flex items-center justify-center p-4 border-b border-[#E0E0E0]">
-        <Image
-          src="/logos/LOGO DDNA_HORIZONTAL_COLOR.png"
-          alt="DDNA"
-          width={isCollapsed ? 40 : 140}
-          height={40}
-          style={{ height: 'auto' }}
-          className="object-contain"
-        />
-      </div>
-
       {/* Navigation */}
       <nav className="flex-1 py-3 overflow-y-auto">
         <ul className="space-y-0.5 px-2">
@@ -178,7 +165,7 @@ export function Sidebar() {
       {/* Collapse toggle */}
       <button
         onClick={toggleCollapse}
-        className="absolute -right-3 top-20 w-6 h-6 bg-white border border-[#E0E0E0] rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:border-gray-300 transition-colors shadow-sm"
+        className="absolute -right-3 top-3 w-6 h-6 bg-white border border-[#E0E0E0] rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:border-gray-300 transition-colors shadow-sm"
         aria-label={isCollapsed ? 'Expandir sidebar' : 'Colapsar sidebar'}
       >
         <ChevronLeft

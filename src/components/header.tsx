@@ -75,29 +75,31 @@ export function Header() {
           <Menu className="w-5 h-5" />
         </button>
 
-        {/* Compact DDNA logo */}
+        {/* DDNA Logo */}
         <Link href="/" className="flex-shrink-0">
           <Image
             src="/logos/LOGO DDNA_HORIZONTAL_COLOR.png"
             alt="DDNA"
-            width={76}
-            height={20}
+            width={110}
+            height={30}
             style={{ height: 'auto' }}
             className="object-contain"
             priority
           />
         </Link>
 
-        {/* Separator */}
-        <div className="w-px h-6 bg-[#E0E0E0]" />
-
-        {/* Page title + breadcrumb */}
-        <div className="flex-1 min-w-0">
-          <h1 className="font-display text-xl text-[#1a2556] tracking-tight truncate">
-            {title}
-          </h1>
-          <Breadcrumb />
-        </div>
+        {/* Page title + breadcrumb — hidden on homepage to avoid duplication */}
+        {pathname !== '/' && (
+          <>
+            <div className="w-px h-6 bg-[#E0E0E0]" />
+            <div className="flex-1 min-w-0">
+              <h1 className="font-display text-xl text-[#1a2556] tracking-tight truncate">
+                {title}
+              </h1>
+              <Breadcrumb />
+            </div>
+          </>
+        )}
 
         {/* Right Side Controls */}
         <div className="flex items-center gap-2">
