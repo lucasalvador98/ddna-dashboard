@@ -152,7 +152,11 @@ Estructura del Excel fuente:
 5. INSERTAR en tabla indicadores con categoría 'inversion'
 ```
 
-### 4.3 Script de Carga
+### 4.3 Scripts de Carga
+
+Existen múltiples scripts según el tipo de dato:
+
+#### Script Original (Visualizador PTO con ponderador)
 
 Ubicación: `scripts/migrate-inversion.mjs`
 
@@ -166,6 +170,46 @@ node --max-old-space-size=4096 scripts/migrate-inversion.mjs
 - Variable de entorno: `SUPABASE_SERVICE_ROLE_KEY`
 - Archivo Excel en la ruta configurada en el script
 
+#### Script para Datos Crudos 2025 (Datos Abiertos)
+
+Ubicación: `scripts/load-budget-2025.mjs`
+
+```bash
+node scripts/load-budget-2025.mjs
+```
+
+**Características:**
+
+- Lee datos de ejecución presupuestaria cruda (sin ponderador)
+- Aplica ponderadores por defecto según área
+- Agrega datos por (año, área, programa)
+- Inserta en tabla `indicadores` con categoría 'inversion'
+
+**Requisitos:**
+
+- Excel "Gastos Administración Central - Acumulado [MES] [AÑO].xlsx" en `scripts/data/`
+- Variable de entorno: `SUPABASE_SERVICE_ROLE_KEY`
+
+#### Script para Ley de Presupuesto (estimaciones)
+
+Ubicación: `scripts/load-budget-2026-estimate.mjs`
+
+```bash
+node scripts/load-budget-2026-estimate.mjs
+```
+
+**Características:**
+
+- Genera estimación basada en Ley de Presupuesto
+- Aplica ponderadores por defecto según área
+- Inserta 19 registros (5 áreas × ~4 programas cada una)
+- Marca datos como "estimate" en metadatos
+
+**Requisitos:**
+
+- Variable de entorno: `SUPABASE_SERVICE_ROLE_KEY`
+- Actualizar constantes en el script si cambia la ley
+
 ---
 
 ## 5. Cómo Aplicar a Nuevos Datos
@@ -177,13 +221,13 @@ node --max-old-space-size=4096 scripts/migrate-inversion.mjs
 3. Actualizar la ruta en `migrate-inversion.mjs`
 4. Ejecutar el script
 
-### 5.2 Para Datos Crudos (sin ponderador)
+### 5.2 Para Datos Crudos (ejecución presupuestaria)
 
-Si tenés datos de ejecución presupuestaria **sin ponderador**, necesitás:
-
-1. **Obtener los ponderadores** del Visualizador PTO o calcularlos
-2. **Aplicar la fórmula**: `valor_ponderado = valor_crudo × ponderador`
-3. **Insertar** en la tabla `indicadores`
+1. **Descargar** el Excel de Datos Abiertos (ejecución acumulada)
+2. **Colocar** en `scripts/data/` con nombre descriptivo
+3. **Actualizar** la ruta en `load-budget-2025.mjs` (o copiar y modificar)
+4. **Ejecutar**: `node scripts/load-budget-2025.mjs`
+5. **Verificar** en el dashboard o consultando la DB
 
 **Ponderadores de referencia por área:**
 
@@ -199,25 +243,75 @@ const PONDERADORES_DEFAULT = {
 
 ### 5.3 Para Ley de Presupuesto (valores proyectados)
 
-La Ley 11.088 (Presupuesto 2026) tiene:
+1. **Obtener** la Ley de Presupuesto aprobada
+2. **Extraer** los montos por área de inversión social
+3. **Actualizar** las constantes en `load-budget-2026-estimate.mjs`:
+   - `TOTAL_GASTOS_2026`
+   - `INVERSION_SOCIAL_PCT`
+   - `AREA_PCT` (porcentajes por área)
+4. **Ejecutar**: `node scripts/load-budget-2026-estimate.mjs`
+5. **Nota**: Este script elimina datos existentes del año antes de insertar
 
-| Concepto         | Monto                     |
-| ---------------- | ------------------------- |
-| Total gastos     | $11.442 billones          |
-| Inversión social | 34.7%                     |
-| Educación        | 60.9% de inversión social |
-| Salud            | 23.7% de inversión social |
+**Ejemplo de constantes a actualizar:**
 
-**Estimación de inversión NNyA 2026:**
-
-```
-Inversión social 2026 = $11.442B × 34.7% = $3.971 billones
-Inversión NNyA ≈ $3.971B × 67.1% (promedio histórico) = $2.664 billones
+```javascript
+const TOTAL_GASTOS_2026 = 11_442_000_000_000; // $11.442 billones
+const INVERSION_SOCIAL_PCT = 0.347; // 34.7%
+const AREA_PCT = {
+  Educación: 0.609, // 60.9% de inversión social
+  Salud: 0.237, // 23.7%
+  'Desarrollo Social': 0.092, // 9.2%
+  'Niñez y Adolescencia': 0.031, // 3.1%
+  Otros: 0.031, // 3.1%
+};
 ```
 
 ---
 
-## 6. Fuentes de Datos Actualizadas
+## 6. Verificación de Datos
+
+### 6.1 Consulta SQL para verificar carga
+
+```sql
+-- Resumen por año
+SELECT
+  periodo as año,
+  COUNT(*) as indicadores,
+  ROUND(SUM(valor) / 1000000000, 2) as total_miles_millones
+FROM indicadores
+WHERE categoria = 'inversion'
+GROUP BY periodo
+ORDER BY periodo;
+```
+
+### 6.2 Verificar por área
+
+```sql
+-- Desglose por área y año
+SELECT
+  periodo as año,
+  desglose->>'area' as area,
+  COUNT(*) as programas,
+  ROUND(SUM(valor) / 1000000000, 2) as total_miles_millones
+FROM indicadores
+WHERE categoria = 'inversion'
+GROUP BY periodo, desglose->>'area'
+ORDER BY periodo, area;
+```
+
+### 6.3 Verificar integridad temporal
+
+```sql
+-- Años con datos
+SELECT DISTINCT periodo
+FROM indicadores
+WHERE categoria = 'inversion'
+ORDER BY periodo;
+```
+
+---
+
+## 7. Fuentes de Datos
 
 | Fuente                   | URL                                | Periodicidad |
 | ------------------------ | ---------------------------------- | ------------ |
@@ -229,7 +323,7 @@ Inversión NNyA ≈ $3.971B × 67.1% (promedio histórico) = $2.664 billones
 
 ---
 
-## 7. Notas Metodológicas
+## 8. Notas Metodológicas
 
 1. **Los ponderadores no son fijos**: Se actualizan periódicamente con nuevos datos de EPH y registros administrativos
 
@@ -243,7 +337,7 @@ Inversión NNyA ≈ $3.971B × 67.1% (promedio histórico) = $2.664 billones
 
 ---
 
-## 8. Referencias
+## 9. Referencias
 
 - UNICEF España: "Metodología para la medición de la inversión presupuestaria en infancia"
 - DNPPE/UNICEF Córdoba: Visualizador de Presupuesto Transparente con Orientación
