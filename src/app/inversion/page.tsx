@@ -52,22 +52,49 @@ const AREA_ORDER = ['Educación', 'Salud', 'Desarrollo Social', 'Niñez y Adoles
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
-/** Format a raw peso value as billions string. */
+/** Format a raw peso value as a readable label for axes. */
 function formatBillionsLabel(v: number): string {
-  const b = v / 1e9;
-  if (b >= 1) return `$${b.toFixed(b < 10 ? 1 : 0)}B`;
-  const m = v / 1e6;
-  return `$${m.toFixed(1)}Md`;
+  if (v >= 1_000_000_000_000) {
+    const b = v / 1_000_000_000_000;
+    return `$${b.toFixed(1)}B`;
+  }
+  if (v >= 1_000_000_000) {
+    const bb = v / 1_000_000_000;
+    return `$${bb.toFixed(1)} mil M`;
+  }
+  if (v >= 1_000_000) {
+    const m = v / 1_000_000;
+    return `$${m.toFixed(0)} M`;
+  }
+  return `$${v.toLocaleString('en-US')}`;
 }
 
-/** Tooltip formatter: shows exact amount in billions. */
+/** Tooltip formatter: shows exact amount in readable format. */
 function tooltipBillions(v: unknown): [string, string] {
   const val = typeof v === 'number' ? v : Number(v);
-  const b = val / 1e9;
-  return [
-    `$${b.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} B`,
-    '',
-  ];
+
+  if (val >= 1_000_000_000_000) {
+    const b = val / 1_000_000_000_000;
+    return [
+      `$${b.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} billones`,
+      '',
+    ];
+  }
+  if (val >= 1_000_000_000) {
+    const bb = val / 1_000_000_000;
+    return [
+      `$${bb.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} mil millones`,
+      '',
+    ];
+  }
+  if (val >= 1_000_000) {
+    const m = val / 1_000_000;
+    return [
+      `$${m.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} millones`,
+      '',
+    ];
+  }
+  return [`$${val.toLocaleString('en-US')}`, ''];
 }
 
 // ─── Page Component ────────────────────────────────────────────────────────────

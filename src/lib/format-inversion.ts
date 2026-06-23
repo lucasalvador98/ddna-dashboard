@@ -18,20 +18,42 @@ import type { Indicador } from './use-dashboard-data';
 // ———————————————————————————————————————————————
 
 /**
- * Format a raw peso value as a human-readable string in millions (Md).
+ * Format a raw peso value as a human-readable string.
  * Returns "$—" for zero, negative, or null-like values.
  *
- * @example formatInversionValue(45_200_000_000) → "$45,200.0 Md"
+ * @example formatInversionValue(45_200_000_000) → "$45.2 mil millones"
+ * @example formatInversionValue(850_000_000) → "$850 millones"
+ * @example formatInversionValue(12_500_000) → "$12.5 millones"
  */
 export function formatInversionValue(val: number): string {
   if (!val || val <= 0) return '$—';
-  const inMillions = val / SCALE_FACTOR;
-  // Use en-US locale for consistent comma as thousand sep, dot as decimal
-  const formatted = inMillions.toLocaleString('en-US', {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  });
-  return `$${formatted} ${SCALE_LABEL}`;
+
+  // Billones (>= 1 trillion pesos)
+  if (val >= 1_000_000_000_000) {
+    const b = val / 1_000_000_000_000;
+    return `$${b.toFixed(1)} billones`;
+  }
+
+  // Miles de millones (>= 1 billion pesos)
+  if (val >= 1_000_000_000) {
+    const bb = val / 1_000_000_000;
+    return `$${bb.toFixed(1)} mil millones`;
+  }
+
+  // Millones (>= 1 million pesos)
+  if (val >= 1_000_000) {
+    const m = val / 1_000_000;
+    return `$${m.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} millones`;
+  }
+
+  // Miles
+  if (val >= 1_000) {
+    const k = val / 1_000;
+    return `$${k.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} mil`;
+  }
+
+  // Unidades
+  return `$${val.toLocaleString('en-US')}`;
 }
 
 /**

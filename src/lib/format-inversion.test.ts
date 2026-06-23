@@ -21,8 +21,8 @@ describe('inversion-constants', () => {
     expect(SCALE_FACTOR).toBe(1_000_000);
   });
 
-  it('should export SCALE_LABEL as "Md"', () => {
-    expect(SCALE_LABEL).toBe('Md');
+  it('should export SCALE_LABEL as "millones"', () => {
+    expect(SCALE_LABEL).toBe('millones');
   });
 
   it('should export CHILD_RELEVANT_CATEGORIES with known categories', () => {
@@ -44,10 +44,10 @@ describe('inversion-constants', () => {
 });
 
 describe('formatInversionValue', () => {
-  it('should format a large number as millions with "Md" label', () => {
-    // 45,200,000,000 raw pesos → $45,200.0 Md
+  it('should format a large number as mil millones', () => {
+    // 45,200,000,000 raw pesos → $45.2 mil millones
     const result = formatInversionValue(45_200_000_000);
-    expect(result).toBe('$45,200.0 Md');
+    expect(result).toBe('$45.2 mil millones');
   });
 
   it('should return "$—" for zero', () => {
@@ -59,44 +59,64 @@ describe('formatInversionValue', () => {
   });
 
   it('should handle small values correctly', () => {
-    // 1,234,567 → $1.2 Md
+    // 1,234,567 → $1.2 millones
     const result = formatInversionValue(1_234_567);
-    expect(result).toBe('$1.2 Md');
+    expect(result).toBe('$1.2 millones');
   });
 
   it('should format with one decimal place', () => {
-    // 1,500,000 → $1.5 Md
-    expect(formatInversionValue(1_500_000)).toBe('$1.5 Md');
-    // 1,550,000 → $1.6 Md
-    expect(formatInversionValue(1_550_000)).toBe('$1.6 Md');
+    // 1,500,000 → $1.5 millones
+    expect(formatInversionValue(1_500_000)).toBe('$1.5 millones');
+    // 1,550,000 → $1.6 millones
+    expect(formatInversionValue(1_550_000)).toBe('$1.6 millones');
   });
 
   it('should format 1 billion correctly', () => {
-    // 1,000,000,000 → $1,000.0 Md
-    expect(formatInversionValue(1_000_000_000)).toBe('$1,000.0 Md');
+    // 1,000,000,000 → $1.0 mil millones
+    expect(formatInversionValue(1_000_000_000)).toBe('$1.0 mil millones');
   });
 });
 
 describe('getInversionTotal', () => {
   const mockData: Indicador[] = [
     {
-      id: '1', indicador_nombre: 'Test', categoria: 'inversion',
-      valor: 10_000_000, unidad: '', periodo: '2024', region: '',
+      id: '1',
+      indicador_nombre: 'Test',
+      categoria: 'inversion',
+      valor: 10_000_000,
+      unidad: '',
+      periodo: '2024',
+      region: '',
       desglose: { categoria: 'Educación básica (inicial, elemental y media)' },
     },
     {
-      id: '2', indicador_nombre: 'Test2', categoria: 'inversion',
-      valor: 20_000_000, unidad: '', periodo: '2024', region: '',
+      id: '2',
+      indicador_nombre: 'Test2',
+      categoria: 'inversion',
+      valor: 20_000_000,
+      unidad: '',
+      periodo: '2024',
+      region: '',
       desglose: { categoria: 'Materno-infantil' },
     },
     {
-      id: '3', indicador_nombre: 'Test3', categoria: 'inversion',
-      valor: 5_000_000, unidad: '', periodo: '2023', region: '',
+      id: '3',
+      indicador_nombre: 'Test3',
+      categoria: 'inversion',
+      valor: 5_000_000,
+      unidad: '',
+      periodo: '2023',
+      region: '',
       desglose: { categoria: 'Educación básica (inicial, elemental y media)' },
     },
     {
-      id: '4', indicador_nombre: 'Test4', categoria: 'inversion',
-      valor: 1_000_000, unidad: '', periodo: '2024', region: '',
+      id: '4',
+      indicador_nombre: 'Test4',
+      categoria: 'inversion',
+      valor: 1_000_000,
+      unidad: '',
+      periodo: '2024',
+      region: '',
       desglose: { categoria: 'No relevante' },
     },
   ];
@@ -124,8 +144,13 @@ describe('getInversionTotal', () => {
   it('should handle entries with undefined desglose', () => {
     const dataWithNull: Indicador[] = [
       {
-        id: '5', indicador_nombre: 'Test5', categoria: 'inversion',
-        valor: 15_000_000, unidad: '', periodo: '2024', region: '',
+        id: '5',
+        indicador_nombre: 'Test5',
+        categoria: 'inversion',
+        valor: 15_000_000,
+        unidad: '',
+        periodo: '2024',
+        region: '',
         desglose: {} as Record<string, unknown>,
       },
     ];
@@ -142,23 +167,43 @@ describe('getInversionTotal', () => {
 describe('getInversionByCategory', () => {
   const mockData: Indicador[] = [
     {
-      id: '1', indicador_nombre: 'Test', categoria: 'inversion',
-      valor: 10_000_000, unidad: '', periodo: '2024', region: '',
+      id: '1',
+      indicador_nombre: 'Test',
+      categoria: 'inversion',
+      valor: 10_000_000,
+      unidad: '',
+      periodo: '2024',
+      region: '',
       desglose: { categoria: 'Educación básica (inicial, elemental y media)' },
     },
     {
-      id: '2', indicador_nombre: 'Test2', categoria: 'inversion',
-      valor: 20_000_000, unidad: '', periodo: '2024', region: '',
+      id: '2',
+      indicador_nombre: 'Test2',
+      categoria: 'inversion',
+      valor: 20_000_000,
+      unidad: '',
+      periodo: '2024',
+      region: '',
       desglose: { categoria: 'Materno-infantil' },
     },
     {
-      id: '3', indicador_nombre: 'Test3', categoria: 'inversion',
-      valor: 5_000_000, unidad: '', periodo: '2024', region: '',
+      id: '3',
+      indicador_nombre: 'Test3',
+      categoria: 'inversion',
+      valor: 5_000_000,
+      unidad: '',
+      periodo: '2024',
+      region: '',
       desglose: { categoria: 'Educación básica (inicial, elemental y media)' },
     },
     {
-      id: '4', indicador_nombre: 'Test4', categoria: 'inversion',
-      valor: 3_000_000, unidad: '', periodo: '2023', region: '',
+      id: '4',
+      indicador_nombre: 'Test4',
+      categoria: 'inversion',
+      valor: 3_000_000,
+      unidad: '',
+      periodo: '2023',
+      region: '',
       desglose: { categoria: 'Materno-infantil' },
     },
   ];
@@ -166,7 +211,10 @@ describe('getInversionByCategory', () => {
   it('should group and sum values by category for the given period', () => {
     const result = getInversionByCategory(mockData, '2024');
     expect(result).toHaveLength(2);
-    expect(result).toContainEqual({ name: 'Educación básica (inicial, elemental y media)', value: 15_000_000 });
+    expect(result).toContainEqual({
+      name: 'Educación básica (inicial, elemental y media)',
+      value: 15_000_000,
+    });
     expect(result).toContainEqual({ name: 'Materno-infantil', value: 20_000_000 });
   });
 
@@ -181,14 +229,22 @@ describe('getInversionByCategory', () => {
   it('should use latest period when not specified', () => {
     const result = getInversionByCategory(mockData);
     expect(result).toHaveLength(2);
-    expect(result).toContainEqual({ name: 'Educación básica (inicial, elemental y media)', value: 15_000_000 });
+    expect(result).toContainEqual({
+      name: 'Educación básica (inicial, elemental y media)',
+      value: 15_000_000,
+    });
   });
 
   it('should handle entries with missing categoria in desglose', () => {
     const dataWithMissing: Indicador[] = [
       {
-        id: '5', indicador_nombre: 'Test5', categoria: 'inversion',
-        valor: 7_000_000, unidad: '', periodo: '2024', region: '',
+        id: '5',
+        indicador_nombre: 'Test5',
+        categoria: 'inversion',
+        valor: 7_000_000,
+        unidad: '',
+        periodo: '2024',
+        region: '',
         desglose: {} as Record<string, unknown>,
       },
     ];

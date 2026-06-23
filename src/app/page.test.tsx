@@ -156,12 +156,12 @@ import { render, screen } from '@testing-library/react';
 import HomePage from './page';
 
 describe('HomePage — KPI data presence', () => {
-  it('should show inversion total using formatInversionValue format with space before Md', () => {
+  it('should show inversion total using formatInversionValue format', () => {
     render(<HomePage />);
 
     // Check that the "Inversión social" KPI value is formatted with formatInversionValue
-    // formatInversionValue(45_200_000_000) → "$45,200.0 Md"
-    const valueElement = screen.getByText('$45,200.0 Md');
+    // formatInversionValue(45_200_000_000) → "$45.2 mil millones"
+    const valueElement = screen.getByText('$45.2 mil millones');
     expect(valueElement).toBeInTheDocument();
   });
 

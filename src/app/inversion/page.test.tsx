@@ -14,40 +14,84 @@ vi.mock('@/lib/supabase', () => ({
 
 const mockInversionData: Indicador[] = [
   {
-    id: '1', indicador_nombre: 'Inversión en educación', categoria: 'inversion',
-    valor: 10_000_000_000, unidad: '', periodo: '2024', region: '',
-    desglose: { categoria: 'Educación básica (inicial, elemental y media)', organismo: 'Ministerio de Educación' },
+    id: '1',
+    indicador_nombre: 'Inversión en educación',
+    categoria: 'inversion',
+    valor: 10_000_000_000,
+    unidad: '',
+    periodo: '2024',
+    region: '',
+    desglose: {
+      categoria: 'Educación básica (inicial, elemental y media)',
+      organismo: 'Ministerio de Educación',
+    },
   },
   {
-    id: '2', indicador_nombre: 'Inversión en comedores', categoria: 'inversion',
-    valor: 5_000_000_000, unidad: '', periodo: '2024', region: '',
-    desglose: { categoria: 'Comedores escolares y copa de leche', organismo: 'Ministerio de Educación' },
+    id: '2',
+    indicador_nombre: 'Inversión en comedores',
+    categoria: 'inversion',
+    valor: 5_000_000_000,
+    unidad: '',
+    periodo: '2024',
+    region: '',
+    desglose: {
+      categoria: 'Comedores escolares y copa de leche',
+      organismo: 'Ministerio de Educación',
+    },
   },
   {
-    id: '3', indicador_nombre: 'Inversión en salud', categoria: 'inversion',
-    valor: 8_000_000_000, unidad: '', periodo: '2024', region: '',
+    id: '3',
+    indicador_nombre: 'Inversión en salud',
+    categoria: 'inversion',
+    valor: 8_000_000_000,
+    unidad: '',
+    periodo: '2024',
+    region: '',
     desglose: { categoria: 'Materno-infantil', organismo: 'Ministerio de Salud' },
   },
   {
-    id: '4', indicador_nombre: 'Inversión en prevención', categoria: 'inversion',
-    valor: 3_000_000_000, unidad: '', periodo: '2024', region: '',
+    id: '4',
+    indicador_nombre: 'Inversión en prevención',
+    categoria: 'inversion',
+    valor: 3_000_000_000,
+    unidad: '',
+    periodo: '2024',
+    region: '',
     desglose: { categoria: 'Atención ambulatoria e internación', organismo: 'Ministerio de Salud' },
   },
   // 2023 data for period selector and change badge
   {
-    id: '5', indicador_nombre: 'Inversión en educación', categoria: 'inversion',
-    valor: 9_000_000_000, unidad: '', periodo: '2023', region: '',
-    desglose: { categoria: 'Educación básica (inicial, elemental y media)', organismo: 'Ministerio de Educación' },
+    id: '5',
+    indicador_nombre: 'Inversión en educación',
+    categoria: 'inversion',
+    valor: 9_000_000_000,
+    unidad: '',
+    periodo: '2023',
+    region: '',
+    desglose: {
+      categoria: 'Educación básica (inicial, elemental y media)',
+      organismo: 'Ministerio de Educación',
+    },
   },
   {
-    id: '6', indicador_nombre: 'Inversión en salud', categoria: 'inversion',
-    valor: 7_000_000_000, unidad: '', periodo: '2023', region: '',
+    id: '6',
+    indicador_nombre: 'Inversión en salud',
+    categoria: 'inversion',
+    valor: 7_000_000_000,
+    unidad: '',
+    periodo: '2023',
+    region: '',
     desglose: { categoria: 'Materno-infantil', organismo: 'Ministerio de Salud' },
   },
   // Non-child-relevant category (should be excluded from total)
   {
-    id: '7', indicador_nombre: 'Inversión en infraestructura', categoria: 'inversion',
-    valor: 2_000_000_000, unidad: '', periodo: '2024', region: '',
+    id: '7',
+    indicador_nombre: 'Inversión en infraestructura',
+    categoria: 'inversion',
+    valor: 2_000_000_000,
+    unidad: '',
+    periodo: '2024',
+    region: '',
     desglose: { categoria: 'Infraestructura general', organismo: 'Ministerio de Obras' },
   },
 ];
@@ -55,8 +99,13 @@ const mockInversionData: Indicador[] = [
 // Also add some non-relevant data for the "no categoría" edge case
 const mockDataWithMissingDesglose: Indicador[] = [
   {
-    id: '8', indicador_nombre: 'Sin categoría', categoria: 'inversion',
-    valor: 1_000_000_000, unidad: '', periodo: '2024', region: '',
+    id: '8',
+    indicador_nombre: 'Sin categoría',
+    categoria: 'inversion',
+    valor: 1_000_000_000,
+    unidad: '',
+    periodo: '2024',
+    region: '',
     desglose: {} as Record<string, unknown>,
   },
 ];
@@ -89,7 +138,9 @@ vi.mock('recharts', () => {
     <div data-testid="responsive-container">{children}</div>
   );
   const MockBarChart = ({ children, data }: { children: React.ReactNode; data?: unknown[] }) => (
-    <div data-testid="bar-chart" data-has-data={String((data ?? []).length > 0)}>{children}</div>
+    <div data-testid="bar-chart" data-has-data={String((data ?? []).length > 0)}>
+      {children}
+    </div>
   );
   const MockBar = () => <div data-testid="bar" />;
   const MockXAxis = () => <div data-testid="x-axis" />;
@@ -97,7 +148,9 @@ vi.mock('recharts', () => {
   const MockCartesianGrid = () => <div data-testid="cartesian-grid" />;
   const MockTooltip = () => <div data-testid="tooltip" />;
   const MockLineChart = ({ children, data }: { children: React.ReactNode; data?: unknown[] }) => (
-    <div data-testid="line-chart" data-has-data={String((data ?? []).length > 0)}>{children}</div>
+    <div data-testid="line-chart" data-has-data={String((data ?? []).length > 0)}>
+      {children}
+    </div>
   );
   const MockLine = () => <div data-testid="line" />;
   const MockLegend = () => <div data-testid="legend" />;
@@ -120,14 +173,18 @@ vi.mock('recharts', () => {
 // Mock chart-with-table
 vi.mock('@/components/charts/chart-with-table', () => ({
   ChartWithTable: ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <div data-testid="chart-with-table" data-title={title}>{children}</div>
+    <div data-testid="chart-with-table" data-title={title}>
+      {children}
+    </div>
   ),
 }));
 
 // Mock section-header
 vi.mock('@/components/section-header', () => ({
   SectionHeader: ({ title }: { title: string }) => (
-    <div data-testid="section-header" data-title={title}>{title}</div>
+    <div data-testid="section-header" data-title={title}>
+      {title}
+    </div>
   ),
 }));
 
@@ -144,15 +201,12 @@ describe('InversionPage', () => {
 
     // Total = 10B (educación) + 5B (comedores) + 8B (salud) + 3B (prevención) = 26B
     // Excludes: infraestructura general (2B) and sin categoría (1B)
-    // 26,000,000,000 / 1,000,000 = 26,000.0 Md
+    // formatInversionValue(26_000_000_000) → "$26.0 mil millones"
     const totalKpi = screen.getByText('Inversión en Infancia 2024');
     expect(totalKpi).toBeInTheDocument();
 
-    // Find the value text — it should have "$26,000.0 Md"
-    const valueElement = screen.getByText(/\$26.000.0 Md/); // Wait, let me check format
-    // Actually formatInversionValue(26_000_000_000) = 26,000 / SCALE_FACTOR = 26,000
-    // 26,000,000,000 / 1,000,000 = 26,000 → $26,000.0 Md
-    expect(screen.getByText('$26,000.0 Md')).toBeInTheDocument();
+    // Find the value text — it should have "$26.0 mil millones"
+    expect(screen.getByText('$26.0 mil millones')).toBeInTheDocument();
   });
 
   it('should show "En Educación" KPI with education label', async () => {
@@ -214,7 +268,7 @@ describe('InversionPage', () => {
     fireEvent.click(period2023);
 
     // Now the total should reflect 2023 data only: 9B (educación) + 7B (salud) = 16B
-    // 16,000,000,000 / 1,000,000 = 16,000.0 Md
+    // formatInversionValue(16_000_000_000) → "$16 mil millones"
     // And the KPI card title should show 2023
     expect(screen.getByText(/Inversión en Infancia 2023/)).toBeInTheDocument();
   });

@@ -9,7 +9,7 @@
 export const SCALE_FACTOR = 1_000_000;
 
 /** Display label for the scale unit */
-export const SCALE_LABEL = 'Md';
+export const SCALE_LABEL = 'millones';
 
 /**
  * Full category names that are directly relevant to childhood/adolescence.
@@ -44,10 +44,7 @@ export const CHILD_RELEVANT_CATEGORIES: string[] = [
  * Substring fragments for matching education-related categories.
  * Used by isEducacionCategory() for KPI extraction.
  */
-export const EDUCATION_CATEGORY_FRAGMENTS: string[] = [
-  'educación',
-  'calidad educativa',
-];
+export const EDUCATION_CATEGORY_FRAGMENTS: string[] = ['educación', 'calidad educativa'];
 
 /**
  * Substring fragments for matching health-related categories.

@@ -31,7 +31,18 @@ const categoryConfig = {
 function formatValue(valor: number | null, unidad: string): string {
   if (valor === null || valor === undefined) return '—';
   if (unidad === '%' || unidad === '‰') return `${valor}${unidad}`;
-  if (unidad === 'Md') return `$${(valor / 1000000).toFixed(1)}Md`;
+  if (unidad === 'Md') {
+    // Convert raw pesos to readable format
+    if (valor >= 1_000_000_000) {
+      const bb = valor / 1_000_000_000;
+      return `$${bb.toFixed(1)} mil millones`;
+    }
+    if (valor >= 1_000_000) {
+      const m = valor / 1_000_000;
+      return `$${m.toFixed(1)} millones`;
+    }
+    return `$${valor.toLocaleString('es-AR')}`;
+  }
   if (unidad === 'hab' || unidad === 'casos' || unidad === 'alumnos')
     return valor.toLocaleString('es-AR');
   return String(valor);
