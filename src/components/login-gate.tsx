@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Lock, Loader2 } from 'lucide-react';
+import { Lock, Loader2, LogOut } from 'lucide-react';
 import { useAuth } from '@/components/auth-provider';
 import { supabase } from '@/lib/supabase';
 
@@ -24,7 +25,8 @@ interface AuthConfig {
  *  - auth.enabled === true + NOT authenticated → shows "Acceso restringido" gate
  */
 export function LoginGate({ children }: { children: React.ReactNode }) {
-  const { user, loading: authLoading } = useAuth();
+  const { user, signOut, loading: authLoading } = useAuth();
+  const pathname = usePathname();
   const [config, setConfig] = useState<AuthConfig | null>(null);
   const [configLoading, setConfigLoading] = useState(true);
 
@@ -71,10 +73,29 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  // ── Auth enabled + authenticated → allow access ────────────────────────────
+  // ── Auth enabled + authenticated → allow access with session bar ───────────
 
   if (user) {
-    return <>{children}</>;
+    return (
+      <>
+        {/* Session bar — shows current user and logout */}
+        <div className="bg-blue-50/50 border-b border-blue-100 px-4 py-2 flex items-center justify-between gap-3 text-sm">
+          <span className="text-gray-500 text-xs">
+            <span className="text-gray-400">Conectado como</span>{' '}
+            <span className="text-[#1a2556] font-medium">{user.email}</span>
+          </span>
+          <button
+            onClick={() => signOut()}
+            className="flex items-center gap-1 px-2.5 py-1 text-xs text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            title="Cerrar sesión"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Cerrar sesión</span>
+          </button>
+        </div>
+        {children}
+      </>
+    );
   }
 
   // ── Auth enabled + NOT authenticated → show gate ───────────────────────────
@@ -90,7 +111,7 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
           Necesitás iniciar sesión para acceder a esta sección.
         </p>
         <Link
-          href="/login"
+          href={`/login?redirect=${encodeURIComponent(pathname)}`}
           className="inline-flex items-center gap-2 px-6 py-3 bg-[#1a2556] text-white font-accent font-semibold rounded-xl hover:bg-[#0f1740] transition-colors"
         >
           Iniciar sesión

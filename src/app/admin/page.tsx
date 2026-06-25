@@ -150,13 +150,13 @@ export default function AdminPage() {
           <div>
             <p className="font-accent text-sm text-[#1a2556] font-semibold">
               {config?.enabled
-                ? 'Autenticación Activada'
-                : 'Autenticación Desactivada'}
+                ? '🔒 Autenticación activada'
+                : '🔓 Autenticación desactivada'}
             </p>
             <p className="font-body text-xs text-gray-500 mt-0.5">
               {config?.enabled
-                ? 'Las rutas protegidas requieren inicio de sesión'
-                : 'Todas las páginas son accesibles sin autenticación'}
+                ? 'Las páginas de Herramientas requieren login'
+                : 'Todas las páginas son públicas'}
             </p>
           </div>
           <button
@@ -190,6 +190,22 @@ export default function AdminPage() {
           <RefreshCw className="w-3.5 h-3.5" />
           Actualizar configuración
         </button>
+
+        <p className="mt-4 text-xs text-gray-400 leading-relaxed">
+          La autenticación solo afecta a las páginas del grupo Herramientas y
+          Admin. El resto del dashboard siempre es público.
+        </p>
+      </div>
+
+      {/* Session Timeout Info */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+        <h3 className="font-display text-lg text-[#1a2556] mb-2">
+          Duración de la Sesión
+        </h3>
+        <p className="font-body text-sm text-gray-500">
+          La sesión expira después de 1 hora de inactividad. Al expirar, deberás
+          iniciar sesión nuevamente.
+        </p>
       </div>
 
       {/* Protected Routes List */}

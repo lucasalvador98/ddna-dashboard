@@ -4,10 +4,11 @@ import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Menu, X, ChevronRight } from 'lucide-react';
+import { Menu, X, ChevronRight, LogOut } from 'lucide-react';
 import clsx from 'clsx';
 import { navigation, routeTitles } from '@/lib/navigation';
 import { useSidebar } from '@/components/sidebar-context';
+import { useAuth } from '@/components/auth-provider';
 
 // Build flat nav links from grouped navigation for mobile menu
 const navLinks = navigation.flatMap(group =>
@@ -55,6 +56,7 @@ export function Header() {
   const pathname = usePathname();
   const { toggleCollapse, isCollapsed } = useSidebar();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { user, signOut } = useAuth();
 
   const title = routeTitles[pathname] || 'DDNA';
 
@@ -100,7 +102,20 @@ export function Header() {
           </>
         )}
 
-
+        {/* User section — only visible when authenticated */}
+        {user && (
+          <div className="flex items-center gap-3 ml-auto">
+            <span className="text-xs text-gray-400 hidden lg:inline">{user.email}</span>
+            <button
+              onClick={() => signOut()}
+              className="flex items-center gap-1 px-3 py-1.5 text-xs text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              title="Cerrar sesión"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Salir</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Mobile Header */}
