@@ -10,7 +10,7 @@ interface AuthSettings {
 
 let cachedSettings: AuthSettings | null = null;
 let cacheTimestamp = 0;
-const CACHE_TTL = 30_000; // 30 seconds — reduces DB hits under concurrent requests
+const CACHE_TTL = 5_000; // 5 seconds — faster response to admin changes
 
 async function getAuthSettings(): Promise<AuthSettings> {
   const now = Date.now();
