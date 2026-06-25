@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { Loader2 } from 'lucide-react';
+import { LoginGate } from '@/components/login-gate';
 
 const GeoMaps = dynamic(() => import('@/components/geo-maps'), {
   ssr: false,
@@ -13,5 +14,9 @@ const GeoMaps = dynamic(() => import('@/components/geo-maps'), {
 });
 
 export default function GeoPage() {
-  return <GeoMaps />;
+  return (
+    <LoginGate>
+      <GeoMaps />
+    </LoginGate>
+  );
 }
