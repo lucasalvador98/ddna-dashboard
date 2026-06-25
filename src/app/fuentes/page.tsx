@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 import { SectionHeader } from '@/components/section-header';
+import { LoginGate } from '@/components/login-gate';
 import { ChartCard } from '@/components/charts/chart-card';
 import { supabase, isSupabaseConfigured, getFuentesDatos, FuenteDato } from '@/lib/supabase';
 
@@ -254,6 +255,7 @@ export default function FuentesPage() {
           .filter(n => n?.toLowerCase().includes(searchQuery.toLowerCase())) || [];
 
   return (
+    <LoginGate>
     <div className="space-y-6">
       <SectionHeader
         icon={FileText}
@@ -590,5 +592,6 @@ export default function FuentesPage() {
         </div>
       )}
     </div>
+    </LoginGate>
   );
 }
