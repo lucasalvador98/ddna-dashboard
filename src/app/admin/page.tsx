@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Shield, Loader2, RefreshCw, ToggleLeft, ToggleRight, Lock, Globe } from 'lucide-react';
+import { Shield, Loader2, RefreshCw, Lock, Globe, UserPlus, Users, Mail } from 'lucide-react';
 import { LoginGate } from '@/components/login-gate';
 import { useAuth } from '@/components/auth-provider';
 import { navigation } from '@/lib/navigation';
@@ -12,171 +12,134 @@ interface AuthConfig {
   protected_routes: string[];
 }
 
-// All available pages from navigation + additional routes
+interface AdminUser {
+  email: string;
+  created_at: string;
+}
+
 const ALL_ROUTES = [
-  ...new Set(
-    navigation.flatMap(g =>
-      g.items.map(i => i.href)
-    )
-  ),
+  ...new Set(navigation.flatMap(g => g.items.map(i => i.href))),
   '/presupuesto-nnya',
-  '/apis',
-].filter(r => r !== '/login' && r !== '/'); // Never protect login or homepage
+].filter(r => r !== '/login' && r !== '/');
 
 const ROUTE_LABELS: Record<string, string> = {
-  '/salud': 'Salud',
-  '/salud-adolescente': 'Salud Adolescente',
-  '/educacion': 'Educación',
-  '/pobreza': 'Pobreza e Indigencia',
-  '/encuestas': 'Encuestas 2024',
-  '/infancias': 'Infancias (UCA)',
-  '/seguridad': 'Justicia',
-  '/inversion': 'Inversión Social',
-  '/presupuesto-nnya': 'Presupuesto NNyA',
-  '/geo': 'Mapas',
-  '/repositorio': 'Repositorio',
-  '/fuentes': 'Fuentes de Datos',
-  '/ejecutivo': 'Informe Ejecutivo',
-  '/admin': 'Configuración (Admin)',
-  '/apis': 'APIs',
+  '/salud': 'Salud', '/salud-adolescente': 'Salud Adolescente',
+  '/educacion': 'Educación', '/pobreza': 'Pobreza e Indigencia',
+  '/encuestas': 'Encuestas 2024', '/infancias': 'Infancias (UCA)',
+  '/seguridad': 'Justicia', '/inversion': 'Inversión Social',
+  '/presupuesto-nnya': 'Presupuesto NNyA', '/geo': 'Mapas',
+  '/repositorio': 'Repositorio', '/fuentes': 'Fuentes de Datos',
+  '/ejecutivo': 'Informe Ejecutivo', '/admin': 'Configuración',
 };
 
 export default function AdminPage() {
   const { user, loading: authLoading } = useAuth();
   const [config, setConfig] = useState<AuthConfig | null>(null);
-  const [configLoading, setConfigLoading] = useState(true);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [toggling, setToggling] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState<string | null>(null);
+  const [admins, setAdmins] = useState<AdminUser[]>([]);
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [addingAdmin, setAddingAdmin] = useState(false);
+  const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
 
   const loadConfig = useCallback(async () => {
-    setConfigLoading(true);
     try {
       const res = await fetch('/api/auth/config');
-      if (!res.ok) throw new Error('Error al cargar configuración');
-      const data = await res.json();
-      setConfig(data);
-    } catch {
-      // Keep previous config
-    } finally {
-      setConfigLoading(false);
-    }
+      if (res.ok) setConfig(await res.json());
+    } catch { /* ignore */ }
+    setLoading(false);
   }, []);
 
-  useEffect(() => { loadConfig(); }, [loadConfig]);
-
-  // ── Toggle auth enabled/disabled ─────────────────────────────────
-
-  const handleToggle = async () => {
-    if (!config) return;
-    setToggling(true);
-    setMessage(null);
+  const loadAdmins = useCallback(async () => {
     try {
-      const res = await fetch('/api/auth/toggle', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enabled: !config.enabled }),
-      });
-      if (!res.ok) throw new Error();
-      setConfig(prev => prev ? { ...prev, enabled: !prev.enabled } : null);
-      setMessage({ type: 'success', text: `Autenticación ${!config.enabled ? 'activada' : 'desactivada'}` });
-    } catch {
-      setMessage({ type: 'error', text: 'Error de conexión' });
-    } finally {
-      setToggling(false);
-    }
-  };
+      const res = await fetch('/api/auth/admins');
+      if (res.ok) setAdmins(await res.json());
+    } catch { /* ignore */ }
+  }, []);
 
-  // ── Toggle specific route protection ─────────────────────────────
+  useEffect(() => { loadConfig(); loadAdmins(); }, [loadConfig, loadAdmins]);
 
   const toggleRoute = async (route: string) => {
     if (!config) return;
-    setSaving(true);
-    const newRoutes = config.protected_routes.includes(route)
+    setSaving(route);
+    const isProtected = config.protected_routes.includes(route);
+    const newRoutes = isProtected
       ? config.protected_routes.filter(r => r !== route)
       : [...config.protected_routes, route];
-    
-    const newConfig = { ...config, protected_routes: newRoutes };
-    setConfig(newConfig);
 
+    setConfig({ ...config, protected_routes: newRoutes });
     try {
-      const res = await fetch('/api/auth/toggle', {
+      await fetch('/api/auth/toggle', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enabled: config.enabled, protected_routes: newRoutes }),
+        body: JSON.stringify({ enabled: true, protected_routes: newRoutes }),
       });
-      if (!res.ok) throw new Error();
+      setMsg({ type: 'ok', text: `${ROUTE_LABELS[route]}: ${isProtected ? 'liberada' : 'restringida'}` });
     } catch {
-      setConfig(config); // revert
-      setMessage({ type: 'error', text: 'Error al guardar' });
-    } finally {
-      setSaving(false);
+      setConfig(config);
+      setMsg({ type: 'err', text: 'Error al guardar' });
     }
+    setSaving(null);
   };
 
-  // ── Loading ──────────────────────────────────────────────────────
+  const addAdmin = async () => {
+    if (!newAdminEmail) return;
+    setAddingAdmin(true);
+    try {
+      const res = await fetch('/api/auth/admins', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: newAdminEmail, password: 'Ddna2026!' }),
+      });
+      if (res.ok) {
+        setNewAdminEmail('');
+        setMsg({ type: 'ok', text: 'Admin agregado correctamente' });
+        loadAdmins();
+      } else {
+        const d = await res.json();
+        setMsg({ type: 'err', text: d.error || 'Error al agregar admin' });
+      }
+    } catch {
+      setMsg({ type: 'err', text: 'Error de conexión' });
+    }
+    setAddingAdmin(false);
+  };
 
-  if (authLoading || configLoading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-8 h-8 text-[#1a2556] animate-spin" />
-      </div>
-    );
+  if (authLoading || loading) {
+    return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 text-[#1a2556] animate-spin" /></div>;
   }
 
   if (!user) {
-    return (
-      <LoginGate>
-        <div />
-      </LoginGate>
-    );
+    return <LoginGate><div /></LoginGate>;
   }
+
+  const protectedCount = config?.protected_routes.length ?? 0;
 
   return (
     <LoginGate>
-      <div className="space-y-6 max-w-3xl">
-        <h1 className="font-display text-2xl text-[#1a2556]">Configuración</h1>
+      <div className="space-y-6 max-w-2xl">
+        <div className="flex items-center justify-between">
+          <h1 className="font-display text-2xl text-[#1a2556]">Configuración</h1>
+          <button onClick={() => { loadConfig(); loadAdmins(); }} className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600">
+            <RefreshCw className="w-3 h-3" /> Actualizar
+          </button>
+        </div>
 
-        {message && (
-          <div className={clsx('flex items-center gap-2 p-3 rounded-lg text-sm', message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700')}>
-            {message.text}
+        {msg && (
+          <div className={clsx('p-3 rounded-lg text-sm', msg.type === 'ok' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700')}>
+            {msg.text}
           </div>
         )}
 
-        {/* Auth Toggle Card */}
+        {/* Páginas protegidas */}
         <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Shield className="w-6 h-6 text-[#1a2556]" />
-              <div>
-                <h2 className="font-display text-lg text-[#1a2556]">
-                  {config?.enabled ? '🔒 Autenticación activada' : '🔓 Autenticación desactivada'}
-                </h2>
-                <p className="font-body text-xs text-gray-500 mt-0.5">
-                  {config?.enabled
-                    ? `${config.protected_routes.length} páginas requieren login`
-                    : 'Todas las páginas son públicas'}
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={handleToggle}
-              disabled={toggling}
-              className={clsx('flex items-center gap-2 px-5 py-2.5 rounded-xl font-accent text-sm font-semibold transition-all', config?.enabled ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200' : 'bg-green-50 text-green-600 hover:bg-green-100 border border-green-200', 'disabled:opacity-60')}
-            >
-              {toggling ? <Loader2 className="w-5 h-5 animate-spin" /> : config?.enabled ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
-              {toggling ? 'Cambiando...' : config?.enabled ? 'Desactivar' : 'Activar'}
-            </button>
+          <div className="flex items-center gap-3 mb-1">
+            <Shield className="w-5 h-5 text-[#1a2556]" />
+            <h2 className="font-display text-lg text-[#1a2556]">Restringir páginas</h2>
           </div>
-        </div>
-
-        {/* Per-Page Toggles */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-          <h3 className="font-display text-lg text-[#1a2556] mb-1">Páginas protegidas</h3>
-          <p className="font-body text-xs text-gray-500 mb-4">
-            Seleccioná qué páginas requieren autenticación. La homepage nunca se protege.
+          <p className="text-xs text-gray-500 mb-4">
+            {protectedCount} de {ALL_ROUTES.length} páginas requieren login. Las que no están marcadas son públicas.
           </p>
-
           <div className="space-y-1">
             {ALL_ROUTES.map(route => {
               const isProtected = config?.protected_routes.includes(route) ?? false;
@@ -184,29 +147,67 @@ export default function AdminPage() {
                 <button
                   key={route}
                   onClick={() => toggleRoute(route)}
-                  disabled={saving || !config?.enabled}
+                  disabled={saving === route}
                   className={clsx(
-                    'w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-left transition-all',
-                    isProtected ? 'bg-amber-50 border border-amber-200' : 'bg-gray-50 border border-transparent hover:bg-gray-100',
-                    !config?.enabled && 'opacity-50 cursor-not-allowed'
+                    'w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-left transition-all text-sm',
+                    isProtected ? 'bg-amber-50 border border-amber-200' : 'bg-gray-50 hover:bg-gray-100',
+                    saving === route && 'opacity-60'
                   )}
                 >
-                  <div className="flex items-center gap-3">
-                    {isProtected ? <Lock className="w-4 h-4 text-amber-600" /> : <Globe className="w-4 h-4 text-gray-400" />}
-                    <span className="text-sm font-medium text-[#1a2556]">{ROUTE_LABELS[route] || route}</span>
-                  </div>
-                  <code className="text-xs text-gray-400 font-mono">{route}</code>
+                  {saving === route ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                  ) : isProtected ? (
+                    <Lock className="w-4 h-4 text-amber-600" />
+                  ) : (
+                    <Globe className="w-4 h-4 text-gray-400" />
+                  )}
+                  <span className="flex-1 font-medium text-[#1a2556]">{ROUTE_LABELS[route] || route}</span>
+                  <span className="text-xs text-gray-400 font-mono">{route}</span>
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* Session Info */}
+        {/* Administradores */}
         <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-          <h3 className="font-display text-lg text-[#1a2556] mb-2">Duración de la Sesión</h3>
-          <p className="font-body text-sm text-gray-500">
-            La sesión expira después de 1 hora de inactividad. Al expirar, deberás iniciar sesión nuevamente.
+          <div className="flex items-center gap-3 mb-4">
+            <Users className="w-5 h-5 text-[#1a2556]" />
+            <h2 className="font-display text-lg text-[#1a2556]">Administradores</h2>
+          </div>
+
+          {admins.length > 0 && (
+            <div className="space-y-2 mb-4">
+              {admins.map(a => (
+                <div key={a.email} className="flex items-center gap-3 px-4 py-2.5 bg-gray-50 rounded-lg text-sm">
+                  <Mail className="w-4 h-4 text-gray-400" />
+                  <span className="text-[#1a2556]">{a.email}</span>
+                  <span className="ml-auto text-xs text-gray-400">{new Date(a.created_at).toLocaleDateString('es-AR')}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <input
+              type="email"
+              value={newAdminEmail}
+              onChange={e => setNewAdminEmail(e.target.value)}
+              placeholder="Email del nuevo administrador"
+              className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#1a2556] focus:border-transparent"
+              onKeyDown={e => e.key === 'Enter' && addAdmin()}
+            />
+            <button
+              onClick={addAdmin}
+              disabled={addingAdmin || !newAdminEmail}
+              className="flex items-center gap-2 px-4 py-2.5 bg-[#1a2556] text-white rounded-lg text-sm font-medium hover:bg-[#0d1530] disabled:opacity-50 transition-colors"
+            >
+              {addingAdmin ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+              Agregar
+            </button>
+          </div>
+          <p className="text-xs text-gray-400 mt-2">
+            Los nuevos administradores reciben la contraseña temporal <code>Ddna2026!</code>. Deben cambiarla en su primer inicio de sesión.
           </p>
         </div>
       </div>
