@@ -220,7 +220,7 @@ export default function InversionPage() {
 
       {/* Period selector pill buttons */}
       {periods.length > 1 && (
-        <div className="flex gap-2 flex-wrap" role="group" aria-label="Selector de período">
+        <div className="flex gap-2 flex-wrap items-center" role="group" aria-label="Selector de período">
           {periods.map(period => (
             <button
               key={period}
@@ -235,6 +235,11 @@ export default function InversionPage() {
               {period}
             </button>
           ))}
+          {String(activePeriod) === '2025' && (
+            <span className="px-3 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+              ⚠️ Acumulado a marzo
+            </span>
+          )}
         </div>
       )}
 
@@ -269,9 +274,9 @@ export default function InversionPage() {
       {evolutionData.length > 1 && (
         <ChartWithTable
           title="Evolución del Presupuesto Ponderado NNyA"
-          subtitle="DEVENGADO PONDERADO por área — metodología DNPPE/UNICEF"
+          subtitle="DEVENGADO PONDERADO por área — metodología DNPPE/UNICEF. 2025 = acumulado a marzo (dato parcial)."
           color="terracotta"
-          fuente="Ministerio de Finanzas Córdoba / Visualizador PTO"
+          fuente="Ministerio de Finanzas Córdoba / Datos Abiertos"
           data={evolutionData.map(d => ({
             periodo: d.periodo,
             ...Object.fromEntries(
@@ -328,7 +333,7 @@ export default function InversionPage() {
         title={`Inversión por Área ${activePeriod ? `(${activePeriod})` : ''}`}
         subtitle="Distribución del presupuesto ponderado NNyA por área de política pública"
         color="terracotta"
-        fuente="Ministerio de Finanzas Córdoba / Visualizador PTO"
+        fuente="Ministerio de Finanzas Córdoba / Datos Abiertos & Visualizador PTO"
         data={inversionArea.map(d => ({
           area: d.name,
           inversion: d.value,
@@ -382,9 +387,10 @@ export default function InversionPage() {
           conjunto con UNICEF. Cada partida presupuestaria se multiplica por un <em>ponderador</em>{' '}
           que estima la proporción de Niños, Niñas y Adolescentes (NNyA) entre los beneficiarios del
           programa, basado en fuentes como EPH-INDEC, registros administrativos provinciales y el
-          padrón de AUH-ANSES. Fuente:{' '}
-          <em>Visualizador de Presupuesto Transparente con Orientación</em> — Ministerio de Finanzas
-          de la Provincia de Córdoba.
+          padrón de AUH-ANSES. Fuentes:{' '}
+          <em>Visualizador de Presupuesto Transparente</em> (2021-2024) y{' '}
+          <em>Datos Abiertos — Ejecución Presupuestaria</em> (2025, acumulado a marzo) — Ministerio
+          de Finanzas de la Provincia de Córdoba.
         </p>
       </div>
 

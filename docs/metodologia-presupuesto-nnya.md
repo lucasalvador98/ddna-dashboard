@@ -2,8 +2,8 @@
 
 ## Proyecto: DDNA Dashboard
 
-**Última actualización**: Junio 2026
-**Fuentes**: DNPPE/UNICEF Córdoba, Visualizador de Presupuesto Transparente
+**Última actualización**: 25 de junio de 2026
+**Fuentes**: DNPPE/UNICEF Córdoba, Datos Abiertos Ejecución Presupuestaria, Visualizador PTO
 
 ---
 
@@ -69,9 +69,128 @@ Ponderador = Población 0-17 años / Población total beneficiaria
 
 ---
 
-## 3. Datos en el Dashboard
+## 3. Fuentes de Datos
 
-### 3.1 Estructura en Supabase
+### 3.1 Archivos fuente por año
+
+| Período   | Fuente                          | Archivo / Ubicación                                                                                                                                                           | Tipo de dato         |
+| --------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| 2021-2024 | Visualizador PTO (Excel interno) | `E:\Backup Luca\DDNA\Inversion\Base de datos en valores.xlsx` (sheet: "Base de datos en valores")                                                                            | Ejecutado + ponderado |
+| 2025      | Datos Abiertos — Marzo 2025     | `E:\Backup Luca\DDNA\Inversion\Datos Abiertos - Ejecución Presupuestaria Marzo 2025\Gastos Administración Central - Acumulado Marzo 2025.xlsx`                                | Ejecutado crudo      |
+| 2026      | Ley de Presupuesto              | Estimación basada en Ley 11.088 (valores inflados)                                                                                                                            | Proyectado            |
+
+> **⚠️ Importante**: El dato 2025 es **acumulado a marzo**, no anual completo. Se actualizará cuando haya datos de más meses.
+
+### 3.2 Fuentes oficiales
+
+| Fuente                   | URL                                | Periodicidad |
+| ------------------------ | ---------------------------------- | ------------ |
+| Visualizador PTO         | economiaygestionpublica.cba.gov.ar | Anual        |
+| Datos Abiertos Ejecución | datosabiertos.cba.gov.ar           | Mensual      |
+| Ley de Presupuesto       | legislaturacba.gob.ar              | Anual        |
+| Censo INDEC              | censo.gob.ar                       | Cada 10 años |
+| EPH-INDEC                | indec.gob.ar                       | Trimestral   |
+
+---
+
+## 4. Proceso de Carga
+
+### 4.1 Cómo ejecutar los scripts
+
+Cada script está en `scripts/` y se ejecuta con Node.js. Requieren `SUPABASE_SERVICE_ROLE_KEY` en `.env.local`.
+
+| Script                             | Años       | Fuente                    | Comando                                                          |
+| ---------------------------------- | ---------- | ------------------------- | ---------------------------------------------------------------- |
+| `migrate-inversion.mjs`            | 2021-2024  | Visualizador PTO          | `node --max-old-space-size=4096 scripts/migrate-inversion.mjs`   |
+| `load-budget-march-2025.mjs`       | 2025       | Datos Abiertos Marzo 2025 | `node scripts/load-budget-march-2025.mjs`                        |
+| `load-budget-2026-estimate.mjs`    | 2026       | Ley de Presupuesto        | `node scripts/load-budget-2026-estimate.mjs`                     |
+
+### 4.2 Script Original — Visualizador PTO (2021-2024)
+
+**Ubicación**: `scripts/migrate-inversion.mjs`
+
+Lee el Excel del Visualizador de Presupuesto Transparente que YA incluye el ponderador NNyA calculado por DNPPE/UNICEF. El Excel tiene la siguiente estructura:
+
+| Columna             | Índice | Descripción                          |
+| ------------------- | ------ | ------------------------------------ |
+| AÑO                 | 0      | Año fiscal                           |
+| JURISDICCION        | 3      | Ministerio/entidad                   |
+| PROGRAMA            | 5      | Programa presupuestario              |
+| Aplica              | 15     | Si/No - Si el programa aplica a NNyA |
+| Categoría           | 16     | Categoría del programa               |
+| Ponderador          | 21     | Factor de ponderación NNyA           |
+| DEVENGADO PONDERADO | 27     | Monto final para NNyA                |
+
+**Requisitos:**
+- `SUPABASE_SERVICE_ROLE_KEY` en `.env.local`
+- Excel en la ruta configurada en el script
+
+### 4.3 Script Datos Abiertos — Marzo 2025
+
+**Ubicación**: `scripts/load-budget-march-2025.mjs`
+
+Lee el Excel de ejecución presupuestaria cruda (sin ponderador), aplica ponderadores NNyA por defecto según área (clasificación por FUNCION y keywords de niñez), y agrega por programa.
+
+**Ponderadores de referencia por área:**
+
+```javascript
+{ Educación: 1.0, Salud: 0.3, 'Desarrollo Social': 0.308, 'Niñez y Adolescencia': 1.0, Otros: 0.308 }
+```
+
+**Requisitos:**
+- `SUPABASE_SERVICE_ROLE_KEY` en `.env.local`
+- Excel fuente en `E:\Backup Luca\DDNA\Inversion\Datos Abiertos - Ejecución Presupuestaria Marzo 2025\`
+
+### 4.4 Script Ley de Presupuesto — 2026 (estimación)
+
+**Ubicación**: `scripts/load-budget-2026-estimate.mjs`
+
+Genera una estimación basada en la Ley de Presupuesto aprobada. Aplica ponderadores por defecto. Inserta ~19 registros.
+
+**Constantes a actualizar si cambia la ley:**
+
+```javascript
+const TOTAL_GASTOS_2026 = 11_442_000_000_000; // $11.442 billones
+const INVERSION_SOCIAL_PCT = 0.347; // 34.7%
+const AREA_PCT = {
+  Educación: 0.609, Salud: 0.237, 'Desarrollo Social': 0.092,
+  'Niñez y Adolescencia': 0.031, Otros: 0.031,
+};
+```
+
+**Requisitos:**
+- `SUPABASE_SERVICE_ROLE_KEY` en `.env.local`
+- Actualizar constantes si cambia la ley
+
+### 4.5 Proceso ETL (general)
+
+```
+1. LEER Excel fuente
+   ↓
+2. CLASIFICAR cada fila por área (según FINALIDAD/FUNCION o keywords de niñez)
+   ↓
+3. APLICAR ponderador NNyA según área
+   ↓
+4. AGREGAR por (año, área, programa) sumando DEVENGADO PONDERADO
+   ↓
+5. ELIMINAR datos existentes del período en Supabase
+   ↓
+6. INSERTAR nuevas filas en tabla indicadores con categoría 'inversion'
+```
+
+### 4.6 Agregar un nuevo año
+
+1. **Obtener** el Excel de la fuente correspondiente
+2. **Crear o modificar** un script en `scripts/` basado en los existentes
+3. **Actualizar** la ruta del Excel y el período en el script
+4. **Ejecutar**: `node scripts/load-budget-NUEVO.mjs`
+5. **Verificar** con consultas SQL (ver sección 6)
+
+---
+
+## 5. Datos en el Dashboard
+
+### 5.1 Estructura en Supabase
 
 Tabla: `indicadores`
 
@@ -93,178 +212,29 @@ desglose: {
 fuente: 'Ministerio de Finanzas Córdoba / Visualizador PTO'
 ```
 
-### 3.2 Datos Actuales (2024)
+### 5.2 Datos Actuales (2025)
 
-| Área                 | Programas | Ponderador Promedio | Total Ponderado     | Total Crudo         |
-| -------------------- | --------- | ------------------- | ------------------- | ------------------- |
-| Educación            | 25        | 96.3%               | $720 mil millones   | $727 mil millones   |
-| Salud                | 17        | 40.4%               | $205 mil millones   | $627 mil millones   |
-| Desarrollo Social    | 24        | 42.5%               | $86 mil millones    | $140 mil millones   |
-| Niñez y Adolescencia | 21        | 100%                | $27 mil millones    | $27 mil millones    |
-| Otros                | 18        | 30.8%               | $15 mil millones    | $47 mil millones    |
-| **TOTAL**            | **105**   | -                   | **$1.053 billones** | **$1.568 billones** |
+| Área                 | Programas | Ponderador Promedio | Total Ponderado        | Total Crudo          |
+| -------------------- | --------- | ------------------- | ---------------------- | -------------------- |
+| Educación            | 33        | 100%                | $378.84 mil millones   | $378.84 mil millones |
+| Otros                | 167       | 30.8%               | $316.38 mil millones   | $1.03 billones       |
+| Niñez y Adolescencia | 8         | 100%                | $134.06 mil millones   | $134.06 mil millones |
+| Salud                | 27        | 30.0%               | $64.61 mil millones    | $215.36 mil millones |
+| Desarrollo Social    | 37        | 30.8%               | $15.32 mil millones    | $49.75 mil millones  |
+| **TOTAL**            | **272**   | -                   | **$909.20 mil millones** | **$1.81 billones**   |
 
-### 3.3 Evolución Histórica
+> Los totales 2021-2024 son anuales completos (fuente Visualizador PTO). El dato 2025 es acumulado a marzo (fuente Datos Abiertos).
 
-| Año  | Total Ponderado   | Total Crudo     | % Ponderado |
-| ---- | ----------------- | --------------- | ----------- |
-| 2021 | $157 mil millones | -               | -           |
-| 2022 | $282 mil millones | -               | -           |
-| 2023 | $739 mil millones | -               | -           |
-| 2024 | $1.053 billones   | $1.568 billones | 67.1%       |
+### 5.3 Evolución Histórica
 
----
-
-## 4. Pipeline de Datos
-
-### 4.1 Fuente de Datos
-
-**Visualizador de Presupuesto Transparente** del Ministerio de Finanzas de Córdoba.
-
-Estructura del Excel fuente:
-
-| Columna             | Índice | Descripción                          |
-| ------------------- | ------ | ------------------------------------ |
-| AÑO                 | 0      | Año fiscal                           |
-| JURISDICCION        | 3      | Ministerio/entidad                   |
-| PROGRAMA            | 5      | Programa presupuestario              |
-| Aplica              | 15     | Si/No - Si el programa aplica a NNyA |
-| Categoría           | 16     | Categoría del programa               |
-| Ponderador          | 21     | Factor de ponderación NNyA           |
-| DEVENGADO PONDERADO | 27     | Monto final para NNyA                |
-
-### 4.2 Proceso ETL
-
-```
-1. LEER Excel del Visualizador PTO
-   ↓
-2. FILTRAR por Aplica = "Si"
-   ↓
-3. MAPEAR categorías a áreas de alto nivel:
-   - Educación → Educación
-   - Salud, Obras sociales → Salud
-   - Nutrición, Ayuda directa, Condiciones de vida → Desarrollo Social
-   - Protección del niño → Niñez y Adolescencia
-   - Otros → Otros
-   ↓
-4. AGREGAR por (year, area, programa) sumando DEVENGADO PONDERADO
-   ↓
-5. INSERTAR en tabla indicadores con categoría 'inversion'
-```
-
-### 4.3 Scripts de Carga
-
-Existen múltiples scripts según el tipo de dato:
-
-#### Script Original (Visualizador PTO con ponderador)
-
-Ubicación: `scripts/migrate-inversion.mjs`
-
-```bash
-# Ejecutar con Node.js
-node --max-old-space-size=4096 scripts/migrate-inversion.mjs
-```
-
-**Requisitos:**
-
-- Variable de entorno: `SUPABASE_SERVICE_ROLE_KEY`
-- Archivo Excel en la ruta configurada en el script
-
-#### Script para Datos Crudos 2025 (Datos Abiertos)
-
-Ubicación: `scripts/load-budget-2025.mjs`
-
-```bash
-node scripts/load-budget-2025.mjs
-```
-
-**Características:**
-
-- Lee datos de ejecución presupuestaria cruda (sin ponderador)
-- Aplica ponderadores por defecto según área
-- Agrega datos por (año, área, programa)
-- Inserta en tabla `indicadores` con categoría 'inversion'
-
-**Requisitos:**
-
-- Excel "Gastos Administración Central - Acumulado [MES] [AÑO].xlsx" en `scripts/data/`
-- Variable de entorno: `SUPABASE_SERVICE_ROLE_KEY`
-
-#### Script para Ley de Presupuesto (estimaciones)
-
-Ubicación: `scripts/load-budget-2026-estimate.mjs`
-
-```bash
-node scripts/load-budget-2026-estimate.mjs
-```
-
-**Características:**
-
-- Genera estimación basada en Ley de Presupuesto
-- Aplica ponderadores por defecto según área
-- Inserta 19 registros (5 áreas × ~4 programas cada una)
-- Marca datos como "estimate" en metadatos
-
-**Requisitos:**
-
-- Variable de entorno: `SUPABASE_SERVICE_ROLE_KEY`
-- Actualizar constantes en el script si cambia la ley
-
----
-
-## 5. Cómo Aplicar a Nuevos Datos
-
-### 5.1 Para Datos del Visualizador PTO (con ponderador incluido)
-
-1. Descargar el Excel actualizado del Visualizador PTO
-2. Colocarlo en `scripts/data/`
-3. Actualizar la ruta en `migrate-inversion.mjs`
-4. Ejecutar el script
-
-### 5.2 Para Datos Crudos (ejecución presupuestaria)
-
-1. **Descargar** el Excel de Datos Abiertos (ejecución acumulada)
-2. **Colocar** en `scripts/data/` con nombre descriptivo
-3. **Actualizar** la ruta en `load-budget-2025.mjs` (o copiar y modificar)
-4. **Ejecutar**: `node scripts/load-budget-2025.mjs`
-5. **Verificar** en el dashboard o consultando la DB
-
-**Ponderadores de referencia por área:**
-
-```javascript
-const PONDERADORES_DEFAULT = {
-  Educación: 1.0, // Gasto puro
-  Salud: 0.3, // Gasto mixto
-  'Desarrollo Social': 0.308, // Gasto mixto
-  'Niñez y Adolescencia': 1.0, // Gasto puro
-  Otros: 0.308, // Gasto mixto
-};
-```
-
-### 5.3 Para Ley de Presupuesto (valores proyectados)
-
-1. **Obtener** la Ley de Presupuesto aprobada
-2. **Extraer** los montos por área de inversión social
-3. **Actualizar** las constantes en `load-budget-2026-estimate.mjs`:
-   - `TOTAL_GASTOS_2026`
-   - `INVERSION_SOCIAL_PCT`
-   - `AREA_PCT` (porcentajes por área)
-4. **Ejecutar**: `node scripts/load-budget-2026-estimate.mjs`
-5. **Nota**: Este script elimina datos existentes del año antes de insertar
-
-**Ejemplo de constantes a actualizar:**
-
-```javascript
-const TOTAL_GASTOS_2026 = 11_442_000_000_000; // $11.442 billones
-const INVERSION_SOCIAL_PCT = 0.347; // 34.7%
-const AREA_PCT = {
-  Educación: 0.609, // 60.9% de inversión social
-  Salud: 0.237, // 23.7%
-  'Desarrollo Social': 0.092, // 9.2%
-  'Niñez y Adolescencia': 0.031, // 3.1%
-  Otros: 0.031, // 3.1%
-};
-```
+| Año  | Total Ponderado      | Total Crudo      | % Ponderado | Fuente                    | Nota                         |
+| ---- | -------------------- | ---------------- | ----------- | ------------------------- | ---------------------------- |
+| 2021 | $157 mil millones    | —                | —           | Visualizador PTO          | Anual completo               |
+| 2022 | $282 mil millones    | —                | —           | Visualizador PTO          | Anual completo               |
+| 2023 | $739 mil millones    | —                | —           | Visualizador PTO          | Anual completo               |
+| 2024 | $1.053 billones      | $1.568 billones  | 67.1%       | Visualizador PTO          | Anual completo               |
+| 2025 | $909.20 mil millones | $1.81 billones   | 50.4%       | Datos Abiertos Marzo 2025 | ⚠️ Acumulado a marzo         |
+| 2026 | —                    | —                | —           | Ley de Presupuesto        | Estimación (pendiente carga) |
 
 ---
 
@@ -311,33 +281,21 @@ ORDER BY periodo;
 
 ---
 
-## 7. Fuentes de Datos
-
-| Fuente                   | URL                                | Periodicidad |
-| ------------------------ | ---------------------------------- | ------------ |
-| Visualizador PTO         | economiaygestionpublica.cba.gov.ar | Anual        |
-| Datos Abiertos Ejecución | (descarga manual)                  | Mensual      |
-| Ley de Presupuesto       | legislaturacba.gob.ar              | Anual        |
-| Censo INDEC              | censo.gob.ar                       | Cada 10 años |
-| EPH-INDEC                | indec.gob.ar                       | Trimestral   |
-
----
-
-## 8. Notas Metodológicas
+## 7. Notas Metodológicas
 
 1. **Los ponderadores no son fijos**: Se actualizan periódicamente con nuevos datos de EPH y registros administrativos
 
 2. **El "Aplica = Si" es clave**: No todos los programas del presupuesto benefician a NNyA. Solo los que tienen la marca "Si" en la columna Aplica son incluidos
 
-3. **La fuente es oficial**: El Visualizador de Presupuesto Transparente es la fuente oficial del Ministerio de Finanzas de Córdoba
+3. **La fuente es oficial**: El Visualizador de Presupuesto Transparente y Datos Abiertos son fuentes oficiales del gobierno de Córdoba
 
-4. **Los datos son anuales**: El presupuesto se aprueba por año fiscal. Los datos de ejecución mensual son parciales
+4. **Los datos de ejecución mensual son parciales**: El dato 2025 refleja solo el acumulado a marzo. No es comparable directamente con años completos.
 
-5. **Consistencia histórica**: Para mantener la serie temporal comparable, se recomienda usar siempre la misma fuente y metodología
+5. **Consistencia histórica**: Para mantener la serie temporal comparable, se recomienda usar siempre la misma fuente y metodología para cada tipo de dato
 
 ---
 
-## 9. Referencias
+## 8. Referencias
 
 - UNICEF España: "Metodología para la medición de la inversión presupuestaria en infancia"
 - DNPPE/UNICEF Córdoba: Visualizador de Presupuesto Transparente con Orientación
