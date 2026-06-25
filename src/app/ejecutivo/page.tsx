@@ -9,13 +9,16 @@
 
 import { useRouter } from 'next/navigation';
 import { ReportModal } from '@/components/report-modal';
+import { LoginGate } from '@/components/login-gate';
 
 export default function EjecutivoPage() {
   const router = useRouter();
 
   return (
+    <LoginGate>
     <div className="space-y-6">
       <ReportModal isOpen onClose={() => router.push('/')} />
     </div>
+    </LoginGate>
   );
 }

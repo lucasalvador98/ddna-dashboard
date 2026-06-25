@@ -28,6 +28,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
+import { LoginGate } from '@/components/login-gate';
 import clsx from 'clsx';
 
 // ─── Color Palette ─────────────────────────────────────────────────────────────
@@ -269,6 +270,7 @@ export default function PresupuestoNnyaPage() {
   const [error] = useState<string | null>(null);
 
   return (
+    <LoginGate>
     <div className="space-y-6">
       <SectionHeader
         icon={Coins}
@@ -725,5 +727,6 @@ export default function PresupuestoNnyaPage() {
         </div>
       )}
     </div>
+    </LoginGate>
   );
 }

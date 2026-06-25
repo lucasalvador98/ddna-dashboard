@@ -4,6 +4,7 @@ import './globals.css';
 import { Sidebar } from '@/components/sidebar';
 import { Header } from '@/components/header';
 import { SidebarProvider } from '@/components/sidebar-context';
+import { AuthProvider } from '@/components/auth-provider';
 
 const epilogue = Epilogue({
   variable: '--font-epilogue',
@@ -42,15 +43,17 @@ export default function RootLayout({
         >
           Saltar al contenido principal
         </a>
-        <SidebarProvider>
-          <Header />
-          <div className="flex flex-1 min-h-0">
-            <Sidebar />
-            <main id="main-content" className="flex-1 overflow-y-auto p-6 lg:p-8">
-              {children}
-            </main>
-          </div>
-        </SidebarProvider>
+        <AuthProvider>
+          <SidebarProvider>
+            <Header />
+            <div className="flex flex-1 min-h-0">
+              <Sidebar />
+              <main id="main-content" className="flex-1 overflow-y-auto p-6 lg:p-8">
+                {children}
+              </main>
+            </div>
+          </SidebarProvider>
+        </AuthProvider>
       </body>
     </html>
   );

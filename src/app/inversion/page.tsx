@@ -13,6 +13,7 @@ import {
 import { SectionHeader } from '@/components/section-header';
 import { KpiCard } from '@/components/kpi-card';
 import { ChartWithTable } from '@/components/charts/chart-with-table';
+import { LoginGate } from '@/components/login-gate';
 import {
   LineChart,
   Line,
@@ -210,6 +211,7 @@ export default function InversionPage() {
   const [error] = useState<string | null>(null);
 
   return (
+    <LoginGate>
     <div className="space-y-6">
       <SectionHeader
         icon={Coins}
@@ -419,5 +421,6 @@ export default function InversionPage() {
         </div>
       )}
     </div>
+    </LoginGate>
   );
 }

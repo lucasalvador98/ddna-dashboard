@@ -17,6 +17,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { LoginGate } from '@/components/login-gate';
 
 interface RepoFile {
   id: string;
@@ -197,6 +198,7 @@ export default function RepositorioPage() {
   };
 
   return (
+    <LoginGate>
     <div className="space-y-6">
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 py-8">
@@ -527,5 +529,6 @@ export default function RepositorioPage() {
         )}
       </div>
     </div>
+    </LoginGate>
   );
 }
