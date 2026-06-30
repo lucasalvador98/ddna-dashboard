@@ -33,6 +33,7 @@ interface DashboardData {
   monthCount: number;
   pendientesCount: number;
   verificadosCount: number;
+  ultimaSincronizacion: string | null;
   medioData: { label: string; count: number }[];
   topicoData: { label: string; count: number }[];
   monthlyData: { month: string; count: number }[];
@@ -178,6 +179,7 @@ export function MonitoreoDashboard() {
     monthCount: 0,
     pendientesCount: 0,
     verificadosCount: 0,
+    ultimaSincronizacion: null,
     medioData: [],
     topicoData: [],
     monthlyData: [],
@@ -190,24 +192,13 @@ export function MonitoreoDashboard() {
       const monthStart = getThisMonthStart();
 
       // Fetch all data in parallel
-      const [totalRes, monthRes, pendientesRes, verificadosRes, allRes] = await Promise.all([
+      const [totalRes, monthRes, pendientesRes, verificadosRes, syncRes, allRes] = await Promise.all([
         supabase.from('monitoreo_registros').select('*', { count: 'exact', head: true }),
-        supabase
-          .from('monitoreo_registros')
-          .select('*', { count: 'exact', head: true })
-          .gte('created_at', monthStart),
-        supabase
-          .from('monitoreo_registros')
-          .select('*', { count: 'exact', head: true })
-          .eq('estado', 'PENDIENTE'),
-        supabase
-          .from('monitoreo_registros')
-          .select('*', { count: 'exact', head: true })
-          .eq('estado', 'VERIFICADO'),
-        supabase
-          .from('monitoreo_registros')
-          .select('medio, topico_principal, fecha_noticia')
-          .limit(10000),
+        supabase.from('monitoreo_registros').select('*', { count: 'exact', head: true }).gte('created_at', monthStart),
+        supabase.from('monitoreo_registros').select('*', { count: 'exact', head: true }).eq('estado', 'PENDIENTE'),
+        supabase.from('monitoreo_registros').select('*', { count: 'exact', head: true }).eq('estado', 'VERIFICADO'),
+        supabase.from('monitoreo_registros').select('fecha_sincronizacion').order('fecha_sincronizacion', { ascending: false }).limit(1),
+        supabase.from('monitoreo_registros').select('medio, topico_principal, fecha_noticia').limit(10000),
       ]);
 
       const registros = (allRes.data ?? []) as Pick<
@@ -215,11 +206,14 @@ export function MonitoreoDashboard() {
         'medio' | 'topico_principal' | 'fecha_noticia'
       >[];
 
+      const syncData = syncRes.data?.[0] as { fecha_sincronizacion: string | null } | null;
+
       setData({
         totalCount: totalRes.count ?? 0,
         monthCount: monthRes.count ?? 0,
         pendientesCount: pendientesRes.count ?? 0,
         verificadosCount: verificadosRes.count ?? 0,
+        ultimaSincronizacion: syncData?.fecha_sincronizacion ?? null,
         medioData: aggregateCounts(registros.map(r => r.medio)),
         topicoData: aggregateCounts(registros.map(r => r.topico_principal)),
         monthlyData: getMonthlyCounts(registros.map(r => r.fecha_noticia)),
@@ -258,6 +252,7 @@ export function MonitoreoDashboard() {
         registrosMes={data.monthCount}
         pendientes={data.pendientesCount}
         verificados={data.verificadosCount}
+        ultimaSincronizacion={data.ultimaSincronizacion}
         loading={loading}
       />
 
