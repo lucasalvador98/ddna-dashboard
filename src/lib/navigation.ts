@@ -13,6 +13,7 @@ import {
   FolderOpen,
   FileText,
   Settings,
+  Newspaper,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -49,9 +50,7 @@ export const navigation: NavGroup[] = [
     label: 'Educación',
     icon: BookOpen,
     color: '#F3A712',
-    items: [
-      { label: 'Educación', href: '/educacion', icon: BookOpen },
-    ],
+    items: [{ label: 'Educación', href: '/educacion', icon: BookOpen }],
   },
   {
     label: 'Condiciones Sociales',
@@ -74,6 +73,12 @@ export const navigation: NavGroup[] = [
     icon: Coins,
     color: '#E07A5F',
     items: [{ label: 'Presupuesto NNyA', href: '/inversion', icon: Coins }],
+  },
+  {
+    label: 'Monitoreo',
+    icon: Newspaper,
+    color: '#8B5CF6',
+    items: [{ label: 'Monitoreo de Medios', href: '/monitoreo', icon: Newspaper }],
   },
   {
     label: 'Herramientas',
@@ -110,6 +115,7 @@ export const routeTitles: Record<string, string> = {
   '/repositorio': 'Repositorio Documental',
   '/repositorio/chat': 'Chat con la Bibliografía',
   '/ejecutivo': 'Informe Ejecutivo',
+  '/monitoreo': 'Monitoreo de Medios',
   '/admin': 'Configuración',
   '/apis': 'APIs',
 };
