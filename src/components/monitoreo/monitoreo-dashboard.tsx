@@ -19,15 +19,7 @@ import {
 import { Hash, Building2, Calendar, AlertCircle, Users, Eye, FileText, Tag } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { MonitoreoStats } from './monitoreo-stats';
-import {
-  CHART_COLORS_HEX,
-  formatMonthLabel,
-  getThisMonthStart,
-  getMonthlyCounts,
-  aggregateCounts,
-  type MonitoreoRegistro,
-  type MonitoreoActor,
-} from './constants';
+import { CHART_COLORS_HEX, formatMonthLabel, type MonitoreoActor } from './constants';
 
 interface DashboardData {
   totalCount: number;
@@ -38,10 +30,8 @@ interface DashboardData {
   medioData: { label: string; count: number }[];
   topicoData: { label: string; count: number }[];
   monthlyData: { month: string; count: number }[];
-  // Section 3: Análisis de Actores
   actorRolData: { label: string; count: number }[];
   victimaVictimarioData: { label: string; count: number }[];
-  // Section 4: Calidad Periodística
   usoFuentesMedioData: {
     medio: string;
     'No usa fuentes': number;
@@ -50,15 +40,37 @@ interface DashboardData {
     'Usa 3 o más fuentes': number;
   }[];
   notasConEstadisticas: number;
-  // Section 5: Identificabilidad
   identificabilidadTopicoData: {
     rol: string;
     total: number;
     incorrectos: number;
     porcentaje: number;
   }[];
-  // Section 6: Top Términos
   topTerminosData: { label: string; count: number }[];
+}
+
+// Row type returned by the monitoreo_dashboard_stats view
+interface DashboardViewRow {
+  total_registros: number;
+  registros_este_mes: number;
+  pendientes: number;
+  verificados: number;
+  medio_distribution: { label: string; count: number }[] | null;
+  topico_distribution: { label: string; count: number }[] | null;
+  monthly_evolution: { month: string; count: number }[] | null;
+  actor_rol_data: { label: string; count: number }[] | null;
+  victima_victimario_data: { label: string; count: number }[] | null;
+  uso_fuentes_medio_data: Record<string, unknown>[] | null;
+  notas_con_estadisticas: number;
+  identificabilidad_topico_data:
+    | {
+        rol: string;
+        total: number;
+        incorrectos: number;
+        porcentaje: number;
+      }[]
+    | null;
+  top_terminos_data: { label: string; count: number }[] | null;
 }
 
 // ── Recharts custom tooltip ──────────────────────────────────────
@@ -140,7 +152,11 @@ function HorizontalBarChart({ data }: { data: { label: string; count: number }[]
 
   return (
     <ResponsiveContainer width="100%" height={Math.max(240, chartData.length * 32)}>
-      <BarChart data={chartData} layout="vertical" margin={{ left: 10, right: 30, top: 5, bottom: 5 }}>
+      <BarChart
+        data={chartData}
+        layout="vertical"
+        margin={{ left: 10, right: 30, top: 5, bottom: 5 }}
+      >
         <CartesianGrid strokeDasharray="3 3" horizontal={false} />
         <XAxis type="number" tick={{ fontSize: 12 }} />
         <YAxis type="category" dataKey="name" width={160} tick={{ fontSize: 11 }} />
@@ -207,7 +223,12 @@ const FUENTES_COLORS: Record<string, string> = {
   'Usa 3 o más fuentes': '#1E40AF', // blue-800
 };
 
-const FUENTES_KEYS = ['No usa fuentes', 'Usa 1 fuente', 'Usa 2 fuentes', 'Usa 3 o más fuentes'] as const;
+const FUENTES_KEYS = [
+  'No usa fuentes',
+  'Usa 1 fuente',
+  'Usa 2 fuentes',
+  'Usa 3 o más fuentes',
+] as const;
 
 interface FuentesMedioRow {
   medio: string;
@@ -222,7 +243,11 @@ function FuentesStackedBarChart({ data }: { data: FuentesMedioRow[] }) {
 
   return (
     <ResponsiveContainer width="100%" height={Math.max(240, chartData.length * 40)}>
-      <BarChart data={chartData} layout="vertical" margin={{ left: 10, right: 30, top: 5, bottom: 5 }}>
+      <BarChart
+        data={chartData}
+        layout="vertical"
+        margin={{ left: 10, right: 30, top: 5, bottom: 5 }}
+      >
         <CartesianGrid strokeDasharray="3 3" horizontal={false} />
         <XAxis type="number" tick={{ fontSize: 12 }} />
         <YAxis type="category" dataKey="medio" width={130} tick={{ fontSize: 11 }} />
@@ -256,14 +281,23 @@ function IdentificabilidadBarChart({ data }: { data: IdentificabilidadRow[] }) {
 
   return (
     <ResponsiveContainer width="100%" height={Math.max(240, chartData.length * 40)}>
-      <BarChart data={chartData} layout="vertical" margin={{ left: 10, right: 30, top: 5, bottom: 5 }}>
+      <BarChart
+        data={chartData}
+        layout="vertical"
+        margin={{ left: 10, right: 30, top: 5, bottom: 5 }}
+      >
         <CartesianGrid strokeDasharray="3 3" horizontal={false} />
         <XAxis type="number" tick={{ fontSize: 12 }} />
         <YAxis type="category" dataKey="rol" width={180} tick={{ fontSize: 11 }} />
         <Tooltip content={<CustomTooltip />} />
         <Legend wrapperStyle={{ fontSize: '12px' }} />
         <Bar dataKey="total" fill="#10B981" name="Total actores" radius={[0, 4, 4, 0]} />
-        <Bar dataKey="incorrectos" fill="#EF4444" name="Identificados incorrectamente" radius={[0, 4, 4, 0]} />
+        <Bar
+          dataKey="incorrectos"
+          fill="#EF4444"
+          name="Identificados incorrectamente"
+          radius={[0, 4, 4, 0]}
+        />
       </BarChart>
     </ResponsiveContainer>
   );
@@ -331,143 +365,41 @@ export function MonitoreoDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const monthStart = getThisMonthStart();
+      // Single query to the DB view — no client-side aggregation needed
+      const { data: viewData, error: viewError } = await supabase
+        .from('monitoreo_dashboard_stats')
+        .select('*')
+        .single();
 
-      // Fetch all data in parallel — queries 1-6 (existing) + 7 (actores)
-      const [
-        totalRes,
-        monthRes,
-        pendientesRes,
-        verificadosRes,
-        syncRes,
-        allRes,
-        actoresRes,
-      ] = await Promise.all([
-        supabase.from('monitoreo_registros').select('*', { count: 'exact', head: true }),
-        supabase.from('monitoreo_registros').select('*', { count: 'exact', head: true }).gte('created_at', monthStart),
-        supabase.from('monitoreo_registros').select('*', { count: 'exact', head: true }).eq('estado', 'PENDIENTE'),
-        supabase.from('monitoreo_registros').select('*', { count: 'exact', head: true }).eq('estado', 'VERIFICADO'),
-        supabase.from('monitoreo_registros').select('fecha_sincronizacion').order('fecha_sincronizacion', { ascending: false }).limit(1),
-        supabase.from('monitoreo_registros').select('id, medio, topico_principal, fecha_noticia, uso_fuentes, uso_estadisticas').limit(10000),
-        supabase.from('monitoreo_actores').select('rol, victimario_victima, actor_descripcion, identificabilidad, registro_id').limit(50000),
-      ]);
+      if (viewError) throw viewError;
 
-      const registros = (allRes.data ?? []) as Pick<
-        MonitoreoRegistro,
-        'id' | 'medio' | 'topico_principal' | 'fecha_noticia' | 'uso_fuentes' | 'uso_estadisticas'
-      >[];
-      const actores = (actoresRes.data ?? []) as Pick<
-        MonitoreoActor,
-        'rol' | 'victimario_victima' | 'actor_descripcion' | 'identificabilidad' | 'registro_id'
-      >[];
+      const row = viewData as DashboardViewRow;
 
-      const syncData = syncRes.data?.[0] as { fecha_sincronizacion: string | null } | null;
-
-      // ── Section 3: Análisis de Actores
-      // Chart A: Actores por Rol
-      const actorRolData = aggregateCounts(actores.map(a => a.rol));
-      // Chart B: Víctima vs Victimario
-      const victimaVictimarioData = aggregateCounts(actores.map(a => a.victimario_victima));
-
-      // ── Section 4: Calidad Periodística — Fuentes
-      // Chart C: Uso de fuentes por medio (stacked)
-      const fuentesMap: Record<string, Record<string, number>> = {};
-      for (const r of registros) {
-        if (!r.medio) continue;
-        if (!fuentesMap[r.medio]) {
-          fuentesMap[r.medio] = {
-            'No usa fuentes': 0,
-            'Usa 1 fuente': 0,
-            'Usa 2 fuentes': 0,
-            'Usa 3 o más fuentes': 0,
-          };
-        }
-        const key = r.uso_fuentes ?? 'No usa fuentes';
-        if (key in fuentesMap[r.medio]) {
-          fuentesMap[r.medio][key]++;
-        }
-      }
-      const usoFuentesMedioData: FuentesMedioRow[] = Object.entries(fuentesMap)
-        .map(([medio, counts]) => ({
-          medio,
-          'No usa fuentes': counts['No usa fuentes'],
-          'Usa 1 fuente': counts['Usa 1 fuente'],
-          'Usa 2 fuentes': counts['Usa 2 fuentes'],
-          'Usa 3 o más fuentes': counts['Usa 3 o más fuentes'],
-        }))
-        .sort((a, b) => {
-          const totalA = a['No usa fuentes'] + a['Usa 1 fuente'] + a['Usa 2 fuentes'] + a['Usa 3 o más fuentes'];
-          const totalB = b['No usa fuentes'] + b['Usa 1 fuente'] + b['Usa 2 fuentes'] + b['Usa 3 o más fuentes'];
-          return totalB - totalA;
-        });
-
-      // KPI Card: % de notas que usan estadísticas
-      const totalNotas = registros.length;
-      const notasConEst = registros.filter(r => r.uso_estadisticas === true).length;
-      const notasConEstadisticas = totalNotas > 0 ? Math.round((notasConEst / totalNotas) * 100) : 0;
-
-      // ── Section 5: Identificabilidad
-      // Chart D: Identificabilidad por Tópico (join actores + registros)
-      const registroTopicoMap = new Map<number, string>();
-      for (const r of registros) {
-        if (r.id != null && r.topico_principal) {
-          registroTopicoMap.set(r.id, r.topico_principal);
-        }
-      }
-      const topicMap: Record<string, { total: number; incorrectos: number }> = {};
-      for (const a of actores) {
-        const topico = registroTopicoMap.get(a.registro_id);
-        if (!topico) continue;
-        if (!topicMap[topico]) {
-          topicMap[topico] = { total: 0, incorrectos: 0 };
-        }
-        topicMap[topico].total++;
-        if (a.identificabilidad === true) {
-          topicMap[topico].incorrectos++;
-        }
-      }
-      const identificabilidadTopicoData: IdentificabilidadRow[] = Object.entries(topicMap)
-        .map(([rol, { total, incorrectos }]) => ({
-          rol,
-          total,
-          incorrectos,
-          porcentaje: total > 0 ? Math.round((incorrectos / total) * 100) : 0,
-        }))
-        .sort((a, b) => b.total - a.total)
-        .slice(0, 10);
-
-      // ── Section 6: Top Términos (actor_descripcion split by "/")
-      const termCounts: Record<string, number> = {};
-      for (const a of actores) {
-        if (!a.actor_descripcion) continue;
-        const terms = a.actor_descripcion
-          .split('/')
-          .map(t => t.trim())
-          .filter(Boolean);
-        for (const term of terms) {
-          termCounts[term] = (termCounts[term] || 0) + 1;
-        }
-      }
-      const topTerminosData = Object.entries(termCounts)
-        .map(([label, count]) => ({ label, count }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 20);
+      // Parse the fuentes data (view returns double-quoted column names)
+      const rawFuentes = row.uso_fuentes_medio_data ?? [];
+      const usoFuentesMedioData = rawFuentes.map((r: Record<string, unknown>) => ({
+        medio: r.medio as string,
+        'No usa fuentes': (r['"No usa fuentes"'] ?? 0) as number,
+        'Usa 1 fuente': (r['"Usa 1 fuente"'] ?? 0) as number,
+        'Usa 2 fuentes': (r['"Usa 2 fuentes"'] ?? 0) as number,
+        'Usa 3 o más fuentes': (r['"Usa 3 o más fuentes"'] ?? 0) as number,
+      }));
 
       setData({
-        totalCount: totalRes.count ?? 0,
-        monthCount: monthRes.count ?? 0,
-        pendientesCount: pendientesRes.count ?? 0,
-        verificadosCount: verificadosRes.count ?? 0,
-        ultimaSincronizacion: syncData?.fecha_sincronizacion ?? null,
-        medioData: aggregateCounts(registros.map(r => r.medio)),
-        topicoData: aggregateCounts(registros.map(r => r.topico_principal)),
-        monthlyData: getMonthlyCounts(registros.map(r => r.fecha_noticia)),
-        actorRolData,
-        victimaVictimarioData,
+        totalCount: row.total_registros ?? 0,
+        monthCount: row.registros_este_mes ?? 0,
+        pendientesCount: row.pendientes ?? 0,
+        verificadosCount: row.verificados ?? 0,
+        ultimaSincronizacion: null,
+        medioData: row.medio_distribution ?? [],
+        topicoData: row.topico_distribution ?? [],
+        monthlyData: row.monthly_evolution ?? [],
+        actorRolData: row.actor_rol_data ?? [],
+        victimaVictimarioData: row.victima_victimario_data ?? [],
         usoFuentesMedioData,
-        notasConEstadisticas,
-        identificabilidadTopicoData,
-        topTerminosData,
+        notasConEstadisticas: row.notas_con_estadisticas ?? 0,
+        identificabilidadTopicoData: row.identificabilidad_topico_data ?? [],
+        topTerminosData: row.top_terminos_data ?? [],
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar dashboard');

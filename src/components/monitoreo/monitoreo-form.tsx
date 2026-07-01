@@ -237,6 +237,17 @@ export function MonitoreoForm({ editingId, onSave, onCancel }: FormViewProps) {
   };
 
   const removeActor = (index: number) => {
+    const actor = actors[index];
+    const hasData =
+      actor.actor_descripcion ||
+      actor.genero ||
+      actor.franja_etaria ||
+      actor.victimario_victima ||
+      actor.rol ||
+      actor.identificabilidad;
+    if (hasData && !confirm('Este actor tiene datos cargados. ¿Seguro que lo querés eliminar?')) {
+      return;
+    }
     setActors(prev => prev.filter((_, i) => i !== index));
   };
 
@@ -345,9 +356,7 @@ export function MonitoreoForm({ editingId, onSave, onCancel }: FormViewProps) {
       }
 
       setToast({
-        message: editingId
-          ? 'Registro actualizado correctamente'
-          : 'Registro creado correctamente',
+        message: editingId ? 'Registro actualizado correctamente' : 'Registro creado correctamente',
         type: 'success',
       });
 
@@ -363,7 +372,9 @@ export function MonitoreoForm({ editingId, onSave, onCancel }: FormViewProps) {
   };
 
   const medioError =
-    showAllErrors || touched.has('medio') ? getFieldError('medio', formData, new Set(['medio'])) : undefined;
+    showAllErrors || touched.has('medio')
+      ? getFieldError('medio', formData, new Set(['medio']))
+      : undefined;
   const tituloError =
     showAllErrors || touched.has('titulo')
       ? getFieldError('titulo', formData, new Set(['titulo']))
@@ -384,13 +395,7 @@ export function MonitoreoForm({ editingId, onSave, onCancel }: FormViewProps) {
 
   return (
     <>
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Header */}

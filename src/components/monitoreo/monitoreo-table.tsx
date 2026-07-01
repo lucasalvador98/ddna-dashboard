@@ -10,6 +10,10 @@ import {
   ChevronRight,
   FileText,
   CheckCircle,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Download,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import {
@@ -25,6 +29,74 @@ import { StateBadge } from './state-badge';
 
 interface TableViewProps {
   onEditRegistro: (id: number) => void;
+}
+
+type SortColumn = 'fecha_noticia' | 'medio' | 'titulo' | 'seccion' | 'topico_principal' | 'estado';
+type SortDirection = 'asc' | 'desc';
+
+// ── CSV Export ──────────────────────────────────────────────────
+
+function exportToCSV(records: RegistroConActores[], filename: string) {
+  if (records.length === 0) return;
+
+  const headers = ['Fecha', 'Medio', 'Título', 'Sección', 'Tópico', 'Estado', 'Caso', 'Actores'];
+  const escapeCSV = (val: string | null | undefined) => {
+    const str = val ?? '';
+    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  };
+
+  const rows = records.map(r => [
+    formatDate(r.fecha_noticia),
+    escapeCSV(r.medio),
+    escapeCSV(r.titulo),
+    escapeCSV(r.seccion),
+    escapeCSV(r.topico_principal),
+    escapeCSV(r.estado),
+    r.caso ? 'Sí' : 'No',
+    String(r.monitoreo_actores?.length ?? 0),
+  ]);
+
+  const csv = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Sortable Column Header ─────────────────────────────────────
+
+function SortableHeader({
+  label,
+  column,
+  currentSort,
+  currentDir,
+  onSort,
+}: {
+  label: string;
+  column: SortColumn;
+  currentSort: SortColumn;
+  currentDir: SortDirection;
+  onSort: (col: SortColumn) => void;
+}) {
+  const active = currentSort === column;
+  const Icon = !active ? ArrowUpDown : currentDir === 'asc' ? ArrowUp : ArrowDown;
+  return (
+    <button
+      onClick={() => onSort(column)}
+      className={`flex items-center gap-1 text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider transition-colors ${
+        active ? 'text-[var(--ddna-blue)]' : 'text-slate-500 hover:text-slate-700'
+      }`}
+    >
+      {label}
+      <Icon className={`w-3 h-3 ${active ? 'opacity-100' : 'opacity-40'}`} />
+    </button>
+  );
 }
 
 export function MonitoreoTable({ onEditRegistro }: TableViewProps) {
@@ -43,6 +115,10 @@ export function MonitoreoTable({ onEditRegistro }: TableViewProps) {
   const [filterEstado, setFilterEstado] = useState('');
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
+
+  // Sorting
+  const [sortColumn, setSortColumn] = useState<SortColumn>('fecha_noticia');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const totalPages = Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE));
@@ -68,9 +144,7 @@ export function MonitoreoTable({ onEditRegistro }: TableViewProps) {
 
       // Full-text search: OR on titulo and medio
       if (debouncedSearch) {
-        query = query.or(
-          `titulo.ilike.%${debouncedSearch}%,medio.ilike.%${debouncedSearch}%`
-        );
+        query = query.or(`titulo.ilike.%${debouncedSearch}%,medio.ilike.%${debouncedSearch}%`);
       }
       if (filterMedio) query = query.eq('medio', filterMedio);
       if (filterTopico) query = query.eq('topico_principal', filterTopico);
@@ -82,9 +156,11 @@ export function MonitoreoTable({ onEditRegistro }: TableViewProps) {
       const from = page * ITEMS_PER_PAGE;
       const to = from + ITEMS_PER_PAGE - 1;
 
-      const { data, count, error: fetchError } = await query
-        .order('created_at', { ascending: false })
-        .range(from, to);
+      const {
+        data,
+        count,
+        error: fetchError,
+      } = await query.order(sortColumn, { ascending: sortDirection === 'asc' }).range(from, to);
 
       if (fetchError) throw fetchError;
 
@@ -104,7 +180,18 @@ export function MonitoreoTable({ onEditRegistro }: TableViewProps) {
     fechaDesde,
     fechaHasta,
     page,
+    sortColumn,
+    sortDirection,
   ]);
+
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      setSortDirection(d => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortColumn(column);
+      setSortDirection('desc');
+    }
+  };
 
   useEffect(() => {
     fetchRegistros();
@@ -113,7 +200,15 @@ export function MonitoreoTable({ onEditRegistro }: TableViewProps) {
   // Reset page when filters change (debouncedSearch included)
   useEffect(() => {
     setPage(0);
-  }, [debouncedSearch, filterMedio, filterTopico, filterSeccion, filterEstado, fechaDesde, fechaHasta]);
+  }, [
+    debouncedSearch,
+    filterMedio,
+    filterTopico,
+    filterSeccion,
+    filterEstado,
+    fechaDesde,
+    fechaHasta,
+  ]);
 
   const clearFilters = () => {
     setSearch('');
@@ -158,7 +253,9 @@ export function MonitoreoTable({ onEditRegistro }: TableViewProps) {
           >
             <option value="">Todos los medios</option>
             {MEDIO_OPTIONS.map(m => (
-              <option key={m} value={m}>{m}</option>
+              <option key={m} value={m}>
+                {m}
+              </option>
             ))}
           </select>
 
@@ -169,7 +266,9 @@ export function MonitoreoTable({ onEditRegistro }: TableViewProps) {
           >
             <option value="">Todas las secciones</option>
             {SECCION_OPTIONS.map(s => (
-              <option key={s} value={s}>{s}</option>
+              <option key={s} value={s}>
+                {s}
+              </option>
             ))}
           </select>
 
@@ -180,7 +279,9 @@ export function MonitoreoTable({ onEditRegistro }: TableViewProps) {
           >
             <option value="">Todos los estados</option>
             {ESTADO_OPTIONS.map(e => (
-              <option key={e} value={e}>{e}</option>
+              <option key={e} value={e}>
+                {e}
+              </option>
             ))}
           </select>
         </div>
@@ -193,7 +294,9 @@ export function MonitoreoTable({ onEditRegistro }: TableViewProps) {
           >
             <option value="">Todos los tópicos</option>
             {TOPICO_PRINCIPAL_OPTIONS.map(t => (
-              <option key={t} value={t}>{t}</option>
+              <option key={t} value={t}>
+                {t}
+              </option>
             ))}
           </select>
 
@@ -231,7 +334,7 @@ export function MonitoreoTable({ onEditRegistro }: TableViewProps) {
         </div>
       </div>
 
-      {/* Results count & top pagination */}
+      {/* Results count, export & top pagination */}
       <div className="flex items-center justify-between text-sm text-slate-500">
         <span>
           Página {page + 1} de {totalPages} ({totalCount.toLocaleString('es-AR')} registro
@@ -239,6 +342,14 @@ export function MonitoreoTable({ onEditRegistro }: TableViewProps) {
           {loading && <Loader2 className="w-3.5 h-3.5 animate-spin inline ml-2" />}
         </span>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => exportToCSV(registros, `monitoreo-pagina-${page + 1}.csv`)}
+            disabled={registros.length === 0}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-600 hover:text-[var(--ddna-blue)] border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            CSV
+          </button>
           <button
             onClick={() => setPage(p => Math.max(0, p - 1))}
             disabled={page === 0}
@@ -278,7 +389,19 @@ export function MonitoreoTable({ onEditRegistro }: TableViewProps) {
       ) : registros.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 bg-white rounded-xl border border-slate-200 gap-3">
           <FileText className="w-12 h-12 text-slate-300" />
-          <p className="text-slate-500">No se encontraron registros</p>
+          {hasActiveFilters ? (
+            <>
+              <p className="text-slate-500">No se encontraron registros para estos filtros</p>
+              <p className="text-sm text-slate-400">
+                Intenta ajustar los filtros o limpiar la búsqueda
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-slate-500">No hay registros cargados todavía</p>
+              <p className="text-sm text-slate-400">Crea el primero usando el formulario</p>
+            </>
+          )}
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
@@ -286,30 +409,54 @@ export function MonitoreoTable({ onEditRegistro }: TableViewProps) {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50">
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Fecha
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Medio
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Título
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Sección
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Tópico
-                  </th>
+                  <SortableHeader
+                    label="Fecha"
+                    column="fecha_noticia"
+                    currentSort={sortColumn}
+                    currentDir={sortDirection}
+                    onSort={handleSort}
+                  />
+                  <SortableHeader
+                    label="Medio"
+                    column="medio"
+                    currentSort={sortColumn}
+                    currentDir={sortDirection}
+                    onSort={handleSort}
+                  />
+                  <SortableHeader
+                    label="Título"
+                    column="titulo"
+                    currentSort={sortColumn}
+                    currentDir={sortDirection}
+                    onSort={handleSort}
+                  />
+                  <SortableHeader
+                    label="Sección"
+                    column="seccion"
+                    currentSort={sortColumn}
+                    currentDir={sortDirection}
+                    onSort={handleSort}
+                  />
+                  <SortableHeader
+                    label="Tópico"
+                    column="topico_principal"
+                    currentSort={sortColumn}
+                    currentDir={sortDirection}
+                    onSort={handleSort}
+                  />
                   <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Caso
                   </th>
                   <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Actores
                   </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Estado
-                  </th>
+                  <SortableHeader
+                    label="Estado"
+                    column="estado"
+                    currentSort={sortColumn}
+                    currentDir={sortDirection}
+                    onSort={handleSort}
+                  />
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -323,7 +470,9 @@ export function MonitoreoTable({ onEditRegistro }: TableViewProps) {
                       {formatDate(r.fecha_noticia)}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-800 font-medium">{r.medio}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700 max-w-xs truncate">{r.titulo}</td>
+                    <td className="px-4 py-3 text-sm text-slate-700 max-w-xs truncate">
+                      {r.titulo}
+                    </td>
                     <td className="px-4 py-3 text-sm text-slate-600">{r.seccion || '—'}</td>
                     <td className="px-4 py-3 text-sm text-slate-600 max-w-[200px] truncate">
                       {r.topico_principal || '—'}

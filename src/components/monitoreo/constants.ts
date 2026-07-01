@@ -89,6 +89,7 @@ export const GENERO_PERIODISTICO_OPTIONS = ['Noticia', 'Informe', 'Opinión'] as
 
 export const SECCION_OPTIONS = [
   'Deportes',
+  'Economia',
   'Espectaculos',
   'Opinión',
   'Política',
@@ -103,6 +104,7 @@ export const TOPICO_PRINCIPAL_OPTIONS = [
   'Accidente de tránsito',
   'Accidente doméstico',
   'Acciones positivas',
+  'Adicciones',
   'Ahogamiento',
   'Asesinato',
   'Búsqueda de paradero',
@@ -186,7 +188,13 @@ export const ROL_OPTIONS = [
   'NNYA que cometió abuso',
 ] as const;
 
-export const GENERO_ACTOR_OPTIONS = ['Ambos', 'Femenino', 'Masculino', 'No consigna', 'Otro'] as const;
+export const GENERO_ACTOR_OPTIONS = [
+  'Ambos',
+  'Femenino',
+  'Masculino',
+  'No consigna',
+  'Otro',
+] as const;
 
 export const FRANJA_ETARIA_OPTIONS = ['Adolescentes', 'Niños', 'Todos'] as const;
 
@@ -286,9 +294,7 @@ export function aggregateCounts<T extends string>(
     .sort((a, b) => b.count - a.count);
 }
 
-export function getMonthlyCounts(
-  dates: (string | null)[]
-): { month: string; count: number }[] {
+export function getMonthlyCounts(dates: (string | null)[]): { month: string; count: number }[] {
   const counts: Record<string, number> = {};
   for (const d of dates) {
     if (!d) continue;
