@@ -87,15 +87,17 @@ function SortableHeader({
   const active = currentSort === column;
   const Icon = !active ? ArrowUpDown : currentDir === 'asc' ? ArrowUp : ArrowDown;
   return (
-    <button
-      onClick={() => onSort(column)}
-      className={`flex items-center gap-1 text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider transition-colors ${
-        active ? 'text-[var(--ddna-blue)]' : 'text-slate-500 hover:text-slate-700'
-      }`}
-    >
-      {label}
-      <Icon className={`w-3 h-3 ${active ? 'opacity-100' : 'opacity-40'}`} />
-    </button>
+    <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider">
+      <button
+        onClick={() => onSort(column)}
+        className={`flex items-center gap-1 transition-colors ${
+          active ? 'text-[var(--ddna-blue)]' : 'text-slate-500 hover:text-slate-700'
+        }`}
+      >
+        {label}
+        <Icon className={`w-3 h-3 ${active ? 'opacity-100' : 'opacity-40'}`} />
+      </button>
+    </th>
   );
 }
 
