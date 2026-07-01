@@ -14,6 +14,7 @@ import {
   ArrowUp,
   ArrowDown,
   Download,
+  Trash2,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import {
@@ -211,6 +212,21 @@ export function MonitoreoTable({ onEditRegistro }: TableViewProps) {
     fechaDesde,
     fechaHasta,
   ]);
+
+  const handleDelete = async (id: number, titulo: string) => {
+    if (!confirm(`¿Eliminar el registro "${titulo}"? Esta acción no se puede deshacer.`)) return;
+    try {
+      // Delete actors first (foreign key)
+      await supabase.from('monitoreo_actores').delete().eq('registro_id', id);
+      // Delete registro
+      const { error } = await supabase.from('monitoreo_registros').delete().eq('id', id);
+      if (error) throw error;
+      // Refresh table
+      fetchRegistros();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Error al eliminar');
+    }
+  };
 
   const clearFilters = () => {
     setSearch('');
@@ -459,6 +475,7 @@ export function MonitoreoTable({ onEditRegistro }: TableViewProps) {
                     currentDir={sortDirection}
                     onSort={handleSort}
                   />
+                  <th className="w-10"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -496,6 +513,18 @@ export function MonitoreoTable({ onEditRegistro }: TableViewProps) {
                     </td>
                     <td className="px-4 py-3">
                       <StateBadge estado={r.estado} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={e => {
+                          e.stopPropagation();
+                          handleDelete(r.id, r.titulo);
+                        }}
+                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Eliminar registro"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </td>
                   </tr>
                 ))}
