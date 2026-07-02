@@ -32,7 +32,14 @@ interface TableViewProps {
   onEditRegistro: (id: number) => void;
 }
 
-type SortColumn = 'fecha_noticia' | 'medio' | 'titulo' | 'seccion' | 'topico_principal' | 'estado';
+type SortColumn =
+  | 'fecha_noticia'
+  | 'fecha_sincronizacion'
+  | 'medio'
+  | 'titulo'
+  | 'seccion'
+  | 'topico_principal'
+  | 'estado';
 type SortDirection = 'asc' | 'desc';
 
 // ── CSV Export ──────────────────────────────────────────────────
@@ -40,7 +47,7 @@ type SortDirection = 'asc' | 'desc';
 function exportToCSV(records: RegistroConActores[], filename: string) {
   if (records.length === 0) return;
 
-  const headers = ['Fecha', 'Medio', 'Título', 'Sección', 'Tópico', 'Estado', 'Caso', 'Actores'];
+  const headers = ['Fecha noticia', 'Fecha sincronización', 'Medio', 'Título', 'Sección', 'Tópico', 'Estado', 'Caso', 'Actores'];
   const escapeCSV = (val: string | null | undefined) => {
     const str = val ?? '';
     if (str.includes(',') || str.includes('"') || str.includes('\n')) {
@@ -51,6 +58,7 @@ function exportToCSV(records: RegistroConActores[], filename: string) {
 
   const rows = records.map(r => [
     formatDate(r.fecha_noticia),
+    formatDate(r.fecha_sincronizacion),
     escapeCSV(r.medio),
     escapeCSV(r.titulo),
     escapeCSV(r.seccion),
@@ -319,7 +327,7 @@ export function MonitoreoTable({ onEditRegistro }: TableViewProps) {
           </select>
 
           <div>
-            <label className="block text-xs text-slate-500 mb-1">Fecha desde</label>
+            <label className="block text-xs text-slate-500 mb-1">Noticia desde</label>
             <input
               type="date"
               value={fechaDesde}
@@ -329,7 +337,7 @@ export function MonitoreoTable({ onEditRegistro }: TableViewProps) {
           </div>
 
           <div>
-            <label className="block text-xs text-slate-500 mb-1">Fecha hasta</label>
+            <label className="block text-xs text-slate-500 mb-1">Noticia hasta</label>
             <input
               type="date"
               value={fechaHasta}
@@ -428,8 +436,15 @@ export function MonitoreoTable({ onEditRegistro }: TableViewProps) {
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50">
                   <SortableHeader
-                    label="Fecha"
+                    label="Fecha de la noticia"
                     column="fecha_noticia"
+                    currentSort={sortColumn}
+                    currentDir={sortDirection}
+                    onSort={handleSort}
+                  />
+                  <SortableHeader
+                    label="Carga"
+                    column="fecha_sincronizacion"
                     currentSort={sortColumn}
                     currentDir={sortDirection}
                     onSort={handleSort}
@@ -485,8 +500,11 @@ export function MonitoreoTable({ onEditRegistro }: TableViewProps) {
                     onClick={() => onEditRegistro(r.id)}
                     className="hover:bg-slate-50 cursor-pointer transition-colors"
                   >
-                    <td className="px-4 py-3 text-sm text-slate-600 whitespace-nowrap">
+                    <td className="px-4 py-3 text-sm text-slate-700 whitespace-nowrap font-medium">
                       {formatDate(r.fecha_noticia)}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-400 whitespace-nowrap">
+                      {formatDate(r.fecha_sincronizacion)}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-800 font-medium">{r.medio}</td>
                     <td className="px-4 py-3 text-sm text-slate-700 max-w-xs truncate">
