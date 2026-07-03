@@ -10,24 +10,32 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 // ── Browser client singleton (cookie-based, for AuthProvider + Login) ────────
 // Uses @supabase/ssr createBrowserClient so cookies are set correctly
 // for middleware session checks. Only ONE instance across the entire app.
+// IMPORTANT: Do NOT call this at module level — only from 'use client' components.
+// The module-level 'supabase' export uses createClient (SSR-safe) instead.
 
-let _supabaseBrowser: SupabaseClient | null = null;
+let _supabaseClient: SupabaseClient | null = null;
 
+/** Get the shared browser client (createBrowserClient from @supabase/ssr).
+ *  Only call this from 'use client' components — it needs browser APIs.
+ *  AuthProvider and Login page use this to keep ONE instance. */
 export function getBrowserClient(): SupabaseClient {
-  if (!_supabaseBrowser) {
+  if (!_supabaseClient) {
     if (!supabaseUrl || !supabaseAnonKey) {
       throw new Error(
         'Supabase not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local'
       );
     }
-    _supabaseBrowser = createBrowserClient(supabaseUrl, supabaseAnonKey);
+    _supabaseClient = createBrowserClient(supabaseUrl, supabaseAnonKey);
   }
-  return _supabaseBrowser;
+  return _supabaseClient;
 }
 
 // Export PARA EL BROWSER (páginas y componentes)
 // SOLO usa anon key ✅
-export const supabase = getBrowserClient();
+// Uses createClient (NOT createBrowserClient) because this is called at
+// module-import time, which can happen during SSR where browser APIs don't exist.
+// This is safe for both server and client execution.
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Tipos para las tablas principales del dashboard
 export type CategoriaIndicador =
