@@ -7,17 +7,15 @@ import { createBrowserClient } from '@supabase/ssr';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-// ── Browser client singleton (cookie-based, for AuthProvider + Login) ────────
-// Uses @supabase/ssr createBrowserClient so cookies are set correctly
-// for middleware session checks. Only ONE instance across the entire app.
-// IMPORTANT: Do NOT call this at module level — only from 'use client' components.
-// The module-level 'supabase' export uses createClient (SSR-safe) instead.
+// ── Single browser client singleton ─────────────────────────────────────────
+// Uses createBrowserClient from @supabase/ssr for proper cookie handling.
+// Safe during SSR — createBrowserClient guards against missing browser APIs
+// (typeof document === 'undefined' checks). This is the ONE and ONLY client
+// for all browser-side supabase operations (auth + data queries).
 
 let _supabaseClient: SupabaseClient | null = null;
 
-/** Get the shared browser client (createBrowserClient from @supabase/ssr).
- *  Only call this from 'use client' components — it needs browser APIs.
- *  AuthProvider and Login page use this to keep ONE instance. */
+/** Get the ONE shared browser client. Safe for both SSR and browser. */
 export function getBrowserClient(): SupabaseClient {
   if (!_supabaseClient) {
     if (!supabaseUrl || !supabaseAnonKey) {
@@ -32,10 +30,8 @@ export function getBrowserClient(): SupabaseClient {
 
 // Export PARA EL BROWSER (páginas y componentes)
 // SOLO usa anon key ✅
-// Uses createClient (NOT createBrowserClient) because this is called at
-// module-import time, which can happen during SSR where browser APIs don't exist.
-// This is safe for both server and client execution.
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Uses the SAME singleton as getBrowserClient() — NO second instance.
+export const supabase = getBrowserClient();
 
 // Tipos para las tablas principales del dashboard
 export type CategoriaIndicador =
