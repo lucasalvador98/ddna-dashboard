@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
-import { createBrowserClient } from '@supabase/ssr';
+import { getBrowserClient } from '@/lib/supabase';
 import type { Session, User } from '@supabase/supabase-js';
 
 interface AuthContextValue {
@@ -29,20 +29,15 @@ export function useAuth(): AuthContextValue {
 
 /**
  * AuthProvider — wraps the app and provides session state via React Context.
- * Uses supabase.auth.onAuthStateChange to track login / logout events.
+ * Uses the shared browser client from supabase.ts (singleton).
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Singleton browser client — created once
-  const [supabase] = useState(() =>
-    createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
-  );
+  // Use shared browser client singleton — no new instance created
+  const [supabase] = useState(() => getBrowserClient());
 
   useEffect(() => {
     // Hydrate initial session from cookies (SSR middleware may have set them)

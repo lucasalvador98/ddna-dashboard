@@ -2,7 +2,7 @@
 
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createBrowserClient } from '@supabase/ssr';
+import { getBrowserClient } from '@/lib/supabase';
 import { Shield, AlertCircle, Loader2 } from 'lucide-react';
 
 // ─── Form (uses useSearchParams → must be wrapped in Suspense) ───────────────
@@ -22,31 +22,34 @@ function LoginForm() {
     setError('');
     setLoading(true);
 
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    try {
+      // Use shared browser client singleton — no new instance created
+      const supabase = getBrowserClient();
 
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (authError) {
-      // Map known Supabase auth errors to user-friendly Spanish messages
-      if (authError.message.toLowerCase().includes('invalid login credentials')) {
-        setError('Credenciales inválidas. Verificá tu email y contraseña.');
-      } else if (authError.message.toLowerCase().includes('email not confirmed')) {
-        setError('Email no confirmado. Revisá tu bandeja de entrada.');
-      } else {
-        setError(authError.message);
+      if (authError) {
+        // Map known Supabase auth errors to user-friendly Spanish messages
+        if (authError.message.toLowerCase().includes('invalid login credentials')) {
+          setError('Credenciales inválidas. Verificá tu email y contraseña.');
+        } else if (authError.message.toLowerCase().includes('email not confirmed')) {
+          setError('Email no confirmado. Revisá tu bandeja de entrada.');
+        } else {
+          setError(authError.message);
+        }
+        setLoading(false);
+        return;
       }
-      setLoading(false);
-      return;
-    }
 
-    // redirect() from next/navigation already handles client-side navigation safely
-    router.push(redirect);
+      // redirect() from next/navigation already handles client-side navigation safely
+      router.push(redirect);
+    } catch {
+      setError('Error de conexión. Intentá de nuevo.');
+      setLoading(false);
+    }
   };
 
   return (
@@ -59,17 +62,14 @@ function LoginForm() {
       )}
 
       <div>
-        <label
-          htmlFor="email"
-          className="block text-sm font-accent text-gray-600 mb-1.5"
-        >
+        <label htmlFor="email" className="block text-sm font-accent text-gray-600 mb-1.5">
           Email
         </label>
         <input
           id="email"
           type="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={e => setEmail(e.target.value)}
           required
           autoComplete="email"
           placeholder="admin@ddna.org"
@@ -78,17 +78,14 @@ function LoginForm() {
       </div>
 
       <div>
-        <label
-          htmlFor="password"
-          className="block text-sm font-accent text-gray-600 mb-1.5"
-        >
+        <label htmlFor="password" className="block text-sm font-accent text-gray-600 mb-1.5">
           Contraseña
         </label>
         <input
           id="password"
           type="password"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={e => setPassword(e.target.value)}
           required
           autoComplete="current-password"
           placeholder="••••••••"

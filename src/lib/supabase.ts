@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
 
 // ⚠️ CLIENTE PARA BROWSER: SOLO usa anon key (NEXT_PUBLIC_)
 // ⚠️ NO usar getSupabaseClient() aca - esa usa service_role (prohibido en browser)
@@ -6,17 +7,20 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-// Cliente PARA EL BROWSER (singleton)
+// ── Browser client singleton (cookie-based, for AuthProvider + Login) ────────
+// Uses @supabase/ssr createBrowserClient so cookies are set correctly
+// for middleware session checks. Only ONE instance across the entire app.
+
 let _supabaseBrowser: SupabaseClient | null = null;
 
-function getBrowserClient(): SupabaseClient {
+export function getBrowserClient(): SupabaseClient {
   if (!_supabaseBrowser) {
     if (!supabaseUrl || !supabaseAnonKey) {
       throw new Error(
         'Supabase not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local'
       );
     }
-    _supabaseBrowser = createClient(supabaseUrl, supabaseAnonKey);
+    _supabaseBrowser = createBrowserClient(supabaseUrl, supabaseAnonKey);
   }
   return _supabaseBrowser;
 }
