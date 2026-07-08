@@ -4,6 +4,9 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   Users,
   Mail,
+  Key,
+  Eye,
+  EyeOff,
   UserPlus,
   Loader2,
   CheckCircle,
@@ -11,7 +14,6 @@ import {
   Calendar,
 } from 'lucide-react';
 import clsx from 'clsx';
-import type { UserRole } from '@/lib/rbac-types';
 
 // ── Flash message ─────────────────────────────────────────────────
 
@@ -48,7 +50,7 @@ function FlashMsg({
   );
 }
 
-// ── Main component ─────────────────────────────────────────────────
+// ── User row ───────────────────────────────────────────────────────
 
 interface SimpleRole {
   id: number;
@@ -63,6 +65,58 @@ interface UserItem {
   role_name: string | null;
 }
 
+function UserRow({
+  user: u,
+  roles,
+  savingUserId,
+  onRoleChange,
+}: {
+  user: UserItem;
+  roles: SimpleRole[];
+  savingUserId: string | null;
+  onRoleChange: (userId: string, roleId: number | null) => void;
+}) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl hover:bg-gray-100/60 transition-colors">
+      <div className="w-9 h-9 rounded-full bg-[#1a2556]/10 flex items-center justify-center flex-shrink-0">
+        <Mail className="w-4 h-4 text-[#1a2556]" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm text-[#1a2556] font-medium truncate">{u.email}</p>
+        <p className="text-[10px] text-gray-400 flex items-center gap-1 mt-0.5">
+          <Calendar className="w-3 h-3" />
+          {new Date(u.created_at).toLocaleDateString('es-AR')}
+        </p>
+      </div>
+      <div className="relative w-36">
+        {savingUserId === u.id ? (
+          <div className="flex justify-center py-2">
+            <Loader2 className="w-4 h-4 text-gray-400 animate-spin" />
+          </div>
+        ) : (
+          <select
+            value={u.role_id ?? ''}
+            onChange={(e) => {
+              const val = e.target.value;
+              onRoleChange(u.id, val ? Number(val) : null);
+            }}
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-[#1a2556] focus:border-transparent outline-none cursor-pointer"
+          >
+            <option value="">Sin rol</option>
+            {roles.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Main component ─────────────────────────────────────────────────
+
 interface UserRoleManagerProps {
   onFlash: (type: 'ok' | 'err', text: string) => void;
 }
@@ -73,6 +127,12 @@ export function UserRoleManager({ onFlash }: UserRoleManagerProps) {
   const [loading, setLoading] = useState(true);
   const [savingUserId, setSavingUserId] = useState<string | null>(null);
 
+  // Add user form
+  const [newEmail, setNewEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [showPw, setShowPw] = useState(false);
+  const [adding, setAdding] = useState(false);
+
   const loadData = useCallback(async () => {
     try {
       const [usersRes, rolesRes] = await Promise.all([
@@ -81,8 +141,7 @@ export function UserRoleManager({ onFlash }: UserRoleManagerProps) {
       ]);
 
       if (usersRes.ok) {
-        const data: UserRole[] = await usersRes.json();
-        // Map to UserItem format
+        const data = await usersRes.json();
         const seen = new Set<string>();
         const items: UserItem[] = [];
         for (const u of data) {
@@ -133,6 +192,30 @@ export function UserRoleManager({ onFlash }: UserRoleManagerProps) {
     setSavingUserId(null);
   };
 
+  const handleAddUser = async () => {
+    if (!newEmail || !newPassword) return;
+    setAdding(true);
+    try {
+      const res = await fetch('/api/auth/admins', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: newEmail, password: newPassword }),
+      });
+      if (res.ok) {
+        setNewEmail('');
+        setNewPassword('');
+        onFlash('ok', 'Usuario creado');
+        await loadData();
+      } else {
+        const d = await res.json();
+        onFlash('err', d.error || 'Error al crear usuario');
+      }
+    } catch {
+      onFlash('err', 'Error de conexión');
+    }
+    setAdding(false);
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center py-8">
@@ -142,51 +225,69 @@ export function UserRoleManager({ onFlash }: UserRoleManagerProps) {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {users.length === 0 ? (
         <p className="text-sm text-gray-400 text-center py-6">No hay usuarios registrados</p>
       ) : (
-        users.map((u) => (
-          <div
-            key={u.id}
-            className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl"
-          >
-            <div className="w-9 h-9 rounded-full bg-[#1a2556]/10 flex items-center justify-center flex-shrink-0">
-              <Mail className="w-4 h-4 text-[#1a2556]" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm text-[#1a2556] font-medium truncate">{u.email}</p>
-              <p className="text-[10px] text-gray-400 flex items-center gap-1 mt-0.5">
-                <Calendar className="w-3 h-3" />
-                {new Date(u.created_at).toLocaleDateString('es-AR')}
-              </p>
-            </div>
-            <div className="relative w-40">
-              {savingUserId === u.id ? (
-                <div className="flex justify-center py-2">
-                  <Loader2 className="w-4 h-4 text-gray-400 animate-spin" />
-                </div>
-              ) : (
-                <select
-                  value={u.role_id ?? ''}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    handleRoleChange(u.id, val ? Number(val) : null);
-                  }}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-[#1a2556] focus:border-transparent outline-none cursor-pointer"
-                >
-                  <option value="">Sin rol</option>
-                  {roles.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.name}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-          </div>
-        ))
+        <div className="space-y-1.5">
+          {users.map((u) => (
+            <UserRow
+              key={u.id}
+              user={u}
+              roles={roles}
+              savingUserId={savingUserId}
+              onRoleChange={handleRoleChange}
+            />
+          ))}
+        </div>
       )}
+
+      {/* Add user form */}
+      <div className="border-t border-gray-100 pt-4">
+        <p className="text-xs text-gray-400 mb-3">Crear nuevo usuario</p>
+        <div className="flex flex-wrap gap-2">
+          <div className="flex-1 min-w-[160px] relative">
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+            <input
+              type="email"
+              value={newEmail}
+              onChange={(e) => setNewEmail(e.target.value)}
+              placeholder="Email"
+              className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#1a2556] focus:border-transparent outline-none"
+              onKeyDown={(e) => e.key === 'Enter' && handleAddUser()}
+            />
+          </div>
+          <div className="w-36 relative">
+            <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+            <input
+              type={showPw ? 'text' : 'password'}
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Contraseña"
+              className="w-full pl-9 pr-9 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#1a2556] focus:border-transparent outline-none"
+              onKeyDown={(e) => e.key === 'Enter' && handleAddUser()}
+            />
+            <button
+              onClick={() => setShowPw(!showPw)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              {showPw ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+            </button>
+          </div>
+          <button
+            onClick={handleAddUser}
+            disabled={adding || !newEmail || !newPassword}
+            className="flex items-center gap-1.5 px-4 py-2.5 bg-[#1a2556] text-white rounded-lg text-sm font-medium hover:bg-[#0d1530] disabled:opacity-50 transition-colors whitespace-nowrap"
+          >
+            {adding ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <UserPlus className="w-4 h-4" />
+            )}{' '}
+            Crear
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

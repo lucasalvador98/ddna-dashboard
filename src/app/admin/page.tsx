@@ -5,11 +5,6 @@ import {
   Shield,
   Loader2,
   RefreshCw,
-  UserPlus,
-  Mail,
-  Key,
-  Eye,
-  EyeOff,
   CheckCircle,
   XCircle,
   Database,
@@ -21,7 +16,6 @@ import {
   Zap,
   BarChart3,
   FolderOpen,
-  Calendar,
 } from 'lucide-react';
 import { LoginGate } from '@/components/login-gate';
 import { useAuth } from '@/components/auth-provider';
@@ -31,11 +25,6 @@ import { UserRoleManager } from '@/components/admin-user-roles';
 import clsx from 'clsx';
 
 // ── Types ─────────────────────────────────────────────────────────
-
-interface AdminUser {
-  email: string;
-  created_at: string;
-}
 
 interface SystemStats {
   counts: {
@@ -51,15 +40,6 @@ interface SystemStats {
     monitoreo_fecha: string | null;
   };
 }
-
-const PROTECTED_ROUTES = [
-  { path: '/admin', label: 'Configuración', icon: Settings },
-  { path: '/geo', label: 'Mapas', icon: BarChart3 },
-  { path: '/repositorio', label: 'Repositorio', icon: FolderOpen },
-  { path: '/fuentes', label: 'Fuentes', icon: Database },
-  { path: '/ejecutivo', label: 'Inf. Ejecutivo', icon: FileText },
-  { path: '/presupuesto-nnya', label: 'Presupuesto NNyA', icon: FileText },
-];
 
 // ── Flash message ─────────────────────────────────────────────────
 
@@ -161,14 +141,6 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
 
-  // Admins state
-  const [admins, setAdmins] = useState<AdminUser[]>([]);
-  const [adminsLoading, setAdminsLoading] = useState(false);
-  const [newEmail, setNewEmail] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [showPw, setShowPw] = useState(false);
-  const [adding, setAdding] = useState(false);
-
   // Stats state
   const [stats, setStats] = useState<SystemStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
@@ -186,15 +158,6 @@ export default function AdminPage() {
     } catch {}
   }, []);
 
-  const loadAdmins = useCallback(async () => {
-    setAdminsLoading(true);
-    try {
-      const r = await fetch('/api/auth/admins');
-      if (r.ok) setAdmins(await r.json());
-    } catch {}
-    setAdminsLoading(false);
-  }, []);
-
   const loadStats = useCallback(async () => {
     setStatsLoading(true);
     try {
@@ -206,8 +169,8 @@ export default function AdminPage() {
 
   const loadAll = useCallback(() => {
     setLoading(true);
-    Promise.all([loadConfig(), loadAdmins(), loadStats()]).then(() => setLoading(false));
-  }, [loadConfig, loadAdmins, loadStats]);
+    Promise.all([loadConfig(), loadStats()]).then(() => setLoading(false));
+  }, [loadConfig, loadStats]);
 
   useEffect(() => {
     if (!authLoading) loadAll();
@@ -221,10 +184,7 @@ export default function AdminPage() {
       const r = await fetch('/api/auth/toggle', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          enabled: !enabled,
-          protected_routes: PROTECTED_ROUTES.map(r => r.path),
-        }),
+        body: JSON.stringify({ enabled: !enabled }),
       });
       if (r.ok) {
         setEnabled(!enabled);
@@ -236,30 +196,6 @@ export default function AdminPage() {
       flash('err', 'Error de conexión');
     }
     setToggling(false);
-  };
-
-  const addAdmin = async () => {
-    if (!newEmail || !newPassword) return;
-    setAdding(true);
-    try {
-      const r = await fetch('/api/auth/admins', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: newEmail, password: newPassword }),
-      });
-      if (r.ok) {
-        setNewEmail('');
-        setNewPassword('');
-        flash('ok', 'Admin agregado');
-        loadAdmins();
-      } else {
-        const d = await r.json();
-        flash('err', d.error || 'Error');
-      }
-    } catch {
-      flash('err', 'Error de conexión');
-    }
-    setAdding(false);
   };
 
   // ── Loading state ─────────────────────────────────────────────
@@ -334,159 +270,59 @@ export default function AdminPage() {
               color="terracotta"
             />
             <KpiCard
-              title="Administradores"
-              value={String(admins.length)}
-              subtitle={enabled ? 'Auth activada' : 'Auth desactivada'}
-              icon={Users}
-              color="navy"
+              title="Control de acceso"
+              value={enabled ? 'Activo' : 'Público'}
+              subtitle={enabled ? 'Autenticación requerida' : 'Sin restricciones'}
+              icon={Shield}
+              color={enabled ? 'terracotta' : 'navy'}
             />
           </div>
 
           {/* Main grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Access Control */}
+            {/* Access Control (compact) */}
             <SectionCard icon={Shield} title="Control de acceso">
-              <div
-                className={clsx(
-                  'p-5 rounded-xl mb-5',
-                  enabled
-                    ? 'bg-amber-50 border border-amber-200'
-                    : 'bg-gray-50 border border-gray-100'
-                )}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-accent text-sm font-semibold text-[#1a2556]">
-                      {enabled ? '🔒 Autenticación activada' : '🔓 Sin restricciones'}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {enabled
-                        ? `${PROTECTED_ROUTES.length} páginas requieren inicio de sesión`
-                        : 'Todas las páginas son públicas'}
-                    </p>
-                  </div>
-                  <button
-                    onClick={handleToggle}
-                    disabled={toggling}
-                    className={clsx(
-                      'px-5 py-2.5 rounded-xl text-sm font-accent font-semibold transition-all',
-                      enabled
-                        ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
-                        : 'bg-green-50 text-green-600 hover:bg-green-100 border border-green-200',
-                      'disabled:opacity-60'
-                    )}
-                  >
-                    {toggling ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : enabled ? (
-                      'Desactivar'
-                    ) : (
-                      'Activar'
-                    )}
-                  </button>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-accent text-sm font-semibold text-[#1a2556]">
+                    {enabled ? '🔒 Autenticación activada' : '🔓 Sin restricciones'}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {enabled
+                      ? 'Los usuarios necesitan iniciar sesión — los roles controlan cada pantalla'
+                      : 'Todas las páginas son públicas'}
+                  </p>
                 </div>
-              </div>
-
-              <p className="text-xs text-gray-400 mb-3">Páginas protegidas:</p>
-              <div className="space-y-1.5">
-                {PROTECTED_ROUTES.map(r => (
-                  <div
-                    key={r.path}
-                    className={clsx(
-                      'flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs',
-                      enabled ? 'bg-amber-50/60 text-amber-800' : 'bg-gray-50 text-gray-500'
-                    )}
-                  >
-                    <r.icon className="w-3.5 h-3.5 flex-shrink-0" />
-                    <span>{r.label}</span>
-                    <span className="ml-auto text-[10px] opacity-50 font-mono">{r.path}</span>
-                  </div>
-                ))}
+                <button
+                  onClick={handleToggle}
+                  disabled={toggling}
+                  className={clsx(
+                    'px-5 py-2.5 rounded-xl text-sm font-accent font-semibold transition-all whitespace-nowrap',
+                    enabled
+                      ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
+                      : 'bg-green-50 text-green-600 hover:bg-green-100 border border-green-200',
+                    'disabled:opacity-60'
+                  )}
+                >
+                  {toggling ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : enabled ? (
+                    'Desactivar'
+                  ) : (
+                    'Activar'
+                  )}
+                </button>
               </div>
             </SectionCard>
 
-            {/* User Management */}
-            <SectionCard icon={Mail} title="Administradores">
-              {adminsLoading ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
-                </div>
-              ) : admins.length > 0 ? (
-                <div className="space-y-2 mb-5">
-                  {admins.map(a => (
-                    <div
-                      key={a.email}
-                      className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl"
-                    >
-                      <div className="w-9 h-9 rounded-full bg-[#1a2556]/10 flex items-center justify-center flex-shrink-0">
-                        <Mail className="w-4 h-4 text-[#1a2556]" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-[#1a2556] font-medium truncate">{a.email}</p>
-                        <p className="text-[10px] text-gray-400 flex items-center gap-1 mt-0.5">
-                          <Calendar className="w-3 h-3" />
-                          {new Date(a.created_at).toLocaleDateString('es-AR')}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-400 text-center py-6">
-                  No hay administradores registrados
-                </p>
-              )}
+            {/* Roles */}
+            <SectionCard icon={Shield} title="Roles y permisos">
+              <RoleManager onFlash={flash} />
+            </SectionCard>
 
-              {/* Add admin form */}
-              <div className="border-t border-gray-100 pt-4">
-                <p className="text-xs text-gray-400 mb-3">Agregar nuevo administrador</p>
-                <div className="flex gap-2">
-                  <div className="flex-1 min-w-0 relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                    <input
-                      type="email"
-                      value={newEmail}
-                      onChange={e => setNewEmail(e.target.value)}
-                      placeholder="Email"
-                      className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#1a2556] focus:border-transparent outline-none"
-                      onKeyDown={e => e.key === 'Enter' && addAdmin()}
-                    />
-                  </div>
-                  <div className="w-40 relative">
-                    <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                    <input
-                      type={showPw ? 'text' : 'password'}
-                      value={newPassword}
-                      onChange={e => setNewPassword(e.target.value)}
-                      placeholder="Clave"
-                      className="w-full pl-9 pr-9 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#1a2556] focus:border-transparent outline-none"
-                      onKeyDown={e => e.key === 'Enter' && addAdmin()}
-                    />
-                    <button
-                      onClick={() => setShowPw(!showPw)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    >
-                      {showPw ? (
-                        <EyeOff className="w-3.5 h-3.5" />
-                      ) : (
-                        <Eye className="w-3.5 h-3.5" />
-                      )}
-                    </button>
-                  </div>
-                  <button
-                    onClick={addAdmin}
-                    disabled={adding || !newEmail || !newPassword}
-                    className="flex items-center gap-1.5 px-4 py-2.5 bg-[#1a2556] text-white rounded-lg text-sm font-medium hover:bg-[#0d1530] disabled:opacity-50 transition-colors whitespace-nowrap"
-                  >
-                    {adding ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <UserPlus className="w-4 h-4" />
-                    )}{' '}
-                    Agregar
-                  </button>
-                </div>
-              </div>
+            {/* Users */}
+            <SectionCard icon={Users} title="Usuarios">
+              <UserRoleManager onFlash={flash} />
             </SectionCard>
 
             {/* Data Overview */}
@@ -584,15 +420,6 @@ export default function AdminPage() {
               </div>
             </SectionCard>
           </div>
-
-          {/* RBAC Section — full width */}
-          <SectionCard icon={Shield} title="Roles y permisos" className="w-full">
-            <RoleManager onFlash={flash} />
-          </SectionCard>
-
-          <SectionCard icon={Users} title="Usuarios y roles" className="w-full">
-            <UserRoleManager onFlash={flash} />
-          </SectionCard>
         </div>
       </div>
     </LoginGate>
