@@ -8,20 +8,13 @@ import {
   CheckCircle,
   XCircle,
   Database,
-  FileText,
   Newspaper,
   Users,
   Activity,
-  Settings,
   Zap,
   BarChart3,
   FolderOpen,
 } from 'lucide-react';
-import { LoginGate } from '@/components/login-gate';
-import { useAuth } from '@/components/auth-provider';
-import { KpiCard } from '@/components/kpi-card';
-import { RoleManager } from '@/components/admin-role-manager';
-import { UserRoleManager } from '@/components/admin-user-roles';
 import clsx from 'clsx';
 
 // ── Types ─────────────────────────────────────────────────────────
@@ -41,56 +34,19 @@ interface SystemStats {
   };
 }
 
-// ── Flash message ─────────────────────────────────────────────────
+// ── Card wrapper ────────────────────────────────────────────────────
 
-function FlashMessage({
-  type,
-  text,
-  onDismiss,
-}: {
-  type: 'ok' | 'err';
-  text: string;
-  onDismiss: () => void;
-}) {
-  useEffect(() => {
-    const t = setTimeout(onDismiss, 4000);
-    return () => clearTimeout(t);
-  }, [onDismiss]);
-
-  return (
-    <div
-      className={clsx(
-        'flex items-center gap-2 px-4 py-3 rounded-xl text-sm',
-        type === 'ok'
-          ? 'bg-green-50 text-green-700 border border-green-200'
-          : 'bg-red-50 text-red-700 border border-red-200'
-      )}
-    >
-      {type === 'ok' ? (
-        <CheckCircle className="w-4 h-4 flex-shrink-0" />
-      ) : (
-        <XCircle className="w-4 h-4 flex-shrink-0" />
-      )}
-      {text}
-    </div>
-  );
-}
-
-// ── Section card wrapper ──────────────────────────────────────────
-
-function SectionCard({
+function Card({
   icon: Icon,
   title,
   children,
-  className,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   title: string;
   children: React.ReactNode;
-  className?: string;
 }) {
   return (
-    <div className={clsx('bg-white rounded-2xl border border-gray-200 shadow-sm p-6', className)}>
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
       <div className="flex items-center gap-3 mb-6">
         <div className="w-9 h-9 rounded-lg bg-[#1a2556]/10 flex items-center justify-center">
           <Icon className="w-5 h-5 text-[#1a2556]" />
@@ -102,7 +58,7 @@ function SectionCard({
   );
 }
 
-// ── Stat row ──────────────────────────────────────────────────────
+// ── Stat row ────────────────────────────────────────────────────────
 
 function StatRow({
   icon: Icon,
@@ -130,33 +86,13 @@ function StatRow({
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// MAIN PAGE
+// DASHBOARD
 // ═══════════════════════════════════════════════════════════════════
 
-export default function AdminPage() {
-  const { user, loading: authLoading } = useAuth();
-
-  // Auth state
-  const [enabled, setEnabled] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [toggling, setToggling] = useState(false);
-
-  // Stats state
+export default function AdminDashboard() {
   const [stats, setStats] = useState<SystemStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
-
-  // Flash
-  const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
-  const flash = useCallback((type: 'ok' | 'err', text: string) => setMsg({ type, text }), []);
-
-  // ── Data loaders ──────────────────────────────────────────────
-
-  const loadConfig = useCallback(async () => {
-    try {
-      const r = await fetch('/api/auth/config');
-      if (r.ok) setEnabled((await r.json()).enabled ?? false);
-    } catch {}
-  }, []);
+  const [flash, setFlash] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
 
   const loadStats = useCallback(async () => {
     setStatsLoading(true);
@@ -167,261 +103,192 @@ export default function AdminPage() {
     setStatsLoading(false);
   }, []);
 
-  const loadAll = useCallback(() => {
-    setLoading(true);
-    Promise.all([loadConfig(), loadStats()]).then(() => setLoading(false));
-  }, [loadConfig, loadStats]);
-
   useEffect(() => {
-    if (!authLoading) loadAll();
-  }, [authLoading, loadAll]);
-
-  // ── Handlers ──────────────────────────────────────────────────
-
-  const handleToggle = async () => {
-    setToggling(true);
-    try {
-      const r = await fetch('/api/auth/toggle', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enabled: !enabled }),
-      });
-      if (r.ok) {
-        setEnabled(!enabled);
-        flash('ok', !enabled ? 'Autenticación activada' : 'Autenticación desactivada');
-      } else {
-        flash('err', 'Error al cambiar');
-      }
-    } catch {
-      flash('err', 'Error de conexión');
-    }
-    setToggling(false);
-  };
-
-  // ── Loading state ─────────────────────────────────────────────
-
-  if (authLoading || loading)
-    return (
-      <div className="flex justify-center py-20">
-        <Loader2 className="w-8 h-8 text-[#1a2556] animate-spin" />
-      </div>
-    );
-
-  if (!user)
-    return (
-      <LoginGate>
-        <div />
-      </LoginGate>
-    );
-
-  // ── Render ────────────────────────────────────────────────────
+    loadStats();
+  }, [loadStats]);
 
   const formatNumber = (n: number) => n.toLocaleString('es-AR');
 
   return (
-    <LoginGate>
-      <div className="min-h-screen">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-[#1a2556] to-[#2a3570]">
-          <div className="max-w-7xl mx-auto px-6 py-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="font-display text-2xl text-white">Panel de Administración</h1>
-                <p className="text-sm text-white/60 mt-1">
-                  Gestión de acceso, usuarios y datos del sistema
-                </p>
-              </div>
-              <button
-                onClick={loadAll}
-                className="flex items-center gap-1.5 px-3 py-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg text-xs transition-all"
-              >
-                <RefreshCw className="w-3.5 h-3.5" /> Actualizar todo
-              </button>
-            </div>
-          </div>
+    <div className="space-y-6">
+      {/* Flash */}
+      {flash && (
+        <div
+          className={clsx(
+            'flex items-center gap-2 px-4 py-3 rounded-xl text-sm',
+            flash.type === 'ok'
+              ? 'bg-green-50 text-green-700 border border-green-200'
+              : 'bg-red-50 text-red-700 border border-red-200',
+          )}
+        >
+          {flash.type === 'ok' ? (
+            <CheckCircle className="w-4 h-4 flex-shrink-0" />
+          ) : (
+            <XCircle className="w-4 h-4 flex-shrink-0" />
+          )}
+          {flash.text}
         </div>
+      )}
 
-        {/* Content */}
-        <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
-          {/* Flash message */}
-          {msg && <FlashMessage type={msg.type} text={msg.text} onDismiss={() => setMsg(null)} />}
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <KpiCard
+          title="Indicadores"
+          value={formatNumber(stats?.counts.indicadores ?? 0)}
+          subtitle={`${formatNumber(stats?.counts.datos_indicadores ?? 0)} datos`}
+          icon={BarChart3}
+          color="blue"
+        />
+        <KpiCard
+          title="Fuentes de datos"
+          value={formatNumber(stats?.counts.fuentes ?? 0)}
+          subtitle="APIs, CSVs y manuales"
+          icon={Database}
+          color="amber"
+        />
+        <KpiCard
+          title="Monitoreo de medios"
+          value={formatNumber(stats?.counts.monitoreo_registros ?? 0)}
+          subtitle={`${formatNumber(stats?.counts.monitoreo_actores ?? 0)} actores`}
+          icon={Newspaper}
+          color="terracotta"
+        />
+        <KpiCard
+          title="Usuarios del sistema"
+          value={formatNumber(stats?.counts.grupos ?? 0)}
+          subtitle="Cargá usuarios en la pestaña Usuarios"
+          icon={Users}
+          color="navy"
+        />
+      </div>
 
-          {/* KPI Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <KpiCard
-              title="Indicadores"
-              value={formatNumber(stats?.counts.indicadores ?? 0)}
-              subtitle={`${formatNumber(stats?.counts.datos_indicadores ?? 0)} datos cargados`}
-              icon={BarChart3}
-              color="blue"
-            />
-            <KpiCard
-              title="Fuentes de datos"
-              value={formatNumber(stats?.counts.fuentes ?? 0)}
-              subtitle="APIs, CSVs y manuales"
-              icon={Database}
-              color="amber"
-            />
-            <KpiCard
-              title="Monitoreo de medios"
-              value={formatNumber(stats?.counts.monitoreo_registros ?? 0)}
-              subtitle={`${formatNumber(stats?.counts.monitoreo_actores ?? 0)} actores`}
-              icon={Newspaper}
-              color="terracotta"
-            />
-            <KpiCard
-              title="Control de acceso"
-              value={enabled ? 'Activo' : 'Público'}
-              subtitle={enabled ? 'Autenticación requerida' : 'Sin restricciones'}
-              icon={Shield}
-              color={enabled ? 'terracotta' : 'navy'}
-            />
+      {/* Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Data Overview */}
+        <Card icon={Database} title="Vista de datos">
+          {statsLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+            </div>
+          ) : stats ? (
+            <div className="divide-y divide-gray-100">
+              <StatRow
+                icon={BarChart3}
+                label="Indicadores"
+                value={formatNumber(stats.counts.indicadores)}
+                subtitle="Categorías de indicadores"
+              />
+              <StatRow
+                icon={Activity}
+                label="Datos de indicadores"
+                value={formatNumber(stats.counts.datos_indicadores)}
+                subtitle={
+                  stats.latest.indicador_periodo
+                    ? `Último período: ${stats.latest.indicador_periodo}`
+                    : undefined
+                }
+              />
+              <StatRow
+                icon={Database}
+                label="Fuentes de datos"
+                value={formatNumber(stats.counts.fuentes)}
+                subtitle="APIs, CSVs, manuales"
+              />
+              <StatRow
+                icon={Newspaper}
+                label="Registros de monitoreo"
+                value={formatNumber(stats.counts.monitoreo_registros)}
+                subtitle={
+                  stats.latest.monitoreo_fecha
+                    ? `Última fecha: ${new Date(stats.latest.monitoreo_fecha).toLocaleDateString('es-AR')}`
+                    : undefined
+                }
+              />
+              <StatRow
+                icon={Users}
+                label="Actores mediáticos"
+                value={formatNumber(stats.counts.monitoreo_actores)}
+              />
+              <StatRow
+                icon={FolderOpen}
+                label="Grupos de indicadores"
+                value={formatNumber(stats.counts.grupos)}
+              />
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400 text-center py-6">No se pudieron cargar las estadísticas</p>
+          )}
+        </Card>
+
+        {/* Quick Actions */}
+        <Card icon={Zap} title="Acciones rápidas">
+          <div className="space-y-3">
+            <button
+              onClick={loadStats}
+              className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl text-sm text-[#1a2556] font-medium transition-colors text-left"
+            >
+              <RefreshCw className="w-4 h-4 text-gray-500" />
+              Actualizar datos
+            </button>
+            <a
+              href="/monitoreo"
+              className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl text-sm text-[#1a2556] font-medium transition-colors"
+            >
+              <Newspaper className="w-4 h-4 text-gray-500" />
+              Ir a Monitoreo de Medios
+            </a>
+            <a
+              href="/fuentes"
+              className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl text-sm text-[#1a2556] font-medium transition-colors"
+            >
+              <Database className="w-4 h-4 text-gray-500" />
+              Gestionar fuentes de datos
+            </a>
+            <a
+              href="/repositorio"
+              className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl text-sm text-[#1a2556] font-medium transition-colors"
+            >
+              <FolderOpen className="w-4 h-4 text-gray-500" />
+              Repositorio documental
+            </a>
           </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
 
-          {/* Main grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Access Control (compact) */}
-            <SectionCard icon={Shield} title="Control de acceso">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-accent text-sm font-semibold text-[#1a2556]">
-                    {enabled ? '🔒 Autenticación activada' : '🔓 Sin restricciones'}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {enabled
-                      ? 'Los usuarios necesitan iniciar sesión — los roles controlan cada pantalla'
-                      : 'Todas las páginas son públicas'}
-                  </p>
-                </div>
-                <button
-                  onClick={handleToggle}
-                  disabled={toggling}
-                  className={clsx(
-                    'px-5 py-2.5 rounded-xl text-sm font-accent font-semibold transition-all whitespace-nowrap',
-                    enabled
-                      ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
-                      : 'bg-green-50 text-green-600 hover:bg-green-100 border border-green-200',
-                    'disabled:opacity-60'
-                  )}
-                >
-                  {toggling ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : enabled ? (
-                    'Desactivar'
-                  ) : (
-                    'Activar'
-                  )}
-                </button>
-              </div>
-            </SectionCard>
+// KpiCard inline because it's a server component in imports
+function KpiCard({
+  title,
+  value,
+  subtitle,
+  icon: Icon,
+  color,
+}: {
+  title: string;
+  value: string;
+  subtitle?: string;
+  icon: React.ComponentType<{ className?: string }>;
+  color: 'blue' | 'amber' | 'terracotta' | 'navy';
+}) {
+  const colors: Record<string, string> = {
+    blue: 'bg-blue-50 text-blue-600',
+    amber: 'bg-amber-50 text-amber-600',
+    terracotta: 'bg-orange-50 text-orange-600',
+    navy: 'bg-[#1a2556]/10 text-[#1a2556]',
+  };
 
-            {/* Roles */}
-            <SectionCard icon={Shield} title="Roles y permisos">
-              <RoleManager onFlash={flash} />
-            </SectionCard>
-
-            {/* Users */}
-            <SectionCard icon={Users} title="Usuarios">
-              <UserRoleManager onFlash={flash} />
-            </SectionCard>
-
-            {/* Data Overview */}
-            <SectionCard icon={Database} title="Vista de datos">
-              {statsLoading ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
-                </div>
-              ) : stats ? (
-                <div className="divide-y divide-gray-100">
-                  <StatRow
-                    icon={BarChart3}
-                    label="Indicadores"
-                    value={formatNumber(stats.counts.indicadores)}
-                    subtitle="Categorías de indicadores"
-                  />
-                  <StatRow
-                    icon={Activity}
-                    label="Datos de indicadores"
-                    value={formatNumber(stats.counts.datos_indicadores)}
-                    subtitle={
-                      stats.latest.indicador_periodo
-                        ? `Último período: ${stats.latest.indicador_periodo}`
-                        : undefined
-                    }
-                  />
-                  <StatRow
-                    icon={Database}
-                    label="Fuentes de datos"
-                    value={formatNumber(stats.counts.fuentes)}
-                    subtitle="APIs, CSVs, manuales"
-                  />
-                  <StatRow
-                    icon={Newspaper}
-                    label="Registros de monitoreo"
-                    value={formatNumber(stats.counts.monitoreo_registros)}
-                    subtitle={
-                      stats.latest.monitoreo_fecha
-                        ? `Última fecha: ${new Date(stats.latest.monitoreo_fecha).toLocaleDateString('es-AR')}`
-                        : undefined
-                    }
-                  />
-                  <StatRow
-                    icon={Users}
-                    label="Actores mediáticos"
-                    value={formatNumber(stats.counts.monitoreo_actores)}
-                  />
-                  <StatRow
-                    icon={FolderOpen}
-                    label="Grupos de indicadores"
-                    value={formatNumber(stats.counts.grupos)}
-                  />
-                </div>
-              ) : (
-                <p className="text-sm text-gray-400 text-center py-6">
-                  No se pudieron cargar las estadísticas
-                </p>
-              )}
-            </SectionCard>
-
-            {/* Quick Actions */}
-            <SectionCard icon={Zap} title="Acciones rápidas">
-              <div className="space-y-3">
-                <button
-                  onClick={loadAll}
-                  className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl text-sm text-[#1a2556] font-medium transition-colors text-left"
-                >
-                  <RefreshCw className="w-4 h-4 text-gray-500" />
-                  Actualizar todos los datos
-                </button>
-
-                <a
-                  href="/monitoreo"
-                  className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl text-sm text-[#1a2556] font-medium transition-colors"
-                >
-                  <Newspaper className="w-4 h-4 text-gray-500" />
-                  Ir a Monitoreo de Medios
-                </a>
-
-                <a
-                  href="/fuentes"
-                  className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl text-sm text-[#1a2556] font-medium transition-colors"
-                >
-                  <Database className="w-4 h-4 text-gray-500" />
-                  Gestionar fuentes de datos
-                </a>
-
-                <a
-                  href="/repositorio"
-                  className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl text-sm text-[#1a2556] font-medium transition-colors"
-                >
-                  <FolderOpen className="w-4 h-4 text-gray-500" />
-                  Repositorio documental
-                </a>
-              </div>
-            </SectionCard>
-          </div>
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+      <div className="flex items-center gap-3 mb-3">
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${colors[color]}`}>
+          <Icon className="w-5 h-5" />
         </div>
       </div>
-    </LoginGate>
+      <p className="font-display text-2xl text-[#1a2556] tabular-nums">{value}</p>
+      <p className="text-sm text-gray-500 mt-0.5">{title}</p>
+      {subtitle && <p className="text-[11px] text-gray-400 mt-1">{subtitle}</p>}
+    </div>
   );
 }
