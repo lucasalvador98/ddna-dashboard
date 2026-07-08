@@ -42,7 +42,7 @@ export async function POST(request: Request) {
 
     const adminClient = getSupabaseClient();
 
-    const { error } = await adminClient.auth.admin.createUser({
+    const { data, error } = await adminClient.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
@@ -51,6 +51,20 @@ export async function POST(request: Request) {
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    // Assign admin role in user_roles
+    if (data?.user?.id) {
+      const { error: roleError } = await adminClient
+        .from('user_roles')
+        .upsert(
+          { user_id: data.user.id, role_id: 1 }, // 1 = admin role
+          { onConflict: 'user_id' }
+        );
+
+      if (roleError) {
+        console.error('Error assigning admin role:', roleError);
+      }
     }
 
     return NextResponse.json({ success: true });

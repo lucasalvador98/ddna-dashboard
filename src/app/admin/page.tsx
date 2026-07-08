@@ -26,6 +26,8 @@ import {
 import { LoginGate } from '@/components/login-gate';
 import { useAuth } from '@/components/auth-provider';
 import { KpiCard } from '@/components/kpi-card';
+import { RoleManager } from '@/components/admin-role-manager';
+import { UserRoleManager } from '@/components/admin-user-roles';
 import clsx from 'clsx';
 
 // ── Types ─────────────────────────────────────────────────────────
@@ -582,6 +584,15 @@ export default function AdminPage() {
               </div>
             </SectionCard>
           </div>
+
+          {/* RBAC Section — full width */}
+          <SectionCard icon={Shield} title="Roles y permisos" className="w-full">
+            <RoleManager onFlash={flash} />
+          </SectionCard>
+
+          <SectionCard icon={Users} title="Usuarios y roles" className="w-full">
+            <UserRoleManager onFlash={flash} />
+          </SectionCard>
         </div>
       </div>
     </LoginGate>
