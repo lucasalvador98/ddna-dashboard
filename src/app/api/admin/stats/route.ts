@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/lib/supabase';
+import { checkAdminAuth } from '@/lib/auth-guard';
 
 /**
  * GET /api/admin/stats
@@ -9,6 +10,9 @@ import { getSupabaseClient } from '@/lib/supabase';
  */
 export async function GET() {
   try {
+    const guard = await checkAdminAuth();
+    if (!guard.authorized) return guard.response!;
+
     const admin = getSupabaseClient();
 
     // Run all counts in parallel

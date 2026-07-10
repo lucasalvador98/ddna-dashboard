@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/lib/supabase';
 import type { UserRole } from '@/lib/rbac-types';
+import { checkAdminAuth } from '@/lib/auth-guard';
 
 /**
  * GET /api/auth/users — List all auth users with their roles
@@ -8,6 +9,9 @@ import type { UserRole } from '@/lib/rbac-types';
 
 export async function GET() {
   try {
+    const guard = await checkAdminAuth();
+    if (!guard.authorized) return guard.response!;
+
     const adminClient = getSupabaseClient();
 
     // Get all auth users from Supabase Auth

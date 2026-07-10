@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/lib/supabase';
+import { checkAdminAuth } from '@/lib/auth-guard';
 
 /**
  * POST /api/auth/toggle
@@ -9,6 +10,9 @@ import { getSupabaseClient } from '@/lib/supabase';
  */
 export async function POST(request: Request) {
   try {
+    const guard = await checkAdminAuth();
+    if (!guard.authorized) return guard.response!;
+
     const body = (await request.json()) as {
       enabled?: unknown;
       protected_routes?: unknown;

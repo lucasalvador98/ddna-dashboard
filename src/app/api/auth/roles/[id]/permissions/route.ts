@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/lib/supabase';
 import type { RolePermission } from '@/lib/rbac-types';
+import { checkAdminAuth } from '@/lib/auth-guard';
 
 /**
  * PUT /api/auth/roles/[id]/permissions — Replace all permissions for a role
@@ -11,6 +12,9 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const guard = await checkAdminAuth();
+    if (!guard.authorized) return guard.response!;
+
     const { id } = await params;
     const roleId = Number(id);
 

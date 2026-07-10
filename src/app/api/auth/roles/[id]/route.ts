@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/lib/supabase';
+import { checkAdminAuth, BUILT_IN_ROLES } from '@/lib/auth-guard';
 
 /**
  * DELETE /api/auth/roles/[id] — Delete a role (CASCADE deletes permissions & user_roles)
@@ -11,6 +12,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const guard = await checkAdminAuth();
+    if (!guard.authorized) return guard.response!;
+
     const { id } = await params;
     const roleId = Number(id);
 
@@ -19,6 +23,20 @@ export async function DELETE(
     }
 
     const adminClient = getSupabaseClient();
+
+    // Prevent deletion of built-in roles
+    const { data: existingRole } = await adminClient
+      .from('roles')
+      .select('name')
+      .eq('id', roleId)
+      .maybeSingle();
+
+    if (existingRole && BUILT_IN_ROLES.includes(existingRole.name)) {
+      return NextResponse.json(
+        { error: 'No se puede eliminar un rol fijo del sistema (admin, editor, visor).' },
+        { status: 403 }
+      );
+    }
 
     const { error } = await adminClient.from('roles').delete().eq('id', roleId);
 
@@ -40,6 +58,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const guard = await checkAdminAuth();
+    if (!guard.authorized) return guard.response!;
+
     const { id } = await params;
     const roleId = Number(id);
 
@@ -61,6 +82,23 @@ export async function PATCH(
           { status: 400 },
         );
       }
+
+      const adminClient = getSupabaseClient();
+
+      // Block renaming built-in roles away from their canonical name
+      const { data: existingRole } = await adminClient
+        .from('roles')
+        .select('name')
+        .eq('id', roleId)
+        .maybeSingle();
+
+      if (existingRole && BUILT_IN_ROLES.includes(existingRole.name)) {
+        return NextResponse.json(
+          { error: 'No se puede renombrar un rol fijo del sistema (admin, editor, visor).' },
+          { status: 403 }
+        );
+      }
+
       updates.name = body.name.trim();
     }
 

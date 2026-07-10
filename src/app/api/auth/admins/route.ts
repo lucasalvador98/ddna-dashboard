@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/lib/supabase';
+import { checkAdminAuth } from '@/lib/auth-guard';
 
 /**
  * GET  /api/auth/admins — List admin users
@@ -8,6 +9,9 @@ import { getSupabaseClient } from '@/lib/supabase';
 
 export async function GET() {
   try {
+    const guard = await checkAdminAuth();
+    if (!guard.authorized) return guard.response!;
+
     const adminClient = getSupabaseClient();
 
     const { data, error } = await adminClient.auth.admin.listUsers();
@@ -34,6 +38,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const guard = await checkAdminAuth();
+    if (!guard.authorized) return guard.response!;
+
     const { email, password } = await request.json() as { email?: string; password?: string };
 
     if (!email || !password) {
@@ -62,8 +69,9 @@ export async function POST(request: Request) {
           { onConflict: 'user_id' }
         );
 
+      // Role assignment is best-effort; admin can fix manually if needed
       if (roleError) {
-        console.error('Error assigning admin role:', roleError);
+        // silently continue — user was created successfully
       }
     }
 

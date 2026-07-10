@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/lib/supabase';
 import { APP_ROUTES } from '@/lib/rbac-types';
 import type { Role, RolePermission } from '@/lib/rbac-types';
+import { checkAdminAuth } from '@/lib/auth-guard';
 
 /**
  * GET  /api/auth/roles — List all roles with their permissions
@@ -10,6 +11,9 @@ import type { Role, RolePermission } from '@/lib/rbac-types';
 
 export async function GET() {
   try {
+    const guard = await checkAdminAuth();
+    if (!guard.authorized) return guard.response!;
+
     const adminClient = getSupabaseClient();
 
     const { data: roles, error: rolesError } = await adminClient
@@ -48,6 +52,9 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const guard = await checkAdminAuth();
+    if (!guard.authorized) return guard.response!;
+
     const body = (await request.json()) as {
       name?: unknown;
       description?: unknown;

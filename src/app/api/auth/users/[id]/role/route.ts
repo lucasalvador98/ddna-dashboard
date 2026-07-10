@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/lib/supabase';
 import type { UserRole } from '@/lib/rbac-types';
+import { checkAdminAuth } from '@/lib/auth-guard';
 
 /**
  * GET /api/auth/users/[id]/role — Get a specific user's role
@@ -12,6 +13,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const guard = await checkAdminAuth();
+    if (!guard.authorized) return guard.response!;
+
     const { id } = await params;
 
     if (!id || typeof id !== 'string') {
@@ -71,6 +75,9 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const guard = await checkAdminAuth();
+    if (!guard.authorized) return guard.response!;
+
     const { id } = await params;
 
     if (!id || typeof id !== 'string') {
@@ -87,6 +94,46 @@ export async function PUT(
     }
 
     const adminClient = getSupabaseClient();
+
+    // Prevent demoting the last remaining admin
+    // 1. Fetch the user's current role
+    const { data: currentUserRole } = await adminClient
+      .from('user_roles')
+      .select('role_id, roles(name)')
+      .eq('user_id', id)
+      .maybeSingle();
+
+    const currentRoleData = currentUserRole?.roles;
+    const currentRoleName =
+      currentRoleData &&
+      (Array.isArray(currentRoleData)
+        ? (currentRoleData[0] as { name: string } | undefined)
+        : (currentRoleData as { name: string })
+      )?.name;
+
+    // 2. Fetch the target role name
+    const { data: targetRole } = await adminClient
+      .from('roles')
+      .select('name')
+      .eq('id', body.role_id)
+      .maybeSingle();
+
+    const targetRoleName = targetRole?.name;
+
+    // 3. If demoting from admin to non-admin, check if this is the last admin
+    if (currentRoleName === 'admin' && targetRoleName !== 'admin') {
+      const { count: adminCount } = await adminClient
+        .from('user_roles')
+        .select('*', { count: 'exact', head: true })
+        .eq('role_id', 1); // admin role_id = 1
+
+      if (adminCount !== null && adminCount < 2) {
+        return NextResponse.json(
+          { error: 'No se puede quitar el rol de administrador al último admin del sistema.' },
+          { status: 403 }
+        );
+      }
+    }
 
     // Upsert: only one role per user (unique constraint on user_id)
     const { data: ur, error: upsertError } = await adminClient

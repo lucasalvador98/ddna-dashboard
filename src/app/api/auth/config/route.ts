@@ -26,7 +26,8 @@ export async function GET() {
     return NextResponse.json(data);
   } catch (err) {
     return NextResponse.json(
-      { value: { enabled: false, protected_routes: [] } }
+      { error: 'Error al cargar la configuración de autenticación' },
+      { status: 500 }
     );
   }
 }
