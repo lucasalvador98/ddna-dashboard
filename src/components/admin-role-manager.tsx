@@ -1,93 +1,51 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import {
-  Shield,
-  Plus,
-  Trash2,
-  CheckCircle,
-  XCircle,
-  Loader2,
-  Eye,
-  Edit3,
-} from 'lucide-react';
+import { Shield, Plus, Trash2, CheckCircle, Loader2, Eye, Edit3 } from 'lucide-react';
 import clsx from 'clsx';
 import { APP_ROUTES } from '@/lib/rbac-types';
 import type { Role, RolePermission } from '@/lib/rbac-types';
 
-// ── Permissions table ──────────────────────────────────────────────
+// ── Constants ───────────────────────────────────────────────────────
 
-function PermTable({
-  perms,
-  onUpdate,
-  saving,
+const BUILT_IN_ROLES = ['admin', 'editor', 'visor'];
+
+const ROUTE_GROUPS = [
+  { label: 'Administración', routes: ['/admin'] },
+  { label: 'Indicadores sociales', routes: ['/salud', '/educacion', '/pobreza', '/seguridad'] },
+  { label: 'Finanzas públicas', routes: ['/inversion', '/presupuesto-nnya', '/ejecutivo'] },
+  { label: 'Herramientas', routes: ['/monitoreo', '/repositorio', '/fuentes', '/geo'] },
+];
+
+// ── Toggle Pill ─────────────────────────────────────────────────────
+
+function TogglePill({
+  active,
+  onChange,
+  disabled,
+  icon: Icon,
+  label,
 }: {
-  perms: RolePermission[];
-  onUpdate: (route: string, field: 'can_view' | 'can_edit', value: boolean) => void;
-  saving: boolean;
+  active: boolean;
+  onChange: (value: boolean) => void;
+  disabled: boolean;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
 }) {
   return (
-    <div className="border border-gray-200 rounded-xl overflow-hidden">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="bg-gray-50 border-b border-gray-200">
-            <th className="text-left px-4 py-2.5 text-[10px] text-gray-400 uppercase tracking-wider font-medium">
-              Pantalla
-            </th>
-            <th className="text-left px-4 py-2.5 text-[10px] text-gray-400 uppercase tracking-wider font-medium hidden sm:table-cell">
-              Ruta
-            </th>
-            <th className="text-center px-4 py-2.5 text-[10px] text-gray-400 uppercase tracking-wider font-medium w-16">
-              <span className="inline-flex items-center gap-1">
-                <Eye className="w-3 h-3" /> Ver
-              </span>
-            </th>
-            <th className="text-center px-4 py-2.5 text-[10px] text-gray-400 uppercase tracking-wider font-medium w-16">
-              <span className="inline-flex items-center gap-1">
-                <Edit3 className="w-3 h-3" /> Editar
-              </span>
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-100">
-          {perms.map((p) => {
-            const routeDef = APP_ROUTES.find((r) => r.route === p.route);
-            return (
-              <tr key={p.route} className="hover:bg-gray-50/50 transition-colors">
-                <td className="px-4 py-2.5 text-sm text-[#1a2556] font-medium">
-                  {routeDef?.label ?? p.route}
-                </td>
-                <td className="px-4 py-2.5 text-[11px] text-gray-400 font-mono hidden sm:table-cell">
-                  {p.route}
-                </td>
-                <td className="px-4 py-2.5 text-center">
-                  <label className="inline-flex items-center justify-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={p.can_view}
-                      onChange={(e) => onUpdate(p.route, 'can_view', e.target.checked)}
-                      disabled={saving}
-                      className="w-4 h-4 rounded border-gray-300 text-[#1a2556] focus:ring-[#1a2556] disabled:opacity-50"
-                    />
-                  </label>
-                </td>
-                <td className="px-4 py-2.5 text-center">
-                  <label className="inline-flex items-center justify-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={p.can_edit}
-                      onChange={(e) => onUpdate(p.route, 'can_edit', e.target.checked)}
-                      disabled={saving}
-                      className="w-4 h-4 rounded border-gray-300 text-amber-600 focus:ring-amber-600 disabled:opacity-50"
-                    />
-                  </label>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+    <button
+      type="button"
+      onClick={() => !disabled && onChange(!active)}
+      disabled={disabled}
+      className={clsx(
+        'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium transition-colors',
+        active ? 'bg-[#1a2556] text-white' : 'bg-gray-100 text-gray-400 hover:bg-gray-200',
+        disabled && 'opacity-50 cursor-not-allowed',
+      )}
+    >
+      <Icon className="w-3 h-3" />
+      {label}
+    </button>
   );
 }
 
@@ -148,7 +106,7 @@ export function RoleManager({ onFlash }: RoleManagerProps) {
   }, [selectedRoleId, roles]);
 
   const selectedRole = roles.find((r) => r.id === selectedRoleId);
-  const isBuiltIn = selectedRole?.name === 'admin' || selectedRole?.name === 'editor' || selectedRole?.name === 'visor';
+  const isBuiltIn = BUILT_IN_ROLES.includes(selectedRole?.name ?? '');
 
   const handlePermChange = (route: string, field: 'can_view' | 'can_edit', value: boolean) => {
     setPerms((prev) =>
@@ -230,6 +188,8 @@ export function RoleManager({ onFlash }: RoleManagerProps) {
     setDeleting(null);
   };
 
+  // ── Loading state ───────────────────────────────────────────────
+
   if (loading) {
     return (
       <div className="flex justify-center py-8">
@@ -238,149 +198,228 @@ export function RoleManager({ onFlash }: RoleManagerProps) {
     );
   }
 
+  // ── Helper: find route label ─────────────────────────────────────
+
+  const routeLabel = (route: string) => APP_ROUTES.find((r) => r.route === route)?.label ?? route;
+
   return (
-    <div className="space-y-4">
-      {/* Role tabs */}
-      <div className="flex flex-wrap items-center gap-2">
-        {roles.map((role) => (
-          <button
-            key={role.id}
-            onClick={() => setSelectedRoleId(role.id)}
-            className={clsx(
-              'inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all border',
-              selectedRoleId === role.id
-                ? 'bg-[#1a2556] text-white border-[#1a2556] shadow-sm'
-                : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:text-gray-800',
+    <div className="flex flex-col lg:flex-row gap-0 min-h-[500px] border border-gray-200 rounded-xl overflow-hidden bg-white">
+      {/* ── Left Sidebar: Roles ──────────────────────────────────── */}
+      <div className="w-full lg:w-64 shrink-0 border-b lg:border-b-0 lg:border-r border-gray-200 bg-gray-50/50">
+        {/* Sidebar header */}
+        <div className="px-4 py-3 border-b border-gray-200">
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Roles</h3>
+        </div>
+
+        {/* Role list — horizontal scroll on mobile, vertical on desktop */}
+        <div className="lg:overflow-y-auto lg:max-h-[calc(500px-49px)]">
+          <div className="flex lg:flex-col gap-1 p-2 overflow-x-auto lg:overflow-x-visible">
+            {roles.map((role) => (
+              <button
+                key={role.id}
+                onClick={() => setSelectedRoleId(role.id)}
+                className={clsx(
+                  'group flex items-center gap-2 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left shrink-0 lg:shrink',
+                  selectedRoleId === role.id
+                    ? 'bg-[#1a2556] text-white border-l-2 border-l-[#1a2556]'
+                    : 'text-gray-600 hover:bg-gray-50',
+                )}
+              >
+                <Shield className="w-3.5 h-3.5 shrink-0" />
+                <span className="capitalize truncate">{role.name}</span>
+                <span
+                  className={clsx(
+                    'text-[10px] px-1.5 py-0.5 rounded-full ml-auto shrink-0',
+                    selectedRoleId === role.id
+                      ? 'bg-white/20 text-white/80'
+                      : 'bg-gray-200 text-gray-500',
+                  )}
+                >
+                  {role.permissions.length}
+                </span>
+                {!BUILT_IN_ROLES.includes(role.name) && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(role.id);
+                    }}
+                    disabled={deleting === role.id}
+                    className={clsx(
+                      'shrink-0 p-0.5 rounded transition-all opacity-0 group-hover:opacity-100',
+                      selectedRoleId === role.id
+                        ? 'text-white/60 hover:text-white hover:bg-white/10'
+                        : 'text-gray-300 hover:text-red-500 hover:bg-red-50',
+                    )}
+                  >
+                    {deleting === role.id ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                )}
+                {BUILT_IN_ROLES.includes(role.name) && (
+                  <span
+                    className={clsx(
+                      'text-[9px] px-1.5 py-0.5 rounded font-medium shrink-0',
+                      selectedRoleId === role.id
+                        ? 'bg-white/20 text-white/70'
+                        : 'bg-gray-200 text-gray-400',
+                    )}
+                  >
+                    fijo
+                  </span>
+                )}
+              </button>
+            ))}
+
+            {/* Create role button / inline form */}
+            {!creating ? (
+              <button
+                onClick={() => setCreating(true)}
+                className="flex items-center gap-2 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-gray-400 border border-dashed border-gray-300 hover:border-gray-400 hover:text-gray-600 transition-all shrink-0"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span className="whitespace-nowrap">Crear rol</span>
+              </button>
+            ) : (
+              <div className="w-full shrink-0 px-1 py-2 space-y-2">
+                <input
+                  type="text"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="Nombre del rol"
+                  className="w-full px-2.5 py-1.5 border border-gray-200 rounded-md text-sm focus:ring-2 focus:ring-[#1a2556] focus:border-transparent outline-none bg-white"
+                  onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+                  autoFocus
+                />
+                <input
+                  type="text"
+                  value={newDesc}
+                  onChange={(e) => setNewDesc(e.target.value)}
+                  placeholder="Descripción (opcional)"
+                  className="w-full px-2.5 py-1.5 border border-gray-200 rounded-md text-sm focus:ring-2 focus:ring-[#1a2556] focus:border-transparent outline-none bg-white"
+                  onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleCreate}
+                    disabled={creating || !newName.trim()}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-[#1a2556] text-white rounded-md text-xs font-medium hover:bg-[#0d1530] disabled:opacity-50 transition-colors"
+                  >
+                    {creating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+                    Crear
+                  </button>
+                  <button
+                    onClick={() => {
+                      setCreating(false);
+                      setNewName('');
+                      setNewDesc('');
+                    }}
+                    className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 rounded-md hover:bg-gray-100 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
             )}
-          >
-            <Shield className="w-3.5 h-3.5" />
-            <span className="capitalize">{role.name}</span>
-            <span className={clsx(
-              'text-[10px] px-1.5 py-0.5 rounded-full',
-              selectedRoleId === role.id
-                ? 'bg-white/20 text-white/80'
-                : 'bg-gray-100 text-gray-400',
-            )}>
-              {role.permissions.length}
-            </span>
-          </button>
-        ))}
-
-        {/* Add role button */}
-        <button
-          onClick={() => setCreating(!creating)}
-          className={clsx(
-            'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all border border-dashed',
-            creating
-              ? 'bg-gray-100 text-gray-500 border-gray-300'
-              : 'bg-white text-gray-400 border-gray-300 hover:border-gray-400 hover:text-gray-600',
-          )}
-        >
-          <Plus className="w-3.5 h-3.5" /> Nuevo rol
-        </button>
-      </div>
-
-      {/* Create form */}
-      {creating && (
-        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-          <div className="flex flex-wrap gap-2 items-end">
-            <div className="flex-1 min-w-[160px]">
-              <label className="text-[10px] text-gray-400 uppercase tracking-wider mb-1 block">Nombre</label>
-              <input
-                type="text"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                placeholder="ej: colaborador"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#1a2556] focus:border-transparent outline-none bg-white"
-                onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-                autoFocus
-              />
-            </div>
-            <div className="flex-[2] min-w-[200px]">
-              <label className="text-[10px] text-gray-400 uppercase tracking-wider mb-1 block">Descripción</label>
-              <input
-                type="text"
-                value={newDesc}
-                onChange={(e) => setNewDesc(e.target.value)}
-                placeholder="Opcional — ¿qué puede hacer este rol?"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#1a2556] focus:border-transparent outline-none bg-white"
-                onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-              />
-            </div>
-            <button
-              onClick={handleCreate}
-              disabled={creating || !newName.trim()}
-              className="flex items-center gap-1.5 px-4 py-2 bg-[#1a2556] text-white rounded-lg text-sm font-medium hover:bg-[#0d1530] disabled:opacity-50 transition-colors"
-            >
-              {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-              Crear
-            </button>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Permission editor for selected role */}
-      {selectedRole && (
-        <div>
-          {/* Role header */}
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <p className="text-sm font-semibold text-[#1a2556] capitalize">{selectedRole.name}</p>
+      {/* ── Right Panel: Permissions ──────────────────────────────── */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {selectedRole ? (
+          <>
+            {/* Role header */}
+            <div className="px-4 lg:px-6 py-4 border-b border-gray-200">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="text-sm font-semibold text-[#1a2556] capitalize">{selectedRole.name}</h3>
+                {isBuiltIn && (
+                  <span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md font-medium">
+                    Rol fijo
+                  </span>
+                )}
+              </div>
               {selectedRole.description && (
                 <p className="text-xs text-gray-400">{selectedRole.description}</p>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              {!isBuiltIn && (
-                <button
-                  onClick={() => handleDelete(selectedRole.id)}
-                  disabled={deleting === selectedRole.id}
-                  className="flex items-center gap-1 px-3 py-1.5 text-xs text-red-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-                >
-                  {deleting === selectedRole.id ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                  ) : (
-                    <Trash2 className="w-3 h-3" />
-                  )}
-                  Eliminar
-                </button>
-              )}
-              {isBuiltIn && (
-                <span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-1 rounded-md">Rol fijo</span>
-              )}
+
+            {/* Permission groups */}
+            <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6">
+              {ROUTE_GROUPS.map((group) => {
+                const groupPerms = perms.filter((p) => group.routes.includes(p.route));
+                if (groupPerms.length === 0) return null;
+
+                return (
+                  <div key={group.label}>
+                    <h4 className="text-xs text-gray-400 uppercase tracking-wider font-medium mb-2">
+                      {group.label}
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                      {groupPerms.map((p) => (
+                        <div
+                          key={p.route}
+                          className="border border-gray-200 rounded-lg p-3 hover:border-gray-300 transition-colors"
+                        >
+                          <p className="text-sm font-medium text-[#1a2556]">{routeLabel(p.route)}</p>
+                          <p className="text-[10px] text-gray-400 font-mono mb-2">{p.route}</p>
+                          <div className="flex items-center gap-1.5">
+                            <TogglePill
+                              active={p.can_view}
+                              onChange={(v) => handlePermChange(p.route, 'can_view', v)}
+                              disabled={isBuiltIn || saving}
+                              icon={Eye}
+                              label="Ver"
+                            />
+                            <TogglePill
+                              active={p.can_edit}
+                              onChange={(v) => handlePermChange(p.route, 'can_edit', v)}
+                              disabled={isBuiltIn || saving}
+                              icon={Edit3}
+                              label="Editar"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          </div>
 
-          {/* Permissions table */}
-          <PermTable perms={perms} onUpdate={handlePermChange} saving={saving} />
-
-          {/* Save bar */}
-          <div className={clsx(
-            'flex items-center justify-end gap-3 pt-3 transition-all',
-            hasChanges ? 'opacity-100' : 'opacity-0 pointer-events-none',
-          )}>
-            {hasChanges && (
-              <span className="text-xs text-amber-600">Tenés cambios sin guardar</span>
-            )}
-            <button
-              onClick={handleSave}
-              disabled={saving || !hasChanges}
-              className="flex items-center gap-1.5 px-5 py-2 bg-[#1a2556] text-white rounded-lg text-sm font-medium hover:bg-[#0d1530] disabled:opacity-50 transition-colors"
-            >
-              {saving ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <CheckCircle className="w-4 h-4" />
+            {/* Save bar */}
+            <div
+              className={clsx(
+                'flex items-center justify-end gap-3 px-4 lg:px-6 py-3 border-t border-gray-200 bg-gray-50/50 transition-all',
+                hasChanges ? 'opacity-100' : 'opacity-0 pointer-events-none',
               )}
-              Guardar permisos
-            </button>
+            >
+              {hasChanges && (
+                <span className="text-xs text-amber-600 font-medium">Tenés cambios sin guardar</span>
+              )}
+              <button
+                onClick={handleSave}
+                disabled={saving || !hasChanges}
+                className="flex items-center gap-1.5 px-5 py-2 bg-[#1a2556] text-white rounded-lg text-sm font-medium hover:bg-[#0d1530] disabled:opacity-50 transition-colors"
+              >
+                {saving ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <CheckCircle className="w-4 h-4" />
+                )}
+                Guardar permisos
+              </button>
+            </div>
+          </>
+        ) : (
+          /* Empty state when no role selected and no roles exist */
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-sm text-gray-400">No hay roles creados</p>
           </div>
-        </div>
-      )}
-
-      {!selectedRole && roles.length === 0 && (
-        <p className="text-sm text-gray-400 text-center py-6">No hay roles creados. Creá el primero.</p>
-      )}
+        )}
+      </div>
     </div>
   );
 }
