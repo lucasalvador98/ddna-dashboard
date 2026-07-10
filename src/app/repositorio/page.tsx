@@ -1,75 +1,39 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import {
-  FileText,
-  FileSpreadsheet,
-  File,
-  FolderOpen,
-  Search,
-  Upload,
-  CheckCircle,
-  Bot,
-  Download,
-  RefreshCw,
-  AlertCircle,
-  Loader2,
-} from 'lucide-react';
+import { useEffect, useState, useCallback } from 'react';
+import { Loader2, AlertCircle, CheckCircle, RefreshCw } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { LoginGate } from '@/components/login-gate';
-
-interface RepoFile {
-  id: string;
-  nombre_archivo: string;
-  descripcion: string;
-  categoria: string;
-  tipo_documento: string;
-  tamano_bytes: number | null;
-  url_storage: string | null;
-  fecha_subida: string;
-  notas: string;
-  processed: boolean;
-  total_chunks: number;
-}
-
-interface ProcessResult {
-  id: string;
-  nombre: string;
-  status: 'pending' | 'processing' | 'done' | 'error' | 'skipped';
-  chunks?: number;
-  error?: string;
-}
-
-const categoryColors: Record<string, { bg: string; text: string }> = {
-  encuestas: { bg: 'bg-blue-100', text: 'text-blue-700' },
-  inversion: { bg: 'bg-orange-100', text: 'text-orange-700' },
-  proteccion: { bg: 'bg-red-100', text: 'text-red-700' },
-  consumos: { bg: 'bg-purple-100', text: 'text-purple-700' },
-  medios: { bg: 'bg-gray-100', text: 'text-gray-700' },
-  informes: { bg: 'bg-green-100', text: 'text-green-700' },
-};
+import {
+  RepoHero,
+  RepoStats,
+  RepoUploadZone,
+  RepoFilters,
+  RepoGroupList,
+  RepoFileDrawer,
+} from '@/components/repositorio';
+import type { ViewMode, DrawerAction } from '@/components/repositorio';
+import type { RepoFile, ProcessResult } from '@/lib/repositorio';
 
 export default function RepositorioPage() {
   const [files, setFiles] = useState<RepoFile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('');
-  const [category, setCategory] = useState('all');
-  const [uploading, setUploading] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [uploadCategory, setUploadCategory] = useState('informes');
-  const [uploadDesc, setUploadDesc] = useState('');
-  const [uploadNotas, setUploadNotas] = useState('');
-  const [uploadError, setUploadError] = useState('');
-  const [uploadSuccess, setUploadSuccess] = useState('');
+  const [search, setSearch] = useState('');
+  const [view, setView] = useState<ViewMode>('grid');
+
+  // Drawer state
+  const [selectedFile, setSelectedFile] = useState<RepoFile | null>(null);
+  const [actionInProgress, setActionInProgress] = useState(false);
+  const [drawerFlash, setDrawerFlash] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+
+  // Process pending
   const [processing, setProcessing] = useState(false);
   const [processResults, setProcessResults] = useState<ProcessResult[]>([]);
 
-  useEffect(() => {
-    fetchRepo();
-  }, []);
+  // Page-level flash (for things like delete confirmation)
+  const [pageFlash, setPageFlash] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
 
-  const fetchRepo = async () => {
+  const fetchRepo = useCallback(async () => {
     const { data, error } = await supabase
       .from('repositorio')
       .select('*')
@@ -78,58 +42,36 @@ export default function RepositorioPage() {
 
     if (!error) setFiles(data || []);
     setLoading(false);
-  };
+  }, []);
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  useEffect(() => {
+    fetchRepo();
+  }, [fetchRepo]);
 
-    setSelectedFile(file);
-    setUploadError('');
-    setUploadSuccess('');
-    setUploading(true);
+  // Filter files by search
+  const filteredFiles = files.filter(f => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      f.nombre_archivo.toLowerCase().includes(q) ||
+      (f.descripcion?.toLowerCase().includes(q) ?? false) ||
+      (f.notas?.toLowerCase().includes(q) ?? false)
+    );
+  });
 
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('categoria', uploadCategory);
-    formData.append('descripcion', uploadDesc);
-    formData.append('notas', uploadNotas);
+  const pendingCount = files.filter(f => !f.processed && f.url_storage).length;
 
-    try {
-      const res = await fetch('/api/repositorio/upload', {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await res.json();
-
-      if (data.error) {
-        setUploadError(data.error);
-      } else {
-        setUploadSuccess('Archivo subido exitosamente!');
-        setSelectedFile(null);
-        setUploadDesc('');
-        setUploadNotas('');
-        fetchRepo(); // Refresh list
-      }
-    } catch (err) {
-      setUploadError(String(err));
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const processPending = async () => {
+  // ── Process pending ────────────────────────────────────────────────────────
+  const processPending = useCallback(async () => {
     const pending = files.filter(f => !f.processed && f.url_storage);
     if (pending.length === 0) return;
 
     setProcessing(true);
-    setProcessResults(
-      pending.map(f => ({ id: f.id, nombre: f.nombre_archivo, status: 'pending' }))
-    );
+    setProcessResults(pending.map(f => ({ id: f.id, nombre: f.nombre_archivo, status: 'pending' })));
 
     for (const file of pending) {
       setProcessResults(prev =>
-        prev.map(r => (r.id === file.id ? { ...r, status: 'processing' } : r))
+        prev.map(r => (r.id === file.id ? { ...r, status: 'processing' } : r)),
       );
 
       try {
@@ -145,390 +87,198 @@ export default function RepositorioPage() {
             prev.map(r =>
               r.id === file.id
                 ? { ...r, status: 'error', error: data.error || `HTTP ${res.status}` }
-                : r
-            )
+                : r,
+            ),
           );
         } else if (data.message === 'File already processed') {
           setProcessResults(prev =>
             prev.map(r =>
-              r.id === file.id ? { ...r, status: 'skipped', chunks: data.totalChunks } : r
-            )
+              r.id === file.id ? { ...r, status: 'skipped', chunks: data.totalChunks } : r,
+            ),
           );
         } else {
           setProcessResults(prev =>
             prev.map(r =>
-              r.id === file.id ? { ...r, status: 'done', chunks: data.totalChunks } : r
-            )
+              r.id === file.id ? { ...r, status: 'done', chunks: data.totalChunks } : r,
+            ),
           );
         }
       } catch (err) {
         setProcessResults(prev =>
-          prev.map(r => (r.id === file.id ? { ...r, status: 'error', error: String(err) } : r))
+          prev.map(r =>
+            r.id === file.id
+              ? { ...r, status: 'error', error: err instanceof Error ? err.message : String(err) }
+              : r,
+          ),
         );
       }
     }
 
     setProcessing(false);
-    fetchRepo();
-  };
+    await fetchRepo();
+  }, [files, fetchRepo]);
 
-  const pendingCount = files.filter(f => !f.processed && f.url_storage).length;
+  // ── Drawer action handler ──────────────────────────────────────────────────
+  const handleDrawerAction = useCallback(async (action: DrawerAction) => {
+    setActionInProgress(true);
+    setDrawerFlash(null);
 
-  const filteredFiles = files.filter(f => {
-    const matchesSearch =
-      !filter ||
-      f.nombre_archivo.toLowerCase().includes(filter.toLowerCase()) ||
-      f.descripcion?.toLowerCase().includes(filter.toLowerCase());
-    const matchesCategory = category === 'all' || f.categoria === category;
-    return matchesSearch && matchesCategory;
-  });
+    try {
+      if (action.type === 'download') {
+        if (!action.file.url_storage) return;
+        const path = action.file.url_storage.split('/storage/v1/object/public/ddna-repositorio/')[1];
+        if (!path) return;
+        const url = `https://ppyyqrvirjqmfpqaqnxy.supabase.co/storage/v1/object/public/ddna-repositorio/${encodeURIComponent(path)}`;
+        window.open(url, '_blank');
+        return;
+      }
 
-  const categories = ['all', ...new Set(files.map(f => f.categoria))];
-  const stats = {
-    total: files.length,
-    pdf: files.filter(f => f.tipo_documento === 'pdf').length,
-    xlsx: files.filter(f => f.tipo_documento === 'xlsx').length,
-    docx: files.filter(f => f.tipo_documento === 'docx').length,
-  };
+      if (action.type === 'reprocess') {
+        const res = await fetch('/api/repositorio/process', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileId: action.file.id }),
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) {
+          setDrawerFlash({ type: 'err', text: data.error || 'Error al procesar' });
+        } else {
+          setDrawerFlash({ type: 'ok', text: `Procesado: ${data.totalChunks ?? action.file.total_chunks} chunks` });
+          await fetchRepo();
+        }
+        return;
+      }
 
-  const getFileIcon = (tipo: string) => {
-    if (tipo === 'pdf') return <FileText className="w-5 h-5" />;
-    if (tipo === 'xlsx') return <FileSpreadsheet className="w-5 h-5" />;
-    return <File className="w-5 h-5" />;
-  };
+      if (action.type === 'delete') {
+        const res = await fetch(`/api/repositorio/file/${action.file.id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok || data.error) {
+          setDrawerFlash({ type: 'err', text: data.error || 'Error al eliminar' });
+        } else {
+          setDrawerFlash({ type: 'ok', text: `"${action.file.nombre_archivo}" eliminado` });
+          setSelectedFile(null);
+          setPageFlash({ type: 'ok', text: 'Archivo eliminado correctamente' });
+          await fetchRepo();
+        }
+        return;
+      }
+
+      if (action.type === 'save-metadata') {
+        const res = await fetch(`/api/repositorio/file/${action.file.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            descripcion: action.descripcion,
+            notas: action.notas,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) {
+          setDrawerFlash({ type: 'err', text: data.error || 'Error al guardar' });
+        } else {
+          setDrawerFlash({ type: 'ok', text: 'Cambios guardados' });
+          // Update the selected file with the new metadata so the drawer reflects the saved state
+          setSelectedFile(prev => prev ? { ...prev, descripcion: action.descripcion, notas: action.notas } : prev);
+          await fetchRepo();
+        }
+        return;
+      }
+    } catch (err) {
+      setDrawerFlash({
+        type: 'err',
+        text: err instanceof Error ? err.message : 'Error desconocido',
+      });
+    } finally {
+      setActionInProgress(false);
+    }
+  }, [fetchRepo]);
+
+  const handleFileClick = useCallback((file: RepoFile) => {
+    setSelectedFile(file);
+    setDrawerFlash(null);
+  }, []);
 
   return (
     <LoginGate>
-    <div className="space-y-6">
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <h1 className="font-display text-3xl text-[#1a2556]">Repositorio DDNA</h1>
-          <p className="font-body text-gray-600 mt-2">
-            Archivos propios de la Defensoría — Fuentes primarias, encuestas, informes
-          </p>
-        </div>
-      </div>
+      <div className="space-y-6 pb-12">
+        <RepoHero />
 
-      <div className="max-w-7xl mx-auto px-6">
-        {/* Chat Button - NotebookLM style */}
-        <div className="mb-6">
-          <Link
-            href="/repositorio/chat"
-            className="flex items-center justify-between w-full px-6 py-4 bg-gradient-to-r from-[#3777FF] to-[#1a2556] text-white rounded-2xl font-accent text-lg hover:shadow-xl hover:scale-[1.02] transition-all group"
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center group-hover:rotate-12 transition-transform">
-                <Bot className="w-6 h-6" />
-              </div>
-              <div className="text-left">
-                <p className="font-bold text-xl">Chat con la bibliografía</p>
-                <p className="text-sm opacity-90">
-                  Consultá todos nuestros documentos como en NotebookLM
-                </p>
-              </div>
-            </div>
-            <svg
-              className="w-6 h-6 group-hover:translate-x-2 transition-transform"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+        <div className="max-w-7xl mx-auto px-6 space-y-6">
+          {pageFlash && (
+            <div
+              className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm ${
+                pageFlash.type === 'ok'
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  : 'bg-red-50 text-red-700 border border-red-200'
+              }`}
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </Link>
-        </div>
-
-        {/* Procesar pendientes */}
-        {pendingCount > 0 && (
-          <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4">
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-accent text-sm font-semibold text-amber-800">
-                    {pendingCount} archivo{pendingCount > 1 ? 's' : ''} sin procesar para el RAG
-                  </p>
-                  <p className="font-body text-xs text-amber-700 mt-0.5">
-                    Procesalos para que el informe ejecutivo pueda leerlos como fuente de contexto
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={processPending}
-                disabled={processing}
-                className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-60 text-white font-accent text-sm font-semibold rounded-lg transition-colors flex-shrink-0"
-              >
-                {processing ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-4 h-4" />
-                )}
-                {processing ? 'Procesando...' : 'Procesar pendientes'}
-              </button>
+              {pageFlash.type === 'ok' ? (
+                <CheckCircle className="w-4 h-4 flex-shrink-0" />
+              ) : (
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              )}
+              {pageFlash.text}
             </div>
+          )}
 
-            {/* Resultados en tiempo real */}
-            {processResults.length > 0 && (
-              <div className="mt-4 space-y-1.5">
-                {processResults.map(r => (
-                  <div key={r.id} className="flex items-center gap-3 text-sm">
-                    {r.status === 'pending' && (
-                      <div className="w-4 h-4 rounded-full bg-gray-200 flex-shrink-0" />
-                    )}
-                    {r.status === 'processing' && (
-                      <Loader2 className="w-4 h-4 text-amber-600 animate-spin flex-shrink-0" />
-                    )}
-                    {r.status === 'done' && (
-                      <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
-                    )}
-                    {r.status === 'skipped' && (
-                      <CheckCircle className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    )}
-                    {r.status === 'error' && (
-                      <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
-                    )}
-                    <span
-                      className={`font-mono truncate max-w-xs ${r.status === 'error' ? 'text-red-700' : 'text-gray-700'}`}
-                    >
-                      {r.nombre.length > 40 ? r.nombre.substring(0, 40) + '...' : r.nombre}
-                    </span>
-                    {r.status === 'done' && (
-                      <span className="text-green-600 font-body text-xs ml-auto flex-shrink-0">
-                        {r.chunks} chunks
-                      </span>
-                    )}
-                    {r.status === 'skipped' && (
-                      <span className="text-gray-400 font-body text-xs ml-auto flex-shrink-0">
-                        ya procesado
-                      </span>
-                    )}
-                    {r.status === 'error' && (
-                      <span className="text-red-500 font-body text-xs ml-auto flex-shrink-0 max-w-[200px] truncate">
-                        {r.error}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+          <RepoStats files={files} />
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <p className="text-2xl font-display text-[#1a2556]">{stats.total}</p>
-            <p className="text-sm text-gray-500">Total archivos</p>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <p className="text-2xl font-display text-[#1a2556]">{stats.pdf}</p>
-            <p className="text-sm text-gray-500">PDF</p>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <p className="text-2xl font-display text-[#1a2556]">{stats.xlsx}</p>
-            <p className="text-sm text-gray-500">Excel</p>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <p className="text-2xl font-display text-[#1a2556]">{stats.docx}</p>
-            <p className="text-sm text-gray-500">Word</p>
-          </div>
-        </div>
+          <RepoUploadZone onUploaded={fetchRepo} />
 
-        {/* Upload Form */}
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
-          <h3 className="font-accent text-lg text-[#1a2556] mb-4">Subir nuevo archivo</h3>
-          <div className="flex flex-wrap gap-4 items-end">
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">Categoría</label>
-              <select
-                value={uploadCategory}
-                onChange={e => setUploadCategory(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg"
-              >
-                <option value="encuestas">Encuestas</option>
-                <option value="inversion">Inversión</option>
-                <option value="consumos">Consumos</option>
-                <option value="medios">Medios</option>
-                <option value="proteccion">Protección</option>
-                <option value="informes">Informes</option>
-              </select>
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
             </div>
-            <div className="flex-1 min-w-[200px]">
-              <label className="block text-sm text-gray-600 mb-1">Descripción</label>
-              <input
-                type="text"
-                value={uploadDesc}
-                onChange={e => setUploadDesc(e.target.value)}
-                placeholder="Descripción del archivo"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+          ) : (
+            <>
+              <RepoFilters
+                search={search}
+                onSearchChange={setSearch}
+                view={view}
+                onViewChange={setView}
+                totalShown={filteredFiles.length}
+                totalAll={files.length}
               />
-            </div>
-            <div className="flex-1 min-w-[200px]">
-              <label className="block text-sm text-gray-600 mb-1">Notas</label>
-              <input
-                type="text"
-                value={uploadNotas}
-                onChange={e => setUploadNotas(e.target.value)}
-                placeholder="Notas adicionales"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+
+              <RepoGroupList
+                files={filteredFiles}
+                view={view}
+                onFileClick={handleFileClick}
+                onProcessPending={processPending}
+                processing={processing}
+                processResults={processResults}
+                pendingCount={pendingCount}
               />
-            </div>
-            <label className="flex items-center gap-2 px-4 py-2 bg-[#1a2556] text-white rounded-lg font-accent text-sm cursor-pointer hover:bg-[#00063E]">
-              {uploading ? 'Subiendo...' : <Upload className="w-4 h-4" />}
-              {uploading ? 'Subiendo...' : 'Seleccionar archivo'}
-              <input
-                type="file"
-                className="hidden"
-                accept=".pdf,.xlsx,.xls,.docx,.doc"
-                onChange={handleFileSelect}
-                disabled={uploading}
-              />
-            </label>
-          </div>
-          {uploadError && <p className="text-red-600 mt-2 text-sm">{uploadError}</p>}
-          {uploadSuccess && (
-            <p className="text-green-600 mt-2 text-sm flex items-center gap-1">
-              <CheckCircle className="w-4 h-4" />
-              {uploadSuccess}
-            </p>
+            </>
           )}
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-wrap gap-4 mb-6">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Buscar archivos..."
-              value={filter}
-              onChange={e => setFilter(e.target.value)}
-              aria-label="Buscar archivos en el repositorio"
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a2556] focus:border-transparent"
-            />
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {categories.map(cat => (
-              <button
-                key={cat}
-                onClick={() => setCategory(cat)}
-                className={`px-3 py-2 rounded-lg font-accent text-sm transition-colors ${
-                  category === cat
-                    ? 'bg-[#1a2556] text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {cat === 'all' ? 'Todos' : cat.charAt(0).toUpperCase() + cat.slice(1)}
-              </button>
-            ))}
-          </div>
-        </div>
+        <RepoFileDrawer
+          file={selectedFile}
+          onClose={() => setSelectedFile(null)}
+          onAction={handleDrawerAction}
+          actionInProgress={actionInProgress}
+        />
 
-        {/* Files table */}
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1a2556]" />
-            <span className="ml-3 text-gray-500">Cargando...</span>
-          </div>
-        ) : (
-          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="text-left px-4 py-3 font-accent text-sm text-gray-500">Archivo</th>
-                  <th className="text-left px-4 py-3 font-accent text-sm text-gray-500">
-                    Categoría
-                  </th>
-                  <th className="text-left px-4 py-3 font-accent text-sm text-gray-500">Tipo</th>
-                  <th className="text-left px-4 py-3 font-accent text-sm text-gray-500">
-                    Descripción
-                  </th>
-                  <th className="text-left px-4 py-3 font-accent text-sm text-gray-500">Fecha</th>
-                  <th className="text-center px-4 py-3 font-accent text-sm text-gray-500 w-24">
-                    RAG
-                  </th>
-                  <th className="text-center px-4 py-3 font-accent text-sm text-gray-500 w-16"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filteredFiles.map(file => {
-                  const catStyle = categoryColors[file.categoria] || categoryColors.informes;
-                  const TypeIcon = getFileIcon(file.tipo_documento);
-                  return (
-                    <tr key={file.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          {TypeIcon}
-                          <span className="font-mono text-sm text-gray-700">
-                            {file.nombre_archivo.length > 30
-                              ? file.nombre_archivo.substring(0, 30) + '...'
-                              : file.nombre_archivo}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`px-2 py-1 rounded text-xs font-medium ${catStyle.bg} ${catStyle.text}`}
-                        >
-                          {file.categoria}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="text-xs text-gray-500 uppercase">
-                          {file.tipo_documento}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate">
-                        {file.descripcion || '—'}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-500">
-                        {file.fecha_subida
-                          ? new Date(file.fecha_subida).toLocaleDateString('es-AR')
-                          : '—'}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {file.processed ? (
-                          <span className="inline-flex items-center gap-1 text-xs text-green-700 bg-green-50 px-2 py-0.5 rounded-full font-body">
-                            <CheckCircle className="w-3 h-3" />
-                            {file.total_chunks} chunks
-                          </span>
-                        ) : file.url_storage ? (
-                          <span className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full font-body">
-                            <AlertCircle className="w-3 h-3" />
-                            pendiente
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-xs text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full font-body">
-                            sin storage
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-2 py-3 text-center">
-                        <a
-                          href={`https://ppyyqrvirjqmfpqaqnxy.supabase.co/storage/v1/object/public/ddna-repositorio/${encodeURIComponent(file.nombre_archivo)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center justify-center w-8 h-8 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-[#3777FF] transition-colors"
-                          title="Descargar archivo"
-                        >
-                          <Download className="w-4 h-4" />
-                        </a>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            {!filteredFiles.length && (
-              <div className="text-center py-12 text-gray-500">
-                <FolderOpen className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                <p>No se encontraron archivos</p>
-              </div>
-            )}
+        {drawerFlash && (
+          <div className="fixed bottom-6 right-6 z-50 max-w-sm">
+            <div
+              className={`flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg text-sm ${
+                drawerFlash.type === 'ok'
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  : 'bg-red-50 text-red-700 border border-red-200'
+              }`}
+            >
+              {drawerFlash.type === 'ok' ? (
+                <CheckCircle className="w-4 h-4 flex-shrink-0" />
+              ) : (
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              )}
+              {drawerFlash.text}
+            </div>
           </div>
         )}
       </div>
-    </div>
     </LoginGate>
   );
 }
