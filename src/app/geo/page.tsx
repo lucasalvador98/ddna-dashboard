@@ -1,9 +1,8 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { Loader2, Map } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { LoginGate } from '@/components/login-gate';
-import { SectionHeader } from '@/components/section-header';
 
 const GeoMaps = dynamic(() => import('@/components/geo-maps'), {
   ssr: false,
@@ -17,15 +16,7 @@ const GeoMaps = dynamic(() => import('@/components/geo-maps'), {
 export default function GeoPage() {
   return (
     <LoginGate>
-      <div className="space-y-6">
-        <SectionHeader
-          icon={Map}
-          title="Mapas Geoespaciales"
-          description="Visualización geográfica de indicadores por provincia y región"
-          color="blue"
-        />
-        <GeoMaps />
-      </div>
+      <GeoMaps />
     </LoginGate>
   );
 }
