@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { ExternalLink, Search, Database, FileText, Building2, Users, Heart } from 'lucide-react';
+import { SectionHeader } from '@/components/section-header';
 
 interface Dataset {
   name: string;
@@ -99,14 +100,12 @@ export default function ApisPage() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <h1 className="font-display text-3xl text-[#1a2556]">APIs y Fuentes de Datos</h1>
-          <p className="font-body text-gray-600 mt-2">
-            Explorador de catálogos de datos públicos conectados al dashboard DDNA
-          </p>
-        </div>
-      </div>
+      <SectionHeader
+        icon={Database}
+        title="APIs y Fuentes de Datos"
+        description="Explorador de catálogos de datos públicos conectados al dashboard DDNA"
+        color="navy"
+      />
 
       <div className="max-w-7xl mx-auto px-6 py-6">
         {/* Source tabs */}

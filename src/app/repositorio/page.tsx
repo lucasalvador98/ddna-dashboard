@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Loader2, AlertCircle, CheckCircle, RefreshCw } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle, RefreshCw, FolderOpen } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { LoginGate } from '@/components/login-gate';
+import { SectionHeader } from '@/components/section-header';
 import {
   RepoHero,
   RepoStats,
@@ -201,6 +202,12 @@ export default function RepositorioPage() {
   return (
     <LoginGate>
       <div className="space-y-6 pb-12">
+        <SectionHeader
+          icon={FolderOpen}
+          title="Repositorio de Archivos"
+          description="Gestión y procesamiento de documentos del observatorio DDNA"
+          color="amber"
+        />
         <RepoHero />
 
         <div className="max-w-7xl mx-auto px-6 space-y-6">

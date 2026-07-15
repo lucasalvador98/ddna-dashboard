@@ -6,7 +6,6 @@ import {
   Syringe,
   TrendingDown,
   TrendingUp,
-  Loader2,
   AlertCircle,
   Info,
 } from 'lucide-react';
@@ -14,6 +13,8 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { parseDesglose } from '@/lib/parse-desglose';
 import { INDICATOR_NAMES } from '@/lib/indicator-names';
+import { PageLoading } from '@/components/page-loading';
+import { PageError } from '@/components/page-error';
 import { SectionHeader } from '@/components/section-header';
 import { KpiCard } from '@/components/kpi-card';
 import { ChartWithTable } from '@/components/charts/chart-with-table';
@@ -95,10 +96,7 @@ export default function SaludPage() {
           description="Seguimiento de indicadores de salud materno-infantil y adolescente en Córdoba"
           color="terracotta"
         />
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 text-[#E07A5F] animate-spin" />
-          <span className="ml-3 font-body text-gray-500">Cargando datos...</span>
-        </div>
+        <PageLoading />
       </div>
     );
   }
@@ -112,17 +110,7 @@ export default function SaludPage() {
           description="Seguimiento de indicadores de salud materno-infantil y adolescente en Córdoba"
           color="terracotta"
         />
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <AlertCircle className="w-12 h-12 text-red-400 mb-4" />
-          <p className="font-body text-gray-700 mb-2">Error al cargar los datos</p>
-          <p className="text-sm text-gray-400 mb-5 max-w-md">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-5 py-2.5 bg-[#E07A5F] text-white rounded-lg text-sm font-medium hover:bg-[#c96a4f] transition-colors"
-          >
-            Reintentar
-          </button>
-        </div>
+        <PageError message={error} onRetry={() => window.location.reload()} />
       </div>
     );
   }

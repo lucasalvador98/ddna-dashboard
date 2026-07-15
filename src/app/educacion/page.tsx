@@ -1,12 +1,14 @@
 'use client';
 
-import { BookOpen, GraduationCap, Users, TrendingDown, TrendingUp, BarChart3, Loader2, AlertCircle, Info } from 'lucide-react';
+import { BookOpen, GraduationCap, Users, TrendingDown, TrendingUp, BarChart3, AlertCircle, Info } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { parseDesglose } from '@/lib/parse-desglose';
 import { computeAprenderByQuintil } from '@/lib/aprender-transform';
 import type { AprenderRow } from '@/lib/aprender-transform';
 import type { Indicador } from '@/lib/use-dashboard-data';
+import { PageLoading } from '@/components/page-loading';
+import { PageError } from '@/components/page-error';
 import { SectionHeader } from '@/components/section-header';
 import { KpiCard } from '@/components/kpi-card';
 import { ChartWithTable } from '@/components/charts/chart-with-table';
@@ -630,19 +632,9 @@ export default function EducacionPage() {
         </div>
       )}
 
-      {loading && (
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#F3A712]" />
-          <span className="ml-3 font-body text-gray-500">Cargando datos...</span>
-        </div>
-      )}
+      {loading && <PageLoading />}
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-700 mb-2">Error al cargar datos: {error}</p>
-          <button onClick={() => window.location.reload()} className="text-sm text-red-600 underline hover:text-red-800">Reintentar</button>
-        </div>
-      )}
+      {error && <PageError message={error} onRetry={() => window.location.reload()} />}
 
       {data.length === 0 && !loading && !error && (
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">

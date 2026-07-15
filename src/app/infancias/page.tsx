@@ -20,7 +20,6 @@ import {
   Users,
   Home,
   AlertCircle,
-  Loader2,
   Info,
   UtensilsCrossed,
   Stethoscope,
@@ -31,6 +30,8 @@ import {
   BookOpen,
   Wifi,
 } from 'lucide-react';
+import { PageLoading } from '@/components/page-loading';
+import { PageError } from '@/components/page-error';
 import { SectionHeader } from '@/components/section-header';
 import { KpiCard } from '@/components/kpi-card';
 import { supabase } from '@/lib/supabase';
@@ -149,9 +150,7 @@ export default function InfanciasPage() {
           description="Barómetro de la Deuda Social de la Infancia — UCA-ODSA"
           color="magenta"
         />
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 text-[#BF1363] animate-spin" />
-        </div>
+        <PageLoading />
       </div>
     );
   }
@@ -166,10 +165,7 @@ export default function InfanciasPage() {
           description="Barómetro de la Deuda Social de la Infancia — UCA-ODSA"
           color="magenta"
         />
-        <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
-          <AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-3" />
-          <p className="text-red-700 font-body">Error al cargar datos: {error}</p>
-        </div>
+        <PageError message={error} />
       </div>
     );
   }

@@ -10,6 +10,8 @@ import {
   isSaludCategory,
   formatInversionChange,
 } from '@/lib/format-inversion';
+import { PageLoading } from '@/components/page-loading';
+import { PageError } from '@/components/page-error';
 import { SectionHeader } from '@/components/section-header';
 import { KpiCard } from '@/components/kpi-card';
 import { ChartWithTable } from '@/components/charts/chart-with-table';
@@ -395,22 +397,10 @@ export default function InversionPage() {
       </div>
 
       {/* Loading state */}
-      {loading && (
-        <div className="py-12 text-center text-gray-500">Cargando datos de inversión...</div>
-      )}
+      {loading && <PageLoading />}
 
       {/* Error state */}
-      {error && (
-        <div className="bg-red-50 p-4 rounded">
-          <p className="text-red-700 mb-2">Error: {error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="text-sm text-red-600 underline hover:text-red-800"
-          >
-            Reintentar
-          </button>
-        </div>
-      )}
+      {error && <PageError message={error} onRetry={() => window.location.reload()} />}
 
       {/* Empty state */}
       {!loading && inversionData.length === 0 && (
