@@ -167,28 +167,35 @@ src/
 - [x] Identidad visual completa (Caprasimo + DK Lemon fonts, Recurso 1-7 icons, Tema.json palette)
 - [x] Home page con KPIs conectados a Supabase + fallback placeholder
 - [x] 6 secciones temáticas con gráficos Recharts (salud, educación, pobreza, seguridad, inversión, fuentes)
-- [x] Supabase: tabla `indicadores` (schema simplificado con valores embebidos, 1667 registros)
+- [x] Supabase: tabla `indicadores` (14 categorías, 20,759 registros)
 - [x] 11+ indicadores seedeados con datos históricos (2018-2024)
 - [x] API REST: `/api/health`, `/api/indicadores`, `/api/fuentes`, `/api/upload`
 - [x] Catálogo de fuentes con badges por categoría
 - [x] Interfaz de carga CSV para admins (`/admin`)
 - [x] Scripts ETL Python para datos Excel (`etl/`)
 - [x] ETL completo: salud (145), educacion (1056), pobreza (48), seguridad (7), demografia (411)
-- [x] Carga de datos reales desde Excel a Supabase (1667 registros)
+- [x] Carga de datos reales desde Excel a Supabase (20,759 registros en 14 categorías)
 - [x] Deploy en Vercel — **https://ddna-dashboard.vercel.app/**
 
 ---
 
-## Contenido en Supabase (al 15/04/2026)
+## Contenido en Supabase (al 15/07/2026)
 
-| Categoría  | Registros                       |
-| ---------- | ------------------------------- |
-| Salud      | 145 (Mortalidad infantil, DEIS) |
-| Educación  | 1056 (Aprender + Censo 2022)    |
-| Pobreza    | 48 (INDEC + ENCOPRAC)           |
-| Seguridad  | 7 (Ministerio Público Córdoba)  |
-| Demografía | 411 (Censo 2022 + DEIS)         |
-| **Total**  | **1667**                        |
+| Categoría           | Registros                              |
+| ------------------- | -------------------------------------- |
+| Pobreza             | 15,977 (INDEC EPH + ENCOPRAC)          |
+| Educación           | 1,055 (Censo 2022 + Aprender)          |
+| Anuario Educativo   | 785 (Min. Educación)                   |
+| Inversión           | 725 (Visualizador PTO + Datos Abiertos)|
+| Empleo              | 709 (INDEC EPH)                        |
+| Canastas Básicas    | 500 (INDEC — CBA/CBT)                  |
+| Demografía          | 361 (Censo 2022)                       |
+| Salud               | 236 (DEIS — mortalidad, vacunación)    |
+| Encuestas DDNA 2024 | 131                                    |
+| Seguridad           | 129 (MP Córdoba)                       |
+| Aprender            | 80 (Evaluaciones 2024)                 |
+| Salud Adolescente   | 32 (DEIS)                              |
+| **Total**           | **20,759**                             |
 
 ---
 

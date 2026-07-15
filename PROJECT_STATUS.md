@@ -1,6 +1,6 @@
 # DDNA Dashboard — Estado del Proyecto
 
-> **Última actualización**: Mayo 2026
+> **Última actualización**: Julio 2026
 > **Live**: https://ddna-dashboard.vercel.app/
 > **Repo**: https://github.com/lucasalvador98/ddna-dashboard
 > **Supabase**: `ddna-dashboard` (ppyyqrvirjqmfpqaqnxy)
@@ -70,7 +70,15 @@
 - `/api/admin/backfill` — POST backfill de PDFs pendientes
 - `/api/extract-pdf` — POST extracción de texto de PDF
 
-### 7. Deploy en Vercel
+### 7. Scripts ETL y Automatización
+- `scripts/update-indec-indicators.mjs` — TMI Córdoba y Nacional vía API Series (hasta 2024 ✅)
+- `scripts/load-senaf-data.mjs` — **Nuevo**: SENAF (Primeros Años, Dispositivos adolescentes, Línea 102)
+- `scripts/load-vaccination-data.mjs` — Cobertura vacunal DEIS
+- `scripts/load-uca-dimensions.mjs` — Pobreza UCA
+- `scripts/load-budget-*.mjs` — Presupuesto
+- `scripts/config.mjs` — Config compartida (conexión Supabase)
+
+### 8. Deploy en Vercel
 - **Live**: https://ddna-dashboard.vercel.app/
 - Conectado a repo GitHub, build automático en push a main
 - Variables de entorno configuradas: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY`
@@ -95,9 +103,26 @@
 ## Supabase — Schema
 
 ### Tabla `indicadores`
-- ~6,700 registros de datos de indicadores
+- **20,767 registros** en 14 categorías
 - Columnas: `id`, `indicador_nombre`, `categoria`, `valor`, `unidad`, `periodo`, `region`, `desglose` (JSONB), `fuente`, `ultima_actualizacion`, `activo`
 - RLS: select público, insert/update/delete admin
+
+| Categoría           | Registros |
+|---------------------|-----------|
+| pobreza             | 15,977    |
+| educacion           | 1,055     |
+| anuario_educacion   | 785       |
+| inversion           | 725       |
+| empleo              | 709       |
+| canastas            | 500       |
+| demografia          | 361       |
+| salud               | 244       |
+| encuestas_2024      | 131       |
+| seguridad           | 129       |
+| aprender            | 80        |
+| deis                | 36        |
+| salud_adolescente   | 32        |
+| consumo             | 3         |
 
 ### Tabla `repositorio`
 - 16 archivos con metadata
@@ -160,3 +185,5 @@ INTERNAL_API_SECRET=...       # para /api/admin/backfill
 | RLS | Público lectura, admin escritura | Seguridad por defecto, sin auth UI |
 | N8N | Eliminado | Reemplazado por `/api/admin/backfill` |
 | ETL / datos raw | Eliminados del repo | Datos ya cargados en Supabase |
+| Scripts one-time con paths muertos | Eliminados | migrate-monitoreo, sync-monitoreo, process_*, load-uca-dimensions |
+| SQLs generados por ETL | Eliminados | batches/ completo, .sql sueltos — ya ejecutados en Supabase |

@@ -40,7 +40,17 @@ export type CategoriaIndicador =
   | 'pobreza'
   | 'seguridad'
   | 'inversion'
-  | 'demografia';
+  | 'demografia'
+  | 'anuario_educacion'
+  | 'aprender'
+  | 'consumo'
+  | 'deis'
+  | 'salud_adolescente'
+  | 'encuestas_2024'
+  | 'canastas'
+  | 'empleo'
+  | 'precios'
+  | 'senaf';
 
 export interface Indicador {
   id: string;

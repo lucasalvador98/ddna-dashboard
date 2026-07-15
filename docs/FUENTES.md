@@ -1,7 +1,7 @@
 # Fuentes de Datos — DDNA Dashboard
 
-> **Última actualización**: 24 de Abril 2026
-> **Estado actual**: 6,751 registros en Supabase (educación, inversión, pobreza, salud, seguridad)
+> **Última actualización**: 15 de Julio 2026 — Carga SENAF completada
+> **Estado actual**: 21,149 registros en Supabase (15 categorías)
 
 ---
 
@@ -15,16 +15,71 @@
 
 ## Fuentes Conectadas (en Supabase)
 
-### 1. SALUD
+### Resumen por categoría
 
-| fuente                         | tipo   | frecuencia | estado | detalle                                               |
-| ------------------------------ | ------ | ---------- | ------ | ----------------------------------------------------- |
-| Mortalidad infantil (DEIS)     | manual | anual      | ✅     | TMI, RMM, TMNEO, TMPOS — Córdoba y Nacional 2005-2022 |
-| Cobertura vacunal (DEIS)       | manual | anual      | ✅     | 8 series por tipo de vacuna                           |
-| Tasa de asistencia educativa   | manual | ad-hoc     | ✅     | Census 2022 — 19 grupos de edad (0-17 años)           |
-| Pobreza e indigencia infantil  | manual | semestral  | ✅     | INDEC ENCOPRAC 2016-2024 — Personas y Hogares         |
-| Inversión social infancia      | manual | anual      | ✅     | 6,164 registros por programa/organismo (2024)         |
-| Denuncias/delitos (MP Córdoba) | manual | anual      | ✅     | 7 categorías (2022)                                   |
+| Categoría (tabla `indicadores`) | Registros | Periodo | Fuente principal                        |
+| ------------------------------- | --------- | ------- | --------------------------------------- |
+| Pobreza e indigencia            | 15,977    | 2003-2026 | INDEC EPH + ENCOPRAC                    |
+| Educación                       | 1,055     | 2022-2024 | Censo 2022 + Aprender                   |
+| Anuario Estadístico Educativo   | 785       | 2024     | Min. Educación — anuarios               |
+| Empleo                          | 709       | 1982-2026 | INDEC EPH                               |
+| Inversión social infancia       | 725       | 2021-2025 | Visualizador PTO + Datos Abiertos CBA   |
+| Canastas básicas (CBA/CBT)      | 500       | 2018-2026 | INDEC — API Series de Tiempo            |
+| Demografía                      | 361       | 2022      | Censo 2022                              |
+| SENAF                           | 382       | 2020-2023 | Programas Nacionales SENAF †            |
+| Salud (DEIS)                    | 236       | 1990-2024 | DEIS — Mortalidad infantil, vacunación  |
+| Encuestas 2024 (DDNA)           | 131       | 2024      | Encuestas propias de la Defensoría      |
+| Seguridad                       | 129       | 1999-2024 | Ministerio Público Córdoba              |
+| Aprender                        | 80        | 2024      | Evaluaciones Aprender 6° y 5°/6°        |
+| Salud Adolescente               | 32        | 2015-2022 | DEIS                                    |
+| DEIS (raw)                      | 36        | 2005-2022 | DEIS — datos directos                   |
+| Consumos                        | 3         | 2022      | Estudios de consumos                    |
+
+### 1. SALUD (236 + 32 salud_adolescente)
+
+| fuente                                | tipo   | frecuencia | estado | detalle                                                  |
+| ------------------------------------- | ------ | ---------- | ------ | -------------------------------------------------------- |
+| Tasa Mortalidad Infantil (DEIS)       | api    | anual      | ✅     | TMI Córdoba y Nacional vía API Series — **hasta 2024**   |
+| RMM / TMNEO / TMPOS (DEIS)           | manual | anual      | ✅     | Mortalidad materna/neonatal/post-neonatal — **hasta 2024** |
+| Cobertura vacunal (DEIS)              | manual | anual      | ✅     | 8 series por tipo de vacuna                              |
+| Salud Adolescente                     | manual | anual      | ✅     | Mortalidad adolescente, embarazo, causas                 |
+
+### 2. EDUCACIÓN (1,055 + 785 anuario + 80 aprender)
+
+| fuente                                | tipo   | frecuencia | estado | detalle                                            |
+| ------------------------------------- | ------ | ---------- | ------ | -------------------------------------------------- |
+| Tasa de asistencia educativa          | manual | ad-hoc     | ✅     | Censo 2022 — 19 grupos de edad (0-17 años)         |
+| Anuario Estadístico Educativo         | manual | anual      | ✅     | Indicadores del sistema educativo — 785 registros  |
+| Evaluación Aprender                   | manual | periódica  | ✅     | Lengua y Matemática 6° primario y 5°/6° secundario |
+
+### 3. POBREZA E INDIGENCIA (15,977)
+
+| fuente                                | tipo   | frecuencia | estado | detalle                                               |
+| ------------------------------------- | ------ | ---------- | ------ | ----------------------------------------------------- |
+| Pobreza e indigencia infantil         | manual | semestral  | ✅     | INDEC ENCOPRAC + EPH — Personas y Hogares             |
+| Líneas de indigencia y pobreza        | API    | mensual    | ✅     | Canastas básicas INDEC vía API Series de Tiempo       |
+
+### 4. INVERSIÓN SOCIAL (725)
+
+| fuente                                | tipo   | frecuencia | estado | detalle                                               |
+| ------------------------------------- | ------ | ---------- | ------ | ----------------------------------------------------- |
+| Inversión social infancia             | manual | anual      | ✅     | Visualizador PTO 2021-2024 + Datos Abiertos 2025      |
+
+### 5. SEGURIDAD (129)
+
+| fuente                                | tipo   | frecuencia | estado | detalle                                               |
+| ------------------------------------- | ------ | ---------- | ------ | ----------------------------------------------------- |
+| Denuncias/delitos (MP Córdoba)        | manual | anual      | ✅     | 7 categorías (1999-2024)                              |
+
+### 6. OTRAS CATEGORÍAS
+
+| categoría           | registros | fuente                                       |
+| ------------------- | --------- | -------------------------------------------- |
+| Empleo              | 709       | INDEC EPH — tasa actividad, empleo, desempleo |
+| Demografía          | 361       | Censo 2022 — población por edad y sexo        |
+| Encuestas DDNA 2024 | 131       | Encuestas propias a adultos y jóvenes         |
+| Canastas Básicas    | 500       | INDEC — CBA, CBT, Coeficiente de Engel        |
+| Consumos            | 3         | Estudios de consumos                          |
 
 ---
 
@@ -157,20 +212,17 @@ Además de datos directa de NNyA, estos indicadores dan **contexto provincial/na
 
 ### Inmediatas (este sprint)
 
-1. **SENAF Nacional — CSV directo** 🔄
-   - Dataset: `desarrollo-social-actividades-formacion-promocion-secretaria-nacional-ninez-adolescencia-familia`
-   - URL: `https://datosabiertos.desarrollosocial.gob.ar/dataset/.../sintesis-rafp-senaf.csv`
-   - Impacto: Actividades de promoción y formación de Senaf (niños, adolescentes, familias)
-
-2. **Dispositivos de Adolescentes — CSV directo** 🔄
-   - Dataset: `desarrollo-social-dispositivos-aprehension-especializados-para-adolescentes-presuntos-infractores`
-   - URL: `https://datosabiertos.desarrollosocial.gob.ar/dataset/.../dispositivos-de-aprehension-dinai-2021-2022-y-2023.csv`
-   - Impacto: Estadísticas de adolescentes en conflicto con la ley penal
+1. ~~**SENAF Nacional — CSV directo**~~ ✅ **Datos cargados en Supabase**
+   - Script: `scripts/load-senaf-data.mjs`
+   - Datasets: Primeros Años (362) + Dispositivos adolescentes (18) + Línea 102 (2)
+   - Impacto: Programas SENAF, adolescentes infractores, llamadas L102
+   - ⚠️ Fuente original (`datosabiertos.desarrollosocial.gob.ar`) **DNS caído**. Los CSVs se descargan vía Wayback Machine (snapshot Dic 2023). Sin pipeline de actualización futura.
 
 ### Mediano plazo (próximo mes)
 
-3. **Centros de Salud CBA** — CKAN provincial
-4. **Mortalidad infantil** — Integrar DEIS nacional vs provincial (comparativa)
+3. **RMM / TMNEO / TMPOS post-2022** — DEIS no tiene API para estos indicadores.
+   Requiere ETL desde microdatos de defunciones (`datos.salud.gob.ar`) + nacidos vivos.
+4. **Centros de Salud CBA** — CKAN provincial
 5. **Presupuesto infantil CBA** — Si CKAN provincial activa el datastore
 
 ### Largo plazo (futuras versiones)
@@ -206,6 +258,19 @@ Mortalidad infantil TMI,Córdoba,8.5,‰,2022,Córdoba,"{""fuente"":""DEIS 2022"
 
 ---
 
+## Scripts de automatización ETL
+
+| Script                              | Fuente                     | Tipo de carga      | Estado |
+| ----------------------------------- | -------------------------- | ------------------ | ------ |
+| `scripts/update-indec-indicators.mjs` | INDEC / datos.gob.ar API  | API REST (series)  | ✅     |
+| `scripts/load-senaf-data.mjs`       | SENAF / desarrollo social  | CSV → Supabase     | ✅ (vía Wayback Machine) |
+| `scripts/load-deis-2024.mjs`        | DEIS Estadísticas Vitales  | PDF → SQL          | ✅     |
+| `scripts/load-vaccination-data.mjs` | DEIS vacunación            | CSV → Supabase     | ✅     |
+| `scripts/load-uca-dimensions.mjs`   | UCA (pobreza)              | CSV → Supabase     | ✅     |
+| `scripts/load-budget-*.mjs`         | Presupuesto                | CSV → Supabase     | ✅     |
+
+> Todos los scripts están en `scripts/` y usan `scripts/config.mjs` para la conexión a Supabase.
+
 ## Estados de carga
 
 | estado | significado                                                          |
@@ -234,6 +299,8 @@ Mortalidad infantil TMI,Córdoba,8.5,‰,2022,Córdoba,"{""fuente"":""DEIS 2022"
 - INDEC: https://www.indec.gob.ar
 - Shiny INDEC: https://shiny.indec.gob.ar/
 - SENAF: https://www.argentina.gob.ar/justicia/senaf
+
+> † Fuente original (`datosabiertos.desarrollosocial.gob.ar`) **DNS caído** desde 2024. Los CSVs se descargan desde Wayback Machine (snapshot Dic 2023). Sin pipeline de actualización futura.
 
 ---
 
