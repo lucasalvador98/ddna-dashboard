@@ -1,0 +1,125 @@
+import { createServerClient } from '@supabase/ssr';
+import { NextResponse, type NextRequest } from 'next/server';
+import { sanitizeRedirectUrl } from '@/lib/redirect';
+
+// ─── Settings cache (in-memory, per-middleware-instance) ──────────────────────
+
+interface AuthSettings {
+  enabled: boolean;
+  protectedRoutes: string[];
+}
+
+let cachedSettings: AuthSettings | null = null;
+let cacheTimestamp = 0;
+const CACHE_TTL = 5_000;
+
+async function getAuthSettings(): Promise<AuthSettings> {
+  const now = Date.now();
+  if (cachedSettings && now - cacheTimestamp < CACHE_TTL) {
+    return cachedSettings;
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    cachedSettings = { enabled: false, protectedRoutes: [] };
+    cacheTimestamp = now;
+    return cachedSettings;
+  }
+
+  try {
+    const res = await fetch(`${supabaseUrl}/rest/v1/settings?key=eq.auth&select=value`, {
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+      },
+      cache: 'no-store',
+    });
+
+    if (!res.ok) {
+      cachedSettings = { enabled: false, protectedRoutes: [] };
+      cacheTimestamp = now;
+      return cachedSettings;
+    }
+
+    const rows = (await res.json()) as Array<{ value: Record<string, unknown> }>;
+    const value = rows?.[0]?.value as { enabled?: boolean; protected_routes?: string[] } | null;
+
+    cachedSettings = {
+      enabled: value?.enabled ?? false,
+      protectedRoutes: value?.protected_routes ?? [],
+    };
+  } catch {
+    cachedSettings = { enabled: false, protectedRoutes: [] };
+  }
+
+  cacheTimestamp = now;
+  return cachedSettings;
+}
+
+// ─── Auth Proxy ───────────────────────────────────────────────────────────────
+
+export async function authProxy(request: NextRequest) {
+  const { pathname, searchParams } = request.nextUrl;
+
+  if (
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/api/') ||
+    pathname.startsWith('/_next')
+  ) {
+    return NextResponse.next();
+  }
+
+  const settings = await getAuthSettings();
+
+  if (!settings.enabled) {
+    return NextResponse.next();
+  }
+
+  const isProtected = settings.protectedRoutes.some(
+    (route) => pathname === route || pathname.startsWith(route + '/')
+  );
+
+  if (!isProtected) {
+    return NextResponse.next();
+  }
+
+  // ─── Session check ────────────────────────────────────────────────────────
+
+  let supabaseResponse = NextResponse.next({
+    request,
+  });
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          );
+          supabaseResponse = NextResponse.next({ request });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          );
+        },
+      },
+    }
+  );
+
+  const { data } = await supabase.auth.getUser();
+
+  if (!data.user) {
+    const loginUrl = new URL('/login', request.url);
+    const originalPath = pathname + (searchParams.size > 0 ? `?${searchParams}` : '');
+    loginUrl.searchParams.set('redirect', sanitizeRedirectUrl(originalPath, '/'));
+    return NextResponse.redirect(loginUrl);
+  }
+
+  return supabaseResponse;
+}
