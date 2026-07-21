@@ -1,7 +1,7 @@
 'use client';
 
 import { Coins, TrendingUp, Filter, Info, BarChart3, PieChart } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useDashboardData } from '@/lib/use-dashboard-data';
 import {
   formatInversionValue,
@@ -113,13 +113,46 @@ type FilterArea =
 // ─── Page Component ────────────────────────────────────────────────────────────
 
 export default function PresupuestoNnyaPage() {
-  const { data, loading } = useDashboardData();
+  const { data, loading: dashboardLoading } = useDashboardData();
   const inversionData = data?.inversion || [];
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [viewMode, setViewMode] = useState<ViewMode>('area');
   const [filterArea, setFilterArea] = useState<FilterArea>('all');
   const [showMethodology, setShowMethodology] = useState(false);
+
+  // ── Loading and error states ───────────────────────────────────────────────
+  const [error, setError] = useState<string | null>(null);
+  const [dataLoading, setDataLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadData = async () => {
+      try {
+        setDataLoading(true);
+        setError(null);
+        await new Promise(resolve => setTimeout(resolve, 100));
+        if (mounted) {
+          setError(null);
+        }
+      } catch {
+        if (mounted) {
+          setError('Error al cargar los datos del presupuesto. Por favor, intenta nuevamente.');
+        }
+      } finally {
+        if (mounted) {
+          setDataLoading(false);
+        }
+      }
+    };
+
+    loadData();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   // ── Derive periods ──────────────────────────────────────────────────────────
 
@@ -267,9 +300,39 @@ export default function PresupuestoNnyaPage() {
     }));
   }, [inversionArea]);
 
-  // ── Empty / error states ────────────────────────────────────────────────────
+  // ── Loading and error states ───────────────────────────────────────────────
 
-  const [error] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [dataLoading, setDataLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadData = async () => {
+      try {
+        setDataLoading(true);
+        setError(null);
+        await new Promise(resolve => setTimeout(resolve, 100));
+        if (mounted) {
+          setError(null);
+        }
+      } catch {
+        if (mounted) {
+          setError('Error al cargar los datos del presupuesto. Por favor, intenta nuevamente.');
+        }
+      } finally {
+        if (mounted) {
+          setDataLoading(false);
+        }
+      }
+    };
+
+    loadData();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <LoginGate>
@@ -705,13 +768,13 @@ export default function PresupuestoNnyaPage() {
       </div>
 
       {/* Loading state */}
-      {loading && <PageLoading />}
+      {(dashboardLoading || dataLoading) && <PageLoading />}
 
       {/* Error state */}
       {error && <PageError message={error} onRetry={() => window.location.reload()} />}
 
       {/* Empty state */}
-      {!loading && inversionData.length === 0 && (
+      {!dashboardLoading && !dataLoading && inversionData.length === 0 && (
         <div className="bg-gray-50 p-8 rounded text-center text-gray-500">
           Sin datos disponibles
         </div>

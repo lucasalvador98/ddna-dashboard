@@ -1,7 +1,7 @@
 'use client';
 
 import { Coins, TrendingUp } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useDashboardData } from '@/lib/use-dashboard-data';
 import {
   formatInversionValue,

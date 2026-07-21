@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { ExternalLink, Search, Database, FileText, Building2, Users, Heart } from 'lucide-react';
 import { SectionHeader } from '@/components/section-header';
+import { PageError } from '@/components/page-error';
+import { PageLoading } from '@/components/page-loading';
 
 interface Dataset {
   name: string;
@@ -25,9 +27,11 @@ export default function ApisPage() {
   const [data, setData] = useState<EndpointData | null>(null);
   const [indecInfo, setIndecInfo] = useState<any>(null);
   const [contextual, setContextual] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
+    setError(null);
     const params = new URLSearchParams();
     params.set('source', activeSource);
     if (activeSource === 'datosgob' || activeSource === 'cba') {
@@ -44,10 +48,14 @@ export default function ApisPage() {
 
     try {
       const res = await fetch(`/api/external?${params}`);
+      if (!res.ok) {
+        throw new Error(`Error HTTP: ${res.status}`);
+      }
       const json = await res.json();
       setData(json);
     } catch (err) {
-      console.error(err);
+      const errorMessage = err instanceof Error ? err.message : 'Error al cargar los datos de APIs';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

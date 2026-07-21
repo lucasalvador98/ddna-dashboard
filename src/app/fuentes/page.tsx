@@ -15,6 +15,8 @@ import clsx from 'clsx';
 import { SectionHeader } from '@/components/section-header';
 import { LoginGate } from '@/components/login-gate';
 import { ChartCard } from '@/components/charts/chart-card';
+import { PageError } from '@/components/page-error';
+import { PageLoading } from '@/components/page-loading';
 import { supabase, isSupabaseConfigured, getFuentesDatos, FuenteDato } from '@/lib/supabase';
 
 type CategoriaIndicador =
@@ -136,15 +138,18 @@ export default function FuentesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [usingFallback, setUsingFallback] = useState(false);
   const [lastFetch, setLastFetch] = useState<Date | null>(null);
+  const [fuentesError, setFuentesError] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [activeSource, setActiveSource] = useState<string>('datosgob');
   const [searchQuery, setSearchQuery] = useState('');
   const [data, setData] = useState<EndpointData | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchFuentes() {
       setIsLoading(true);
+      setFuentesError(null);
       try {
         if (isSupabaseConfigured()) {
           const data = await getFuentesDatos();
@@ -159,7 +164,8 @@ export default function FuentesPage() {
           setFuentes(fallbackFuentes);
           setUsingFallback(true);
         }
-      } catch {
+      } catch (err) {
+        setFuentesError('Error al cargar las fuentes de datos.');
         setFuentes(fallbackFuentes);
         setUsingFallback(true);
       } finally {
@@ -173,6 +179,7 @@ export default function FuentesPage() {
 
   const fetchApiData = async () => {
     setLoading(true);
+    setApiError(null);
     const params = new URLSearchParams();
     params.set('source', activeSource);
     if (activeSource === 'datosgob' || activeSource === 'cba') {
@@ -189,10 +196,14 @@ export default function FuentesPage() {
 
     try {
       const res = await fetch(`/api/external?${params}`);
+      if (!res.ok) {
+        throw new Error(`Error HTTP: ${res.status}`);
+      }
       const json = await res.json();
       setData(json);
     } catch (err) {
-      console.error(err);
+      const errorMessage = err instanceof Error ? err.message : 'Error al cargar los datos de APIs';
+      setApiError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -293,6 +304,7 @@ export default function FuentesPage() {
 
       {activeTab === 'fuentes' && (
         <>
+          {fuentesError && <PageError message={fuentesError} onRetry={() => fetchFuentes()} />}
           <div
             className={clsx(
               'rounded-lg p-4 flex items-center justify-between',
@@ -332,10 +344,8 @@ export default function FuentesPage() {
             color="orange"
           >
             {isLoading ? (
-              <div className="flex items-center justify-center h-64">
-                <RefreshCw className="w-6 h-6 text-[#4D4D4D] animate-spin" />
-              </div>
-            ) : (
+              <PageLoading message="Cargando fuentes de datos..." />
+            ) : fuentesError ? null : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead>
@@ -420,6 +430,176 @@ export default function FuentesPage() {
             )}
           </ChartCard>
         </>
+      )}
+
+      {activeTab === 'apis' && (
+        <div className="space-y-4">
+          {apiError && <PageError message={apiError} onRetry={() => fetchApiData()} />}
+          {apiError ? null : (
+            <div className="flex flex-wrap gap-2 mb-6">
+              {sources.map(s => (
+                <button
+                  key={s.id}
+                  onClick={() => setActiveSource(s.id)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-accent text-sm transition-colors ${
+                    activeSource === s.id
+                      ? 'bg-[#1a2556] text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  <s.icon className="w-4 h-4" />
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {activeError ? null : (
+            <div className="relative mb-6">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Buscar datasets..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a2556] focus:border-transparent"
+              />
+            </div>
+          )}
+
+          {loading ? (
+            <PageLoading message="Cargando datos de APIs..." />
+          ) : apiError ? null : (
+            <div className="space-y-4">
+              <div className="bg-gray-50 rounded-lg p-4">
+                <p className="text-sm text-gray-600">
+                  <span className="font-medium">{data?.source || activeSource}</span>
+                  {data?.total && <span> — {data.total} datasets disponibles</span>}
+                </p>
+                {data?.csv_urls && (
+                  <div className="mt-2 text-sm">
+                    <p className="font-medium text-gray-700">CSVs directos:</p>
+                    {Object.entries(data.csv_urls).map(([name, url]) => (
+                      <a
+                        key={name}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block text-blue-600 hover:underline"
+                      >
+                        {name}
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {filteredResults.length > 0 && (
+                <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="text-left px-4 py-3 font-accent text-sm text-gray-500">
+                          Dataset ID
+                        </th>
+                        <th className="text-left px-4 py-3 font-accent text-sm text-gray-500">
+                          Acciones
+                        </th>
+                        <th className="text-left px-4 py-3 font-accent text-sm text-gray-500">
+                          Ver detalle
+                        </th>
+                        <th className="text-left px-4 py-3 font-accent text-sm text-gray-500">
+                          Tipo
+                        </th>
+                        <th className="text-left px-4 py-3 font-accent text-sm text-gray-500">
+                          Fuente
+                        </th>
+                        <th className="text-left px-4 py-3 font-accent text-sm text-gray-500">URL</th>
+                        <th>API URL</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {filteredResults.slice(0, 50).map((d: any, i) => {
+                        const name = typeof d === 'string' ? d : d.name || d.title;
+                        return (
+                          <tr key={i} className="hover:bg-gray-50">
+                            <td className="px-4 py-3 font-mono text-sm text-gray-700">
+                              {name?.substring(0, 40)}
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded">
+                                CKAN
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <a
+                                href={`/api/external?source=${activeSource === 'datosgob' ? 'datosgob' : activeSource}&action=show&id=${name}`}
+                                target="_blank"
+                                className="text-xs text-blue-600 hover:underline"
+                              >
+                                Detalle →
+                              </a>
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-500">
+                              {name?.includes('educacion')
+                                ? 'Educación'
+                                : name?.includes('salud')
+                                  ? 'Salud'
+                                  : name?.includes('ninez')
+                                    ? 'Niñez'
+                                    : 'General'}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-500">
+                              {name?.includes('desarrollo')
+                                ? 'SENAF'
+                                : name?.includes('educacion')
+                                  ? 'Min.Educación'
+                                  : 'INDEC'}
+                            </td>
+                            <td className="px-4 py-3">
+                              <a
+                                href={
+                                  activeSource === 'datosgob'
+                                    ? `https://datos.gob.ar/dataset/${name}`
+                                    : activeSource === 'cba'
+                                      ? `https://datosgestionabierta.cba.gov.ar/dataset/${name}`
+                                      : `https://datosabiertos.desarrollosocial.gob.ar/dataset/${name}`
+                                }
+                                target="_blank"
+                                className="text-blue-600 hover:underline text-sm flex items-center gap-1"
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            </td>
+                            <td className="px-4 py-3">
+                              <code className="text-xs bg-gray-100 px-1 rounded">
+                                ?source={activeSource === 'datosgob' ? 'datosgob' : activeSource}
+                                &amp;action=show&amp;id={name}
+                              </code>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                  {filteredResults.length > 50 && (
+                    <p className="px-4 py-3 text-sm text-gray-500 text-center">
+                      Mostrando 50 de {filteredResults.length} resultados. Usá el filtro para buscar
+                      más.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {!loading && !filteredResults.length && (
+                <div className="text-center py-12 text-gray-500">
+                  <Database className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                  <p>No se encontraron datasets</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       )}
 
       {activeTab === 'apis' && (

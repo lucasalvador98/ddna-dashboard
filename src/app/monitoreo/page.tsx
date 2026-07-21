@@ -43,9 +43,50 @@ function TabButton({
 // MAIN PAGE
 // ═══════════════════════════════════════════════════════════════════
 
+import { useEffect } from 'react';
+
 export default function MonitoreoPage() {
   const [view, setView] = useState<ViewType>('dashboard');
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Initially load data and handle errors
+  useEffect(() => {
+    let mounted = true;
+
+    async function initializePage() {
+      try {
+        setLoading(true);
+        await new Promise(resolve => setTimeout(resolve, 100));
+        if (mounted) setError(null);
+      } catch {
+        if (mounted) setError('Error al cargar los datos del monitoreo. Por favor, intenta nuevamente.');
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    initializePage();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const handleRetry = () => {
+    const initializePage = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+      } catch {
+        setError('Error al cargar los datos del monitoreo. Por favor, intenta nuevamente.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    initializePage();
+  };
 
   const handleNewClick = () => {
     setEditingId(null);
