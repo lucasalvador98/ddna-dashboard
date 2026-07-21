@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 
 // ─── Deferred promises for controlling Supabase responses ─────────
-// Now handles 2 parallel queries (salud + salud_adolescente)
 let resolveSalud: (value: unknown) => void;
 let resolveAdolescente: (value: unknown) => void;
 let rejectQuery: (reason: unknown) => void;
@@ -16,7 +15,6 @@ function createDeferred() {
     resolver = resolve;
     rejecter = reject;
   });
-  // Track which query this is (first = salud, second = salud_adolescente)
   if (queryCount === 0) {
     resolveSalud = resolver!;
     rejectQuery = rejecter!;
@@ -33,11 +31,12 @@ const mockSupabaseChain = {
   order: vi.fn().mockImplementation(() => createDeferred()),
 };
 
-vi.mock('@/lib/supabase', () => ({
-  supabase: {
+// Mock @supabase/supabase-js instead of @/lib/supabase — the page now
+// uses createClient directly (Server Component pattern)
+vi.mock('@supabase/supabase-js', () => ({
+  createClient: vi.fn(() => ({
     from: vi.fn(() => mockSupabaseChain),
-  },
-  CategoriaIndicador: 'salud',
+  })),
 }));
 
 // Mock recharts
@@ -115,33 +114,21 @@ describe('SaludPage — Nacimientos KPI', () => {
     queryCount = 0;
   });
 
-  it('should show loading state initially', async () => {
-    render(<SaludPage />);
-    expect(screen.getByText('Cargando datos...')).toBeInTheDocument();
-
-    // Resolve both deferred promises to clean up
-    resolveSalud({ data: [], error: null });
-    resolveAdolescente({ data: [], error: null });
-    await vi.waitFor(() => {
-      expect(screen.queryByText('Cargando datos...')).not.toBeInTheDocument();
-    });
-  });
-
   it('should show empty state when no data returned', async () => {
-    render(<SaludPage />);
+    const pagePromise = SaludPage();
 
     resolveSalud({ data: [], error: null });
     resolveAdolescente({ data: [], error: null });
 
-    await vi.waitFor(() => {
-      expect(screen.getByText('No hay datos de salud disponibles')).toBeInTheDocument();
-    });
+    const page = await pagePromise;
+    render(page);
+
+    expect(screen.getByText('No hay datos de salud disponibles')).toBeInTheDocument();
   });
 
   it('should show Nacimientos KPI with data when Nacimientos adolescentes exists', async () => {
-    render(<SaludPage />);
+    const pagePromise = SaludPage();
 
-    // First query: salud (TMI data)
     resolveSalud({
       data: [
         {
@@ -156,8 +143,6 @@ describe('SaludPage — Nacimientos KPI', () => {
       ],
       error: null,
     });
-
-    // Second query: salud_adolescente (nacimientos)
     resolveAdolescente({
       data: [
         {
@@ -173,20 +158,17 @@ describe('SaludPage — Nacimientos KPI', () => {
       error: null,
     });
 
-    await vi.waitFor(() => {
-      expect(screen.queryByText('Cargando datos...')).not.toBeInTheDocument();
-    });
+    const page = await pagePromise;
+    render(page);
 
-    // The KPI should show the nacimientos value formatted in es-AR
     expect(screen.getByText('4.450')).toBeInTheDocument();
     expect(screen.getByText('Nacimientos adolescentes')).toBeInTheDocument();
     expect(screen.getByText(/Registrados en 2022/)).toBeInTheDocument();
   });
 
   it('should show "—" when Nacimientos adolescentes data is not in the DB', async () => {
-    render(<SaludPage />);
+    const pagePromise = SaludPage();
 
-    // Only salud data, no adolescentes
     resolveSalud({
       data: [
         {
@@ -203,11 +185,8 @@ describe('SaludPage — Nacimientos KPI', () => {
     });
     resolveAdolescente({ data: [], error: null });
 
-    await vi.waitFor(() => {
-      expect(screen.queryByText('Cargando datos...')).not.toBeInTheDocument();
-    });
-
-    expect(screen.getByText('Nacimientos adolescentes')).toBeInTheDocument();
+    const page = await pagePromise;
+    render(page);
 
     const kpiCards = screen.getAllByTestId('kpi-card');
     const nacimientoCard = kpiCards.find(
@@ -218,20 +197,17 @@ describe('SaludPage — Nacimientos KPI', () => {
     expect(nacimientoCard!.getAttribute('data-subtitle')).toBe('Sin datos disponibles');
   });
 
-  it('should show error state when fetch fails', async () => {
-    render(<SaludPage />);
+  it('should throw error when fetch fails', async () => {
+    const pagePromise = SaludPage();
 
-    // Reject both deferred promises to simulate network error
     rejectQuery(new Error('Network error'));
     resolveAdolescente({ data: [], error: null });
 
-    await vi.waitFor(() => {
-      expect(screen.getByText(/Error al cargar los datos/)).toBeInTheDocument();
-    });
+    await expect(pagePromise).rejects.toThrow('Network error');
   });
 
-  it('should not show loading/error/empty after successful data load', async () => {
-    render(<SaludPage />);
+  it('should not show error/empty after successful data load', async () => {
+    const pagePromise = SaludPage();
 
     resolveSalud({
       data: [
@@ -249,9 +225,8 @@ describe('SaludPage — Nacimientos KPI', () => {
     });
     resolveAdolescente({ data: [], error: null });
 
-    await vi.waitFor(() => {
-      expect(screen.queryByText('Cargando datos...')).not.toBeInTheDocument();
-    });
+    const page = await pagePromise;
+    render(page);
 
     expect(screen.queryByText(/Error al cargar/)).not.toBeInTheDocument();
     expect(screen.queryByText('No hay datos de salud disponibles')).not.toBeInTheDocument();
