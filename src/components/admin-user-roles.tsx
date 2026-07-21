@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { getUsers } from '@/lib/actions/auth-users';
 import {
   Users,
   Mail,
@@ -135,29 +136,26 @@ export function UserRoleManager({ onFlash }: UserRoleManagerProps) {
 
   const loadData = useCallback(async () => {
     try {
-      const [usersRes, rolesRes] = await Promise.all([
-        fetch('/api/auth/users'),
+      const [users, rolesRes] = await Promise.all([
+        getUsers(),
         fetch('/api/auth/roles'),
       ]);
 
-      if (usersRes.ok) {
-        const data = await usersRes.json();
-        const seen = new Set<string>();
-        const items: UserItem[] = [];
-        for (const u of data) {
-          if (!seen.has(u.user_id)) {
-            seen.add(u.user_id);
-            items.push({
-              id: u.user_id,
-              email: u.email,
-              created_at: u.created_at,
-              role_id: u.role_id,
-              role_name: u.role_name,
-            });
-          }
+      const seen = new Set<string>();
+      const items: UserItem[] = [];
+      for (const u of users) {
+        if (!seen.has(u.user_id)) {
+          seen.add(u.user_id);
+          items.push({
+            id: u.user_id,
+            email: u.email,
+            created_at: u.created_at,
+            role_id: u.role_id,
+            role_name: u.role_name,
+          });
         }
-        setUsers(items);
       }
+      setUsers(items);
 
       if (rolesRes.ok) {
         const data = await rolesRes.json();

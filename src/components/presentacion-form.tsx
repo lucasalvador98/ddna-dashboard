@@ -15,6 +15,7 @@ import {
   LayoutGrid,
 } from 'lucide-react';
 import clsx from 'clsx';
+import { getPresentacionKpis } from '@/lib/actions/presentacion-kpis';
 import type { PresentationContext, KpiOption, KpisByAxis } from '@/lib/presentacion-ia';
 import { PRESENTATION_AXES } from '@/lib/presentacion-ia';
 
@@ -57,23 +58,15 @@ export function PresentacionForm({ onGenerate }: PresentacionFormProps) {
   }, [selectedTitulos, kpisPorEje]);
 
   useEffect(() => {
-    async function fetchKpis() {
-      try {
-        setLoadingKpis(true);
-        const res = await fetch('/api/repositorio/presentacion/kpis');
-        if (!res.ok) throw new Error('No se pudieron cargar los indicadores disponibles.');
-        const data = await res.json();
-        setKpisPorEje(data.kpis_por_eje || {});
-        if (data.kpis_por_eje) {
-          setOpenAxes(new Set(Object.keys(data.kpis_por_eje)));
-        }
-      } catch (err) {
+    getPresentacionKpis()
+      .then((data) => {
+        setKpisPorEje(data.kpis_por_eje);
+        setOpenAxes(new Set(Object.keys(data.kpis_por_eje)));
+      })
+      .catch((err) => {
         setErrorKpis(err instanceof Error ? err.message : 'Error al cargar indicadores');
-      } finally {
-        setLoadingKpis(false);
-      }
-    }
-    fetchKpis();
+      })
+      .finally(() => setLoadingKpis(false));
   }, []);
 
   const toggleAxisAccordion = (axisId: string) => {

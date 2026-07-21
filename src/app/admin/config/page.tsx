@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Shield, Loader2, CheckCircle, XCircle } from 'lucide-react';
 import clsx from 'clsx';
+import { getAuthConfig } from '@/lib/actions/auth-config';
 
 export default function ConfigPage() {
   const [enabled, setEnabled] = useState(false);
@@ -12,8 +13,8 @@ export default function ConfigPage() {
 
   const loadConfig = useCallback(async () => {
     try {
-      const r = await fetch('/api/auth/config');
-      if (r.ok) setEnabled((await r.json()).enabled ?? false);
+      const { data } = await getAuthConfig();
+      setEnabled(data.value?.enabled ?? false);
     } catch {}
     setLoading(false);
   }, []);

@@ -8,6 +8,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import clsx from 'clsx';
+import { getAdminStats } from '@/lib/actions/admin-stats';
 
 export function AdminUpdateButton() {
   const [loading, setLoading] = useState(false);
@@ -18,15 +19,11 @@ export function AdminUpdateButton() {
     setLoading(true);
     setFlash(null);
     try {
-      const r = await fetch('/api/admin/stats');
-      if (r.ok) {
-        setFlash({ type: 'ok', text: 'Datos actualizados correctamente' });
-        router.refresh();
-      } else {
-        setFlash({ type: 'err', text: 'Error al actualizar los datos' });
-      }
+      await getAdminStats();
+      setFlash({ type: 'ok', text: 'Datos actualizados correctamente' });
+      router.refresh();
     } catch {
-      setFlash({ type: 'err', text: 'Error de conexión al actualizar' });
+      setFlash({ type: 'err', text: 'Error al actualizar los datos' });
     }
     setLoading(false);
     setTimeout(() => setFlash(null), 4000);
