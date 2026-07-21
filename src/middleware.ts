@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { sanitizeRedirectUrl } from '@/lib/redirect';
 
 // ─── Settings cache (in-memory, per-middleware-instance) ──────────────────────
 
@@ -123,7 +124,7 @@ export async function middleware(request: NextRequest) {
     // Build redirect URL preserving the original path and query params
     const loginUrl = new URL('/login', request.url);
     const originalPath = pathname + (searchParams.size > 0 ? `?${searchParams}` : '');
-    loginUrl.searchParams.set('redirect', originalPath);
+    loginUrl.searchParams.set('redirect', sanitizeRedirectUrl(originalPath, '/'));
     return NextResponse.redirect(loginUrl);
   }
 

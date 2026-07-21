@@ -3,6 +3,7 @@
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getBrowserClient } from '@/lib/supabase';
+import { sanitizeRedirectUrl } from '@/lib/redirect';
 import { Shield, AlertCircle, Loader2 } from 'lucide-react';
 
 // ─── Form (uses useSearchParams → must be wrapped in Suspense) ───────────────
@@ -10,7 +11,7 @@ import { Shield, AlertCircle, Loader2 } from 'lucide-react';
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirect = searchParams.get('redirect') || '/';
+  const redirect = sanitizeRedirectUrl(searchParams.get('redirect'));
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
