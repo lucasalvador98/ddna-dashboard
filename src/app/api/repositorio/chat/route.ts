@@ -447,6 +447,7 @@ async function executeToolCall(
   sourceType: 'documents' | 'indicators' | 'web' | 'unknown';
   chunks?: ChunkResult[];
   indicatorResult?: unknown;
+  searchMethod?: 'vector' | 'text';
 }> {
   // --- Indicadores ---
   if (INDICATOR_OPENAPI_TOOLS.some(t => t.function.name === name)) {
@@ -480,7 +481,7 @@ async function executeToolCall(
       formattedResult += `\n\nAdvertencia: ${warning}`;
     }
 
-    return { formattedResult, sourceType: 'documents', chunks };
+    return { formattedResult, sourceType: 'documents', chunks, searchMethod };
   }
 
   if (name === 'listAllDocuments') {
@@ -952,11 +953,12 @@ async function handleChatPOST(request: Request) {
             send('tool', { tool: toolName, status: 'start', label: getToolDisplayName(toolName) });
 
             try {
-              const { formattedResult, sourceType, chunks, indicatorResult } = await executeToolCall(
+              const { formattedResult, sourceType, chunks, indicatorResult, searchMethod } = await executeToolCall(
                 toolName,
                 toolArgs
               );
 
+              if (searchMethod) searchMethodUsed = searchMethod;
               toolsUsed.push(toolName);
               allFailed = false;
 

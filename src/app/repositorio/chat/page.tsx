@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { Send, Bot, User, FileText, Loader2, AlertCircle, Sparkles } from 'lucide-react';
+import { Send, Bot, User, FileText, Loader2, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 
@@ -16,17 +16,6 @@ interface ChatMessage {
   }[];
   tools_used?: string[];
   timestamp: Date;
-}
-
-const TOOL_LABELS: Record<string, string> = {
-  search_knowledge_base: 'Buscando documentos...',
-  listAllDocuments: 'Listando documentos...',
-  search_web: 'Buscando en la web...',
-  scrape_url: 'Extrayendo contenido web...',
-};
-
-function getToolLabel(tool: string): string {
-  return TOOL_LABELS[tool] || 'Procesando información...';
 }
 
 export default function ChatPage() {
@@ -122,7 +111,7 @@ export default function ChatPage() {
               setStreamingContent(content);
             } else if (currentEvent === 'tool') {
               if (data.status === 'start') {
-                setToolProgress(prev => [...prev, data.label || getToolLabel(data.tool)]);
+                setToolProgress(prev => [...prev, data.label || 'Procesando información...']);
               } else if (data.status === 'end') {
                 setToolProgress(prev => prev.slice(0, -1));
               }
@@ -277,8 +266,8 @@ export default function ChatPage() {
                     <div className="mt-3 pt-3 border-t border-gray-200">
                       <p className="text-xs font-accent text-gray-500 mb-2">Fuentes:</p>
                       <div className="flex flex-wrap gap-2">
-                        {msg.sources.map((source: any, sIdx: number) => {
-                          const name = source.fileName || source.source || 'Documento';
+                        {msg.sources.map((source: NonNullable<ChatMessage['sources']>[number], sIdx: number) => {
+                          const name = source.fileName || 'Documento';
                           const clean = name.length > 30 ? name.substring(0, 27) + '...' : name;
                           return (
                             <span
