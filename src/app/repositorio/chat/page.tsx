@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
-import { Send, Bot, User, FileText, Loader2, AlertCircle } from 'lucide-react';
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { Send, Bot, User, FileText, Loader2, AlertCircle, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 
@@ -18,20 +18,32 @@ interface ChatMessage {
   timestamp: Date;
 }
 
+const TOOL_LABELS: Record<string, string> = {
+  search_knowledge_base: 'Buscando documentos...',
+  listAllDocuments: 'Listando documentos...',
+  search_web: 'Buscando en la web...',
+  scrape_url: 'Extrayendo contenido web...',
+};
+
+function getToolLabel(tool: string): string {
+  return TOOL_LABELS[tool] || 'Procesando información...';
+}
+
 export default function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [hasContext, setHasContext] = useState<boolean | null>(null);
+  const [streamingContent, setStreamingContent] = useState('');
+  const [toolProgress, setToolProgress] = useState<string[]>([]);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Scroll to bottom on new message
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, streamingContent, toolProgress]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || loading) return;
 
@@ -46,6 +58,8 @@ export default function ChatPage() {
     setLoading(true);
     setError('');
     setHasContext(null);
+    setStreamingContent('');
+    setToolProgress([]);
 
     try {
       const response = await fetch('/api/repositorio/chat', {
@@ -60,30 +74,104 @@ export default function ChatPage() {
         }),
       });
 
-      const data = await response.json();
+      const contentType = response.headers.get('Content-Type') || '';
 
-      if (data.error) {
-        setError(data.error);
-        setLoading(false);
-        return;
+      if (contentType.includes('text/event-stream')) {
+        await handleSSEResponse(response);
+      } else {
+        await handleJSONResponse(response);
       }
-
-      const assistantMessage: ChatMessage = {
-        role: 'assistant',
-        content: data.answer,
-        sources: data.sources,
-        tools_used: data.tools_used,
-        timestamp: new Date(),
-      };
-
-      setMessages(prev => [...prev, assistantMessage]);
-      setHasContext(data.sources && data.sources.length > 0);
     } catch (err) {
       setError(String(err));
     } finally {
       setLoading(false);
+      setToolProgress([]);
     }
-  };
+  }, [input, loading, messages]);
+
+  async function handleSSEResponse(response: Response) {
+    const reader = response.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let currentEvent = '';
+    let content = '';
+    let finalSources: NonNullable<ChatMessage['sources']> = [];
+    let finalTools: string[] = [];
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+
+        if (trimmed.startsWith('event: ')) {
+          currentEvent = trimmed.slice(7).trim();
+        } else if (trimmed.startsWith('data: ')) {
+          const dataStr = trimmed.slice(6);
+          try {
+            const data = JSON.parse(dataStr);
+
+            if (currentEvent === 'token') {
+              content += data.text;
+              setStreamingContent(content);
+            } else if (currentEvent === 'tool') {
+              if (data.status === 'start') {
+                setToolProgress(prev => [...prev, data.label || getToolLabel(data.tool)]);
+              } else if (data.status === 'end') {
+                setToolProgress(prev => prev.slice(0, -1));
+              }
+            } else if (currentEvent === 'done') {
+              finalSources = data.sources || [];
+              finalTools = data.toolsUsed || [];
+            } else if (currentEvent === 'error') {
+              setError(data.error || 'Error desconocido');
+            }
+          } catch {
+            // skip malformed JSON
+          }
+        }
+      }
+    }
+
+    if (content) {
+      const assistantMessage: ChatMessage = {
+        role: 'assistant',
+        content,
+        sources: finalSources,
+        tools_used: finalTools,
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, assistantMessage]);
+      setHasContext(finalSources.length > 0);
+    }
+    setStreamingContent('');
+  }
+
+  async function handleJSONResponse(response: Response) {
+    const data = await response.json();
+
+    if (data.error) {
+      setError(data.error);
+      return;
+    }
+
+    const assistantMessage: ChatMessage = {
+      role: 'assistant',
+      content: data.answer,
+      sources: data.sources,
+      tools_used: data.tools_used,
+      timestamp: new Date(),
+    };
+
+    setMessages(prev => [...prev, assistantMessage]);
+    setHasContext(data.sources && data.sources.length > 0);
+  }
 
   const handleExampleClick = (question: string) => {
     setInput(question);
@@ -111,28 +199,29 @@ export default function ChatPage() {
             + Nueva conversación
           </button>
         )}
-        {hasContext === false && (
-          <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
-            <div>
-              <p className="font-accent text-sm text-amber-800">No hay documentos procesados</p>
-              <p className="text-sm text-amber-700 mt-1">
-                Subí y procesá documentos en la sección{' '}
-                <Link href="/repositorio" className="underline hover:text-amber-900">
-                  Repositorio
-                </Link>{' '}
-                para que el asistente pueda responder preguntas.
-              </p>
-            </div>
-          </div>
-        )}
       </div>
+
+      {hasContext === false && (
+        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
+          <div>
+            <p className="font-accent text-sm text-amber-800">No hay documentos procesados</p>
+            <p className="text-sm text-amber-700 mt-1">
+              Subí y procesá documentos en la sección{' '}
+              <Link href="/repositorio" className="underline hover:text-amber-900">
+                Repositorio
+              </Link>{' '}
+              para que el asistente pueda responder preguntas.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Chat Container */}
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
         {/* Messages */}
         <div className="h-[60vh] overflow-y-auto p-6 space-y-6">
-          {messages.length === 0 ? (
+          {messages.length === 0 && !streamingContent ? (
             /* Welcome State */
             <div className="h-full flex flex-col items-center justify-center text-center">
               <div className="w-16 h-16 bg-[#3777FF]/10 rounded-full flex items-center justify-center mb-4">
@@ -216,15 +305,41 @@ export default function ChatPage() {
             ))
           )}
 
-          {/* Loading Indicator */}
-          {loading && (
+          {/* Streaming message */}
+          {streamingContent && (
             <div className="flex gap-4">
               <div className="w-8 h-8 bg-[#3777FF]/10 rounded-full flex items-center justify-center flex-shrink-0">
                 <Bot className="w-4 h-4 text-[#3777FF]" />
               </div>
-              <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
-                <span className="text-sm text-gray-500">Analizando y buscando información...</span>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 max-w-[80%]">
+                <p className="font-body text-sm whitespace-pre-wrap">{streamingContent}</p>
+                <span className="inline-block w-1.5 h-4 bg-[#3777FF] animate-pulse ml-0.5 align-text-bottom" />
+              </div>
+            </div>
+          )}
+
+          {/* Loading / Tool progress indicator */}
+          {loading && !streamingContent && (
+            <div className="flex gap-4">
+              <div className="w-8 h-8 bg-[#3777FF]/10 rounded-full flex items-center justify-center flex-shrink-0">
+                <Bot className="w-4 h-4 text-[#3777FF]" />
+              </div>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
+                {toolProgress.length > 0 ? (
+                  <div className="space-y-1">
+                    {toolProgress.map((label, i) => (
+                      <div key={i} className="flex items-center gap-2 text-sm text-gray-500">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin flex-shrink-0" />
+                        <span>{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                    <span className="text-sm text-gray-500">Analizando y buscando información...</span>
+                  </div>
+                )}
               </div>
             </div>
           )}

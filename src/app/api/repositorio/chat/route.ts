@@ -1,7 +1,7 @@
 /** 
- * POST /api/repositorio/chat — Agent con Function Calling Nativo
+ * POST /api/repositorio/chat — Agent con Function Calling Nativo + SSE Streaming
  *
- * Usa OpenAI function calling API en vez de parsear TOOL_CALL: textual.
+ * Usa OpenAI function calling API en vez de parsear TOOL_CALL textual.
  * El LLM decide CUÁNDO y CON QUÉ PARÁMETROS llamar cada tool.
  *
  * Tools disponibles:
@@ -60,6 +60,24 @@ interface RawIlikeRow {
   content: string;
   metadata: Record<string, unknown>;
   repositorio: { nombre_archivo: string; categoria: string } | null;
+}
+
+// ---------------------------------------------------------------------------
+// Tool display names for SSE progress events
+// ---------------------------------------------------------------------------
+
+const TOOL_DISPLAY_NAMES: Record<string, string> = {
+  search_knowledge_base: 'Buscando documentos...',
+  listAllDocuments: 'Listando documentos disponibles...',
+  search_web: 'Buscando en la web...',
+  scrape_url: 'Extrayendo contenido web...',
+};
+
+function getToolDisplayName(name: string): string {
+  if (INDICATOR_OPENAPI_TOOLS.some(t => t.function.name === name)) {
+    return 'Consultando indicadores...';
+  }
+  return TOOL_DISPLAY_NAMES[name] || `Ejecutando ${name}...`;
 }
 
 // ---------------------------------------------------------------------------
@@ -540,7 +558,7 @@ async function executeToolCall(
 }
 
 // ---------------------------------------------------------------------------
-// LLM call helper (with function calling support)
+// LLM call helper (with function calling + SSE streaming support)
 // ---------------------------------------------------------------------------
 
 type LLMMessage = {
@@ -554,12 +572,15 @@ type LLMMessage = {
   }>;
 };
 
+type ToolDefinition = {
+  type: 'function';
+  function: { name: string; description: string; parameters: Record<string, unknown> };
+};
+
 async function callLLM(
   messages: LLMMessage[],
-  tools?: Array<{
-    type: 'function';
-    function: { name: string; description: string; parameters: Record<string, unknown> };
-  }>
+  tools?: ToolDefinition[],
+  onToken?: (text: string) => void
 ): Promise<{
   content: string | null;
   toolCalls?: Array<{
@@ -579,19 +600,22 @@ async function callLLM(
     max_tokens: MAX_TOKENS,
   };
 
-  // Solo pasar tools si hay definidas
   if (tools && tools.length > 0) {
     body.tools = tools;
     body.tool_choice = 'auto';
   }
 
-  // Retry logic for rate limits (up to 3 attempts with exponential backoff)
+  const isStreaming = !!onToken;
+  if (isStreaming) {
+    body.stream = true;
+    body.stream_options = { include_usage: true };
+  }
+
   let lastError: Error | null = null;
   const maxRetries = 3;
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     if (attempt > 0) {
-      // Esperar antes de reintentar: 1s, 3s, 7s
       const delay = Math.pow(2, attempt + 1) * 1000 - 1000;
       await new Promise(resolve => setTimeout(resolve, delay));
     }
@@ -607,7 +631,10 @@ async function callLLM(
       });
 
       if (response.ok) {
-        // Success — parse and return
+        if (isStreaming) {
+          return await readStreamingResponse(response, onToken);
+        }
+
         let data: {
           choices?: Array<{
             message?: {
@@ -634,7 +661,6 @@ async function callLLM(
         };
       }
 
-      // Try to extract error message
       let msg = `HTTP ${response.status}`;
       try {
         const errorBody = await response.json();
@@ -644,7 +670,6 @@ async function callLLM(
         msg = `HTTP ${response.status} - ${text.substring(0, 200)}`;
       }
 
-      // If it's a rate limit error, retry; otherwise throw immediately
       const isRateLimit =
         response.status === 429 ||
         msg.toLowerCase().includes('rate limit') ||
@@ -659,7 +684,6 @@ async function callLLM(
       console.warn(
         `Rate limit (attempt ${attempt + 1}/${maxRetries}): ${msg}`
       );
-      // Continue to next attempt
     } catch (err) {
       if (err instanceof Error && (
         err.message.includes('Rate limit') ||
@@ -670,11 +694,93 @@ async function callLLM(
         console.warn(`Rate limit (attempt ${attempt + 1}/${maxRetries})`);
         continue;
       }
-      throw err; // Non-rate-limit errors propagate immediately
+      throw err;
     }
   }
 
   throw lastError || new Error(`Error al generar respuesta con OpenAI: max retries exceeded`);
+}
+
+/**
+ * Read an OpenAI streaming response, emitting tokens via onToken.
+ * Handles both text-only and tool-call responses.
+ */
+async function readStreamingResponse(
+  response: Response,
+  onToken: (text: string) => void
+): Promise<{
+  content: string | null;
+  toolCalls?: Array<{
+    id: string;
+    type: 'function';
+    function: { name: string; arguments: string };
+  }>;
+}> {
+  const reader = response.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let content = '';
+  let toolCalls: Array<{
+    id: string;
+    type: 'function';
+    function: { name: string; arguments: string };
+  }> | undefined;
+  let hasToolCalls = false;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || !trimmed.startsWith('data: ')) continue;
+
+      const payload = trimmed.slice(6);
+      if (payload === '[DONE]') continue;
+
+      try {
+        const parsed = JSON.parse(payload);
+        const choice = parsed.choices?.[0];
+        if (!choice) continue;
+
+        const delta = choice.delta || {};
+
+        if (delta.tool_calls) {
+          hasToolCalls = true;
+          if (!toolCalls) toolCalls = [];
+          for (const tc of delta.tool_calls) {
+            const idx: number = tc.index;
+            if (!toolCalls[idx]) {
+              toolCalls[idx] = { id: '', type: 'function' as const, function: { name: '', arguments: '' } };
+            }
+            if (tc.id) toolCalls[idx].id = tc.id;
+            if (tc.function) {
+              if (tc.function.name) toolCalls[idx].function.name += tc.function.name;
+              if (tc.function.arguments) toolCalls[idx].function.arguments += tc.function.arguments;
+            }
+          }
+        }
+
+        if (delta.content) {
+          content += delta.content;
+          if (!hasToolCalls) {
+            onToken(delta.content);
+          }
+        }
+      } catch {
+        // skip malformed JSON lines
+      }
+    }
+  }
+
+  return {
+    content: hasToolCalls ? null : content,
+    toolCalls,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -708,253 +814,298 @@ async function getCachedDocCount(supabaseClient: unknown): Promise<number> {
 }
 
 // ---------------------------------------------------------------------------
-// POST handler — function calling loop
+// SSE helpers
+// ---------------------------------------------------------------------------
+
+type SSEWriter = (event: string, data: Record<string, unknown>) => void;
+
+function createSSEWriter(controller: ReadableStreamDefaultController, encoder: TextEncoder): SSEWriter {
+  return (event: string, data: Record<string, unknown>) => {
+    try {
+      controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+    } catch {
+      // Stream may have been closed by the client
+    }
+  };
+}
+
+// ---------------------------------------------------------------------------
+// POST handler — function calling loop with SSE streaming
 // ---------------------------------------------------------------------------
 
 async function handleChatPOST(request: Request) {
-  const accumulatedSources: ReturnType<typeof buildSources> = [];
-  const accumulatedDataSources: Array<{
-    indicador: string;
-    periodo?: string;
-    valor?: number | string;
-  }> = [];
-  const toolsUsed: string[] = [];
-  let searchMethodUsed: 'vector' | 'text' | undefined;
-  let totalToolCalls = 0;
-  let warning: string | undefined;
+  let question: string;
+  let conversationHistory: Array<{ role: string; content: string }> | undefined;
 
   try {
-    const { question, conversationHistory } = await request.json();
-
-    if (!question || typeof question !== 'string') {
-      return NextResponse.json(
-        { error: "La pregunta es requerida (campo 'question')" },
-        { status: 400 }
-      );
-    }
-
-    // --- Check LLM API key ---
-    if (!OPENAI_API_KEY) {
-      return NextResponse.json(
-        {
-          error: 'No hay API key configurada para OPENAI. Configurá OPENAI_API_KEY en .env.local',
-        },
-        { status: 500 }
-      );
-    }
-
-    // --- Agent loop with function calling ---
-    // Los mensajes de tool results se agregan dinámicamente
-    const messages: LLMMessage[] = [
-      { role: 'system', content: SYSTEM_PROMPT },
-      ...(conversationHistory || []).slice(-6),
-      { role: 'user', content: question },
-    ];
-
-    let finalAnswer = '';
-    let round = 0;
-
-    while (round < MAX_TOOL_ROUNDS && totalToolCalls < MAX_TOOL_CALLS) {
-      round += 1;
-
-      let response;
-      try {
-        response = await callLLM(messages, ALL_TOOLS);
-      } catch (err) {
-        console.error(`LLM call failed (round ${round}):`, err);
-        if (toolsUsed.length > 0) {
-          const errMsg = err instanceof Error ? err.message : String(err);
-          finalAnswer =
-            '⚠️ No pude generar la respuesta final (error: ' + errMsg.substring(0, 300) + ').\n\n' +
-            '**Herramientas ejecutadas**: ' + toolsUsed.join(', ') + '\n\n' +
-            'Los datos se obtuvieron correctamente pero el servicio de IA falló al sintetizarlos. ' +
-            'Probá con una consulta más específica o reintentá en unos segundos.';
-          break;
-        }
-        throw err;
-      }
-
-      // Si el LLM devolvió texto (no tool calls), es la respuesta final
-      if (!response.toolCalls || response.toolCalls.length === 0) {
-        finalAnswer = response.content || '';
-        break;
-      }
-
-      // --- El LLM pidió ejecutar tools ---
-      // OpenAI requiere que los mensajes 'tool' respondan a un mensaje 'assistant' con tool_calls.
-      // Agregamos el mensaje del assistant ANTES de los resultados de las tools.
-      messages.push({
-        role: 'assistant',
-        content: response.content ?? null,
-        tool_calls: response.toolCalls.map(tc => ({
-          id: tc.id,
-          type: 'function' as const,
-          function: {
-            name: tc.function.name,
-            arguments: tc.function.arguments,
-          },
-        })),
-      });
-
-      const toolResults: string[] = [];
-      let allFailed = true;
-
-      for (const toolCall of response.toolCalls) {
-        if (totalToolCalls >= MAX_TOOL_CALLS) break;
-        totalToolCalls += 1;
-
-        const toolName = toolCall.function.name;
-        let toolArgs: Record<string, unknown> = {};
-
-        try {
-          toolArgs = JSON.parse(toolCall.function.arguments);
-        } catch {
-          toolArgs = {};
-        }
-
-        try {
-          const { formattedResult, sourceType, chunks, indicatorResult } = await executeToolCall(
-            toolName,
-            toolArgs
-          );
-
-          toolsUsed.push(toolName);
-          allFailed = false;
-
-          // Truncar si excede el límite de contexto
-          let truncatedResult = formattedResult;
-          if (truncatedResult.length > MAX_CONTEXT_CHARS) {
-            truncatedResult = truncatedResult.substring(0, MAX_CONTEXT_CHARS) +
-              '\n\n[... resultado truncado por límite de contexto ...]';
-          }
-
-          toolResults.push(`[Resultado de "${toolName}"]:\n${truncatedResult}`);
-
-          // Agregar resultado como mensaje tool (function calling nativo)
-          messages.push({
-            role: 'tool',
-            tool_call_id: toolCall.id,
-            content: truncatedResult,
-          });
-
-          // Acumular fuentes
-          if (sourceType === 'documents' && chunks) {
-            accumulatedSources.push(...buildSources(chunks));
-          }
-
-          // Acumular fuentes de indicadores
-          if (sourceType === 'indicators' && indicatorResult) {
-            const dataRefs = extractDataSources(toolName, indicatorResult);
-            accumulatedDataSources.push(...dataRefs);
-          }
-
-          // Track search method
-          if (toolName === 'search_knowledge_base' && chunks) {
-            // El search method se infiere de los chunks (no tenemos el flag directo aquí)
-            // Se puede mejorar si searchKnowledgeBase devuelve el método
-          }
-        } catch (toolErr) {
-          console.error(`Tool "${toolName}" execution error:`, toolErr);
-          const errorMsg = `[Error ejecutando "${toolName}"]: ${String(toolErr)}`;
-          toolResults.push(errorMsg);
-
-          // Aún así agregamos el resultado para que el LLM sepa que falló
-          messages.push({
-            role: 'tool',
-            tool_call_id: toolCall.id,
-            content: `Error: ${String(toolErr).substring(0, 500)}`,
-          });
-        }
-      }
-
-      // Si todas las tools fallaron, damos una instrucción clara
-      if (allFailed) {
-        messages.push({
-          role: 'user',
-          content:
-            'Todas las herramientas fallaron. Informá al usuario que no se pudieron obtener los datos y sugerí alternativas. NO intentes llamar herramientas de nuevo.',
-        });
-      } else {
-        // Instrucción suave para que el LLM intente sintetizar
-        // (no forzamos, el LLM puede decidir llamar más tools si lo necesita)
-        if (totalToolCalls < MAX_TOOL_CALLS) {
-          messages.push({
-            role: 'user',
-            content:
-              'Si ya tenés suficiente información con estos resultados, sintetizá la respuesta final. Si necesitás más datos, podés llamar otras herramientas.',
-          });
-        }
-      }
-
-      // Si tenemos tool results en el último round, no vamos a tener otra oportunidad
-      if (toolResults.length > 0 && round >= MAX_TOOL_ROUNDS - 1) {
-        messages.push({
-          role: 'user',
-          content:
-            'Llegaste al límite de rondas. Sintetizá AHORA una respuesta final con los datos que tengas. NO uses herramientas.',
-        });
-      }
-    }
-
-    // --- Edge cases ---
-    if (!finalAnswer && toolsUsed.length > 0) {
-      // Último intento: forzar síntesis sin tools
-      try {
-        messages.push({
-          role: 'user',
-          content:
-            'Sintetizá AHORA una respuesta final con todos los datos disponibles. NO uses herramientas.',
-        });
-        const { content } = await callLLM(messages);
-        finalAnswer = content || '';
-      } catch {
-        finalAnswer =
-          'No se pudo completar el análisis en el tiempo disponible. Por favor, intentá con una consulta más específica.';
-      }
-    }
-
-    if (!finalAnswer) {
-      finalAnswer =
-        'No encontré información relevante para tu consulta en los documentos ni en los indicadores disponibles.\n\n' +
-        '**Sugerencias**:\n' +
-        '- Probá con otros términos de búsqueda\n' +
-        '- Usá la herramienta listAvailableIndicators para ver qué datos hay disponibles\n' +
-        '- Subí documentos a la biblioteca para ampliar la base de conocimiento\n\n' +
-        '**Categorías de indicadores disponibles**: pobreza, salud, educacion, inversion, demografia, seguridad, justicia, salud_adolescente, anuario_educacion, aprender, consumo, deis.';
-    }
-
-    // --- Contar documentos procesados (cacheado 5 min) ---
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const supabaseClient: any = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const totalDocs = await getCachedDocCount(supabaseClient);
-
-    // --- Build final response ---
-    const responseBody: Record<string, unknown> = {
-      answer: finalAnswer,
-      sources:
-        accumulatedSources.length > 0
-          ? Array.from(new Map(accumulatedSources.map(s => [s.fileName, s])).values())
-          : [],
-      dataSources:
-        accumulatedDataSources.length > 0
-          ? Array.from(new Map(accumulatedDataSources.map(d => [d.indicador, d])).values())
-          : [],
-      hasContext: accumulatedSources.length > 0,
-      totalDocs: totalDocs ?? 0,
-      searchMethod: searchMethodUsed || 'vector',
-      toolsUsed: [...new Set(toolsUsed)],
-      reportGenerated: (finalAnswer.match(/^#{1,3}\s/gm) || []).length >= 2 && finalAnswer.length > 400,
-      model: OPENAI_MODEL,
-      functionCalling: true,
-    };
-
-    if (warning) responseBody.warning = warning;
-
-    return NextResponse.json(responseBody);
-  } catch (err) {
-    console.error('Chat error:', err);
-    return NextResponse.json({ error: `Error interno: ${String(err)}` }, { status: 500 });
+    const body = await request.json();
+    question = body.question;
+    conversationHistory = body.conversationHistory;
+  } catch {
+    return NextResponse.json(
+      { error: "Cuerpo de la solicitud inválido. Se esperaba JSON con campo 'question'." },
+      { status: 400 }
+    );
   }
+
+  if (!question || typeof question !== 'string' || !question.trim()) {
+    return NextResponse.json(
+      { error: "La pregunta es requerida (campo 'question')" },
+      { status: 400 }
+    );
+  }
+
+  if (!OPENAI_API_KEY) {
+    return NextResponse.json(
+      {
+        error: 'No hay API key configurada para OPENAI. Configurá OPENAI_API_KEY en .env.local',
+      },
+      { status: 500 }
+    );
+  }
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      const encoder = new TextEncoder();
+      const send = createSSEWriter(controller, encoder);
+
+      const accumulatedSources: ReturnType<typeof buildSources> = [];
+      const accumulatedDataSources: Array<{
+        indicador: string;
+        periodo?: string;
+        valor?: number | string;
+      }> = [];
+      const toolsUsed: string[] = [];
+      let searchMethodUsed: 'vector' | 'text' | undefined;
+
+      try {
+        const messages: LLMMessage[] = [
+          { role: 'system', content: SYSTEM_PROMPT },
+          ...(conversationHistory || []).slice(-6),
+          { role: 'user', content: question },
+        ];
+
+        let finalAnswer = '';
+        let round = 0;
+        let totalToolCalls = 0;
+
+        while (round < MAX_TOOL_ROUNDS && totalToolCalls < MAX_TOOL_CALLS) {
+          round += 1;
+
+          let response;
+          try {
+            response = await callLLM(messages, ALL_TOOLS, (text) => {
+              send('token', { text });
+            });
+          } catch (err) {
+            console.error(`LLM call failed (round ${round}):`, err);
+            if (toolsUsed.length > 0) {
+              const errMsg = err instanceof Error ? err.message : String(err);
+              finalAnswer =
+                '⚠️ No pude generar la respuesta final (error: ' + errMsg.substring(0, 300) + ').\n\n' +
+                '**Herramientas ejecutadas**: ' + toolsUsed.join(', ') + '\n\n' +
+                'Los datos se obtuvieron correctamente pero el servicio de IA falló al sintetizarlos. ' +
+                'Probá con una consulta más específica o reintentá en unos segundos.';
+              // Emit the fallback answer as tokens
+              for (const chunk of splitIntoChunks(finalAnswer)) {
+                send('token', { text: chunk });
+              }
+              break;
+            }
+            throw err;
+          }
+
+          if (!response.toolCalls || response.toolCalls.length === 0) {
+            finalAnswer = response.content || '';
+            break;
+          }
+
+          messages.push({
+            role: 'assistant',
+            content: response.content ?? null,
+            tool_calls: response.toolCalls.map(tc => ({
+              id: tc.id,
+              type: 'function' as const,
+              function: {
+                name: tc.function.name,
+                arguments: tc.function.arguments,
+              },
+            })),
+          });
+
+          const toolResults: string[] = [];
+          let allFailed = true;
+
+          for (const toolCall of response.toolCalls) {
+            if (totalToolCalls >= MAX_TOOL_CALLS) break;
+            totalToolCalls += 1;
+
+            const toolName = toolCall.function.name;
+            let toolArgs: Record<string, unknown> = {};
+
+            try {
+              toolArgs = JSON.parse(toolCall.function.arguments);
+            } catch {
+              toolArgs = {};
+            }
+
+            send('tool', { tool: toolName, status: 'start', label: getToolDisplayName(toolName) });
+
+            try {
+              const { formattedResult, sourceType, chunks, indicatorResult } = await executeToolCall(
+                toolName,
+                toolArgs
+              );
+
+              toolsUsed.push(toolName);
+              allFailed = false;
+
+              let truncatedResult = formattedResult;
+              if (truncatedResult.length > MAX_CONTEXT_CHARS) {
+                truncatedResult = truncatedResult.substring(0, MAX_CONTEXT_CHARS) +
+                  '\n\n[... resultado truncado por límite de contexto ...]';
+              }
+
+              toolResults.push(`[Resultado de "${toolName}"]:\n${truncatedResult}`);
+
+              messages.push({
+                role: 'tool',
+                tool_call_id: toolCall.id,
+                content: truncatedResult,
+              });
+
+              if (sourceType === 'documents' && chunks) {
+                accumulatedSources.push(...buildSources(chunks));
+              }
+
+              if (sourceType === 'indicators' && indicatorResult) {
+                const dataRefs = extractDataSources(toolName, indicatorResult);
+                accumulatedDataSources.push(...dataRefs);
+              }
+            } catch (toolErr) {
+              console.error(`Tool "${toolName}" execution error:`, toolErr);
+              const errorMsg = `[Error ejecutando "${toolName}"]: ${String(toolErr)}`;
+              toolResults.push(errorMsg);
+
+              messages.push({
+                role: 'tool',
+                tool_call_id: toolCall.id,
+                content: `Error: ${String(toolErr).substring(0, 500)}`,
+              });
+            }
+
+            send('tool', { tool: toolName, status: 'end' });
+          }
+
+          if (allFailed) {
+            messages.push({
+              role: 'user',
+              content:
+                'Todas las herramientas fallaron. Informá al usuario que no se pudieron obtener los datos y sugerí alternativas. NO intentes llamar herramientas de nuevo.',
+            });
+          } else {
+            if (totalToolCalls < MAX_TOOL_CALLS) {
+              messages.push({
+                role: 'user',
+                content:
+                  'Si ya tenés suficiente información con estos resultados, sintetizá la respuesta final. Si necesitás más datos, podés llamar otras herramientas.',
+              });
+            }
+          }
+
+          if (toolResults.length > 0 && round >= MAX_TOOL_ROUNDS - 1) {
+            messages.push({
+              role: 'user',
+              content:
+                'Llegaste al límite de rondas. Sintetizá AHORA una respuesta final con los datos que tengas. NO uses herramientas.',
+            });
+          }
+        }
+
+        if (!finalAnswer && toolsUsed.length > 0) {
+          try {
+            messages.push({
+              role: 'user',
+              content:
+                'Sintetizá AHORA una respuesta final con todos los datos disponibles. NO uses herramientas.',
+            });
+            const { content } = await callLLM(messages, undefined, (text) => {
+              send('token', { text });
+            });
+            finalAnswer = content || '';
+          } catch {
+            finalAnswer =
+              'No se pudo completar el análisis en el tiempo disponible. Por favor, intentá con una consulta más específica.';
+            for (const chunk of splitIntoChunks(finalAnswer)) {
+              send('token', { text: chunk });
+            }
+          }
+        }
+
+        if (!finalAnswer) {
+          finalAnswer =
+            'No encontré información relevante para tu consulta en los documentos ni en los indicadores disponibles.\n\n' +
+            '**Sugerencias**:\n' +
+            '- Probá con otros términos de búsqueda\n' +
+            '- Usá la herramienta listAvailableIndicators para ver qué datos hay disponibles\n' +
+            '- Subí documentos a la biblioteca para ampliar la base de conocimiento\n\n' +
+            '**Categorías de indicadores disponibles**: pobreza, salud, educacion, inversion, demografia, seguridad, justicia, salud_adolescente, anuario_educacion, aprender, consumo, deis.';
+          for (const chunk of splitIntoChunks(finalAnswer)) {
+            send('token', { text: chunk });
+          }
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const supabaseClient: any = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const totalDocs = await getCachedDocCount(supabaseClient);
+
+        const dedupedSources = accumulatedSources.length > 0
+          ? Array.from(new Map(accumulatedSources.map(s => [s.fileName, s])).values())
+          : [];
+
+        const dedupedDataSources = accumulatedDataSources.length > 0
+          ? Array.from(new Map(accumulatedDataSources.map(d => [d.indicador, d])).values())
+          : [];
+
+        send('done', {
+          sources: dedupedSources,
+          dataSources: dedupedDataSources,
+          hasContext: dedupedSources.length > 0,
+          totalDocs: totalDocs ?? 0,
+          searchMethod: searchMethodUsed || 'vector',
+          toolsUsed: [...new Set(toolsUsed)],
+          reportGenerated: (finalAnswer.match(/^#{1,3}\s/gm) || []).length >= 2 && finalAnswer.length > 400,
+          model: OPENAI_MODEL,
+          functionCalling: true,
+        });
+      } catch (err) {
+        console.error('Chat error:', err);
+        send('error', { error: `Error interno: ${String(err)}` });
+      } finally {
+        try {
+          controller.close();
+        } catch {
+          // Stream already closed
+        }
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+    },
+  });
+}
+
+function splitIntoChunks(text: string, size = 80): string[] {
+  const chunks: string[] = [];
+  for (let i = 0; i < text.length; i += size) {
+    chunks.push(text.slice(i, i + size));
+  }
+  return chunks;
 }
 
 // Exported with rate limiting (30 requests/min per IP)
