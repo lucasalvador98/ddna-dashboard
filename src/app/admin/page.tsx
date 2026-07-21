@@ -1,12 +1,6 @@
-'use client';
-
-import { useState, useEffect, useCallback } from 'react';
+import { createClient } from '@supabase/supabase-js';
+import { Suspense } from 'react';
 import {
-  Shield,
-  Loader2,
-  RefreshCw,
-  CheckCircle,
-  XCircle,
   Database,
   Newspaper,
   Users,
@@ -15,9 +9,8 @@ import {
   BarChart3,
   FolderOpen,
 } from 'lucide-react';
-import clsx from 'clsx';
-
-// ── Types ─────────────────────────────────────────────────────────
+import { PageLoading } from '@/components/page-loading';
+import { AdminUpdateButton } from './admin-update-button';
 
 interface SystemStats {
   counts: {
@@ -34,7 +27,65 @@ interface SystemStats {
   };
 }
 
-// ── Card wrapper ────────────────────────────────────────────────────
+async function fetchStats(): Promise<SystemStats> {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false } }
+  );
+
+  const [indicadores, datosIndicadores, fuentes, monitoreo, actores, grupos] = await Promise.all([
+    supabase.from('indicadores').select('id', { count: 'exact', head: true }),
+    supabase.from('datos_indicadores').select('id', { count: 'exact', head: true }),
+    supabase.from('fuentes_datos').select('id', { count: 'exact', head: true }),
+    supabase.from('monitoreo_registros').select('id', { count: 'exact', head: true }),
+    supabase.from('monitoreo_actores').select('id', { count: 'exact', head: true }),
+    supabase.from('grupos_indicadores').select('id', { count: 'exact', head: true }),
+  ]);
+
+  const [latestIndicador, latestMonitoreo] = await Promise.all([
+    supabase
+      .from('datos_indicadores')
+      .select('periodo')
+      .order('periodo', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from('monitoreo_registros')
+      .select('fecha_publicacion')
+      .order('fecha_publicacion', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  return {
+    counts: {
+      indicadores: indicadores.count ?? 0,
+      datos_indicadores: datosIndicadores.count ?? 0,
+      fuentes: fuentes.count ?? 0,
+      monitoreo_registros: monitoreo.count ?? 0,
+      monitoreo_actores: actores.count ?? 0,
+      grupos: grupos.count ?? 0,
+    },
+    latest: {
+      indicador_periodo: latestIndicador.data?.periodo ?? null,
+      monitoreo_fecha: latestMonitoreo.data?.fecha_publicacion ?? null,
+    },
+  };
+}
+
+export default function AdminPage() {
+  return (
+    <Suspense fallback={<PageLoading />}>
+      <AdminContent />
+    </Suspense>
+  );
+}
+
+async function AdminContent() {
+  const stats = await fetchStats();
+  return <AdminDashboard stats={stats} />;
+}
 
 function Card({
   icon: Icon,
@@ -57,8 +108,6 @@ function Card({
     </div>
   );
 }
-
-// ── Stat row ────────────────────────────────────────────────────────
 
 function StatRow({
   icon: Icon,
@@ -85,180 +134,6 @@ function StatRow({
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// DASHBOARD
-// ═══════════════════════════════════════════════════════════════════
-
-export default function AdminDashboard() {
-  const [stats, setStats] = useState<SystemStats | null>(null);
-  const [statsLoading, setStatsLoading] = useState(false);
-  const [flash, setFlash] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
-
-  const loadStats = useCallback(async () => {
-    setStatsLoading(true);
-    try {
-      const r = await fetch('/api/admin/stats');
-      if (r.ok) setStats(await r.json());
-    } catch {}
-    setStatsLoading(false);
-  }, []);
-
-  useEffect(() => {
-    loadStats();
-  }, [loadStats]);
-
-  const formatNumber = (n: number) => n.toLocaleString('es-AR');
-
-  return (
-    <div className="space-y-6">
-      {/* Flash */}
-      {flash && (
-        <div
-          className={clsx(
-            'flex items-center gap-2 px-4 py-3 rounded-xl text-sm',
-            flash.type === 'ok'
-              ? 'bg-green-50 text-green-700 border border-green-200'
-              : 'bg-red-50 text-red-700 border border-red-200',
-          )}
-        >
-          {flash.type === 'ok' ? (
-            <CheckCircle className="w-4 h-4 flex-shrink-0" />
-          ) : (
-            <XCircle className="w-4 h-4 flex-shrink-0" />
-          )}
-          {flash.text}
-        </div>
-      )}
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard
-          title="Indicadores"
-          value={formatNumber(stats?.counts.indicadores ?? 0)}
-          subtitle={`${formatNumber(stats?.counts.datos_indicadores ?? 0)} datos`}
-          icon={BarChart3}
-          color="blue"
-        />
-        <KpiCard
-          title="Fuentes de datos"
-          value={formatNumber(stats?.counts.fuentes ?? 0)}
-          subtitle="APIs, CSVs y manuales"
-          icon={Database}
-          color="amber"
-        />
-        <KpiCard
-          title="Monitoreo de medios"
-          value={formatNumber(stats?.counts.monitoreo_registros ?? 0)}
-          subtitle={`${formatNumber(stats?.counts.monitoreo_actores ?? 0)} actores`}
-          icon={Newspaper}
-          color="terracotta"
-        />
-        <KpiCard
-          title="Usuarios del sistema"
-          value={formatNumber(stats?.counts.grupos ?? 0)}
-          subtitle="Cargá usuarios en la pestaña Usuarios"
-          icon={Users}
-          color="navy"
-        />
-      </div>
-
-      {/* Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Data Overview */}
-        <Card icon={Database} title="Vista de datos">
-          {statsLoading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
-            </div>
-          ) : stats ? (
-            <div className="divide-y divide-gray-100">
-              <StatRow
-                icon={BarChart3}
-                label="Indicadores"
-                value={formatNumber(stats.counts.indicadores)}
-                subtitle="Categorías de indicadores"
-              />
-              <StatRow
-                icon={Activity}
-                label="Datos de indicadores"
-                value={formatNumber(stats.counts.datos_indicadores)}
-                subtitle={
-                  stats.latest.indicador_periodo
-                    ? `Último período: ${stats.latest.indicador_periodo}`
-                    : undefined
-                }
-              />
-              <StatRow
-                icon={Database}
-                label="Fuentes de datos"
-                value={formatNumber(stats.counts.fuentes)}
-                subtitle="APIs, CSVs, manuales"
-              />
-              <StatRow
-                icon={Newspaper}
-                label="Registros de monitoreo"
-                value={formatNumber(stats.counts.monitoreo_registros)}
-                subtitle={
-                  stats.latest.monitoreo_fecha
-                    ? `Última fecha: ${new Date(stats.latest.monitoreo_fecha).toLocaleDateString('es-AR')}`
-                    : undefined
-                }
-              />
-              <StatRow
-                icon={Users}
-                label="Actores mediáticos"
-                value={formatNumber(stats.counts.monitoreo_actores)}
-              />
-              <StatRow
-                icon={FolderOpen}
-                label="Grupos de indicadores"
-                value={formatNumber(stats.counts.grupos)}
-              />
-            </div>
-          ) : (
-            <p className="text-sm text-gray-400 text-center py-6">No se pudieron cargar las estadísticas</p>
-          )}
-        </Card>
-
-        {/* Quick Actions */}
-        <Card icon={Zap} title="Acciones rápidas">
-          <div className="space-y-3">
-            <button
-              onClick={loadStats}
-              className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl text-sm text-[#1a2556] font-medium transition-colors text-left"
-            >
-              <RefreshCw className="w-4 h-4 text-gray-500" />
-              Actualizar datos
-            </button>
-            <a
-              href="/monitoreo"
-              className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl text-sm text-[#1a2556] font-medium transition-colors"
-            >
-              <Newspaper className="w-4 h-4 text-gray-500" />
-              Ir a Monitoreo de Medios
-            </a>
-            <a
-              href="/fuentes"
-              className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl text-sm text-[#1a2556] font-medium transition-colors"
-            >
-              <Database className="w-4 h-4 text-gray-500" />
-              Gestionar fuentes de datos
-            </a>
-            <a
-              href="/repositorio"
-              className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl text-sm text-[#1a2556] font-medium transition-colors"
-            >
-              <FolderOpen className="w-4 h-4 text-gray-500" />
-              Repositorio documental
-            </a>
-          </div>
-        </Card>
-      </div>
-    </div>
-  );
-}
-
-// KpiCard inline because it's a server component in imports
 function KpiCard({
   title,
   value,
@@ -289,6 +164,121 @@ function KpiCard({
       <p className="font-display text-2xl text-[#1a2556] tabular-nums">{value}</p>
       <p className="text-sm text-gray-500 mt-0.5">{title}</p>
       {subtitle && <p className="text-[11px] text-gray-400 mt-1">{subtitle}</p>}
+    </div>
+  );
+}
+
+function AdminDashboard({ stats }: { stats: SystemStats }) {
+  const formatNumber = (n: number) => n.toLocaleString('es-AR');
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <KpiCard
+          title="Indicadores"
+          value={formatNumber(stats.counts.indicadores)}
+          subtitle={`${formatNumber(stats.counts.datos_indicadores)} datos`}
+          icon={BarChart3}
+          color="blue"
+        />
+        <KpiCard
+          title="Fuentes de datos"
+          value={formatNumber(stats.counts.fuentes)}
+          subtitle="APIs, CSVs y manuales"
+          icon={Database}
+          color="amber"
+        />
+        <KpiCard
+          title="Monitoreo de medios"
+          value={formatNumber(stats.counts.monitoreo_registros)}
+          subtitle={`${formatNumber(stats.counts.monitoreo_actores)} actores`}
+          icon={Newspaper}
+          color="terracotta"
+        />
+        <KpiCard
+          title="Usuarios del sistema"
+          value={formatNumber(stats.counts.grupos)}
+          subtitle="Cargá usuarios en la pestaña Usuarios"
+          icon={Users}
+          color="navy"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card icon={Database} title="Vista de datos">
+          <div className="divide-y divide-gray-100">
+            <StatRow
+              icon={BarChart3}
+              label="Indicadores"
+              value={formatNumber(stats.counts.indicadores)}
+              subtitle="Categorías de indicadores"
+            />
+            <StatRow
+              icon={Activity}
+              label="Datos de indicadores"
+              value={formatNumber(stats.counts.datos_indicadores)}
+              subtitle={
+                stats.latest.indicador_periodo
+                  ? `Último período: ${stats.latest.indicador_periodo}`
+                  : undefined
+              }
+            />
+            <StatRow
+              icon={Database}
+              label="Fuentes de datos"
+              value={formatNumber(stats.counts.fuentes)}
+              subtitle="APIs, CSVs, manuales"
+            />
+            <StatRow
+              icon={Newspaper}
+              label="Registros de monitoreo"
+              value={formatNumber(stats.counts.monitoreo_registros)}
+              subtitle={
+                stats.latest.monitoreo_fecha
+                  ? `Última fecha: ${new Date(stats.latest.monitoreo_fecha).toLocaleDateString('es-AR')}`
+                  : undefined
+              }
+            />
+            <StatRow
+              icon={Users}
+              label="Actores mediáticos"
+              value={formatNumber(stats.counts.monitoreo_actores)}
+            />
+            <StatRow
+              icon={FolderOpen}
+              label="Grupos de indicadores"
+              value={formatNumber(stats.counts.grupos)}
+            />
+          </div>
+        </Card>
+
+        <Card icon={Zap} title="Acciones rápidas">
+          <div className="space-y-3">
+            <AdminUpdateButton />
+            <a
+              href="/monitoreo"
+              className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl text-sm text-[#1a2556] font-medium transition-colors"
+            >
+              <Newspaper className="w-4 h-4 text-gray-500" />
+              Ir a Monitoreo de Medios
+            </a>
+            <a
+              href="/fuentes"
+              className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl text-sm text-[#1a2556] font-medium transition-colors"
+            >
+              <Database className="w-4 h-4 text-gray-500" />
+              Gestionar fuentes de datos
+            </a>
+            <a
+              href="/repositorio"
+              className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl text-sm text-[#1a2556] font-medium transition-colors"
+            >
+              <FolderOpen className="w-4 h-4 text-gray-500" />
+              Repositorio documental
+            </a>
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }
