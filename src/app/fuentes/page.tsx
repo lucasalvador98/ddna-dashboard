@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   FileText,
   RefreshCw,
@@ -146,36 +146,36 @@ export default function FuentesPage() {
   const [data, setData] = useState<EndpointData | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function fetchFuentes() {
-      setIsLoading(true);
-      setFuentesError(null);
-      try {
-        if (isSupabaseConfigured()) {
-          const data = await getFuentesDatos();
-          if (data.length > 0) {
-            setFuentes(data);
-            setUsingFallback(false);
-          } else {
-            setFuentes(fallbackFuentes);
-            setUsingFallback(true);
-          }
+  const fetchFuentes = useCallback(async () => {
+    setIsLoading(true);
+    setFuentesError(null);
+    try {
+      if (isSupabaseConfigured()) {
+        const data = await getFuentesDatos();
+        if (data.length > 0) {
+          setFuentes(data);
+          setUsingFallback(false);
         } else {
           setFuentes(fallbackFuentes);
           setUsingFallback(true);
         }
-      } catch (err) {
-        setFuentesError('Error al cargar las fuentes de datos.');
+      } else {
         setFuentes(fallbackFuentes);
         setUsingFallback(true);
-      } finally {
-        setIsLoading(false);
-        setLastFetch(new Date());
       }
+    } catch (err) {
+      setFuentesError('Error al cargar las fuentes de datos.');
+      setFuentes(fallbackFuentes);
+      setUsingFallback(true);
+    } finally {
+      setIsLoading(false);
+      setLastFetch(new Date());
     }
-
-    fetchFuentes();
   }, []);
+
+  useEffect(() => {
+    fetchFuentes();
+  }, [fetchFuentes]);
 
   const fetchApiData = async () => {
     setLoading(true);
@@ -454,7 +454,7 @@ export default function FuentesPage() {
             </div>
           )}
 
-          {activeError ? null : (
+          {apiError ? null : (
             <div className="relative mb-6">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input

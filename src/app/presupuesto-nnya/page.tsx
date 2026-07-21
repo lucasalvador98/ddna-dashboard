@@ -300,40 +300,6 @@ export default function PresupuestoNnyaPage() {
     }));
   }, [inversionArea]);
 
-  // ── Loading and error states ───────────────────────────────────────────────
-
-  const [error, setError] = useState<string | null>(null);
-  const [dataLoading, setDataLoading] = useState(true);
-
-  useEffect(() => {
-    let mounted = true;
-
-    const loadData = async () => {
-      try {
-        setDataLoading(true);
-        setError(null);
-        await new Promise(resolve => setTimeout(resolve, 100));
-        if (mounted) {
-          setError(null);
-        }
-      } catch {
-        if (mounted) {
-          setError('Error al cargar los datos del presupuesto. Por favor, intenta nuevamente.');
-        }
-      } finally {
-        if (mounted) {
-          setDataLoading(false);
-        }
-      }
-    };
-
-    loadData();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
   return (
     <LoginGate>
     <div className="space-y-6">
