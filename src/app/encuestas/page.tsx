@@ -1,23 +1,10 @@
-'use client';
-
-import { useEffect, useState } from 'react';
+import { createClient } from '@supabase/supabase-js';
+import { Suspense } from 'react';
 import { ClipboardList, Heart, Brain, Users, AlertTriangle, Info } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
 import { PageLoading } from '@/components/page-loading';
-import { PageError } from '@/components/page-error';
 import { SectionHeader } from '@/components/section-header';
 import { KpiCard } from '@/components/kpi-card';
-import { ChartWithTable } from '@/components/charts/chart-with-table';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-} from 'recharts';
+import { EncuestasCharts } from './encuestas-charts';
 
 // ─── Colores DDNA ─────────────────────────────────
 const COLORS = {
@@ -30,19 +17,6 @@ const COLORS = {
   navy: '#1a2556',
 };
 
-const CHART_COLORS = [
-  '#BF1363',
-  '#FF7F11',
-  '#3777FF',
-  '#10B981',
-  '#E07A5F',
-  '#F3A712',
-  '#1a2556',
-  '#6B9AFF',
-  '#22C55E',
-  '#F97316',
-];
-
 // ─── Tipos ─────────────────────────────────────────
 interface IndicadorRaw {
   id: string;
@@ -53,7 +27,7 @@ interface IndicadorRaw {
   region: string;
 }
 
-interface ChartTopic {
+export interface ChartTopic {
   topic: string;
   label: string;
   items: { name: string; value: number }[];
@@ -112,80 +86,52 @@ const PRIORITY_TOPICS = new Set([
   'Ultimo abrazo a hijos',
 ]);
 
-// ─── Página ────────────────────────────────────────
+// ─── Data Fetching ─────────────────────────────────
+async function fetchEncuestasData(): Promise<IndicadorRaw[]> {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
+  const { data, error } = await supabase
+    .from('indicadores')
+    .select('id, indicador_nombre, valor, unidad, periodo, region')
+    .eq('categoria', 'encuestas_2024')
+    .order('indicador_nombre', { ascending: true });
+
+  if (error) throw error;
+
+  return (data || []) as IndicadorRaw[];
+}
+
+// ─── Page ──────────────────────────────────────────
 export default function EncuestasPage() {
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<IndicadorRaw[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  return (
+    <div className="space-y-6">
+      <SectionHeader
+        icon={ClipboardList}
+        title="Encuestas 2024"
+        description="Resultados de la encuesta a adultos con hijos y jóvenes de Córdoba"
+        color="magenta"
+      />
+      <Suspense fallback={<PageLoading />}>
+        <EncuestasContent />
+      </Suspense>
+    </div>
+  );
+}
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const { data: indicadores, error } = await supabase
-          .from('indicadores')
-          .select('id, indicador_nombre, valor, unidad, periodo, region')
-          .eq('categoria', 'encuestas_2024')
-          .order('indicador_nombre', { ascending: true });
-
-        if (error) {
-          setError(error.message);
-        } else {
-          setData((indicadores || []) as IndicadorRaw[]);
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error al cargar datos');
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchData();
-  }, []);
-
-  // ─── Early returns ──────────────────────────────
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <SectionHeader
-          icon={ClipboardList}
-          title="Encuestas 2024"
-          description="Resultados de la encuesta a adultos con hijos y jóvenes de Córdoba"
-          color="magenta"
-        />
-        <PageLoading />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="space-y-6">
-        <SectionHeader
-          icon={ClipboardList}
-          title="Encuestas 2024"
-          description="Resultados de la encuesta a adultos con hijos y jóvenes de Córdoba"
-          color="magenta"
-        />
-        <PageError message={error} onRetry={() => window.location.reload()} />
-      </div>
-    );
-  }
+async function EncuestasContent() {
+  const data = await fetchEncuestasData();
 
   if (data.length === 0) {
     return (
-      <div className="space-y-6">
-        <SectionHeader
-          icon={ClipboardList}
-          title="Encuestas 2024"
-          description="Resultados de la encuesta a adultos con hijos y jóvenes de Córdoba"
-          color="magenta"
-        />
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <Info className="w-12 h-12 text-gray-300 mb-4" />
-          <p className="font-body text-gray-600">No hay datos de encuestas disponibles</p>
-          <p className="text-sm text-gray-400 mt-1">
-            Los datos de la encuesta 2024 aún no se han cargado.
-          </p>
-        </div>
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <Info className="w-12 h-12 text-gray-300 mb-4" />
+        <p className="font-body text-gray-600">No hay datos de encuestas disponibles</p>
+        <p className="text-sm text-gray-400 mt-1">
+          Los datos de la encuesta 2024 aún no se han cargado.
+        </p>
       </div>
     );
   }
@@ -193,7 +139,6 @@ export default function EncuestasPage() {
   // ─── Derivar datos ──────────────────────────────
   const allTopics = groupByTopic(data);
 
-  // KPIs: buscar valores específicos por nombre completo
   const findValor = (keyword: string): number | null => {
     const match = data.find(d => d.indicador_nombre.toLowerCase().includes(keyword.toLowerCase()));
     return match ? Number(match.valor) : null;
@@ -207,25 +152,13 @@ export default function EncuestasPage() {
   const pctEscuelaNoContencion = findValor('Escuela como contencion - No');
   const pctNoLectura = findValor('Lectura de cuentos - Nunca');
   const pctAmigosConfianza = findValor('Tiene amigos de confianza - Sí');
-  const pctHacinamiento = findValor('Hacinamiento - Si');
-  const pctMamaPrepara = findValor('Quien prepara comida - Mamá');
-  const pctMamaCuida = findValor('Quien cuida hijos enfermos - Mamá');
 
-  // Separar topics prioritarios del resto
   const priorityCharts = allTopics.filter(t => PRIORITY_TOPICS.has(t.topic));
   const otherCharts = allTopics.filter(t => !PRIORITY_TOPICS.has(t.topic));
-  // Mostrar primeros 4 de "otros" para no saturar
   const showOtherCharts = otherCharts.slice(0, 6);
 
   return (
     <div className="space-y-6">
-      <SectionHeader
-        icon={ClipboardList}
-        title="Encuestas 2024"
-        description="Resultados de la encuesta a personas adultas con hijos (718 respuestas) y jóvenes (1.038 respuestas) de la provincia de Córdoba"
-        color="magenta"
-      />
-
       {/* Banner informativo */}
       <div className="bg-gradient-to-r from-[#BF1363]/5 to-[#FF7F11]/5 border border-[#BF1363]/20 rounded-lg p-4">
         <div className="flex items-start gap-3">
@@ -305,128 +238,10 @@ export default function EncuestasPage() {
       </div>
 
       {/* ─── Charts ───────────────────────────────── */}
-      <div className="grid grid-cols-1 gap-6">
-        {priorityCharts.map(chart => {
-          const total = chart.items.reduce((sum, i) => sum + i.value, 0);
-          // Para topics con pocas opciones, sumamos y mostramos como porcentaje del total
-          const showPct = chart.items.length <= 5;
-          const chartData = showPct ? chart.items : chart.items;
-
-          return (
-            <ChartWithTable
-              key={chart.topic}
-              title={chart.label}
-              subtitle={`Distribución de respuestas — Encuesta 2024`}
-              color="magenta"
-              fuente="Encuesta DDNA 2024 — 1.757 respuestas (adultos + jóvenes)"
-              data={chartData}
-              dataKey="value"
-              xAxisKey="name"
-            >
-              <div className="h-72">
-                <ResponsiveContainer width="100%" height={280}>
-                  <BarChart
-                    data={chartData}
-                    layout={chartData.length > 6 ? 'vertical' : 'vertical'}
-                    margin={{ top: 10, right: 30, left: 100, bottom: 10 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" horizontal={false} />
-                    <XAxis
-                      type="number"
-                      domain={[0, 100]}
-                      tick={{ fill: '#4D4D4D', fontSize: 12 }}
-                      tickFormatter={(v: number) => `${v}%`}
-                    />
-                    <YAxis
-                      type="category"
-                      dataKey="name"
-                      tick={{ fill: '#4D4D4D', fontSize: 11 }}
-                      width={chartData.reduce((max, d) => Math.max(max, d.name.length), 0) * 8 + 10}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: '#FFF',
-                        border: '1px solid #E0E0E0',
-                        borderRadius: '8px',
-                      }}
-                      formatter={value => [`${Number(value).toFixed(1)}%`, 'Respuestas']}
-                    />
-                    <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                      {chartData.map((entry, idx) => (
-                        <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </ChartWithTable>
-          );
-        })}
-      </div>
-
-      {/* ─── Otros indicadores ────────────────────── */}
-      {showOtherCharts.length > 0 && (
-        <>
-          <h2 className="font-display text-xl text-[#1a2556] mt-8 mb-4">Otros indicadores</h2>
-          <div className="grid grid-cols-1 gap-6">
-            {showOtherCharts.map(chart => {
-              const chartData = chart.items;
-              return (
-                <ChartWithTable
-                  key={chart.topic}
-                  title={chart.label}
-                  subtitle="Distribución de respuestas — Encuesta 2024"
-                  color="amber"
-                  fuente="Encuesta DDNA 2024"
-                  data={chartData}
-                  dataKey="value"
-                  xAxisKey="name"
-                >
-                  <div className="h-72">
-                    <ResponsiveContainer width="100%" height={280}>
-                      <BarChart
-                        data={chartData}
-                        layout="vertical"
-                        margin={{ top: 10, right: 30, left: 100, bottom: 10 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" horizontal={false} />
-                        <XAxis
-                          type="number"
-                          domain={[0, 100]}
-                          tick={{ fill: '#4D4D4D', fontSize: 12 }}
-                          tickFormatter={(v: number) => `${v}%`}
-                        />
-                        <YAxis
-                          type="category"
-                          dataKey="name"
-                          tick={{ fill: '#4D4D4D', fontSize: 11 }}
-                          width={120}
-                        />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: '#FFF',
-                            border: '1px solid #E0E0E0',
-                            borderRadius: '8px',
-                          }}
-                          formatter={value => [
-                            `${value != null ? Number(value).toFixed(1) : '—'}%`,
-                            'Respuestas',
-                          ]}
-                        />
-                        <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                          {chartData.map((entry, idx) => (
-                            <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </ChartWithTable>
-              );
-            })}
-          </div>
-        </>
-      )}
+      <EncuestasCharts
+        priorityCharts={priorityCharts}
+        showOtherCharts={showOtherCharts}
+      />
 
       {/* Nota metodológica */}
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-5 mt-6">
