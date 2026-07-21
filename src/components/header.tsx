@@ -5,19 +5,10 @@ import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Menu, X, ChevronRight, LogOut } from 'lucide-react';
-import clsx from 'clsx';
-import { navigation, routeTitles } from '@/lib/navigation';
+import { routeTitles } from '@/lib/navigation';
 import { useSidebar } from '@/components/sidebar-context';
 import { useAuth } from '@/components/auth-provider';
-
-// Build flat nav links from grouped navigation for mobile menu
-const navLinks = navigation.flatMap(group =>
-  group.items.map(item => ({
-    label: item.label,
-    href: item.href,
-    group: group.label,
-  }))
-);
+import { MobileNav } from '@/components/mobile-nav';
 
 function Breadcrumb() {
   const pathname = usePathname();
@@ -148,29 +139,8 @@ export function Header() {
         </button>
       </div>
 
-      {/* Mobile Navigation Menu */}
-      {isMobileMenuOpen && (
-        <nav className="md:hidden border-t border-[#E0E0E0] bg-white max-h-[70vh] overflow-y-auto">
-          <ul className="py-2">
-            {navLinks.map(link => (
-              <li key={link.href}>
-                <Link
-                  href={link.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={clsx(
-                    'block px-4 py-3 font-body text-sm transition-colors',
-                    pathname === link.href
-                      ? 'bg-[#E07A5F]/10 text-[#E07A5F] font-medium border-l-4 border-[#E07A5F]'
-                      : 'text-[#4D4D4D] hover:bg-[#FDF3E7]'
-                  )}
-                >
-                  {link.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      )}
+      {/* Mobile Navigation Drawer */}
+      <MobileNav isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
     </header>
   );
 }
