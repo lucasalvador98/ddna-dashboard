@@ -1,18 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, within } from '@testing-library/react';
-import type { Indicador } from '@/lib/use-dashboard-data';
-
-// Mock supabase FIRST so the page module can load
-vi.mock('@/lib/supabase', () => ({
-  supabase: {},
-  CategoriaIndicador: 'inversion',
-}));
+import { render, screen, fireEvent } from '@testing-library/react';
+import { InversionCharts, type InversionRow } from './inversion-charts';
 
 // ———————————————————————————————————————————————
-// Mocks
+// Mock data
 // ———————————————————————————————————————————————
 
-const mockInversionData: Indicador[] = [
+const mockInversionData: InversionRow[] = [
   {
     id: '1',
     indicador_nombre: 'Inversión en educación',
@@ -59,7 +53,6 @@ const mockInversionData: Indicador[] = [
     region: '',
     desglose: { categoria: 'Atención ambulatoria e internación', organismo: 'Ministerio de Salud' },
   },
-  // 2023 data for period selector and change badge
   {
     id: '5',
     indicador_nombre: 'Inversión en educación',
@@ -83,7 +76,6 @@ const mockInversionData: Indicador[] = [
     region: '',
     desglose: { categoria: 'Materno-infantil', organismo: 'Ministerio de Salud' },
   },
-  // Non-child-relevant category (should be excluded from total)
   {
     id: '7',
     indicador_nombre: 'Inversión en infraestructura',
@@ -94,10 +86,6 @@ const mockInversionData: Indicador[] = [
     region: '',
     desglose: { categoria: 'Infraestructura general', organismo: 'Ministerio de Obras' },
   },
-];
-
-// Also add some non-relevant data for the "no categoría" edge case
-const mockDataWithMissingDesglose: Indicador[] = [
   {
     id: '8',
     indicador_nombre: 'Sin categoría',
@@ -106,33 +94,17 @@ const mockDataWithMissingDesglose: Indicador[] = [
     unidad: '',
     periodo: '2024',
     region: '',
-    desglose: {} as Record<string, unknown>,
+    desglose: {},
   },
 ];
 
-vi.mock('@/lib/use-dashboard-data', () => ({
-  useDashboardData: vi.fn(() => ({
-    data: {
-      inversion: [...mockInversionData, ...mockDataWithMissingDesglose],
-      pobreza: [],
-      salud: [],
-      educacion: [],
-      demografia: [],
-      seguridad: [],
-    },
-    loading: false,
-    source: 'placeholder' as const,
-  })),
-  parseDesglose: (raw: unknown) => {
-    if (!raw) return {};
-    if (typeof raw === 'string') return JSON.parse(raw);
-    return raw as Record<string, unknown>;
-  },
-  getInversionTotal: () => 0, // Will test separately
-  type: { Indicador: {} },
-}));
+const periods = ['2024', '2023'];
+const evolutionData: Record<string, unknown>[] = [
+  { periodo: '2023', Educación: 0, Salud: 0, 'Desarrollo Social': 0, 'Niñez y Adolescencia': 0, Otros: 16_000_000_000 },
+  { periodo: '2024', Educación: 0, Salud: 0, 'Desarrollo Social': 0, 'Niñez y Adolescencia': 0, Otros: 27_000_000_000 },
+];
 
-// Mock Recharts to avoid rendering issues in jsdom
+// Mock recharts
 vi.mock('recharts', () => {
   const MockResponsiveContainer = ({ children }: { children: React.ReactNode }) => (
     <div data-testid="responsive-container">{children}</div>
@@ -179,97 +151,112 @@ vi.mock('@/components/charts/chart-with-table', () => ({
   ),
 }));
 
-// Mock section-header
-vi.mock('@/components/section-header', () => ({
-  SectionHeader: ({ title }: { title: string }) => (
-    <div data-testid="section-header" data-title={title}>
-      {title}
-    </div>
-  ),
-}));
-
-// Now import the page
-import InversionPage from './page';
-
-describe('InversionPage', () => {
+describe('InversionCharts', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should render KPI cards with correctly formatted total', async () => {
-    render(<InversionPage />);
+  it('should render KPI cards with correctly formatted total', () => {
+    render(
+      <InversionCharts
+        inversionData={mockInversionData}
+        periods={periods}
+        evolutionData={evolutionData}
+      />
+    );
 
-    // Total = 10B (educación) + 5B (comedores) + 8B (salud) + 3B (prevención) = 26B
-    // Excludes: infraestructura general (2B) and sin categoría (1B)
-    // formatInversionValue(26_000_000_000) → "$26.0 mil millones"
-    const totalKpi = screen.getByText('Inversión en Infancia 2024');
-    expect(totalKpi).toBeInTheDocument();
-
-    // Find the value text — it should have "$26.0 mil millones"
+    expect(screen.getByText('Inversión en Infancia 2024')).toBeInTheDocument();
     expect(screen.getByText('$26.0 mil millones')).toBeInTheDocument();
   });
 
-  it('should show "En Educación" KPI with education label', async () => {
-    render(<InversionPage />);
+  it('should show "En Educación" KPI with education label', () => {
+    render(
+      <InversionCharts
+        inversionData={mockInversionData}
+        periods={periods}
+        evolutionData={evolutionData}
+      />
+    );
 
-    // Education subtotal card should exist
     expect(screen.getByText('En Educación')).toBeInTheDocument();
   });
 
-  it('should show "En Salud" KPI with health label', async () => {
-    render(<InversionPage />);
+  it('should show "En Salud" KPI with health label', () => {
+    render(
+      <InversionCharts
+        inversionData={mockInversionData}
+        periods={periods}
+        evolutionData={evolutionData}
+      />
+    );
 
-    // Salud subtotal card should exist
     expect(screen.getByText('En Salud')).toBeInTheDocument();
   });
 
   it('should render period selector with all available periods', () => {
-    render(<InversionPage />);
+    render(
+      <InversionCharts
+        inversionData={mockInversionData}
+        periods={periods}
+        evolutionData={evolutionData}
+      />
+    );
 
-    // Should have buttons for 2024 and 2023, plus "Todas" or similar
     expect(screen.getByText('2024')).toBeInTheDocument();
     expect(screen.getByText('2023')).toBeInTheDocument();
   });
 
   it('should default to latest period (2024) being active', () => {
-    render(<InversionPage />);
+    render(
+      <InversionCharts
+        inversionData={mockInversionData}
+        periods={periods}
+        evolutionData={evolutionData}
+      />
+    );
 
     const period2024 = screen.getByText('2024');
-    // Active period should have some visual indicator
-    // Check it's a button element
     expect(period2024.tagName).toBe('BUTTON');
   });
 
   it('should show change badge when multiple periods exist', () => {
-    render(<InversionPage />);
+    render(
+      <InversionCharts
+        inversionData={mockInversionData}
+        periods={periods}
+        evolutionData={evolutionData}
+      />
+    );
 
-    // Should have a badge with percentage (change from 2023 to 2024)
-    // 2023 total: 9B + 7B = 16B
-    // 2024 total: 10B + 5B + 8B + 3B = 26B
-    // Change: (26-16)/16 = 62.5%
-    const changeBadge = screen.getByText('+62.5%');
-    expect(changeBadge).toBeInTheDocument();
+    expect(screen.getByText('+62.5%')).toBeInTheDocument();
   });
 
   it('should render charts when multiple periods exist', () => {
-    render(<InversionPage />);
+    render(
+      <InversionCharts
+        inversionData={mockInversionData}
+        periods={periods}
+        evolutionData={evolutionData}
+      />
+    );
 
-    // Should have evolution and area charts
     const charts = screen.getAllByTestId('chart-with-table');
     expect(charts.length).toBe(2);
     expect(charts[0]).toHaveAttribute('data-title', 'Evolución del Presupuesto Ponderado NNyA');
   });
 
-  it('should update displayed data when a different period is selected', async () => {
-    render(<InversionPage />);
+  it('should update displayed data when a different period is selected', () => {
+    render(
+      <InversionCharts
+        inversionData={mockInversionData}
+        periods={periods}
+        evolutionData={evolutionData}
+      />
+    );
 
-    // Click 2023
     const period2023 = screen.getByText('2023');
     fireEvent.click(period2023);
 
-    // Now the total should reflect 2023 data only: 9B (educación) + 7B (salud) = 16B
-    // formatInversionValue(16_000_000_000) → "$16 mil millones"
-    // And the KPI card title should show 2023
     expect(screen.getByText(/Inversión en Infancia 2023/)).toBeInTheDocument();
   });
 });
