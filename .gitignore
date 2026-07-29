@@ -66,3 +66,6 @@ nul
 /test-results/
 /e2e/auth/
 .playwright-mcp/
+
+# CSV cache from ETL scripts
+.senaf-cache/
