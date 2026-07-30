@@ -103,9 +103,9 @@ export function MonitoreoClient() {
       <div className="max-w-7xl mx-auto px-6 py-6">
         {view === 'dashboard' && <MonitoreoDashboard />}
         {view === 'table' && <MonitoreoTable onEditRegistro={handleEditRegistro} />}
-        {view === 'form' && (
+        <div className={view !== 'form' ? 'hidden' : ''}>
           <MonitoreoForm editingId={editingId} onSave={handleSaveSuccess} onCancel={handleCancel} />
-        )}
+        </div>
       </div>
     </>
   );

@@ -49,7 +49,6 @@ export interface ActorFormData {
 
 export interface RegistroFormData {
   quien_carga: string;
-  estado: string;
   fecha_noticia: string;
   medio: string;
   titulo: string;
@@ -130,12 +129,24 @@ export const TOPICO_PRINCIPAL_OPTIONS = [
   'Violencia de otros tipos',
   'Violencia entre pares',
   'Violencia familiar',
+  'Muerte de etimología dudosa',
+  'Apuestas online',
+  'Muerte por accidente de tránsito',
+  'Abandono',
+  'Política',
+  'Edad de Imputabilidad',
+  'Bullying',
+  'Muerte por enfrentamiento policial',
+  'Infracciones',
+  'Cuota alimentaria',
+  'Adopción',
 ] as const;
 
 export const ESTADO_OPTIONS = ['PENDIENTE', 'CARGADO', 'VERIFICADO', 'DESCARTADO'] as const;
 
 export const FUENTE_CITADA_OPTIONS = [
   'Adulto protagonista',
+  'Docente',
   'Especialistas',
   'Fuentes familiares',
   'Fuentes gubernamentales',
@@ -186,6 +197,19 @@ export const ROL_OPTIONS = [
   'NNyA víctima de trata',
   'Niño/a',
   'NNYA que cometió abuso',
+  'NNyA que murió de forma dudosa',
+  'NNyA en relación a las apuestas',
+  'NNyA abandonado',
+  'NNyA en relación a la tecnología',
+  'NNyA en relación a la política',
+  'NNyA que no puede estudiar',
+  'NNyA secuestrado',
+  'NNyA que murió en un enfrentamiento policial',
+  'Niños/as y Adolescentes',
+  'NNyA que sufre pobreza',
+  'NNyA que sufre inseguridad',
+  'NNyA en relación a la cuota alimentaria',
+  'NNyA en relación a la adopción',
 ] as const;
 
 export const GENERO_ACTOR_OPTIONS = [
@@ -196,9 +220,9 @@ export const GENERO_ACTOR_OPTIONS = [
   'Otro',
 ] as const;
 
-export const FRANJA_ETARIA_OPTIONS = ['Adolescentes', 'Niños', 'Todos'] as const;
+export const FRANJA_ETARIA_OPTIONS = ['Adolescentes', 'Niños', 'No consigna', 'Todos'] as const;
 
-export const VICTIMARIO_VICTIMA_OPTIONS = ['Ninguno', 'Victimario', 'Víctima'] as const;
+export const VICTIMARIO_VICTIMA_OPTIONS = ['Ambos', 'Ninguno', 'Victimario', 'Víctima'] as const;
 
 export const ESTADO_COLORS: Record<string, string> = {
   PENDIENTE: 'bg-amber-100 text-amber-800',
@@ -211,7 +235,6 @@ export const ITEMS_PER_PAGE = 50;
 
 export const EMPTY_FORM_DATA: RegistroFormData = {
   quien_carga: '',
-  estado: 'PENDIENTE',
   fecha_noticia: '',
   medio: '',
   titulo: '',
