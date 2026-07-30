@@ -18,7 +18,9 @@ import {
   executeIndicatorTool,
   extractDataSources,
   INDICATOR_OPENAPI_TOOLS,
+  listAvailableIndicators,
 } from '@/lib/agent/indicator-tools';
+import type { ListAvailableResult } from '@/lib/agent/indicator-tools';
 import { searchWeb } from '@/lib/agent/web-search';
 import { scrapeUrl } from '@/lib/agent/scrape-url';
 import { withRateLimit } from '@/lib/agent/rate-limit';
@@ -216,16 +218,39 @@ const ALL_TOOLS = [
 // System Prompt
 // ---------------------------------------------------------------------------
 
-const SYSTEM_PROMPT = `Sos un asistente de la Defensoría de Niños, Niñas y Adolescentes de Córdoba (DDNA). Ayudás combinando datos estadísticos y documentos oficiales.
+const SYSTEM_PROMPT = `Sos el asistente de investigación de la Defensoría de Niños, Niñas y Adolescentes de Córdoba (DDNA). Tu objetivo es responder preguntas combinando datos estadísticos, documentos oficiales, y búsqueda web.
 
-## Reglas
+## FUENTES DE DATOS
+
+TENÉS TRES FUENTES DE DATOS, en este orden de prioridad:
+
+1. **INDICADORES** (tabla \`indicadores\`): Datos estructurados con valores numéricos por periodo. Categorías disponibles: pobreza, salud, educacion, inversion, demografia, seguridad, consumo, justicia, salud_adolescente, anuario_educacion, aprender, deis, encuestas_2024, canastas, empleo, precios, senaf. Usá las tools de indicadores para consultarlos.
+
+2. **DOCUMENTOS** (\`doc_chunks\`): PDFs, informes, normativas, encuestas subidas al repositorio. Usá search_knowledge_base para buscar en ellos.
+
+3. **WEB**: Búsqueda en internet actualizada. Usá search_web SOLO cuando la información no esté en las fuentes anteriores.
+
+## WORKFLOW — orden de búsqueda OBLIGATORIO
+
+Cuando te hagan una pregunta, SEGUÍ ESTE ORDEN. No saltees pasos:
+
+PASO 1: Identificá de qué tema habla la pregunta.
+PASO 2: Usá listAvailableIndicators() para ver las categorías de datos disponibles. NO saltees este paso.
+PASO 3: Si hay una categoría relevante, usá getCategoryOverview('categoria') para ver qué indicadores existen.
+PASO 4: Si encontraste indicadores relevantes, usá getLatestIndicatorValue() o getIndicatorTimeSeries() para obtener valores.
+PASO 5: Si no hay datos en indicadores, buscá en documentos con search_knowledge_base().
+PASO 6: Como ÚLTIMO recurso, buscá en la web con search_web().
+
+## REGLAS
+
 1. Respondé SIEMPRE en español, tono profesional pero accesible.
 2. Basate SOLO en los datos recibidos de las herramientas — NO inventes cifras ni fuentes.
-3. Citá las fuentes de donde sacaste la información: [Fuente: nombre_archivo] para documentos, [Indicador: nombre, periodo] para datos.
-4. Si encontraste información en múltiples fuentes, contextualizala y explicá qué significa. No te limites a repetir datos.
-5. Si los datos no alcanzan para responder, decilo con honestidad y sugerí cómo obtener mejor información.
-6. Cuando te pregunten "¿qué documentos tenés?" o similares, usá listAllDocuments.
-7. SIEMPRE que necesites datos actuales o históricos de indicadores, usá las herramientas disponibles. No intentes responder de memoria.`;
+3. Citá las fuentes: [Fuente: nombre_archivo] para documentos, [Indicador: nombre, periodo: valor] para datos, [Web: url] para web.
+4. Si encontraste información en múltiples fuentes, contextualizala y explicá qué significa.
+5. Si tras AGOTAR todos los pasos del workflow no encontrás la información, decilo con honestidad y listá QUÉ datos tenés disponibles que podrían ser relevantes.
+6. NUNCA te rindas después de solo un intento. Siempre probá al menos 2-3 herramientas diferentes antes de responder que no encontraste nada.
+7. Si la pregunta menciona "encuesta", "consumo", "sustancias", buscá PRIMERO en la categoría \`consumo\` o \`encuestas_2024\` de indicadores.
+8. Cuando te pregunten "¿qué documentos tenés?" o similares, usá listAllDocuments.`;
 
 // ---------------------------------------------------------------------------
 // Helpers — Embedding & Search
@@ -1167,7 +1192,7 @@ async function handleChatPOST(request: Request) {
             messages.push({
               role: 'user',
               content:
-                'Todas las herramientas fallaron. Informá al usuario que no se pudieron obtener los datos y sugerí alternativas. NO intentes llamar herramientas de nuevo.',
+                'Todas las herramientas fallaron. Probá con herramientas DIFERENTES a las que ya intentaste. Por ejemplo, si falló search_knowledge_base, probá listAvailableIndicators o searchIndicators. O si fallaron indicadores, buscá en documentos o web. Usá al menos 2-3 herramientas diferentes antes de rendirte.',
             });
           } else {
             if (totalToolCalls < MAX_TOOL_CALLS) {
@@ -1217,13 +1242,27 @@ async function handleChatPOST(request: Request) {
         }
 
         if (!finalAnswer) {
+          let availableData = '';
+          try {
+            const indicators = await listAvailableIndicators();
+            if (indicators.categorias.length > 0) {
+              availableData = '\n\n**Datos disponibles en el sistema**:\n';
+              for (const cat of indicators.categorias) {
+                const names = cat.indicadores.map(i => `\`${i.nombre}\``).join(', ');
+                availableData += `\n- *${cat.nombre}* (${cat.indicadores.length} indicadores): ${names}`;
+              }
+            }
+          } catch {
+            availableData = '\n\n*No se pudieron consultar los indicadores disponibles.*';
+          }
+
           finalAnswer =
-            'No encontré información relevante para tu consulta en los documentos ni en los indicadores disponibles.\n\n' +
-            '**Sugerencias**:\n' +
+            'No encontré información específica para tu consulta en las fuentes disponibles.' +
+            availableData +
+            '\n\n**Sugerencias**:\n' +
             '- Probá con otros términos de búsqueda\n' +
-            '- Usá la herramienta listAvailableIndicators para ver qué datos hay disponibles\n' +
-            '- Subí documentos a la biblioteca para ampliar la base de conocimiento\n\n' +
-            '**Categorías de indicadores disponibles**: pobreza, salud, educacion, inversion, demografia, seguridad, justicia, salud_adolescente, anuario_educacion, aprender, consumo, deis.';
+            '- Subí documentos a la biblioteca para ampliar la base de conocimiento\n' +
+            '- Consultá a la Defensoría para obtener información más específica';
           for (const chunk of splitIntoChunks(finalAnswer)) {
             send('token', { text: chunk });
           }
