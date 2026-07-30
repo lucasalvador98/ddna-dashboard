@@ -640,7 +640,7 @@ async function executeToolCall(
 
     let formattedResult: string;
     if (chunks.length === 0) {
-      formattedResult = 'No se encontraron documentos relevantes en la base de conocimiento.';
+      formattedResult = 'No se encontraron documentos relevantes en la base de conocimiento. IMPORTANTE: Esto NO significa que no haya datos sobre el tema. Usá las herramientas de INDICADORES (listAvailableIndicators, getCategoryOverview, getLatestIndicatorValue) para buscar datos estadísticos. NO te rindas después de solo buscar en documentos.';
     } else {
       const context = buildContext(chunks, 600);
       formattedResult =
@@ -1066,10 +1066,16 @@ async function handleChatPOST(request: Request) {
         const { listAvailableIndicators } = await import('@/lib/agent/indicator-tools');
         const catalog = await listAvailableIndicators();
         if (catalog.categorias.length > 0) {
-          const lines = catalog.categorias.map(c =>
-            `  - "${c.nombre}" (${c.indicadores.length} indicadores: ${c.indicadores.slice(0, 5).map(i => i.nombre).join(', ')}${c.indicadores.length > 5 ? '...' : ''})`
-          );
-          catalogContext = `\n\n## CATÁLOGO DE DATOS DISPONIBLES\n\nEstas son las categorías de indicadores con datos cargados en el sistema:\n${lines.join('\n')}\n\nCuando te pregunten sobre estos temas, usá las herramientas de indicadores (NO search_knowledge_base).`;
+          const lines = catalog.categorias.map(c => {
+            // Show indicators whose name matches the category keyword first
+            const sorted = [...c.indicadores].sort((a, b) => {
+              const aMatch = a.nombre.toLowerCase().includes(c.nombre.toLowerCase()) ? 0 : 1;
+              const bMatch = b.nombre.toLowerCase().includes(c.nombre.toLowerCase()) ? 0 : 1;
+              return aMatch - bMatch;
+            });
+            return `  - "${c.nombre}" (${c.indicadores.length} indicadores, ej: ${sorted.slice(0, 5).map(i => i.nombre).join(', ')}${c.indicadores.length > 5 ? '...' : ''})`;
+          });
+          catalogContext = `\n\n## CATÁLOGO DE DATOS DISPONIBLES\n\nEstas son las categorías de indicadores con datos cargados. TODAS tienen datos disponibles — no necesitás buscarlas en documentos:\n${lines.join('\n')}\n\nINSTRUCCIÓN: SIEMPRE que te pregunten sobre un tema que coincida con alguna categoría, usá las herramientas de indicadores. NO uses search_knowledge_base para buscar datos de indicadores.`;
         }
       } catch {
         // Non-critical — continue without catalog
@@ -1210,7 +1216,15 @@ async function handleChatPOST(request: Request) {
                 'Todas las herramientas fallaron. Probá con herramientas DIFERENTES a las que ya intentaste. Por ejemplo, si falló search_knowledge_base, probá listAvailableIndicators o searchIndicators. O si fallaron indicadores, buscá en documentos o web. Usá al menos 2-3 herramientas diferentes antes de rendirte.',
             });
           } else {
-            if (totalToolCalls < MAX_TOOL_CALLS) {
+            // If only search_knowledge_base was used and found nothing, force other tools
+            const onlySearchedDocs = toolsUsed.length === 1 && toolsUsed[0] === 'search_knowledge_base';
+            if (onlySearchedDocs) {
+              messages.push({
+                role: 'user',
+                content:
+                  'Los documentos no tenían la información. NO te rindas. Ahora usá las herramientas de INDICADORES (listAvailableIndicators, getCategoryOverview, getLatestIndicatorValue, searchIndicators). Buscá en los indicadores antes de responder.',
+              });
+            } else if (totalToolCalls < MAX_TOOL_CALLS) {
               messages.push({
                 role: 'user',
                 content:
