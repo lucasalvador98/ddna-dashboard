@@ -1,11 +1,9 @@
-import dynamic from 'next/dynamic';
 import { Suspense } from 'react';
 import { MapPin } from 'lucide-react';
 import { LoginGate } from '@/components/login-gate';
 import { PageLoading } from '@/components/page-loading';
 import { SectionHeader } from '@/components/section-header';
-
-const GeoMaps = dynamic(() => import('@/components/geo-maps'), { ssr: false });
+import GeoMaps from './geo-maps-wrapper';
 
 export default function Page() {
   return (
