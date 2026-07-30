@@ -355,10 +355,13 @@ async function searchKnowledgeBase(
   const ftsPromise = (async () => {
     if (keywords.length === 0) return [];
     try {
+      // Use websearch syntax with OR so chunks matching ANY keyword are found,
+      // not just those matching ALL keywords (which are often split across chunks)
+      const ftsQueryStr = keywords.join(' OR ');
       let ftsQuery = supabaseClient
         .from('doc_chunks')
         .select('id, content, chunk_index, metadata, repo_file_id, repositorio!inner(nombre_archivo, categoria)')
-        .textSearch('search_vector', keywords.join(' '), { config: 'spanish', type: 'plain' })
+        .textSearch('search_vector', ftsQueryStr, { config: 'spanish', type: 'websearch' })
         .limit(20);
       if (categoria) {
         ftsQuery = ftsQuery.eq('repositorio.categoria', categoria);
