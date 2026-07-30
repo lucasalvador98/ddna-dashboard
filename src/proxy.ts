@@ -1,6 +1,6 @@
 import { authProxy } from '@/lib/auth-proxy';
 
-export { authProxy as middleware };
+export { authProxy as proxy };
 
 export const config = {
   matcher: [
