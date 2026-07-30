@@ -9,9 +9,9 @@
  */
 
 import { FileText } from 'lucide-react';
-import { ReportModal } from '@/components/report-modal';
 import { LoginGate } from '@/components/login-gate';
 import { SectionHeader } from '@/components/section-header';
+import EjecutivoReport from './ejecutivo-report';
 
 export default function EjecutivoPage() {
   return (
@@ -23,7 +23,7 @@ export default function EjecutivoPage() {
           description="Generador de informes con IA sobre indicadores DDNA"
           color="terracotta"
         />
-        <ReportModal isOpen onClose={() => {}} />
+        <EjecutivoReport />
       </div>
     </LoginGate>
   );
