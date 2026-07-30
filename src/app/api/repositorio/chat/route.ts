@@ -640,7 +640,8 @@ async function executeToolCall(
 
     let formattedResult: string;
     if (chunks.length === 0) {
-      formattedResult = 'No se encontraron documentos relevantes en la base de conocimiento. IMPORTANTE: Esto NO significa que no haya datos sobre el tema. Usá las herramientas de INDICADORES (listAvailableIndicators, getCategoryOverview, getLatestIndicatorValue) para buscar datos estadísticos. NO te rindas después de solo buscar en documentos.';
+      // Offer to list available documents so the LLM can retry with a better query
+      formattedResult = 'No se encontraron documentos relevantes en la base de conocimiento con esa búsqueda. Podés usar listAllDocuments para ver qué documentos están disponibles y luego buscar con otros términos. IMPORTANTE: También tenés datos de INDICADORES (listAvailableIndicators, getCategoryOverview, getLatestIndicatorValue) — no te rindas después de solo buscar en documentos.';
     } else {
       const context = buildContext(chunks, 600);
       formattedResult =
