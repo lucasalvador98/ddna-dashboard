@@ -63,9 +63,7 @@ export function SelectField({
     setInputValue(v);
     setIsOpen(true);
     setHighlightedIndex(-1);
-    if (!options.includes(v)) {
-      onChange('');
-    }
+    onChange(v);
   };
 
   const handleSelect = (opt: string) => {

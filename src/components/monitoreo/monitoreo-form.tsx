@@ -21,6 +21,8 @@ import {
   TOPICO_PRINCIPAL_OPTIONS,
   FUENTE_CITADA_OPTIONS,
   USO_FUENTES_OPTIONS,
+  PROVINCIA_OPTIONS,
+  LOCALIDAD_CORDOBA_OPTIONS,
   EMPTY_FORM_DATA,
   EMPTY_ACTOR,
   type RegistroFormData,
@@ -516,17 +518,19 @@ export function MonitoreoForm({ editingId, onSave, onCancel }: FormViewProps) {
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <TextInput
+              <SelectField
                 label="Provincia"
                 value={formData.provincia}
+                options={PROVINCIA_OPTIONS}
                 onChange={v => updateFormField('provincia', v)}
                 placeholder="Córdoba"
               />
-              <TextInput
+              <SelectField
                 label="Ciudad de Córdoba"
                 value={formData.ciudad_cordoba}
+                options={LOCALIDAD_CORDOBA_OPTIONS}
                 onChange={v => updateFormField('ciudad_cordoba', v)}
-                placeholder="Barrio / localidad"
+                placeholder="Buscar localidad..."
               />
             </div>
             <SelectField
