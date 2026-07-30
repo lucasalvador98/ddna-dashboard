@@ -1060,9 +1060,24 @@ async function handleChatPOST(request: Request) {
       const toolsUsed: string[] = [];
       let searchMethodUsed: 'vector' | 'text' | 'hybrid' | undefined;
 
+      // Auto-discover available indicator categories and inject into context
+      let catalogContext = '';
+      try {
+        const { listAvailableIndicators } = await import('@/lib/agent/indicator-tools');
+        const catalog = await listAvailableIndicators();
+        if (catalog.categorias.length > 0) {
+          const lines = catalog.categorias.map(c =>
+            `  - "${c.nombre}" (${c.indicadores.length} indicadores: ${c.indicadores.slice(0, 5).map(i => i.nombre).join(', ')}${c.indicadores.length > 5 ? '...' : ''})`
+          );
+          catalogContext = `\n\n## CATÁLOGO DE DATOS DISPONIBLES\n\nEstas son las categorías de indicadores con datos cargados en el sistema:\n${lines.join('\n')}\n\nCuando te pregunten sobre estos temas, usá las herramientas de indicadores (NO search_knowledge_base).`;
+        }
+      } catch {
+        // Non-critical — continue without catalog
+      }
+
       try {
         const messages: LLMMessage[] = [
-          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'system', content: SYSTEM_PROMPT + catalogContext },
           ...(conversationHistory || []).slice(-6),
           { role: 'user', content: question },
         ];
