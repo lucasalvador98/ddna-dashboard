@@ -494,9 +494,6 @@ export function MonitoreoTable({ onEditRegistro }: TableViewProps) {
                     currentDir={sortDirection}
                     onSort={handleSort}
                   />
-                  <th className="w-12 px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center">
-                    Acc
-                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -513,8 +510,20 @@ export function MonitoreoTable({ onEditRegistro }: TableViewProps) {
                       {formatDate(r.fecha_sincronizacion)}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-800 font-medium">{r.medio}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700 max-w-xs truncate">
-                      {r.titulo}
+                    <td className="px-4 py-3 text-sm text-slate-700 max-w-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="truncate">{r.titulo}</span>
+                        <button
+                          onClick={e => {
+                            e.stopPropagation();
+                            setDeleteConfirm({ id: r.id, titulo: r.titulo });
+                          }}
+                          className="flex-shrink-0 p-1 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                          title="Eliminar registro"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">{r.seccion || '—'}</td>
                     <td className="px-4 py-3 text-sm text-slate-600 max-w-[200px] truncate">
@@ -537,18 +546,6 @@ export function MonitoreoTable({ onEditRegistro }: TableViewProps) {
                     </td>
                     <td className="px-4 py-3">
                       <StateBadge estado={r.estado} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <button
-                        onClick={e => {
-                          e.stopPropagation();
-                          setDeleteConfirm({ id: r.id, titulo: r.titulo });
-                        }}
-                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Eliminar registro"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
                     </td>
                   </tr>
                 ))}
