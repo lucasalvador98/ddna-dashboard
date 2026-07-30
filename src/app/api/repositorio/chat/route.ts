@@ -22,6 +22,7 @@ import {
 import { searchWeb } from '@/lib/agent/web-search';
 import { scrapeUrl } from '@/lib/agent/scrape-url';
 import { withRateLimit } from '@/lib/agent/rate-limit';
+import { trackLLMUsage } from '@/lib/usage-tracker';
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -238,6 +239,17 @@ async function generateEmbedding(text: string): Promise<number[] | null> {
       return null;
     }
     const data = await response.json();
+
+    const usage = data.usage;
+    if (usage) {
+      trackLLMUsage({
+        tool: 'embeddings',
+        model: 'text-embedding-3-small',
+        promptTokens: usage.prompt_tokens || 0,
+        completionTokens: 0,
+      });
+    }
+
     return data.data[0]?.embedding ?? null;
   } catch (err) {
     console.error('Embedding generation failed:', err);
@@ -589,6 +601,7 @@ async function callLLM(
     type: 'function';
     function: { name: string; arguments: string };
   }>;
+  usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
 }> {
   const llmApiKey = OPENAI_API_KEY;
   const apiUrl = 'https://api.openai.com/v1/chat/completions';
@@ -647,6 +660,7 @@ async function callLLM(
               }>;
             };
           }>;
+          usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
         };
         try {
           data = await response.json();
@@ -659,6 +673,7 @@ async function callLLM(
         return {
           content: message?.content ?? null,
           toolCalls: message?.tool_calls,
+          usage: data?.usage,
         };
       }
 
@@ -716,6 +731,7 @@ async function readStreamingResponse(
     type: 'function';
     function: { name: string; arguments: string };
   }>;
+  usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
 }> {
   const reader = response.body!.getReader();
   const decoder = new TextDecoder();
@@ -727,6 +743,7 @@ async function readStreamingResponse(
     function: { name: string; arguments: string };
   }> | undefined;
   let hasToolCalls = false;
+  let streamUsage: { prompt_tokens: number; completion_tokens: number; total_tokens: number } | undefined;
 
   while (true) {
     const { done, value } = await reader.read();
@@ -745,6 +762,11 @@ async function readStreamingResponse(
 
       try {
         const parsed = JSON.parse(payload);
+
+        if (parsed.usage) {
+          streamUsage = parsed.usage;
+        }
+
         const choice = parsed.choices?.[0];
         if (!choice) continue;
 
@@ -781,6 +803,7 @@ async function readStreamingResponse(
   return {
     content: hasToolCalls ? null : content,
     toolCalls,
+    usage: streamUsage,
   };
 }
 
@@ -898,6 +921,14 @@ async function handleChatPOST(request: Request) {
             response = await callLLM(messages, ALL_TOOLS, (text) => {
               send('token', { text });
             });
+            if (response.usage) {
+              trackLLMUsage({
+                tool: 'chat',
+                model: OPENAI_MODEL,
+                promptTokens: response.usage.prompt_tokens,
+                completionTokens: response.usage.completion_tokens,
+              });
+            }
           } catch (err) {
             console.error(`LLM call failed (round ${round}):`, err);
             if (toolsUsed.length > 0) {
@@ -1031,9 +1062,17 @@ async function handleChatPOST(request: Request) {
               content:
                 'Sintetizá AHORA una respuesta final con todos los datos disponibles. NO uses herramientas.',
             });
-            const { content } = await callLLM(messages, undefined, (text) => {
+            const { content, usage } = await callLLM(messages, undefined, (text) => {
               send('token', { text });
             });
+            if (usage) {
+              trackLLMUsage({
+                tool: 'chat',
+                model: OPENAI_MODEL,
+                promptTokens: usage.prompt_tokens,
+                completionTokens: usage.completion_tokens,
+              });
+            }
             finalAnswer = content || '';
           } catch {
             finalAnswer =

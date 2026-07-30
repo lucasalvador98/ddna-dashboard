@@ -18,6 +18,7 @@ import {
   type IndicadorRow,
 } from '@/lib/informe-ejecutivo';
 import { withRateLimit } from '@/lib/agent/rate-limit';
+import { trackLLMUsage } from '@/lib/usage-tracker';
 
 // ─── Configuration ──────────────────────────────────────────────
 
@@ -74,7 +75,17 @@ async function callLLM(
 
       if (response.ok) {
         const data = await response.json();
-        return data?.choices?.[0]?.message?.content || '';
+        const content = data?.choices?.[0]?.message?.content || '';
+        const usage = data?.usage;
+        if (usage) {
+          trackLLMUsage({
+            tool: 'informe-ejecutivo',
+            model: OPENAI_MODEL,
+            promptTokens: usage.prompt_tokens || 0,
+            completionTokens: usage.completion_tokens || 0,
+          });
+        }
+        return content;
       }
 
       // Extract error
