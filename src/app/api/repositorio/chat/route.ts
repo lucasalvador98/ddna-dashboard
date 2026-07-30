@@ -63,6 +63,12 @@ interface RawIlikeRow {
   repositorio: { nombre_archivo: string; categoria: string } | null;
 }
 
+interface SearchOptions {
+  categoria?: string;
+  maxChunks?: number;
+  maxTokens?: number;
+}
+
 // ---------------------------------------------------------------------------
 // Tool display names for SSE progress events
 // ---------------------------------------------------------------------------
@@ -98,7 +104,7 @@ const DOCUMENT_TOOLS: Array<{
     function: {
       name: 'search_knowledge_base',
       description:
-        'Busca en la base de conocimiento de la DDNA (documentos oficiales, informes, normativas, PDFs, encuestas) usando búsqueda semántica. Devuelve fragmentos relevantes con su fuente. Usala para preguntas que requieran información de documentos o contexto institucional.',
+        'Búsqueda SEMÁNTICA en documentos oficiales, informes, normativas, PDFs y encuestas de la DDNA. Usá ESTA para preguntas sobre documentos específicos, archivos subidos, informes, o "buscar en documentos". NO la uses para datos de indicadores — usá searchIndicators o las herramientas de indicadores.',
       parameters: {
         type: 'object',
         properties: {
@@ -112,6 +118,11 @@ const DOCUMENT_TOOLS: Array<{
             description:
               'Cantidad máxima de fragmentos a retornar (default: 10, máximo: 20).',
           },
+          categoria: {
+            type: 'string',
+            description:
+              'Filtrar por categoría (opcional). Ej: "salud", "educacion", "pobreza", "inversion", "seguridad".',
+          },
         },
         required: ['query'],
       },
@@ -122,7 +133,7 @@ const DOCUMENT_TOOLS: Array<{
     function: {
       name: 'listAllDocuments',
       description:
-        'Lista todos los documentos disponibles en el repositorio de la DDNA. Devuelve nombre, tipo, categoría, y estado de procesamiento. Usala cuando el usuario pregunte "¿qué documentos tenés?", "mostrame los archivos disponibles", o "qué información hay cargada?".',
+        'Lista TODOS los documentos/archivos subidos al repositorio de la DDNA. Devuelve nombre, tipo, categoría y estado de procesamiento. Usala ÚNICAMENTE cuando el usuario pregunte "¿qué documentos tenés?", "mostrame los archivos disponibles", o quiera saber qué PDFs/informes hay cargados.',
       parameters: {
         type: 'object',
         properties: {
@@ -156,7 +167,7 @@ const WEB_TOOLS: Array<{
     function: {
       name: 'search_web',
       description:
-        'Busca en internet (DuckDuckGo) información actualizada. Usala para obtener datos externos, noticias recientes, estadísticas nacionales, o información que no está en los documentos ni indicadores de la DDNA. Importante: NO funciona desde Vercel (DuckDuckGo bloquea).',
+        'Busca en INTERNET (DuckDuckGo) información ACTUALIZADA en tiempo real. Usala SOLO cuando necesites información actual/noticias que NO está en indicadores (getLatestIndicatorValue, etc) ni en documentos del repositorio (search_knowledge_base). También cuando el usuario pida explícitamente "noticias" o "información actual". Limitación: puede no funcionar desde entornos serverless.',
       parameters: {
         type: 'object',
         properties: {
@@ -179,7 +190,7 @@ const WEB_TOOLS: Array<{
     function: {
       name: 'scrape_url',
       description:
-        'Extrae el contenido completo de una página web. Usala cuando necesites leer en detalle un artículo, informe o fuente específica encontrada en la búsqueda web.',
+        'Extrae el contenido completo de una URL específica. Usala DESPUÉS de search_web para leer en detalle un artículo, informe o fuente que encontraste. También cuando el usuario provea una URL directamente.',
       parameters: {
         type: 'object',
         properties: {
@@ -286,103 +297,220 @@ function buildSources(chunks: ChunkResult[]) {
 // Tools — Document Search
 // ---------------------------------------------------------------------------
 
-async function searchKnowledgeBase(query: string): Promise<{
+async function searchKnowledgeBase(
+  query: string,
+  options?: SearchOptions
+): Promise<{
   chunks: ChunkResult[];
-  searchMethod: 'vector' | 'text';
+  searchMethod: 'vector' | 'text' | 'hybrid';
   warning?: string;
 }> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabaseClient: any = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  let chunks: ChunkResult[] = [];
-  let searchMethod: 'vector' | 'text' = 'text';
+  const categoria = options?.categoria;
+  const maxChunks = options?.maxChunks ?? 20;
+  const maxTokens = options?.maxTokens ?? 4000;
+
+  let vectorChunks: ChunkResult[] = [];
+  let ftsChunks: ChunkResult[] = [];
+  let ftsFailed = false;
   let warning: string | undefined;
 
-  // Step 1: Vector semantic search
-  const embedding = await generateEmbedding(query);
+  const keywords = query
+    .toLowerCase()
+    .replace(/[?:,;.!¡¿]/g, '')
+    .split(/\s+/)
+    .filter(word => word.length > 3)
+    .slice(0, 5);
+
+  // Step 1 & 2: Vector + FTS in parallel
+  const embeddingPromise = generateEmbedding(query);
+
+  const ftsPromise = (async () => {
+    if (keywords.length === 0) return [];
+    try {
+      let ftsQuery = supabaseClient
+        .from('doc_chunks')
+        .select('id, content, chunk_index, metadata, repo_file_id, repositorio!inner(nombre_archivo, categoria)')
+        .textSearch('search_vector', keywords.join(' '), { config: 'spanish', type: 'plain' })
+        .limit(20);
+      if (categoria) {
+        ftsQuery = ftsQuery.eq('repositorio.categoria', categoria);
+      }
+      const { data: ftsData } = await ftsQuery;
+      if (!ftsData || ftsData.length === 0) return [];
+      return (ftsData as RawIlikeRow[]).map(row => ({
+        id: row.id,
+        repo_file_id: row.repo_file_id,
+        chunk_index: row.chunk_index,
+        content: row.content,
+        metadata: row.metadata || {},
+        nombre_archivo: row.repositorio?.nombre_archivo || 'Documento desconocido',
+        categoria: row.repositorio?.categoria || 'Sin categoría',
+        similarity: 0,
+      })) as ChunkResult[];
+    } catch (err) {
+      console.error('FTS search failed:', err);
+      ftsFailed = true;
+      return [];
+    }
+  })();
+
+  const embedding = await embeddingPromise;
 
   if (embedding) {
     const { data: rpcChunks, error: rpcError } = (await supabaseClient.rpc('search_doc_chunks', {
       query_embedding: embedding,
       match_threshold: 0.5,
-      match_count: 15,
-      category_filter: null,
+      match_count: 30,
+      category_filter: categoria || null,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     })) as any;
 
-    if (!rpcError && rpcChunks && rpcChunks.length > 0) {
-      chunks = rpcChunks as ChunkResult[];
-      searchMethod = 'vector';
+    if (!rpcError && rpcChunks) {
+      vectorChunks = rpcChunks as ChunkResult[];
     } else if (rpcError) {
       console.error('RPC search_doc_chunks error:', rpcError);
-      warning = 'Búsqueda vectorial falló, usando búsqueda por texto';
     }
   }
 
-  // Step 2: Fallback to ILIKE text search
-  if (chunks.length === 0) {
+  ftsChunks = await ftsPromise;
+
+  // FTS fallback to ILIKE
+  if (ftsChunks.length === 0 && keywords.length > 0 && ftsFailed) {
     if (!embedding) {
       warning = 'OPENAI_API_KEY no configurada. Usando búsqueda por texto (ILIKE).';
     }
 
-    const keywords = query
-      .toLowerCase()
-      .replace(/[?:,;.!¡¿]/g, '')
-      .split(/\s+/)
-      .filter(word => word.length > 3)
-      .slice(0, 5);
+    const searchConditions = keywords.map(kw => `content.ilike.%${kw}%`).join(',');
 
-    if (keywords.length > 0) {
-      const searchConditions = keywords.map(kw => `content.ilike.%${kw}%`).join(',');
+    const { data: processedFiles } = (await supabaseClient
+      .from('repositorio')
+      .select('id')
+      .eq('processed', true)) as { data: { id: string }[] | null };
 
-      const { data: processedFiles } = (await supabaseClient
-        .from('repositorio')
-        .select('id')
-        .eq('processed', true)) as { data: { id: string }[] | null };
+    const fileIds = processedFiles?.map((f: { id: string }) => f.id) || [];
 
-      const fileIds = processedFiles?.map((f: { id: string }) => f.id) || [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let ilikeResult: any;
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let ilikeResult: any;
+    if (fileIds.length > 0) {
+      ilikeResult = await supabaseClient
+        .from('doc_chunks')
+        .select(
+          'id, content, chunk_index, metadata, repo_file_id, repositorio!inner(nombre_archivo, categoria)'
+        )
+        .in('repo_file_id', fileIds)
+        .or(searchConditions)
+        .limit(20);
+    } else {
+      ilikeResult = await supabaseClient
+        .from('doc_chunks')
+        .select(
+          'id, content, chunk_index, metadata, repo_file_id, repositorio!inner(nombre_archivo, categoria)'
+        )
+        .or(searchConditions)
+        .limit(20);
+    }
 
-      if (fileIds.length > 0) {
-        ilikeResult = await supabaseClient
-          .from('doc_chunks')
-          .select(
-            'id, content, chunk_index, metadata, repo_file_id, repositorio!inner(nombre_archivo, categoria)'
-          )
-          .in('repo_file_id', fileIds)
-          .or(searchConditions)
-          .limit(10);
+    ftsChunks = ((ilikeResult?.data as RawIlikeRow[]) || []).map(row => ({
+      id: row.id,
+      repo_file_id: row.repo_file_id,
+      chunk_index: row.chunk_index,
+      content: row.content,
+      metadata: row.metadata || {},
+      nombre_archivo: row.repositorio?.nombre_archivo || 'Documento desconocido',
+      categoria: row.repositorio?.categoria || 'Sin categoría',
+      similarity: 0,
+    })) as ChunkResult[];
+  }
+
+  // Step 3: Hybrid combination
+  let chunks: ChunkResult[];
+  let searchMethod: 'vector' | 'text' | 'hybrid';
+
+  if (vectorChunks.length > 0 && ftsChunks.length > 0) {
+    const chunkMap = new Map<string, { chunk: ChunkResult; vectorScore: number; ftsRank: number }>();
+
+    for (const chunk of vectorChunks) {
+      const key = `${chunk.repo_file_id}-${chunk.chunk_index}`;
+      chunkMap.set(key, { chunk, vectorScore: chunk.similarity, ftsRank: 0 });
+    }
+
+    for (let i = 0; i < ftsChunks.length; i++) {
+      const chunk = ftsChunks[i];
+      const key = `${chunk.repo_file_id}-${chunk.chunk_index}`;
+      const ftsRank = ftsChunks.length > 1 ? 1.0 - (i / (ftsChunks.length - 1)) : 1.0;
+      if (chunkMap.has(key)) {
+        chunkMap.get(key)!.ftsRank = ftsRank;
       } else {
-        ilikeResult = await supabaseClient
-          .from('doc_chunks')
-          .select(
-            'id, content, chunk_index, metadata, repo_file_id, repositorio!inner(nombre_archivo, categoria)'
-          )
-          .or(searchConditions)
-          .limit(10);
-      }
-
-      const ilikeData = ilikeResult?.data as RawIlikeRow[] | null;
-
-      if (ilikeData && ilikeData.length > 0) {
-        chunks = ilikeData.map(row => ({
-          id: row.id,
-          repo_file_id: row.repo_file_id,
-          chunk_index: row.chunk_index,
-          content: row.content,
-          metadata: row.metadata || {},
-          nombre_archivo: row.repositorio?.nombre_archivo || 'Documento desconocido',
-          categoria: row.repositorio?.categoria || 'Sin categoría',
-          similarity: 0,
-        }));
+        chunkMap.set(key, { chunk, vectorScore: 0, ftsRank });
       }
     }
+
+    const maxVectorScore = Math.max(...Array.from(chunkMap.values()).map(e => e.vectorScore), 0.01);
+
+    const scored = Array.from(chunkMap.values()).map(entry => ({
+      chunk: entry.chunk,
+      combinedScore: (entry.vectorScore / maxVectorScore) * 0.6 + entry.ftsRank * 0.4,
+    }));
+
+    scored.sort((a, b) => b.combinedScore - a.combinedScore);
+    chunks = scored.map(s => s.chunk);
+    searchMethod = 'hybrid';
+  } else if (vectorChunks.length > 0) {
+    chunks = vectorChunks;
+    searchMethod = 'vector';
+  } else if (ftsChunks.length > 0) {
+    chunks = ftsChunks;
+    searchMethod = 'text';
+  } else {
+    chunks = [];
     searchMethod = 'text';
   }
 
+  // Step 4: Smart chunk selection (diversity)
+  if (chunks.length > 1) {
+    const selected: ChunkResult[] = [chunks[0]];
+    let tokenCount = chunks[0].content.length / 4;
+
+    for (let i = 1; i < chunks.length && selected.length < maxChunks && tokenCount < maxTokens; i++) {
+      const candidate = chunks[i];
+      let isRedundant = false;
+
+      for (const existing of selected) {
+        if (contentSimilarity(candidate.content, existing.content) > 0.6) {
+          isRedundant = true;
+          break;
+        }
+      }
+
+      if (!isRedundant) {
+        selected.push(candidate);
+        tokenCount += candidate.content.length / 4;
+      }
+    }
+
+    chunks = selected;
+  }
+
   return { chunks, searchMethod, warning };
+}
+
+function contentSimilarity(a: string, b: string): number {
+  const aWords = new Set(a.toLowerCase().split(/\s+/));
+  const bWords = new Set(b.toLowerCase().split(/\s+/));
+
+  if (aWords.size === 0 || bWords.size === 0) return 0;
+
+  let intersection = 0;
+  for (const word of aWords) {
+    if (bWords.has(word)) intersection++;
+  }
+
+  const union = aWords.size + bWords.size - intersection;
+  return union === 0 ? 0 : intersection / union;
 }
 
 // ---------------------------------------------------------------------------
@@ -459,7 +587,7 @@ async function executeToolCall(
   sourceType: 'documents' | 'indicators' | 'web' | 'unknown';
   chunks?: ChunkResult[];
   indicatorResult?: unknown;
-  searchMethod?: 'vector' | 'text';
+  searchMethod?: 'vector' | 'text' | 'hybrid';
 }> {
   // --- Indicadores ---
   if (INDICATOR_OPENAPI_TOOLS.some(t => t.function.name === name)) {
@@ -478,7 +606,12 @@ async function executeToolCall(
   // --- Documentos ---
   if (name === 'search_knowledge_base') {
     const query = String(args.query || '');
-    const { chunks, searchMethod, warning } = await searchKnowledgeBase(query);
+    const categoria = args.categoria ? String(args.categoria) : undefined;
+    const maxResults = args.max_results ? Number(args.max_results) : undefined;
+    const { chunks, searchMethod, warning } = await searchKnowledgeBase(query, {
+      categoria,
+      maxChunks: maxResults,
+    });
 
     let formattedResult: string;
     if (chunks.length === 0) {
@@ -900,7 +1033,7 @@ async function handleChatPOST(request: Request) {
         valor?: number | string;
       }> = [];
       const toolsUsed: string[] = [];
-      let searchMethodUsed: 'vector' | 'text' | undefined;
+      let searchMethodUsed: 'vector' | 'text' | 'hybrid' | undefined;
 
       try {
         const messages: LLMMessage[] = [
