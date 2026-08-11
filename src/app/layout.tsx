@@ -1,10 +1,8 @@
 import type { Metadata } from 'next';
 import { Epilogue, Playfair_Display, DM_Sans } from 'next/font/google';
 import './globals.css';
-import { Sidebar } from '@/components/sidebar';
-import { Header } from '@/components/header';
-import { SidebarProvider } from '@/components/sidebar-context';
 import { AuthProvider } from '@/components/auth-provider';
+import { AppShell } from '@/components/app-shell';
 
 const epilogue = Epilogue({
   variable: '--font-epilogue',
@@ -37,22 +35,8 @@ export default function RootLayout({
   return (
     <html lang="es" className={`${epilogue.variable} ${playfair.variable} ${dmSans.variable}`}>
       <body className="min-h-screen flex flex-col">
-        <a
-          href="#main-content"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-[#1a2556] focus:text-white focus:rounded-lg"
-        >
-          Saltar al contenido principal
-        </a>
         <AuthProvider>
-          <SidebarProvider>
-            <Header />
-            <div className="flex flex-1 min-h-0">
-              <Sidebar />
-              <main id="main-content" className="flex-1 overflow-y-auto p-6 lg:p-8">
-                {children}
-              </main>
-            </div>
-          </SidebarProvider>
+          <AppShell>{children}</AppShell>
         </AuthProvider>
       </body>
     </html>
