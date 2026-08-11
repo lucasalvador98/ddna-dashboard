@@ -20,7 +20,10 @@ export function BuilderPreview({ definicion, titulo, descripcion }: BuilderPrevi
         Vista previa
       </p>
       <FormRenderer
-        key={definicion.fields.map((f) => f.id).join('|')}
+        key={[
+          ...definicion.fields.map((f) => f.id),
+          ...(definicion.bloques ?? []).flatMap((b) => [b.id, ...b.fields.map((f) => f.id)]),
+        ].join('|')}
         definicion={definicion}
         titulo={titulo}
         descripcion={descripcion}
