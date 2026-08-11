@@ -3,6 +3,7 @@
 // server-side submit validation.
 
 import type { DefinicionFormulario, ReglaLogica } from './types';
+import { getAllFields } from './defaults';
 
 function ruleMatches(rule: ReglaLogica, answers: Record<string, unknown>): boolean {
   const answer = answers[rule.field_id];
@@ -30,7 +31,7 @@ export function evaluateLogic(
   def: DefinicionFormulario,
   answers: Record<string, unknown>
 ): Set<string> {
-  const visible = new Set(def.fields.map((field) => field.id));
+  const visible = new Set(getAllFields(def).map((field) => field.id));
   const conditionalTargets = new Set(def.logic.flatMap((rule) => rule.show_ids));
 
   for (const target of conditionalTargets) {

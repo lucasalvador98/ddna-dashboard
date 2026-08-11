@@ -135,6 +135,161 @@ describe('validateDefinition', () => {
   });
 });
 
+describe('validateDefinition — bloques', () => {
+  it('accepts a valid block-based definition', () => {
+    const def = {
+      version: 1 as const,
+      fields: [],
+      logic: [],
+      bloques: [
+        {
+          id: 'bloque-1',
+          titulo: 'Información personal',
+          fields: [
+            { id: 'nombre', type: 'text' as const, label: 'Nombre', required: true },
+          ],
+        },
+      ],
+    };
+    expect(validateDefinition(def).valid).toBe(true);
+  });
+
+  it('rejects bloques that is not an array', () => {
+    const def = {
+      version: 1,
+      fields: [],
+      logic: [],
+      bloques: 'no-array',
+    };
+    const result = validateDefinition(def);
+    expect(result.valid).toBe(false);
+    expect(result.errors.join()).toContain('arreglo');
+  });
+
+  it('rejects a block without id', () => {
+    const def = {
+      version: 1 as const,
+      fields: [],
+      logic: [],
+      bloques: [{ titulo: 'Sin id', fields: [] }],
+    };
+    const result = validateDefinition(def);
+    expect(result.valid).toBe(false);
+    expect(result.errors.join()).toContain('id');
+  });
+
+  it('rejects duplicate block ids', () => {
+    const def = {
+      version: 1 as const,
+      fields: [],
+      logic: [],
+      bloques: [
+        { id: 'dup', titulo: 'A', fields: [] },
+        { id: 'dup', titulo: 'B', fields: [] },
+      ],
+    };
+    const result = validateDefinition(def);
+    expect(result.valid).toBe(false);
+    expect(result.errors.join()).toContain('duplicado');
+  });
+
+  it('rejects a block without titulo', () => {
+    const def = {
+      version: 1 as const,
+      fields: [],
+      logic: [],
+      bloques: [{ id: 'b1', titulo: '  ', fields: [] }],
+    };
+    const result = validateDefinition(def);
+    expect(result.valid).toBe(false);
+    expect(result.errors.join()).toContain('título');
+  });
+
+  it('rejects a block with non-string descripcion', () => {
+    const def = {
+      version: 1 as const,
+      fields: [],
+      logic: [],
+      bloques: [{ id: 'b1', titulo: 'Título', descripcion: 123, fields: [] }],
+    };
+    const result = validateDefinition(def);
+    expect(result.valid).toBe(false);
+    expect(result.errors.join()).toContain('descripción');
+  });
+
+  it('rejects a block without fields array', () => {
+    const def = {
+      version: 1 as const,
+      fields: [],
+      logic: [],
+      bloques: [{ id: 'b1', titulo: 'Título' }],
+    };
+    const result = validateDefinition(def);
+    expect(result.valid).toBe(false);
+    expect(result.errors.join()).toContain('campos');
+  });
+
+  it('rejects a block with an invalid field', () => {
+    const def = {
+      version: 1 as const,
+      fields: [],
+      logic: [],
+      bloques: [
+        {
+          id: 'b1',
+          titulo: 'Título',
+          fields: [{ id: 'f1', type: 'invalid' as never, label: 'X', required: false }],
+        },
+      ],
+    };
+    const result = validateDefinition(def);
+    expect(result.valid).toBe(false);
+  });
+});
+
+describe('validateResponse — block-based definition', () => {
+  it('validates a response against a block-based definition', () => {
+    const def = {
+      version: 1 as const,
+      fields: [],
+      logic: [],
+      bloques: [
+        {
+          id: 'bloque-1',
+          titulo: 'Info',
+          fields: [
+            { id: 'nombre', type: 'text' as const, label: 'Nombre', required: true },
+            { id: 'email', type: 'email' as const, label: 'Email', required: true },
+          ],
+        },
+      ],
+    };
+    const result = validateResponse(def, { nombre: 'Luca', email: 'x@y.com' });
+    expect(result.valid).toBe(true);
+    expect(result.answers).toEqual({ nombre: 'Luca', email: 'x@y.com' });
+  });
+
+  it('rejects a missing required field in a block', () => {
+    const def = {
+      version: 1 as const,
+      fields: [],
+      logic: [],
+      bloques: [
+        {
+          id: 'bloque-1',
+          titulo: 'Info',
+          fields: [
+            { id: 'nombre', type: 'text' as const, label: 'Nombre', required: true },
+          ],
+        },
+      ],
+    };
+    const result = validateResponse(def, {});
+    expect(result.valid).toBe(false);
+    expect(result.errors.join()).toContain('obligatorio');
+  });
+});
+
 describe('validateResponse', () => {
   it('accepts a valid response and returns it cleaned', () => {
     const def = validDefinition();

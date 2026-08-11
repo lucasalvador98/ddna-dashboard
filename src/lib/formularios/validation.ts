@@ -3,7 +3,7 @@
 // submit payload (strips hidden/unknown fields, type-checks the rest).
 // Error strings are Spanish (UI-facing); identifiers/comments in English.
 
-import { MAX_FIELDS, MAX_RULES } from './defaults';
+import { MAX_FIELDS, MAX_RULES, getAllFields } from './defaults';
 import { evaluateLogic } from './logic';
 import { FORMULARIO_VERSION } from './types';
 import type { CampoFormulario, DefinicionFormulario, TipoCampo } from './types';
@@ -51,15 +51,28 @@ export function validateDefinition(def: unknown): ValidationResult {
     errors.push(`La versión de la definición debe ser ${FORMULARIO_VERSION}.`);
   }
 
-  let fieldsById = new Map<string, TipoCampo>();
+  let flatFieldsById = new Map<string, TipoCampo>();
   if (!Array.isArray(candidate.fields)) {
     errors.push('La definición debe incluir un arreglo de campos (fields).');
   } else {
     if (candidate.fields.length > MAX_FIELDS) {
       errors.push(`La definición no puede tener más de ${MAX_FIELDS} campos.`);
     }
-    fieldsById = validateFields(candidate.fields, errors);
+    flatFieldsById = validateFields(candidate.fields, errors);
   }
+
+  let blockFieldsById = new Map<string, TipoCampo>();
+  if (candidate.bloques !== undefined) {
+    if (!Array.isArray(candidate.bloques)) {
+      errors.push('El campo bloques debe ser un arreglo.');
+    } else {
+      blockFieldsById = validateBlocks(candidate.bloques, errors);
+    }
+  }
+
+  // Combine field IDs from both flat fields and blocks for rule validation.
+  // Rules operate on global field IDs regardless of where the field lives.
+  const allFieldsById = new Map([...flatFieldsById, ...blockFieldsById]);
 
   if (!Array.isArray(candidate.logic)) {
     errors.push('La definición debe incluir un arreglo de reglas (logic).');
@@ -67,7 +80,7 @@ export function validateDefinition(def: unknown): ValidationResult {
     if (candidate.logic.length > MAX_RULES) {
       errors.push(`La definición no puede tener más de ${MAX_RULES} reglas.`);
     }
-    validateRules(candidate.logic, fieldsById, errors);
+    validateRules(candidate.logic, allFieldsById, errors);
   }
 
   return errors.length === 0 ? { valid: true, errors: [] } : { valid: false, errors };
@@ -180,6 +193,54 @@ function validateRules(
   });
 }
 
+function validateBlocks(blocks: unknown[], errors: string[]): Map<string, TipoCampo> {
+  const seenBlockIds = new Set<string>();
+  const typesById = new Map<string, TipoCampo>();
+
+  blocks.forEach((raw, index) => {
+    const where = `Bloque ${index + 1}`;
+    if (typeof raw !== 'object' || raw === null) {
+      errors.push(`${where}: debe ser un objeto.`);
+      return;
+    }
+    const block = raw as Record<string, unknown>;
+
+    if (typeof block.id !== 'string' || block.id.trim() === '') {
+      errors.push(`${where}: el id es obligatorio.`);
+    } else {
+      if (seenBlockIds.has(block.id)) {
+        errors.push(`El id de bloque "${block.id}" está duplicado.`);
+      }
+      seenBlockIds.add(block.id);
+    }
+
+    if (typeof block.titulo !== 'string' || block.titulo.trim() === '') {
+      errors.push(`${where}: el título es obligatorio.`);
+    }
+
+    if (block.descripcion !== undefined && block.descripcion !== null && typeof block.descripcion !== 'string') {
+      errors.push(`${where}: la descripción debe ser un string.`);
+    }
+
+    if (!Array.isArray(block.fields)) {
+      errors.push(`${where}: debe incluir un arreglo de campos (fields).`);
+    } else {
+      for (const blockField of block.fields) {
+        const f = blockField as Record<string, unknown>;
+        if (typeof f.id === 'string' && f.id.trim() !== '') {
+          if (typesById.has(f.id)) {
+            errors.push(`El id de campo "${f.id}" está duplicado entre bloques.`);
+          }
+          typesById.set(f.id, (f.type as TipoCampo) ?? 'text');
+        }
+      }
+      validateFields(block.fields, errors);
+    }
+  });
+
+  return typesById;
+}
+
 // ---------------------------------------------------------------- response
 
 export function validateResponse(
@@ -189,7 +250,7 @@ export function validateResponse(
   const errors: string[] = [];
   const cleaned: Record<string, unknown> = {};
   const visible = evaluateLogic(def, answers);
-  const fieldsById = new Map(def.fields.map((field) => [field.id, field]));
+  const fieldsById = new Map(getAllFields(def).map((field) => [field.id, field]));
 
   for (const [fieldId, value] of Object.entries(answers)) {
     const field = fieldsById.get(fieldId);
@@ -210,7 +271,7 @@ export function validateResponse(
     }
   }
 
-  for (const field of def.fields) {
+  for (const field of getAllFields(def)) {
     if (field.type === 'heading' || !field.required || !visible.has(field.id)) {
       continue;
     }
