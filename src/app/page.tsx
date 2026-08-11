@@ -34,16 +34,21 @@ const tools = [
 export default function HomePage() {
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Hero — clean, light */}
+      {/* Hero — logo + title */}
       <div className="bg-white">
-        <div className="max-w-4xl mx-auto px-6 py-12 lg:py-16 text-center">
-          <h1 className="font-display text-3xl lg:text-4xl text-slate-800 tracking-tight">
+        <div className="max-w-4xl mx-auto px-6 py-10 lg:py-14 text-center">
+          <img
+            src="/logos/LOGO DDNA_HORIZONTAL_COLOR.png"
+            alt="DDNA"
+            className="h-13 lg:h-15 mx-auto mb-5 object-contain"
+          />
+          <h1 className="font-display text-2xl lg:text-3xl text-slate-800 tracking-tight">
             Tablero de Monitoreo
           </h1>
-          <p className="font-body text-base lg:text-lg text-slate-500 mt-3 max-w-2xl mx-auto">
+          <p className="font-body text-sm lg:text-base text-slate-500 mt-2 max-w-xl mx-auto">
             Defensoría de los Derechos de Niñas, Niños y Adolescentes — Provincia de Córdoba
           </p>
-          <div className="mt-6 mx-auto w-24 h-1 bg-gradient-to-r from-[#FF7F11] to-[#F3A712] rounded-full" />
+          <div className="mt-5 mx-auto w-20 h-1 bg-gradient-to-r from-[#FF7F11] to-[#F3A712] rounded-full" />
         </div>
       </div>
 
