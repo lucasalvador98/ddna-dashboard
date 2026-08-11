@@ -88,6 +88,7 @@ export const navigation: NavGroup[] = [
       { label: 'Mapas', href: '/geo', icon: Map },
       { label: 'Repositorio', href: '/repositorio', icon: FolderOpen },
       { label: 'Fuentes de Datos', href: '/fuentes', icon: Database },
+      { label: 'Formularios', href: '/formularios', icon: ClipboardList },
       { label: 'Informe Ejecutivo', href: '/ejecutivo', icon: FileText },
     ],
   },
@@ -116,6 +117,7 @@ export const routeTitles: Record<string, string> = {
   '/repositorio/chat': 'Chat con la Bibliografía',
   '/ejecutivo': 'Informe Ejecutivo',
   '/monitoreo': 'Monitoreo de Medios',
+  '/formularios': 'Formularios',
   '/admin': 'Configuración',
   '/apis': 'APIs',
 };
