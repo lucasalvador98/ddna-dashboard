@@ -126,13 +126,13 @@ describe('newBlock', () => {
 describe('getAllFields', () => {
   it('returns flat fields when no blocks', () => {
     const fields = [{ id: 'f1', type: 'text' as const, label: 'F1', required: false }];
-    const def = { version: 1, fields, logic: [] };
+    const def = { version: 1 as const, fields, logic: [] };
     expect(getAllFields(def)).toBe(fields);
   });
 
   it('returns flat fields when bloques is empty', () => {
     const fields = [{ id: 'f1', type: 'text' as const, label: 'F1', required: false }];
-    const def = { version: 1, fields, logic: [], bloques: [] };
+    const def = { version: 1 as const, fields, logic: [], bloques: [] };
     expect(getAllFields(def)).toBe(fields);
   });
 
