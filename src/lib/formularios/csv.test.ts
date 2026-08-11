@@ -63,4 +63,53 @@ describe('buildCsv', () => {
     const body = csv.replace('\uFEFF', '');
     expect(body.split('\r\n')).toHaveLength(1);
   });
+
+  // CSV/Excel formula injection guard. See CVE-2014-3524.
+  it('neutralises cells starting with = (formula injection)', () => {
+    const csv = buildCsv(def, [
+      respuesta({ respuestas: { nombre: '=cmd|"/c calc"!A1', intereses: [] } }),
+    ]);
+    const body = csv.replace('\uFEFF', '');
+    const row = body.split('\r\n')[1];
+    // Must NOT start with '=' literally (otherwise Excel/LibreOffice executes it).
+    // Unwrap the optional surrounding quotes to inspect the cell content.
+    const cellRaw = row.split(';')[0];
+    const unquoted = cellRaw.startsWith('"') && cellRaw.endsWith('"')
+      ? cellRaw.slice(1, -1).replace(/""/g, '"')
+      : cellRaw;
+    expect(unquoted.startsWith('=')).toBe(false);
+    // The neutralisation marker must be present
+    expect(unquoted.startsWith("'=")).toBe(true);
+  });
+
+  it('neutralises cells starting with +, -, @ (formula injection)', () => {
+    const csv = buildCsv(def, [
+      respuesta({ respuestas: { nombre: '+sum(1+1)', intereses: [] } }),
+    ]);
+    const body = csv.replace('\uFEFF', '');
+    let row = body.split('\r\n')[1];
+    expect(row).toContain("'+sum(1+1)");
+
+    const csv2 = buildCsv(def, [
+      respuesta({ respuestas: { nombre: '-2+3', intereses: [] } }),
+    ]);
+    const row2 = csv2.replace('\uFEFF', '').split('\r\n')[1];
+    expect(row2).toContain("'-2+3");
+
+    const csv3 = buildCsv(def, [
+      respuesta({ respuestas: { nombre: '@SUM(1+1)', intereses: [] } }),
+    ]);
+    const row3 = csv3.replace('\uFEFF', '').split('\r\n')[1];
+    expect(row3).toContain("'@SUM(1+1)");
+  });
+
+  it('does not prefix safe values (numbers, normal text) with a quote', () => {
+    const csv = buildCsv(def, [
+      respuesta({ respuestas: { nombre: 'Ana López', intereses: [] } }),
+    ]);
+    const body = csv.replace('\uFEFF', '');
+    const row = body.split('\r\n')[1];
+    expect(row).toContain('Ana López;');
+    expect(row).not.toContain("'Ana");
+  });
 });

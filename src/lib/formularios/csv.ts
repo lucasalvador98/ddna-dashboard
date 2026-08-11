@@ -9,10 +9,17 @@ const LINE_SEPARATOR = '\r\n';
 const BOM = '\uFEFF';
 
 function escapeCsvCell(value: string): string {
-  if (/[",\n\r;]/.test(value)) {
-    return `"${value.replace(/"/g, '""')}"`;
+  // Neutralise CSV/Excel formula injection: if a cell starts with =, +, -, @
+  // or a control char (tab/CR), prepend a single quote so spreadsheet apps
+  // treat it as a literal string instead of a formula or command.
+  let v = value;
+  if (/^[=+\-@\t\r]/.test(v)) {
+    v = "'" + v;
   }
-  return value;
+  if (/[",\n\r;]/.test(v)) {
+    return `"${v.replace(/"/g, '""')}"`;
+  }
+  return v;
 }
 
 function answerableFields(def: DefinicionFormulario) {
