@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Menu, X, ChevronRight, LogOut } from 'lucide-react';
+import clsx from 'clsx';
 import { routeTitles } from '@/lib/navigation';
 import { useSidebar } from '@/components/sidebar-context';
 import { useAuth } from '@/components/auth-provider';
@@ -47,14 +48,28 @@ export function Header() {
   const pathname = usePathname();
   const { toggleCollapse, isCollapsed } = useSidebar();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const { user, signOut } = useAuth();
+
+  // Track scroll position to add shadow when not at top
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 4);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   const title = routeTitles[pathname] || 'DDNA';
 
   return (
-    <header className="bg-white border-b border-[#E0E0E0] sticky top-0 z-40">
-      {/* Single gradient accent strip — now only here */}
-      <div className="h-1.5 bg-gradient-to-r from-[#FF7F11] via-[#F3A712] to-[#FF7F11]" />
+    <header
+      className={clsx(
+        'bg-white border-b border-gray-200 sticky top-0 z-40 transition-shadow',
+        scrolled && 'shadow-md',
+      )}
+    >
+      {/* Single gradient accent strip */}
+      <div className="h-1 bg-gradient-to-r from-[#FF7F11] via-[#F3A712] to-[#FF7F11]" />
 
       {/* Desktop Header */}
       <div className="hidden md:flex items-center gap-3 px-6 lg:px-8 py-3">

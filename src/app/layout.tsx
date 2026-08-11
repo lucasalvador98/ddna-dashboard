@@ -34,7 +34,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className={`${epilogue.variable} ${playfair.variable} ${dmSans.variable}`}>
-      <body className="min-h-screen flex flex-col">
+      <body className="min-h-screen flex flex-col bg-gray-50">
         <AuthProvider>
           <AppShell>{children}</AppShell>
         </AuthProvider>
