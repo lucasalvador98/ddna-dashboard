@@ -3,7 +3,7 @@
 // inactive ones, which the anon RLS policy hides). Error strings are Spanish.
 
 import { getSupabaseAdminClient } from '@/lib/supabase';
-import type { Formulario } from './types';
+import type { Formulario, FormularioRespuesta } from './types';
 
 export async function listFormularios(): Promise<Formulario[]> {
   try {
@@ -36,6 +36,28 @@ export async function fetchFormById(id: string): Promise<Formulario | null> {
   } catch (err) {
     throw new Error(
       err instanceof Error ? err.message : 'Error al cargar el formulario.'
+    );
+  }
+}
+
+export async function listRespuestas(
+  formularioId: string,
+  limit = 100
+): Promise<FormularioRespuesta[]> {
+  try {
+    const admin = getSupabaseAdminClient();
+    const { data, error } = await admin
+      .from('respuestas_formulario')
+      .select('*')
+      .eq('formulario_id', formularioId)
+      .order('submitted_at', { ascending: false })
+      .limit(limit);
+
+    if (error) throw new Error(error.message);
+    return (data ?? []) as FormularioRespuesta[];
+  } catch (err) {
+    throw new Error(
+      err instanceof Error ? err.message : 'Error al cargar las respuestas.'
     );
   }
 }

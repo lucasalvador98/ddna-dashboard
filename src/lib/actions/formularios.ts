@@ -10,9 +10,12 @@ import { assertAdminAuth } from './assert-admin';
 import { getSupabaseAdminClient } from '@/lib/supabase';
 import { validateDefinition } from '@/lib/formularios/validation';
 import { slugify, isValidSlug } from '@/lib/formularios/slug';
-import type { DefinicionFormulario } from '@/lib/formularios/types';
+import { buildCsv } from '@/lib/formularios/csv';
+import type { DefinicionFormulario, FormularioRespuesta } from '@/lib/formularios/types';
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
+
+export type CsvExportResult = { ok: true; csv: string } | { ok: false; error: string };
 
 export interface FormularioInput {
   titulo: string;
@@ -22,7 +25,7 @@ export interface FormularioInput {
   definicion: unknown;
 }
 
-function errorResult(err: unknown, fallback: string): ActionResult {
+function errorResult(err: unknown, fallback: string): { ok: false; error: string } {
   return { ok: false, error: err instanceof Error ? err.message : fallback };
 }
 
@@ -103,6 +106,56 @@ export async function deleteForm(id: string): Promise<ActionResult> {
 
   revalidatePath('/formularios');
   return { ok: true };
+}
+
+export async function deleteRespuesta(id: string): Promise<ActionResult> {
+  await assertAdminAuth();
+
+  try {
+    const admin = getSupabaseAdminClient();
+    const { error } = await admin.from('respuestas_formulario').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+  } catch (err) {
+    return errorResult(err, 'Error al eliminar la respuesta.');
+  }
+
+  revalidatePath('/formularios');
+  return { ok: true };
+}
+
+// Exports the newest responses (same 100 cap as the admin list) as a CSV
+// string built by the pure buildCsv helper; the client downloads it as a Blob.
+export async function exportRespuestasCsv(formularioId: string): Promise<CsvExportResult> {
+  await assertAdminAuth();
+
+  try {
+    const admin = getSupabaseAdminClient();
+    const { data: formData, error: formError } = await admin
+      .from('formularios')
+      .select('definicion')
+      .eq('id', formularioId)
+      .maybeSingle();
+
+    if (formError) throw new Error(formError.message);
+    if (!formData) return { ok: false, error: 'El formulario no existe.' };
+
+    const { data: respuestasData, error: respuestasError } = await admin
+      .from('respuestas_formulario')
+      .select('*')
+      .eq('formulario_id', formularioId)
+      .order('submitted_at', { ascending: false })
+      .limit(100);
+
+    if (respuestasError) throw new Error(respuestasError.message);
+
+    const csv = buildCsv(
+      formData.definicion as DefinicionFormulario,
+      (respuestasData ?? []) as FormularioRespuesta[]
+    );
+    return { ok: true, csv };
+  } catch (err) {
+    return errorResult(err, 'Error al exportar las respuestas.');
+  }
 }
 
 export async function toggleForm(id: string): Promise<ActionResult> {
