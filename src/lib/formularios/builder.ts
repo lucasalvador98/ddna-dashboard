@@ -3,8 +3,9 @@
 // the definition in React state and applies these helpers on every edit.
 // Identifiers/comments in English; UI-facing strings live in the components.
 
-import { newField } from './defaults';
+import { newField, newBlock } from './defaults';
 import type {
+  Bloque,
   CampoFormulario,
   DefinicionFormulario,
   OperadorLogico,
@@ -103,4 +104,119 @@ export function removeRule(logic: ReglaLogica[], target: string, rule: ReglaLogi
 export function editRule(logic: ReglaLogica[], target: string, rule: ReglaLogica, draft: RuleDraft): ReglaLogica[] {
   const withoutTarget = removeRule(logic, target, rule);
   return addRule(withoutTarget, target, draft);
+}
+
+// ---------------------------------------------------------------- block helpers
+
+export function addBlock(def: DefinicionFormulario): DefinicionFormulario {
+  const bloques = def.bloques ?? [];
+  return { ...def, bloques: [...bloques, newBlock(bloques.length + 1)] };
+}
+
+export function updateBlock(def: DefinicionFormulario, blockId: string, patch: Partial<Bloque>): DefinicionFormulario {
+  if (!def.bloques) return def;
+  return {
+    ...def,
+    bloques: def.bloques.map((b) => (b.id === blockId ? { ...b, ...patch } : b)),
+  };
+}
+
+export function removeBlock(def: DefinicionFormulario, blockId: string): DefinicionFormulario {
+  if (!def.bloques) return def;
+  const block = def.bloques.find((b) => b.id === blockId);
+  if (!block) return def;
+  let updated = { ...def };
+  for (const field of block.fields) {
+    updated = removeField(updated, field.id);
+  }
+  return { ...updated, bloques: updated.bloques!.filter((b) => b.id !== blockId) };
+}
+
+export function moveBlock(def: DefinicionFormulario, blockId: string, dir: -1 | 1): DefinicionFormulario {
+  if (!def.bloques) return def;
+  const index = def.bloques.findIndex((b) => b.id === blockId);
+  const target = index + dir;
+  if (index < 0 || target < 0 || target >= def.bloques.length) return def;
+  const bloques = [...def.bloques];
+  [bloques[index], bloques[target]] = [bloques[target], bloques[index]];
+  return { ...def, bloques };
+}
+
+export function addFieldToBlock(def: DefinicionFormulario, blockId: string, type: TipoCampo): DefinicionFormulario {
+  if (!def.bloques) return def;
+  const block = def.bloques.find((b) => b.id === blockId);
+  if (!block) return def;
+  const field = newField(type);
+  return {
+    ...def,
+    bloques: def.bloques.map((b) =>
+      b.id === blockId ? { ...b, fields: [...b.fields, field] } : b
+    ),
+  };
+}
+
+export function updateFieldInBlock(
+  def: DefinicionFormulario,
+  blockId: string,
+  fieldId: string,
+  patch: Partial<CampoFormulario>
+): DefinicionFormulario {
+  if (!def.bloques) return def;
+  return {
+    ...def,
+    bloques: def.bloques.map((b) =>
+      b.id === blockId
+        ? {
+            ...b,
+            fields: b.fields.map((f) =>
+              f.id === fieldId ? ({ ...f, ...patch } as CampoFormulario) : f
+            ),
+          }
+        : b
+    ),
+  };
+}
+
+export function removeFieldFromBlock(def: DefinicionFormulario, blockId: string, fieldId: string): DefinicionFormulario {
+  if (!def.bloques) return def;
+  const updated = {
+    ...def,
+    logic: def.logic
+      .map((rule) => ({ ...rule, show_ids: rule.show_ids.filter((target) => target !== fieldId) }))
+      .filter((rule) => rule.field_id !== fieldId && rule.show_ids.length > 0),
+  };
+  return {
+    ...updated,
+    bloques: updated.bloques!.map((b) =>
+      b.id === blockId ? { ...b, fields: b.fields.filter((f) => f.id !== fieldId) } : b
+    ),
+  };
+}
+
+export function moveFieldInBlock(def: DefinicionFormulario, blockId: string, fieldId: string, dir: -1 | 1): DefinicionFormulario {
+  if (!def.bloques) return def;
+  const block = def.bloques.find((b) => b.id === blockId);
+  if (!block) return def;
+  const index = block.fields.findIndex((f) => f.id === fieldId);
+  const target = index + dir;
+  if (index < 0 || target < 0 || target >= block.fields.length) return def;
+  const fields = [...block.fields];
+  [fields[index], fields[target]] = [fields[target], fields[index]];
+  return {
+    ...def,
+    bloques: def.bloques.map((b) => (b.id === blockId ? { ...b, fields } : b)),
+  };
+}
+
+export function updateOptionsInBlock(def: DefinicionFormulario, blockId: string, fieldId: string, options: string[]): DefinicionFormulario {
+  return updateFieldInBlock(def, blockId, fieldId, { options });
+}
+
+export function updateScaleInBlock(
+  def: DefinicionFormulario,
+  blockId: string,
+  fieldId: string,
+  patch: { min?: number; max?: number; minLabel?: string; maxLabel?: string }
+): DefinicionFormulario {
+  return updateFieldInBlock(def, blockId, fieldId, patch);
 }

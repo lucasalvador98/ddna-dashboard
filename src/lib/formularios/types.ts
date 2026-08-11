@@ -68,10 +68,18 @@ export interface ReglaLogica {
   show_ids: string[];
 }
 
+export interface Bloque {
+  id: string;
+  titulo: string;
+  descripcion?: string;
+  fields: CampoFormulario[];
+}
+
 export interface DefinicionFormulario {
   version: VersionFormulario;
   fields: CampoFormulario[];
   logic: ReglaLogica[];
+  bloques?: Bloque[];
 }
 
 export interface Formulario {

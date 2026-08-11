@@ -4,9 +4,11 @@ import {
   DEFAULT_SCALE_MIN,
   EMPTY_DEFINICION,
   FIELD_TYPE_META,
+  getAllFields,
   MAX_FIELDS,
   MAX_PAYLOAD_BYTES,
   MAX_RULES,
+  newBlock,
   newField,
 } from './defaults';
 import { FORMULARIO_VERSION } from './types';
@@ -40,8 +42,8 @@ describe('constants', () => {
 });
 
 describe('EMPTY_DEFINICION', () => {
-  it('is a versioned empty definition', () => {
-    expect(EMPTY_DEFINICION).toEqual({ version: 1, fields: [], logic: [] });
+  it('is a versioned empty definition with bloques', () => {
+    expect(EMPTY_DEFINICION).toEqual({ version: 1, fields: [], logic: [], bloques: [] });
     expect(EMPTY_DEFINICION.version).toBe(FORMULARIO_VERSION);
   });
 });
@@ -95,5 +97,59 @@ describe('newField', () => {
     const field = newField('heading') as CampoFormulario;
     expect('options' in field).toBe(false);
     expect('min' in field).toBe(false);
+  });
+});
+
+describe('newBlock', () => {
+  it('returns a valid empty block with a sequential title', () => {
+    const block = newBlock(1);
+    expect(block.id).toBeTruthy();
+    expect(block.titulo).toBe('Bloque 1');
+    expect(block.fields).toEqual([]);
+
+    const block2 = newBlock(3);
+    expect(block2.titulo).toBe('Bloque 3');
+  });
+
+  it('generates unique ids', () => {
+    const a = newBlock(1);
+    const b = newBlock(2);
+    expect(a.id).not.toBe(b.id);
+  });
+
+  it('defaults to "Bloque 1" when no number is given', () => {
+    const block = newBlock();
+    expect(block.titulo).toBe('Bloque 1');
+  });
+});
+
+describe('getAllFields', () => {
+  it('returns flat fields when no blocks', () => {
+    const fields = [{ id: 'f1', type: 'text' as const, label: 'F1', required: false }];
+    const def = { version: 1, fields, logic: [] };
+    expect(getAllFields(def)).toBe(fields);
+  });
+
+  it('returns flat fields when bloques is empty', () => {
+    const fields = [{ id: 'f1', type: 'text' as const, label: 'F1', required: false }];
+    const def = { version: 1, fields, logic: [], bloques: [] };
+    expect(getAllFields(def)).toBe(fields);
+  });
+
+  it('returns block fields combined with orphan flat fields', () => {
+    const def = {
+      version: 1 as const,
+      fields: [{ id: 'f-orphan', type: 'text' as const, label: 'Orphan', required: false }],
+      logic: [],
+      bloques: [
+        {
+          id: 'b1',
+          titulo: 'Bloque',
+          fields: [{ id: 'f-block', type: 'text' as const, label: 'Block', required: false }],
+        },
+      ],
+    };
+    const result = getAllFields(def);
+    expect(result.map((f) => f.id)).toEqual(['f-block', 'f-orphan']);
   });
 });
