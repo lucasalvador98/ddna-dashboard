@@ -53,7 +53,7 @@ export function RepoFileRow({ file, onClick }: Props) {
       </div>
       <div className="flex-1 min-w-0 grid grid-cols-12 gap-3 items-center">
         <p
-          className="col-span-5 text-sm font-medium text-[#1a2556] truncate"
+          className="col-span-5 text-sm font-medium text-[#334155] truncate"
           title={file.nombre_archivo}
         >
           {file.nombre_archivo}

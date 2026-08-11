@@ -221,7 +221,7 @@ function Legend({
 }) {
   return (
     <div className="bg-white rounded-lg border border-[#E0E0E0] p-3 text-xs">
-      <p className="font-semibold text-[#1a2556] mb-2">{title}</p>
+      <p className="font-semibold text-[#334155] mb-2">{title}</p>
       <div className="space-y-1.5">
         {items.map((it) => (
           <div key={it.label} className="flex items-center gap-2">
@@ -378,7 +378,7 @@ function EducativoMap() {
               className={clsx(
                 'px-2.5 py-1 text-xs rounded-full border transition-colors',
                 selectedSector === s
-                  ? 'bg-[#1a2556] text-white border-[#1a2556]'
+                  ? 'bg-[#334155] text-white border-[#334155]'
                   : 'bg-white text-[#4D4D4D] border-gray-300 hover:border-gray-400',
               )}
             >
@@ -461,7 +461,7 @@ function EducativoLayer({ features }: { features: GeoJSONFeature[] }) {
           >
             <Popup>
               <div className="text-xs space-y-1 min-w-[180px]">
-                <p className="font-semibold text-[#1a2556]">{p.nombre ?? 'Sin nombre'}</p>
+                <p className="font-semibold text-[#334155]">{p.nombre ?? 'Sin nombre'}</p>
                 <p className="text-[#4D4D4D]">{p.est_domicilio ?? ''}</p>
                 {p.est_barrio && <p className="text-[#4D4D4D]">Barrio: {p.est_barrio}</p>}
                 <p className="text-[#4D4D4D]">
@@ -658,7 +658,7 @@ function NacimientosChoropleth({
 
       layer.bindPopup(`
         <div style="font-size:12px;min-width:180px">
-          <strong style="color:#1a2556">${nombre}</strong>
+          <strong style="color:#334155">${nombre}</strong>
           <hr style="margin:4px 0" />
           ${[2020, 2021, 2022, 2023]
             .map((y) => {
@@ -895,7 +895,7 @@ function NBIChoropleth({
 
       layer.bindPopup(`
         <div style="font-size:12px;min-width:160px">
-          <strong style="color:#1a2556">${nombre}</strong>
+          <strong style="color:#334155">${nombre}</strong>
           <p style="margin:4px 0">NBI: <strong>${nbi != null ? nbi.toFixed(1) + '%' : 'Sin dato'}</strong></p>
           <p style="font-size:10px;color:#999">Fuente: Censo 2010 INDEC</p>
         </div>
@@ -1072,7 +1072,7 @@ function SaludLayer({ features }: { features: GeoJSONFeature[] }) {
           >
             <Popup>
               <div className="text-xs space-y-1 min-w-[180px]">
-                <p className="font-semibold text-[#1a2556]">
+                <p className="font-semibold text-[#334155]">
                   {p.establecimiento_salud ?? 'Sin nombre'}
                 </p>
                 {p.domicilio && <p className="text-[#4D4D4D]">{p.domicilio}</p>}
@@ -1137,7 +1137,7 @@ export default function GeoPage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className="group bg-white rounded-xl border border-gray-200 p-6 text-left hover:shadow-lg hover:border-[#1a2556]/20 transition-all hover:-translate-y-1"
+              className="group bg-white rounded-xl border border-gray-200 p-6 text-left hover:shadow-lg hover:border-[#334155]/20 transition-all hover:-translate-y-1"
             >
               <div
                 className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"
@@ -1147,7 +1147,7 @@ export default function GeoPage() {
                   <tab.icon className="w-6 h-6" />
                 </span>
               </div>
-              <h3 className="font-accent font-semibold text-[#1a2556] mb-1">{tab.label}</h3>
+              <h3 className="font-accent font-semibold text-[#334155] mb-1">{tab.label}</h3>
               <p className="text-sm text-gray-500">{tab.desc}</p>
             </button>
           ))}
@@ -1160,7 +1160,7 @@ export default function GeoPage() {
           {/* Back button */}
           <button
             onClick={() => setActiveTab(null)}
-            className="flex items-center gap-2 text-sm text-gray-500 hover:text-[#1a2556] mb-4 transition-colors"
+            className="flex items-center gap-2 text-sm text-gray-500 hover:text-[#334155] mb-4 transition-colors"
           >
             <X className="w-4 h-4" />
             Volver a todos los mapas
@@ -1176,7 +1176,7 @@ export default function GeoPage() {
 
       {/* Footer attribution */}
       <div className="bg-white rounded-xl border border-[#E0E0E0] p-4">
-        <h3 className="font-medium text-[#1a2556] text-sm mb-2">
+        <h3 className="font-medium text-[#334155] text-sm mb-2">
           Acerca de los datos
         </h3>
         <ul className="text-xs text-[#4D4D4D] space-y-1">

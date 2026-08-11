@@ -69,7 +69,7 @@ export function MonitoreoClient() {
   return (
     <>
       {/* Tab navigation + New button */}
-      <div className="bg-gradient-to-r from-[#1a2556] to-[#2a3570]">
+      <div className="bg-gradient-to-r from-[#334155] to-[#475569]">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">

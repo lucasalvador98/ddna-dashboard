@@ -99,10 +99,10 @@ function Card({
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-9 h-9 rounded-lg bg-[#1a2556]/10 flex items-center justify-center">
-          <Icon className="w-5 h-5 text-[#1a2556]" />
+        <div className="w-9 h-9 rounded-lg bg-[#334155]/10 flex items-center justify-center">
+          <Icon className="w-5 h-5 text-[#334155]" />
         </div>
-        <h2 className="font-display text-lg text-[#1a2556]">{title}</h2>
+        <h2 className="font-display text-lg text-[#334155]">{title}</h2>
       </div>
       {children}
     </div>
@@ -126,10 +126,10 @@ function StatRow({
         <Icon className="w-4 h-4 text-gray-500" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-[#1a2556] font-medium">{label}</p>
+        <p className="text-sm text-[#334155] font-medium">{label}</p>
         {subtitle && <p className="text-xs text-gray-400">{subtitle}</p>}
       </div>
-      <span className="text-sm font-display text-[#1a2556] tabular-nums">{value}</span>
+      <span className="text-sm font-display text-[#334155] tabular-nums">{value}</span>
     </div>
   );
 }
@@ -151,7 +151,7 @@ function KpiCard({
     blue: 'bg-blue-50 text-blue-600',
     amber: 'bg-amber-50 text-amber-600',
     terracotta: 'bg-orange-50 text-orange-600',
-    navy: 'bg-[#1a2556]/10 text-[#1a2556]',
+    navy: 'bg-[#334155]/10 text-[#334155]',
   };
 
   return (
@@ -161,7 +161,7 @@ function KpiCard({
           <Icon className="w-5 h-5" />
         </div>
       </div>
-      <p className="font-display text-2xl text-[#1a2556] tabular-nums">{value}</p>
+      <p className="font-display text-2xl text-[#334155] tabular-nums">{value}</p>
       <p className="text-sm text-gray-500 mt-0.5">{title}</p>
       {subtitle && <p className="text-[11px] text-gray-400 mt-1">{subtitle}</p>}
     </div>
@@ -257,21 +257,21 @@ function AdminDashboard({ stats }: { stats: SystemStats }) {
             <AdminUpdateButton />
             <a
               href="/monitoreo"
-              className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl text-sm text-[#1a2556] font-medium transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl text-sm text-[#334155] font-medium transition-colors"
             >
               <Newspaper className="w-4 h-4 text-gray-500" />
               Ir a Monitoreo de Medios
             </a>
             <a
               href="/fuentes"
-              className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl text-sm text-[#1a2556] font-medium transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl text-sm text-[#334155] font-medium transition-colors"
             >
               <Database className="w-4 h-4 text-gray-500" />
               Gestionar fuentes de datos
             </a>
             <a
               href="/repositorio"
-              className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl text-sm text-[#1a2556] font-medium transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl text-sm text-[#334155] font-medium transition-colors"
             >
               <FolderOpen className="w-4 h-4 text-gray-500" />
               Repositorio documental

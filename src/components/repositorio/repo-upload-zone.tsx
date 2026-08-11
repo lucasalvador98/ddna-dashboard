@@ -98,7 +98,7 @@ export function RepoUploadZone({ onUploaded }: Props) {
 
   return (
     <div className="bg-white border border-gray-200 rounded-2xl p-5">
-      <h3 className="font-accent text-base text-[#1a2556] mb-3 flex items-center gap-2">
+      <h3 className="font-accent text-base text-[#334155] mb-3 flex items-center gap-2">
         <Upload className="w-4 h-4" />
         Subir nuevo archivo
       </h3>
@@ -115,7 +115,7 @@ export function RepoUploadZone({ onUploaded }: Props) {
           className={clsx(
             'border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all',
             dragOver
-              ? 'border-[#1a2556] bg-[#1a2556]/5'
+              ? 'border-[#334155] bg-[#334155]/5'
               : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50',
           )}
         >
@@ -145,7 +145,7 @@ export function RepoUploadZone({ onUploaded }: Props) {
               <FileText className={clsx('w-5 h-5', fileColors.text)} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-[#1a2556] truncate">{file.name}</p>
+              <p className="text-sm font-medium text-[#334155] truncate">{file.name}</p>
               <p className="text-xs text-gray-400">{formatBytes(file.size)}</p>
             </div>
             <button
@@ -167,7 +167,7 @@ export function RepoUploadZone({ onUploaded }: Props) {
               <select
                 value={categoria}
                 onChange={e => setCategoria(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#1a2556] focus:border-transparent outline-none bg-white"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#334155] focus:border-transparent outline-none bg-white"
               >
                 {CATEGORIES.map(c => (
                   <option key={c.value} value={c.value}>
@@ -185,7 +185,7 @@ export function RepoUploadZone({ onUploaded }: Props) {
                 value={descripcion}
                 onChange={e => setDescripcion(e.target.value)}
                 placeholder="Descripción breve"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#1a2556] focus:border-transparent outline-none"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#334155] focus:border-transparent outline-none"
               />
             </div>
           </div>
@@ -198,7 +198,7 @@ export function RepoUploadZone({ onUploaded }: Props) {
               value={notas}
               onChange={e => setNotas(e.target.value)}
               placeholder="Notas adicionales (opcional)"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#1a2556] focus:border-transparent outline-none"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#334155] focus:border-transparent outline-none"
             />
           </div>
 
@@ -214,7 +214,7 @@ export function RepoUploadZone({ onUploaded }: Props) {
               type="button"
               onClick={handleUpload}
               disabled={uploading}
-              className="flex items-center gap-2 px-5 py-2 bg-[#1a2556] text-white rounded-lg text-sm font-medium hover:bg-[#0d1530] disabled:opacity-50 transition-colors"
+              className="flex items-center gap-2 px-5 py-2 bg-[#334155] text-white rounded-lg text-sm font-medium hover:bg-[#0F172A] disabled:opacity-50 transition-colors"
             >
               {uploading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

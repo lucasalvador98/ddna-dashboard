@@ -58,7 +58,7 @@ export default function AiUsagePage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="font-display text-lg text-[#1a2556]">Uso de IA</h2>
+        <h2 className="font-display text-lg text-[#334155]">Uso de IA</h2>
         <p className="text-sm text-gray-500 mt-1">
           Registro de consumo de modelos de lenguaje en los últimos {days} días
         </p>
@@ -73,7 +73,7 @@ export default function AiUsagePage() {
             className={clsx(
               'px-4 py-1.5 rounded-lg text-sm font-medium transition-colors',
               days === n
-                ? 'bg-[#1a2556] text-white'
+                ? 'bg-[#334155] text-white'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
             )}
           >
@@ -100,7 +100,7 @@ export default function AiUsagePage() {
                   <Phone className="w-5 h-5 text-blue-600" />
                 </div>
               </div>
-              <p className="font-display text-2xl text-[#1a2556] tabular-nums">
+              <p className="font-display text-2xl text-[#334155] tabular-nums">
                 {fmt(totalCalls)}
               </p>
               <p className="text-sm text-gray-500 mt-0.5">Total de llamadas</p>
@@ -112,7 +112,7 @@ export default function AiUsagePage() {
                   <BarChart3 className="w-5 h-5 text-amber-600" />
                 </div>
               </div>
-              <p className="font-display text-2xl text-[#1a2556] tabular-nums">
+              <p className="font-display text-2xl text-[#334155] tabular-nums">
                 {fmt(totalTokens)}
               </p>
               <p className="text-sm text-gray-500 mt-0.5">Tokens totales</p>
@@ -127,7 +127,7 @@ export default function AiUsagePage() {
                   <DollarSign className="w-5 h-5 text-green-600" />
                 </div>
               </div>
-              <p className="font-display text-2xl text-[#1a2556] tabular-nums">
+              <p className="font-display text-2xl text-[#334155] tabular-nums">
                 {fmtUsd(totalCost)}
               </p>
               <p className="text-sm text-gray-500 mt-0.5">Costo estimado total (USD)</p>
@@ -136,7 +136,7 @@ export default function AiUsagePage() {
 
           {/* Stats by tool */}
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-            <h3 className="font-display text-base text-[#1a2556] mb-4">
+            <h3 className="font-display text-base text-[#334155] mb-4">
               Uso por herramienta
             </h3>
             <div className="overflow-x-auto">
@@ -153,7 +153,7 @@ export default function AiUsagePage() {
                   {Object.entries(toolStats)
                     .sort((a, b) => b[1].calls - a[1].calls)
                     .map(([tool, s]) => (
-                      <tr key={tool} className="border-b border-gray-50 text-[#1a2556]">
+                      <tr key={tool} className="border-b border-gray-50 text-[#334155]">
                         <td className="py-3 font-medium">{tool}</td>
                         <td className="py-3 tabular-nums">{fmt(s.calls)}</td>
                         <td className="py-3 tabular-nums">{fmt(s.totalTokens)}</td>
@@ -167,7 +167,7 @@ export default function AiUsagePage() {
 
           {/* Recent calls */}
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-            <h3 className="font-display text-base text-[#1a2556] mb-4">
+            <h3 className="font-display text-base text-[#334155] mb-4">
               Llamadas recientes
             </h3>
             <div className="overflow-x-auto">
@@ -191,7 +191,7 @@ export default function AiUsagePage() {
                     </tr>
                   ) : (
                     logs.slice(0, 100).map((log) => (
-                      <tr key={log.id} className="border-b border-gray-50 text-[#1a2556]">
+                      <tr key={log.id} className="border-b border-gray-50 text-[#334155]">
                         <td className="py-2.5 text-gray-500 whitespace-nowrap">
                           {new Date(log.created_at).toLocaleDateString('es-AR', {
                             day: '2-digit',

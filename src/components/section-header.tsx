@@ -12,7 +12,7 @@ const colorClasses: Record<string, string> = {
   magenta: 'bg-[#BF1363]',
   blue: 'bg-[#3777FF]',
   terracotta: 'bg-[#E07A5F]',
-  navy: 'bg-[#1a2556]',
+  navy: 'bg-[#334155]',
   orange: 'bg-[#FF7F11]',
   green: 'bg-[#10B981]',
 };
@@ -29,7 +29,7 @@ export function SectionHeader({ icon: Icon, title, description, color }: Section
         <Icon className="w-7 h-7" />
       </div>
       <div>
-        <h1 className="font-display text-2xl text-[#1a2556] tracking-tight">{title}</h1>
+        <h1 className="font-display text-2xl text-[#334155] tracking-tight">{title}</h1>
         <p className="font-body text-sm text-[#4D4D4D] mt-1">{description}</p>
       </div>
     </div>

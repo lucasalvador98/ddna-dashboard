@@ -171,7 +171,7 @@ export default function ChatPage() {
       {/* Header */}
       <div className="mb-8 flex items-start justify-between">
         <div>
-          <h1 className="font-display text-3xl text-[#1a2556] flex items-center gap-3">
+          <h1 className="font-display text-3xl text-[#334155] flex items-center gap-3">
             <Bot className="w-8 h-8 text-[#3777FF]" />
             Asistente de Investigación DDNA
           </h1>
@@ -216,7 +216,7 @@ export default function ChatPage() {
               <div className="w-16 h-16 bg-[#3777FF]/10 rounded-full flex items-center justify-center mb-4">
                 <Bot className="w-8 h-8 text-[#3777FF]" />
               </div>
-              <h3 className="font-display text-xl text-[#1a2556] mb-2">
+              <h3 className="font-display text-xl text-[#334155] mb-2">
                 ¡Bienvenido al Asistente DDNA!
               </h3>
               <p className="font-body text-gray-600 max-w-md mb-6">
@@ -255,7 +255,7 @@ export default function ChatPage() {
                 <div
                   className={`max-w-[80%] ${
                     msg.role === 'user'
-                      ? 'bg-[#1a2556] text-white'
+                      ? 'bg-[#334155] text-white'
                       : 'bg-gray-50 border border-gray-200'
                   } rounded-lg px-4 py-3`}
                 >
@@ -286,7 +286,7 @@ export default function ChatPage() {
                 </div>
 
                 {msg.role === 'user' && (
-                  <div className="w-8 h-8 bg-[#1a2556] rounded-full flex items-center justify-center flex-shrink-0">
+                  <div className="w-8 h-8 bg-[#334155] rounded-full flex items-center justify-center flex-shrink-0">
                     <User className="w-4 h-4 text-white" />
                   </div>
                 )}
@@ -357,7 +357,7 @@ export default function ChatPage() {
             <button
               type="submit"
               disabled={loading || !input.trim()}
-              className="px-6 py-3 bg-[#1a2556] text-white rounded-lg font-accent text-sm hover:bg-[#00063E] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              className="px-6 py-3 bg-[#334155] text-white rounded-lg font-accent text-sm hover:bg-[#00063E] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
             >
               {loading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

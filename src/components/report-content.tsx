@@ -285,7 +285,7 @@ export function ReportContent({ report, generatedAt }: ReportContentProps) {
     <article className="space-y-6 print:space-y-4">
       {/* ── Header ──────────────────────────────────────────── */}
       <header className="border-b border-gray-200 pb-4 print:pb-2">
-        <h1 className="font-display text-2xl text-[#1a2556] print:text-xl">{report.title}</h1>
+        <h1 className="font-display text-2xl text-[#334155] print:text-xl">{report.title}</h1>
         <div className="flex items-center gap-3 mt-2 text-sm text-gray-500 font-body">
           <span>{report.date}</span>
           {formattedDate && (
@@ -355,7 +355,7 @@ export function ReportContent({ report, generatedAt }: ReportContentProps) {
                 <span className={clsx('font-accent text-xs uppercase tracking-wider', colors.text)}>
                   {CATEGORY_LABELS[section.category] || section.category}
                 </span>
-                <h3 className="font-display text-lg text-[#1a2556] mt-0.5">{section.title}</h3>
+                <h3 className="font-display text-lg text-[#334155] mt-0.5">{section.title}</h3>
               </div>
             </div>
 
@@ -468,7 +468,7 @@ export function ReportContent({ report, generatedAt }: ReportContentProps) {
       {/* ── Cross-References ────────────────────────────────── */}
       {report.crossReferences && report.crossReferences.length > 0 && (
         <section className="border border-gray-200 rounded-lg p-4">
-          <h2 className="font-accent text-sm uppercase tracking-wider text-[#1a2556] mb-3">
+          <h2 className="font-accent text-sm uppercase tracking-wider text-[#334155] mb-3">
             Referencias Cruzadas
           </h2>
           <div className="space-y-3">
@@ -524,8 +524,8 @@ export function ReportContent({ report, generatedAt }: ReportContentProps) {
       )}
 
       {/* ── Conclusion ──────────────────────────────────────── */}
-      <section className="bg-[#1a2556]/5 border border-[#1a2556]/20 rounded-lg p-4 print:bg-gray-50 print:border-gray-300">
-        <h2 className="font-accent text-sm uppercase tracking-wider text-[#1a2556] mb-2">
+      <section className="bg-[#334155]/5 border border-[#334155]/20 rounded-lg p-4 print:bg-gray-50 print:border-gray-300">
+        <h2 className="font-accent text-sm uppercase tracking-wider text-[#334155] mb-2">
           Conclusión
         </h2>
         <div className="font-body text-gray-700 leading-relaxed whitespace-pre-line">

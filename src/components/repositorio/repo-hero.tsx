@@ -5,14 +5,14 @@ export function RepoHero() {
   return (
     <div className="bg-white border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-6 py-8">
-        <h1 className="font-display text-3xl text-[#1a2556]">Repositorio DDNA</h1>
+        <h1 className="font-display text-3xl text-[#334155]">Repositorio DDNA</h1>
         <p className="font-body text-gray-600 mt-2">
           Archivos propios de la Defensoría — Fuentes primarias, encuestas, informes
         </p>
 
         <Link
           href="/repositorio/chat"
-          className="mt-6 flex items-center justify-between w-full max-w-2xl px-6 py-4 bg-gradient-to-r from-[#3777FF] to-[#1a2556] text-white rounded-2xl font-accent text-lg hover:shadow-xl hover:scale-[1.01] transition-all group"
+          className="mt-6 flex items-center justify-between w-full max-w-2xl px-6 py-4 bg-gradient-to-r from-[#3777FF] to-[#334155] text-white rounded-2xl font-accent text-lg hover:shadow-xl hover:scale-[1.01] transition-all group"
         >
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center group-hover:rotate-12 transition-transform">

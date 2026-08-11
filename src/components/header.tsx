@@ -32,7 +32,7 @@ function Breadcrumb() {
         <span key={crumb.href} className="flex items-center gap-1">
           <ChevronRight className="w-3 h-3" />
           {crumb.isLast ? (
-            <span className="text-[#1a2556] font-medium">{crumb.title}</span>
+            <span className="text-[#334155] font-medium">{crumb.title}</span>
           ) : (
             <Link href={crumb.href} className="hover:text-[#E07A5F] transition-colors">
               {crumb.title}
@@ -100,7 +100,7 @@ export function Header() {
           <>
             <div className="w-px h-6 bg-[#E0E0E0]" />
             <div className="flex-1 min-w-0">
-              <h1 className="font-display text-xl text-[#1a2556] tracking-tight truncate">
+              <h1 className="font-display text-xl text-[#334155] tracking-tight truncate">
                 {title}
               </h1>
               <Breadcrumb />

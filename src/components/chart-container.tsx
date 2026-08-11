@@ -23,7 +23,7 @@ export function ChartContainer({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-6 border-b border-[#E0E0E0]">
         <div>
-          <h3 className="text-lg font-bold text-[#1a2556]">{title}</h3>
+          <h3 className="text-lg font-bold text-[#334155]">{title}</h3>
           {subtitle && <p className="text-sm text-[#4D4D4D] mt-1">{subtitle}</p>}
         </div>
 

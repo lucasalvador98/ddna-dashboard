@@ -249,11 +249,11 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
         {/* ── Header ─────────────────────────────────────────── */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-205 print:hidden">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#1a2556]/10 rounded-lg flex items-center justify-center">
-              <FileText className="w-5 h-5 text-[#1a2556]" />
+            <div className="w-10 h-10 bg-[#334155]/10 rounded-lg flex items-center justify-center">
+              <FileText className="w-5 h-5 text-[#334155]" />
             </div>
             <div>
-              <h2 className="font-accent text-lg text-[#1a2556] font-semibold">
+              <h2 className="font-accent text-lg text-[#334155] font-semibold">
                 Repositorio de Reportes IA
               </h2>
               <p className="text-xs text-gray-500 font-body">Análisis avanzado de indicadores de NNyA</p>
@@ -315,9 +315,9 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
                         type="checkbox"
                         checked={allSelected}
                         onChange={toggleAll}
-                        className="w-4 h-4 rounded border-gray-300 text-[#1a2556] focus:ring-[#1a2556]"
+                        className="w-4 h-4 rounded border-gray-300 text-[#334155] focus:ring-[#334155]"
                       />
-                      <span className="font-accent text-sm font-semibold text-[#1a2556]">
+                      <span className="font-accent text-sm font-semibold text-[#334155]">
                         Todos los ejes temáticos
                       </span>
                     </label>
@@ -355,7 +355,7 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
                   {/* Generate button */}
                   <button
                     onClick={generateReport}
-                    className="w-full py-3 bg-[#1a2556] hover:bg-[#1a2556]/90 text-white font-accent font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                    className="w-full py-3 bg-[#334155] hover:bg-[#334155]/90 text-white font-accent font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm"
                   >
                     <FileText className="w-5 h-5" />
                     Generar Informe
@@ -461,7 +461,7 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
             </button>
             <button
               onClick={handlePrint}
-              className="px-4 py-2 bg-[#1a2556] hover:bg-[#1a2556]/90 text-white font-accent font-semibold rounded-lg transition-colors flex items-center gap-2 cursor-pointer"
+              className="px-4 py-2 bg-[#334155] hover:bg-[#334155]/90 text-white font-accent font-semibold rounded-lg transition-colors flex items-center gap-2 cursor-pointer"
             >
               <Printer className="w-4 h-4" />
               Imprimir

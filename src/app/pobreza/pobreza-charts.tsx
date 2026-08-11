@@ -133,7 +133,7 @@ export default function PobrezaCharts({
             onClick={() => setTab(t.id)}
             className={`flex-1 px-4 py-2.5 rounded-md text-sm font-medium transition-colors ${
               tab === t.id
-                ? 'bg-white text-[#1a2556] shadow-sm'
+                ? 'bg-white text-[#334155] shadow-sm'
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
@@ -306,7 +306,7 @@ function TabIngresos({
         <div className="p-5 border-b border-[#E0E0E0]">
           <div className="flex items-center gap-3">
             <div className="w-1 h-6 rounded-full" style={{ backgroundColor: COLORS.magenta }} />
-            <h3 className="font-display text-lg text-[#1a2556]">Últimos Períodos</h3>
+            <h3 className="font-display text-lg text-[#334155]">Últimos Períodos</h3>
           </div>
         </div>
         <div className="overflow-x-auto">

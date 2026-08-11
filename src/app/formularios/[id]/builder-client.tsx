@@ -196,7 +196,7 @@ export function BuilderClient({
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-8">
-      <div className="bg-gradient-to-r from-[#1a2556] to-[#2a3570] rounded-xl px-6 py-6 mb-6 flex items-center justify-between gap-4">
+      <div className="bg-gradient-to-r from-[#334155] to-[#475569] rounded-xl px-6 py-6 mb-6 flex items-center justify-between gap-4">
         <div>
           <h1 className="font-display text-2xl text-white">
             {formId ? 'Editar formulario' : 'Nuevo formulario'}
@@ -275,7 +275,7 @@ export function BuilderClient({
             type="button"
             disabled={saving}
             onClick={handleSave}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-[#1a2556] hover:bg-[#2a3570] transition-colors disabled:opacity-60"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-[#334155] hover:bg-[#475569] transition-colors disabled:opacity-60"
           >
             <Save className="w-4 h-4" />
             {saving ? 'Guardando…' : 'Guardar'}

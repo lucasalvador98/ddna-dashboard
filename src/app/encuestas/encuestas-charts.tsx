@@ -20,7 +20,7 @@ const CHART_COLORS = [
   '#10B981',
   '#E07A5F',
   '#F3A712',
-  '#1a2556',
+  '#334155',
   '#6B9AFF',
   '#22C55E',
   '#F97316',
@@ -92,7 +92,7 @@ export function EncuestasCharts({ priorityCharts, showOtherCharts }: EncuestasCh
 
       {showOtherCharts.length > 0 && (
         <>
-          <h2 className="font-display text-xl text-[#1a2556] mt-8 mb-4">Otros indicadores</h2>
+          <h2 className="font-display text-xl text-[#334155] mt-8 mb-4">Otros indicadores</h2>
           <div className="grid grid-cols-1 gap-6">
             {showOtherCharts.map(chart => {
               const chartData = chart.items;

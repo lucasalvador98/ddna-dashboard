@@ -35,9 +35,9 @@ const colorClasses: Record<KpiColor, { border: string; iconBg: string; iconText:
     iconText: 'text-[#E07A5F]',
   },
   navy: {
-    border: 'border-l-[#1a2556]',
-    iconBg: 'bg-[#1a2556]/10',
-    iconText: 'text-[#1a2556]',
+    border: 'border-l-[#334155]',
+    iconBg: 'bg-[#334155]/10',
+    iconText: 'text-[#334155]',
   },
   orange: {
     border: 'border-l-[#FF7F11]',
@@ -101,7 +101,7 @@ export function KpiCard({
       {/* Content */}
       <div className="mt-4">
         <h3 className="font-accent text-sm text-[#4D4D4D] tracking-wide">{title}</h3>
-        <p className="font-display text-4xl text-[#1a2556] mt-1">{value}</p>
+        <p className="font-display text-4xl text-[#334155] mt-1">{value}</p>
         <p className="font-body text-sm text-[#4D4D4D]/70 mt-2 leading-relaxed">{subtitle}</p>
       </div>
     </article>

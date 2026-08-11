@@ -191,7 +191,7 @@ export function FormRenderer({
           type="submit"
           disabled={submitting}
           className={clsx(
-            'inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium text-white bg-[#1a2556] hover:bg-[#2a3570] transition-colors disabled:opacity-60'
+            'inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium text-white bg-[#334155] hover:bg-[#475569] transition-colors disabled:opacity-60'
           )}
         >
           {submitting ? 'Enviando…' : submitLabel}

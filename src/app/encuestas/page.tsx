@@ -14,7 +14,7 @@ const COLORS = {
   green: '#10B981',
   terracotta: '#E07A5F',
   amber: '#F3A712',
-  navy: '#1a2556',
+  navy: '#334155',
 };
 
 // ─── Tipos ─────────────────────────────────────────
@@ -245,7 +245,7 @@ async function EncuestasContent() {
 
       {/* Nota metodológica */}
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-5 mt-6">
-        <h3 className="font-accent text-sm text-[#1a2556] font-medium mb-2 flex items-center gap-2">
+        <h3 className="font-accent text-sm text-[#334155] font-medium mb-2 flex items-center gap-2">
           <Info className="w-4 h-4 text-[#BF1363]" />
           Nota metodológica
         </h3>

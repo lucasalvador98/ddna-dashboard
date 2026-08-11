@@ -119,7 +119,7 @@ export function RespuestasClient({ form, respuestas }: RespuestasClientProps) {
     <div className="max-w-5xl mx-auto px-6 py-8">
       <BackLink />
 
-      <div className="bg-gradient-to-r from-[#1a2556] to-[#2a3570] rounded-xl px-6 py-6 mb-6 flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-gradient-to-r from-[#334155] to-[#475569] rounded-xl px-6 py-6 mb-6 flex flex-wrap items-center justify-between gap-4">
         <div className="min-w-0">
           <h1 className="font-display text-2xl text-white truncate">{form.titulo}</h1>
           <p className="text-sm text-white/60 mt-1">

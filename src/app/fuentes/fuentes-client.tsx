@@ -40,7 +40,7 @@ const categoryColors: Record<CategoriaIndicador, { bg: string; text: string }> =
   pobreza: { bg: 'bg-[#BF1363]/10', text: 'text-[#BF1363]' },
   seguridad: { bg: 'bg-[#3777FF]/10', text: 'text-[#3777FF]' },
   inversion: { bg: 'bg-[#FF7F11]/10', text: 'text-[#FF7F11]' },
-  demografia: { bg: 'bg-[#1a2556]/10', text: 'text-[#1a2556]' },
+  demografia: { bg: 'bg-[#334155]/10', text: 'text-[#334155]' },
 };
 
 const methodColors: Record<string, { bg: string; text: string }> = {
@@ -293,7 +293,7 @@ export function FuentesClient({
               'px-4 py-3 font-accent text-sm border-b-2 transition-colors',
               activeTab === 'fuentes'
                 ? 'border-[#FF7F11] text-[#FF7F11]'
-                : 'border-transparent text-[#4D4D4D] hover:text-[#1a2556]'
+                : 'border-transparent text-[#4D4D4D] hover:text-[#334155]'
             )}
           >
             Fuentes de Datos
@@ -304,7 +304,7 @@ export function FuentesClient({
               'px-4 py-3 font-accent text-sm border-b-2 transition-colors',
               activeTab === 'apis'
                 ? 'border-[#FF7F11] text-[#FF7F11]'
-                : 'border-transparent text-[#4D4D4D] hover:text-[#1a2556]'
+                : 'border-transparent text-[#4D4D4D] hover:text-[#334155]'
             )}
           >
             APIs Externas
@@ -388,13 +388,13 @@ export function FuentesClient({
                       >
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-2">
-                            <span className="font-medium text-[#1a2556]">{fuente.nombre}</span>
+                            <span className="font-medium text-[#334155]">{fuente.nombre}</span>
                             {fuente.url && (
                               <a
                                 href={fuente.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-[#3777FF] hover:text-[#1a2556] transition-colors"
+                                className="text-[#3777FF] hover:text-[#334155] transition-colors"
                               >
                                 <ExternalLink className="w-3.5 h-3.5" />
                               </a>
@@ -453,7 +453,7 @@ export function FuentesClient({
                   onClick={() => setActiveSource(s.id)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg font-accent text-sm transition-colors ${
                     activeSource === s.id
-                      ? 'bg-[#1a2556] text-white'
+                      ? 'bg-[#334155] text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
@@ -472,7 +472,7 @@ export function FuentesClient({
                 placeholder="Buscar datasets..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a2556] focus:border-transparent"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#334155] focus:border-transparent"
               />
             </div>
           )}
@@ -621,7 +621,7 @@ export function FuentesClient({
                 onClick={() => setActiveSource(s.id)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg font-accent text-sm transition-colors ${
                   activeSource === s.id
-                    ? 'bg-[#1a2556] text-white'
+                    ? 'bg-[#334155] text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
@@ -638,13 +638,13 @@ export function FuentesClient({
               placeholder="Buscar datasets..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a2556] focus:border-transparent"
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#334155] focus:border-transparent"
             />
           </div>
 
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1a2556]" />
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#334155]" />
               <span className="ml-3 text-gray-500">Cargando...</span>
             </div>
           ) : (

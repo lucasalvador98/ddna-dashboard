@@ -82,7 +82,7 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 h-16 border-b border-[#E0E0E0]">
-          <span className="font-display text-lg text-[#1a2556]">Navegación</span>
+          <span className="font-display text-lg text-[#334155]">Navegación</span>
           <button
             onClick={onClose}
             className="p-2 rounded-lg hover:bg-[#FDF3E7] transition-colors text-[#4D4D4D]"

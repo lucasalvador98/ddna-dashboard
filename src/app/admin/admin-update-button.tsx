@@ -51,7 +51,7 @@ export function AdminUpdateButton() {
       <button
         onClick={refresh}
         disabled={loading}
-        className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl text-sm text-[#1a2556] font-medium transition-colors text-left disabled:opacity-60"
+        className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl text-sm text-[#334155] font-medium transition-colors text-left disabled:opacity-60"
       >
         <RefreshCw className={clsx('w-4 h-4 text-gray-500', loading && 'animate-spin')} />
         Actualizar datos

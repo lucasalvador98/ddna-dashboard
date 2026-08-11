@@ -79,11 +79,11 @@ function UserRow({
 }) {
   return (
     <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl hover:bg-gray-100/60 transition-colors">
-      <div className="w-9 h-9 rounded-full bg-[#1a2556]/10 flex items-center justify-center flex-shrink-0">
-        <Mail className="w-4 h-4 text-[#1a2556]" />
+      <div className="w-9 h-9 rounded-full bg-[#334155]/10 flex items-center justify-center flex-shrink-0">
+        <Mail className="w-4 h-4 text-[#334155]" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-[#1a2556] font-medium truncate">{u.email}</p>
+        <p className="text-sm text-[#334155] font-medium truncate">{u.email}</p>
         <p className="text-[10px] text-gray-400 flex items-center gap-1 mt-0.5">
           <Calendar className="w-3 h-3" />
           {new Date(u.created_at).toLocaleDateString('es-AR')}
@@ -101,7 +101,7 @@ function UserRow({
               const val = e.target.value;
               onRoleChange(u.id, val ? Number(val) : null);
             }}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-[#1a2556] focus:border-transparent outline-none cursor-pointer"
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-[#334155] focus:border-transparent outline-none cursor-pointer"
           >
             <option value="">Sin rol</option>
             {roles.map((r) => (
@@ -251,7 +251,7 @@ export function UserRoleManager({ onFlash }: UserRoleManagerProps) {
               value={newEmail}
               onChange={(e) => setNewEmail(e.target.value)}
               placeholder="Email"
-              className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#1a2556] focus:border-transparent outline-none"
+              className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#334155] focus:border-transparent outline-none"
               onKeyDown={(e) => e.key === 'Enter' && handleAddUser()}
             />
           </div>
@@ -262,7 +262,7 @@ export function UserRoleManager({ onFlash }: UserRoleManagerProps) {
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="Contraseña"
-              className="w-full pl-9 pr-9 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#1a2556] focus:border-transparent outline-none"
+              className="w-full pl-9 pr-9 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#334155] focus:border-transparent outline-none"
               onKeyDown={(e) => e.key === 'Enter' && handleAddUser()}
             />
             <button
@@ -275,7 +275,7 @@ export function UserRoleManager({ onFlash }: UserRoleManagerProps) {
           <button
             onClick={handleAddUser}
             disabled={adding || !newEmail || !newPassword}
-            className="flex items-center gap-1.5 px-4 py-2.5 bg-[#1a2556] text-white rounded-lg text-sm font-medium hover:bg-[#0d1530] disabled:opacity-50 transition-colors whitespace-nowrap"
+            className="flex items-center gap-1.5 px-4 py-2.5 bg-[#334155] text-white rounded-lg text-sm font-medium hover:bg-[#0F172A] disabled:opacity-50 transition-colors whitespace-nowrap"
           >
             {adding ? (
               <Loader2 className="w-4 h-4 animate-spin" />

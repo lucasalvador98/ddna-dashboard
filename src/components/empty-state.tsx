@@ -34,7 +34,7 @@ export function EmptyState({
       <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
         <Icon className="w-8 h-8 text-gray-400" />
       </div>
-      <h3 className="text-base font-semibold text-[#1a2556] mb-1">{title}</h3>
+      <h3 className="text-base font-semibold text-[#334155] mb-1">{title}</h3>
       {description && (
         <p className="text-sm text-gray-500 max-w-sm mb-5">{description}</p>
       )}
@@ -59,7 +59,7 @@ export function EmptyState({
       ) : action?.href ? (
         <a
           href={action.href}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-[#1a2556] text-white rounded-lg text-sm font-medium hover:bg-[#0d1530] transition-colors shadow-sm"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-[#334155] text-white rounded-lg text-sm font-medium hover:bg-[#0F172A] transition-colors shadow-sm"
         >
           <Plus className="w-4 h-4" />
           {action.label}
@@ -67,7 +67,7 @@ export function EmptyState({
       ) : action?.onClick ? (
         <button
           onClick={action.onClick}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-[#1a2556] text-white rounded-lg text-sm font-medium hover:bg-[#0d1530] transition-colors shadow-sm"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-[#334155] text-white rounded-lg text-sm font-medium hover:bg-[#0F172A] transition-colors shadow-sm"
         >
           <Plus className="w-4 h-4" />
           {action.label}

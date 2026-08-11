@@ -74,7 +74,7 @@ function LoginForm() {
           required
           autoComplete="email"
           placeholder="admin@ddna.org"
-          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1a2556] focus:border-transparent outline-none transition-all text-[#1a2556] placeholder-gray-400"
+          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#334155] focus:border-transparent outline-none transition-all text-[#334155] placeholder-gray-400"
         />
       </div>
 
@@ -90,14 +90,14 @@ function LoginForm() {
           required
           autoComplete="current-password"
           placeholder="••••••••"
-          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1a2556] focus:border-transparent outline-none transition-all text-[#1a2556] placeholder-gray-400"
+          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#334155] focus:border-transparent outline-none transition-all text-[#334155] placeholder-gray-400"
         />
       </div>
 
       <button
         type="submit"
         disabled={loading}
-        className="w-full py-3 bg-[#1a2556] hover:bg-[#0f1740] text-white font-accent font-semibold rounded-xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+        className="w-full py-3 bg-[#334155] hover:bg-[#0F172A] text-white font-accent font-semibold rounded-xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
       >
         {loading ? (
           <>
@@ -140,10 +140,10 @@ export default function LoginPage() {
         <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
           {/* Brand header */}
           <div className="text-center mb-8">
-            <div className="mx-auto w-14 h-14 bg-[#1a2556] rounded-2xl flex items-center justify-center mb-4">
+            <div className="mx-auto w-14 h-14 bg-[#334155] rounded-2xl flex items-center justify-center mb-4">
               <Shield className="w-7 h-7 text-white" />
             </div>
-            <h1 className="font-display text-2xl text-[#1a2556]">DDNA Dashboard</h1>
+            <h1 className="font-display text-2xl text-[#334155]">DDNA Dashboard</h1>
             <p className="font-body text-sm text-gray-500 mt-1">
               Ingresá con tus credenciales para acceder
             </p>
