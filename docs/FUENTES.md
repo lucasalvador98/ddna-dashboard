@@ -27,7 +27,7 @@
 | Canastas básicas (CBA/CBT)      | 500       | 2018-2026 | INDEC — API Series de Tiempo            |
 | Demografía                      | 361       | 2022      | Censo 2022                              |
 | SENAF                           | 382       | 2020-2023 | Programas Nacionales SENAF †            |
-| Salud (DEIS)                    | 236       | 1990-2024 | DEIS — Mortalidad infantil, vacunación  |
+| Salud (DEIS)                    | 244       | 1990-2024 | DEIS — Mortalidad infantil, vacunación  |
 | Encuestas 2024 (DDNA)           | 131       | 2024      | Encuestas propias de la Defensoría      |
 | Seguridad                       | 129       | 1999-2024 | Ministerio Público Córdoba              |
 | Aprender                        | 80        | 2024      | Evaluaciones Aprender 6° y 5°/6°        |
@@ -35,7 +35,7 @@
 | DEIS (raw)                      | 36        | 2005-2022 | DEIS — datos directos                   |
 | Consumos                        | 3         | 2022      | Estudios de consumos                    |
 
-### 1. SALUD (236 + 32 salud_adolescente)
+### 1. SALUD (244 + 32 salud_adolescente)
 
 | fuente                                | tipo   | frecuencia | estado | detalle                                                  |
 | ------------------------------------- | ------ | ---------- | ------ | -------------------------------------------------------- |
@@ -266,10 +266,11 @@ Mortalidad infantil TMI,Córdoba,8.5,‰,2022,Córdoba,"{""fuente"":""DEIS 2022"
 | `scripts/load-senaf-data.mjs`       | SENAF / desarrollo social  | CSV → Supabase     | ✅ (vía Wayback Machine) |
 | `scripts/load-deis-2024.mjs`        | DEIS Estadísticas Vitales  | PDF → SQL          | ✅     |
 | `scripts/load-vaccination-data.mjs` | DEIS vacunación            | CSV → Supabase     | ✅     |
-| `scripts/load-uca-dimensions.mjs`   | UCA (pobreza)              | CSV → Supabase     | ✅     |
 | `scripts/load-budget-*.mjs`         | Presupuesto                | CSV → Supabase     | ✅     |
 
 > Todos los scripts están en `scripts/` y usan `scripts/config.mjs` para la conexión a Supabase.
+
+> **Nota**: `scripts/load-uca-dimensions.mjs` y los scripts one-time (migrate-monitoreo, sync-monitoreo, process_*, SQLs generados) fueron eliminados del repo en la limpieza de agosto 2026 — los datos ya están cargados en Supabase.
 
 ## Estados de carga
 

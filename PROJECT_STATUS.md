@@ -72,9 +72,9 @@
 
 ### 7. Scripts ETL y Automatización
 - `scripts/update-indec-indicators.mjs` — TMI Córdoba y Nacional vía API Series (hasta 2024 ✅)
-- `scripts/load-senaf-data.mjs` — **Nuevo**: SENAF (Primeros Años, Dispositivos adolescentes, Línea 102)
+- `scripts/load-senaf-data.mjs` — SENAF (Primeros Años, Dispositivos adolescentes, Línea 102)
+- `scripts/load-deis-2024.mjs` — DEIS Estadísticas Vitales
 - `scripts/load-vaccination-data.mjs` — Cobertura vacunal DEIS
-- `scripts/load-uca-dimensions.mjs` — Pobreza UCA
 - `scripts/load-budget-*.mjs` — Presupuesto
 - `scripts/config.mjs` — Config compartida (conexión Supabase)
 
@@ -103,7 +103,7 @@
 ## Supabase — Schema
 
 ### Tabla `indicadores`
-- **20,767 registros** en 14 categorías
+- **21,149 registros** en 15 categorías
 - Columnas: `id`, `indicador_nombre`, `categoria`, `valor`, `unidad`, `periodo`, `region`, `desglose` (JSONB), `fuente`, `ultima_actualizacion`, `activo`
 - RLS: select público, insert/update/delete admin
 
@@ -115,6 +115,7 @@
 | inversion           | 725       |
 | empleo              | 709       |
 | canastas            | 500       |
+| senaf               | 382       |
 | demografia          | 361       |
 | salud               | 244       |
 | encuestas_2024      | 131       |

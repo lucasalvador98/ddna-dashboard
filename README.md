@@ -28,7 +28,7 @@ Este proyecto moderniza ese flujo con una **arquitectura abierta**: Next.js + Su
 │  DATOS — Supabase (PostgreSQL)              │
 │  (Indicadores, series, fuentes, uploads)    │
 ├─────────────────────────────────────────────┤
-│  ETL — Python + Pandas                      │
+│  ETL — Node.js scripts                      │
 │  (Ingesta + transformación desde APIs/CSV)  │
 └─────────────────────────────────────────────┘
 ```
@@ -38,12 +38,12 @@ Este proyecto moderniza ese flujo con una **arquitectura abierta**: Next.js + Su
 | Framework Web        | Next.js 16 (App Router, TypeScript) | SSR/SSG, API Routes integradas, deploy en Vercel          |
 | Visualización        | Recharts + Plotly.js                | Recharts para KPIs/líneas, Plotly para mapas interactivos |
 | Backend / BD         | Supabase (PostgreSQL)               | Auth, storage, real-time, API REST autogenerada           |
-| ETL                  | Python + Pandas                     | Estándar en análisis de datos, ingesta programada         |
+| ETL                  | Node.js (scripts/)                  | Scripts de ingesta y transformación desde APIs/CSV        |
 | Control de versiones | Git + GitHub                        | CI/CD, LFS para datos grandes                             |
 
 ### Recuperación de datos (híbrida)
 
-- **API programada** (`datos.gob.ar`, DEIS): Scripts Python que descargan y normalizan automáticamente
+- **API programada** (`datos.gob.ar`, DEIS): Scripts Node.js en `scripts/` que descargan y normalizan automáticamente
 - **CSV manual**: Upload vía interfaz web con validación y carga a Supabase
 - **Fallback placeholder**: Dashboard funciona sin Supabase conectado usando datos de referencia
 
@@ -167,19 +167,19 @@ src/
 - [x] Identidad visual completa (Caprasimo + DK Lemon fonts, Recurso 1-7 icons, Tema.json palette)
 - [x] Home page con KPIs conectados a Supabase + fallback placeholder
 - [x] 6 secciones temáticas con gráficos Recharts (salud, educación, pobreza, seguridad, inversión, fuentes)
-- [x] Supabase: tabla `indicadores` (14 categorías, 20,759 registros)
+- [x] Supabase: tabla `indicadores` (15 categorías, 21,149 registros)
 - [x] 11+ indicadores seedeados con datos históricos (2018-2024)
 - [x] API REST: `/api/health`, `/api/indicadores`, `/api/fuentes`, `/api/upload`
 - [x] Catálogo de fuentes con badges por categoría
 - [x] Interfaz de carga CSV para admins (`/admin`)
-- [x] Scripts ETL Python para datos Excel (`etl/`)
+- [x] Scripts ETL para datos Excel/CSV (Node.js en `scripts/`)
 - [x] ETL completo: salud (145), educacion (1056), pobreza (48), seguridad (7), demografia (411)
-- [x] Carga de datos reales desde Excel a Supabase (20,759 registros en 14 categorías)
+- [x] Carga de datos reales desde Excel a Supabase (21,149 registros en 15 categorías)
 - [x] Deploy en Vercel — **https://ddna-dashboard.vercel.app/**
 
 ---
 
-## Contenido en Supabase (al 15/07/2026)
+## Contenido en Supabase (verificado al 19/08/2026)
 
 | Categoría           | Registros                              |
 | ------------------- | -------------------------------------- |
@@ -189,131 +189,35 @@ src/
 | Inversión           | 725 (Visualizador PTO + Datos Abiertos)|
 | Empleo              | 709 (INDEC EPH)                        |
 | Canastas Básicas    | 500 (INDEC — CBA/CBT)                  |
+| SENAF               | 382 (Primeros Años, Dispositivos, L102)|
 | Demografía          | 361 (Censo 2022)                       |
-| Salud               | 236 (DEIS — mortalidad, vacunación)    |
+| Salud               | 244 (DEIS — mortalidad, vacunación)    |
 | Encuestas DDNA 2024 | 131                                    |
 | Seguridad           | 129 (MP Córdoba)                       |
 | Aprender            | 80 (Evaluaciones 2024)                 |
 | Salud Adolescente   | 32 (DEIS)                              |
-| **Total**           | **20,759**                             |
+| DEIS (raw)          | 36                                     |
+| Consumos            | 3                                      |
+| **Total**           | **21,149**                             |
 
 ---
 
 ## ETL — Pipeline de Datos
 
-El dashboard funciona con datos que se ingestan desde archivos Excel/CSV through un pipeline de **Extracción → Transformación → Carga (ETL)** implementado en Python.
+El dashboard se alimenta con datos cargados a Supabase mediante **scripts Node.js** en `scripts/` (`.mjs`) que cubren la ingesta y transformación desde APIs y archivos (CSV/Excel/PDF).
 
-### Flujo completo
+| Script                                | Fuente                     | Tipo de carga        |
+| ------------------------------------- | -------------------------- | -------------------- |
+| `scripts/update-indec-indicators.mjs` | INDEC / datos.gob.ar API   | API REST (series)    |
+| `scripts/load-senaf-data.mjs`         | SENAF                      | CSV → Supabase       |
+| `scripts/load-deis-2024.mjs`          | DEIS Estadísticas Vitales  | PDF → SQL            |
+| `scripts/load-vaccination-data.mjs`   | DEIS vacunación            | CSV → Supabase       |
+| `scripts/load-budget-*.mjs`           | Presupuesto                | CSV → Supabase       |
+| `scripts/config.mjs`                  | —                          | Config compartida    |
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           PIPELINE ETL DDNA                                 │
-└─────────────────────────────────────────────────────────────────────────────┘
+> Los scripts usan `scripts/config.mjs` para la conexión a Supabase.
 
-  ┌──────────┐     ┌──────────────┐     ┌─────────────┐     ┌──────────────┐
-  │   RAW    │     │   EXTRACT    │     │  TRANSFORM │     │    LOAD      │
-  │  DATA    │────▶│   (Excel)    │────▶│  (Python)   │────▶│  (Supabase)  │
-  └──────────┘     └──────────────┘     └─────────────┘     └──────────────┘
-
-  datos/raw/         read_excel.py        salud.py          sql_generator.py
-  - DEIS.xlsx        + fallback           + demografia.py    + supabase_loader
-  - INDEC.csv         openpyxl            + educacion.py
-  - Aprender.xlsx     cuando no            + pobreza.py
-                      hay pandas           + seguridad.py
-
-  Output:             Limpieza/            datos_indicadores
-  datos/raw/          normalización        indicadores
-  - deis/             → JSON                fuentes_datos
-  - censo-2022/       → output/
-  - pobreza/
-```
-
-### Comandos
-
-| Comando                                         | Descripción                                          |
-| ----------------------------------------------- | ---------------------------------------------------- |
-| `python -m etl.main transform --category salud` | Transforma solo la categoría "salud"                 |
-| `python -m etl.main transform --all`            | Transforma todas las categorías                      |
-| `python -m etl.main load --method sql`          | Genera archivos SQL en `etl/output/`                 |
-| `python -m etl.main load --method api`          | Carga directo a Supabase (requiere SERVICE_ROLE_KEY) |
-| `python -m etl.main etl --all`                  | Pipeline completo (transform + load)                 |
-
-### Estructura de datos crudos
-
-```
-datos/raw/
-├── deis/
-│   ├── datosDeis-2024-07-26.xlsx
-│   ├── Mortalidad infantil Nacion-Provincia.xlsx
-│   └── Edad_Madre 2022.xlsx
-├── censo-2022/
-│   ├── Educacion por nivel.xlsx
-│   ├── Educacion por edades.xlsx
-│   ├── censo poblacion.xlsx
-│   └── Cobertura_Salud-Censo.xlsx
-├── pobreza/
-│   ├── cuadros_informe_pobreza_09_24.xlsx
-│   └── ...
-├── aprender/
-│   └── aprender 2024.xlsx
-├── justicia/
-│   └── Justicia_cba_2022.xlsx
-└── ...
-```
-
-### Configuración
-
-Los archivos se mapean en `etl/config.py`:
-
-```python
-DATA_FILES = {
-    "salud": [
-        RAW_DATA_DIR / "deis" / "datosDeis-2024-07-26.xlsx",
-        RAW_DATA_DIR / "deis" / "Mortalidad infantil Nacion-Provincia.xlsx",
-        ...
-    ],
-    "educacion": [...],
-    "pobreza": [...],
-}
-```
-
-### Transformadores
-
-Cada categoría tiene su propio transformador en `etl/transform/`:
-
-| Archivo         | Categoría                                          |
-| --------------- | -------------------------------------------------- |
-| `salud.py`      | Mortalidad infantil, cobertura vacunal, edad madre |
-| `educacion.py`  | Escolarización, aprender, abandono                 |
-| `pobreza.py`    | Pobreza e indigencia, brecha                       |
-| `seguridad.py`  | Denuncias, justicia                                |
-| `demografia.py` | Población, estructura                              |
-
-Cada transformador:
-
-1. Lee los Excel correspondientes usando `read_excel()`
-2. Limpia y normaliza columnas
-3. Genera registros para `datos_indicadores`
-4. Guarda JSON en `etl/output/{categoria}_transformed.json`
-
-### Cargar a Supabase
-
-**Opción 1 — SQL (recomendado para testing):**
-
-```bash
-python -m etl.main load --method sql
-```
-
-Genera archivos `.sql` en `etl/output/`. Copiar y pegar en el SQL Editor de Supabase.
-
-**Opción 2 — API (para producción):**
-
-```bash
-export SUPABASE_SERVICE_ROLE_KEY="tu-key"
-python -m etl.main load --method api
-```
-
-Sube directo a Supabase. Requiere `SERVICE_ROLE_KEY`.
+> **Nota histórica**: el pipeline ETL original en Python (`etl/` con `etl.main`, `etl/config.py`, `etl/transform/`) y los datos crudos (`datos/`) fueron eliminados del repo durante la limpieza de 2026 — los datos ya están cargados en Supabase.
 
 ---
 

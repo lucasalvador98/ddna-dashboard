@@ -102,6 +102,7 @@
 
 ### Auditoría de Fuentes (Julio 2026)
 - [x] Creado `scripts/load-senaf-data.mjs` — carga SENAF (Primeros Años, Dispositivos, Línea 102)
+- [x] Ejecutado `scripts/load-senaf-data.mjs` (2026-08-19) — SENAF cargado en Supabase: Primeros Años (362) + Dispositivos adolescentes (18) + Línea 102 (2) = 382 registros
 - [x] Verificado TMI vía API hasta 2024 (Nac: 8.5, Cba: 6.8)
 - [x] Detectado: RMM/TMNEO/TMPOS sin API directa — requieren ETL desde microdatos DEIS
 - [x] Actualizados `docs/FUENTES.md`, `PROJECT_STATUS.md`, `ROADMAP.md`
@@ -117,8 +118,7 @@
 
 ### Prioridad Media
 3. **Limpieza de datos ETL para inversión** — hay 6,164 registros que necesitan revisión/limpieza
-4. **Correr SENAF script** — `scripts/load-senaf-data.mjs` listo, pendiente de ejecución local
-5. **RMM/TMNEO/TMPOS post-2022** — DEIS no tiene API, requiere ETL desde microdatos de defunciones + nacidos vivos
+4. **RMM/TMNEO/TMPOS post-2022** — DEIS no tiene API, requiere ETL desde microdatos de defunciones + nacidos vivos
 
 ### Prioridad Baja
 5. **Streaming de respuestas** en el chat de indicadores (actualmente envía respuesta completa)
