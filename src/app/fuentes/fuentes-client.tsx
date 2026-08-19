@@ -34,7 +34,9 @@ interface EndpointData {
 
 // ── Constants ───────────────────────────────────────────────
 
-const categoryColors: Record<CategoriaIndicador, { bg: string; text: string }> = {
+// Partial: only the 6 core categories have palette entries; the rest render
+// without a colored badge (see the `?.` access below).
+const categoryColors: Partial<Record<CategoriaIndicador, { bg: string; text: string }>> = {
   salud: { bg: 'bg-[#E07A5F]/10', text: 'text-[#E07A5F]' },
   educacion: { bg: 'bg-[#F3A712]/10', text: 'text-[#F3A712]' },
   pobreza: { bg: 'bg-[#BF1363]/10', text: 'text-[#BF1363]' },

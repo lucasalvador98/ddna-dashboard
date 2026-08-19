@@ -1,19 +1,9 @@
 // Tipos y datos placeholder para cuando Supabase aún no esté conectado
 // Eliminar una vez que el backend esté activo
 
-export type CategoriaIndicador =
-  | 'salud'
-  | 'educacion'
-  | 'pobreza'
-  | 'seguridad'
-  | 'inversion'
-  | 'demografia'
-  | 'deis'
-  | 'aprender'
-  | 'justicia'
-  | 'salud_adolescente'
-  | 'anuario_educacion'
-  | 'consumo';
+// Single source of truth for category names lives in @/lib/supabase (DB-facing).
+import type { CategoriaIndicador } from '@/lib/supabase';
+export type { CategoriaIndicador } from '@/lib/supabase';
 
 export interface KpiData {
   id: string;
@@ -174,5 +164,40 @@ export const categoriasInfo: Record<
       'Características de hogares con menores: tamaño, ingreso per cápita, condiciones de vida.',
     color: '#14B8A6',
     icono: 'Home',
+  },
+  encuestas_2024: {
+    titulo: 'Encuestas 2024',
+    descripcion:
+      'Resultados de la encuesta a hogares y jóvenes de Córdoba: percepción, hábitos y condiciones de vida.',
+    color: '#0EA5E9',
+    icono: 'ClipboardList',
+  },
+  canastas: {
+    titulo: 'Canastas',
+    descripcion:
+      'Composición y evolución de las canastas básicas (alimentaria y total) y su relación con la pobreza.',
+    color: '#F97316',
+    icono: 'ShoppingCart',
+  },
+  empleo: {
+    titulo: 'Empleo',
+    descripcion:
+      'Indicadores de empleo y desempleo, con foco en población joven y hogares con NNyA.',
+    color: '#84CC16',
+    icono: 'Briefcase',
+  },
+  precios: {
+    titulo: 'Precios',
+    descripcion:
+      'Índices de precios (IPC) y su impacto en hogares con niñas, niños y adolescentes.',
+    color: '#EF4444',
+    icono: 'TrendingUp',
+  },
+  senaf: {
+    titulo: 'SENAF',
+    descripcion:
+      'Indicadores y programas de la Secretaría Nacional de Niñez, Adolescencia y Familia.',
+    color: '#0D9488',
+    icono: 'HandHeart',
   },
 };

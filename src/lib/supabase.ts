@@ -45,6 +45,7 @@ export type CategoriaIndicador =
   | 'aprender'
   | 'consumo'
   | 'deis'
+  | 'justicia'
   | 'salud_adolescente'
   | 'encuestas_2024'
   | 'canastas'
