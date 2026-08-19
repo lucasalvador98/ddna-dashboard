@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import {
   Plus,
@@ -11,8 +11,13 @@ import {
   ClipboardList,
   CheckCircle,
   XCircle,
+  QrCode,
+  Download,
+  Loader2,
+  X,
 } from 'lucide-react';
 import clsx from 'clsx';
+import QRCode from 'qrcode';
 import type { Formulario } from '@/lib/formularios/types';
 import { deleteForm, toggleForm } from '@/lib/actions/formularios';
 import { Toggle } from '@/components/monitoreo/toggle';
@@ -46,18 +51,151 @@ function Toast({ toast }: { toast: ToastState }) {
   );
 }
 
+function QrModal({
+  form,
+  onClose,
+  onCopy,
+}: {
+  form: Formulario;
+  onClose: () => void;
+  onCopy: (form: Formulario) => void;
+}) {
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [qrError, setQrError] = useState(false);
+  const backdropRef = useRef<HTMLDivElement>(null);
+
+  const link = `${window.location.origin}/f/${form.slug}`;
+
+  // Generate the QR lazily when the modal opens (client-side only).
+  useEffect(() => {
+    let cancelled = false;
+    QRCode.toDataURL(link, { width: 256, margin: 2, errorCorrectionLevel: 'M' })
+      .then((dataUrl: string) => {
+        if (!cancelled) setQrDataUrl(dataUrl);
+      })
+      .catch(() => {
+        if (!cancelled) setQrError(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [link]);
+
+  // Escape closes the modal; lock body scroll while it is open.
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    },
+    [onClose]
+  );
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+    };
+  }, [handleKeyDown]);
+
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === backdropRef.current) onClose();
+  };
+
+  return (
+    <div
+      ref={backdropRef}
+      onClick={handleBackdropClick}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Compartí este formulario"
+        className="bg-white rounded-xl shadow-2xl w-full max-w-md"
+      >
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+          <h2 className="font-accent text-lg text-[#334155] font-semibold">
+            Compartí este formulario
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Cerrar"
+            className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors"
+          >
+            <X className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+
+        <div className="p-6 flex flex-col items-center gap-5">
+          {qrError ? (
+            <div className="w-48 h-48 flex items-center justify-center bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-600 text-center px-4">
+                No se pudo generar el código QR.
+              </p>
+            </div>
+          ) : qrDataUrl ? (
+            <img
+              src={qrDataUrl}
+              alt={`Código QR para ${form.titulo}`}
+              className="w-48 h-48 border border-slate-200 rounded-lg"
+            />
+          ) : (
+            <div className="w-48 h-48 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-lg">
+              <Loader2 className="w-6 h-6 text-slate-400 animate-spin" />
+            </div>
+          )}
+
+          <p
+            className="text-xs font-mono text-slate-600 truncate max-w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2"
+            title={link}
+          >
+            {link}
+          </p>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onCopy(form)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
+            >
+              <Link2 className="w-3.5 h-3.5" />
+              Copiar link
+            </button>
+            <a
+              href={qrDataUrl ?? undefined}
+              download={`formulario-${form.slug}-qr.png`}
+              className={clsx(
+                'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors',
+                !qrDataUrl && 'pointer-events-none opacity-50'
+              )}
+              aria-disabled={!qrDataUrl}
+            >
+              <Download className="w-3.5 h-3.5" />
+              Descargar QR
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function FormRow({
   form,
   busyId,
   onToggle,
   onDelete,
   onCopy,
+  onShowQr,
 }: {
   form: Formulario;
   busyId: string | null;
   onToggle: (id: string) => void;
   onDelete: (form: Formulario) => void;
   onCopy: (form: Formulario) => void;
+  onShowQr: (form: Formulario) => void;
 }) {
   const isBusy = busyId === form.id;
 
@@ -96,6 +234,14 @@ function FormRow({
           <Link2 className="w-3.5 h-3.5" />
           Copiar link
         </button>
+        <button
+          type="button"
+          onClick={() => onShowQr(form)}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
+        >
+          <QrCode className="w-3.5 h-3.5" />
+          QR
+        </button>
         <Link
           href={`/formularios/respuestas/${form.id}`}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
@@ -121,6 +267,9 @@ export function FormulariosClient({ formularios }: FormulariosClientProps) {
   const [items, setItems] = useState(formularios);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
+  const [qrFormId, setQrFormId] = useState<string | null>(null);
+
+  const qrForm = items.find((f) => f.id === qrFormId) ?? null;
 
   async function handleToggle(id: string) {
     if (busyId) return;
@@ -209,9 +358,18 @@ export function FormulariosClient({ formularios }: FormulariosClientProps) {
               onToggle={handleToggle}
               onDelete={handleDelete}
               onCopy={handleCopy}
+              onShowQr={(f) => setQrFormId(f.id)}
             />
           ))}
         </div>
+      )}
+
+      {qrForm && (
+        <QrModal
+          form={qrForm}
+          onClose={() => setQrFormId(null)}
+          onCopy={handleCopy}
+        />
       )}
 
       {toast && <Toast toast={toast} />}
