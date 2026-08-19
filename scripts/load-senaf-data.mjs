@@ -180,10 +180,13 @@ function transformPrimerosAnos(rows) {
   //          niños/as, facilitadores_capacitados, zonas_de_crianza_nuevas
   return rows.map(r => {
     const trimestreRaw = (r.trimestre || '').trim();
-    // Extract the year from "2020 Trim 1" format
-    const anio = parseInt(trimestreRaw) || 0;
-    const trimestreNum = anio > 0 ? anio : 0;
-    const anio_ = anio > 0 ? anio : 0;
+    // Format: "2020 Trim 1" → anio=2020, trimestre=1
+    const anioMatch = trimestreRaw.match(/(\d{4})/);
+    const trimestreMatch =
+      trimestreRaw.match(/Trim(?:estre)?\s*([1-4])/i) ||
+      trimestreRaw.match(/Q\s*([1-4])/i);
+    const anio = anioMatch ? parseInt(anioMatch[1], 10) : 0;
+    const trimestreNum = trimestreMatch ? parseInt(trimestreMatch[1], 10) : 0;
 
     let ninios = parseInt(r['niños/as'] || r['niños'] || r.niños || 0);
     if (isNaN(ninios)) ninios = 0;
@@ -193,7 +196,7 @@ function transformPrimerosAnos(rows) {
       categoria: 'senaf',
       valor: parseFloat(r.familias) || 0,
       unidad: 'familias',
-      periodo: anio_,
+      periodo: anio,
       region: (r.provincia_nombre || r.Provincia_ || r.provincia || '').trim(),
       desglose: {
         dataset: 'primeros_anos',
@@ -306,10 +309,13 @@ async function main() {
   ensureCacheDir();
 
   let totalInserted = 0;
+  let failedDatasets = 0;
 
   for (const dataset of DATASETS) {
     console.log(`\n📊 ${dataset.nombre} (${dataset.id})`);
     console.log('─'.repeat(50));
+
+    let datasetFailed = false;
 
     try {
       // 1. Download raw bytes
@@ -367,6 +373,7 @@ async function main() {
 
         if (error) {
           console.error(`  ❌ Batch error (lote ${i / BATCH_SIZE + 1}): ${error.message}`);
+          datasetFailed = true;
         } else {
           batchInserted += data.length;
         }
@@ -377,14 +384,25 @@ async function main() {
 
     } catch (err) {
       console.error(`  ❌ Error en dataset ${dataset.id}: ${err.message}`);
+      datasetFailed = true;
     }
+
+    if (datasetFailed) failedDatasets++;
   }
 
   console.log('\n═══════════════════════════════════════════════════');
   console.log(`  TOTAL: ${totalInserted} registros insertados`);
   console.log('═══════════════════════════════════════════════════');
 
+  if (failedDatasets > 0) {
+    console.error(`\n  ❌ ${failedDatasets} dataset(s) fallaron — revisar los logs.`);
+    process.exitCode = 1;
+  }
+
   console.log(`\n📦 Caché CSV en: ${CACHE_DIR}`);
 }
 
-main().catch(console.error);
+main().catch((err) => {
+  console.error(`❌ Error fatal: ${err.message}`);
+  process.exitCode = 1;
+});
