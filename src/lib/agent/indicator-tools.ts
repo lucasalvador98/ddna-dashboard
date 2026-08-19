@@ -667,38 +667,38 @@ export const INDICATOR_TOOL_DEFINITIONS: ToolDefinition[] = [
   {
     name: 'listAvailableIndicators',
     description:
-      'Lista todos los indicadores disponibles agrupados por categoría (pobreza, salud, educacion, inversion, demografia, seguridad, etc.). Usala cuando el usuario pide ver qué datos hay disponibles o explora el catálogo de indicadores.',
+      'Lista todos los indicadores del DASHBOARD agrupados por categoría. Usala PRIMERO cuando el usuario pregunte "¿qué datos tenés?" o antes de buscar un indicador específico si no sabés las categorías. Para documentos usá search_knowledge_base.',
     parameters: 'sin parámetros',
   },
   {
     name: 'getLatestIndicatorValue',
     description:
-      'Obtiene los valores más recientes de un indicador específico. Usala para preguntas sobre el estado actual de un indicador (ej: "¿Cuál es la tasa de pobreza infantil actual?").',
+      'Obtiene los valores más recientes de un indicador del DASHBOARD. Usala para el estado actual de un indicador (ej: "¿Cuál es la tasa de pobreza infantil actual?"). NO busca en documentos.',
     parameters: 'indicadorNombre (requerido), categoria (opcional)',
   },
   {
     name: 'getIndicatorTimeSeries',
     description:
-      'Obtiene la serie temporal completa de un indicador para análisis de tendencias. Usala cuando el usuario pide evolución histórica, tendencias, o cambios a lo largo del tiempo (ej: "¿Cómo evolucionó la mortalidad infantil?").',
+      'Obtiene la serie temporal de un indicador del DASHBOARD para análisis de tendencias. Usala para evolución histórica o cambios a lo largo del tiempo. Solo datos de indicadores, no documentos.',
     parameters: 'indicadorNombre (requerido), categoria (opcional), limit (opcional, default 50)',
   },
   {
     name: 'getCategoryOverview',
     description:
-      'Obtiene un resumen de todos los indicadores dentro de una categoría con sus últimos valores. Usala para tener una visión general de un tema o cuando el usuario pide "datos sobre educación" sin especificar un indicador concreto.',
+      'Obtiene un resumen de todos los indicadores de una categoría con sus últimos valores. Usala para visión general de un tema (ej: "datos sobre educación") sin especificar un indicador concreto. Datos del DASHBOARD, no documentos.',
     parameters: 'categoria (requerido)',
   },
   {
     name: 'getIndicatorBreakdown',
     description:
-      'Desglosa un indicador por una dimensión específica (ej: grupo de edad, género, región). Usala cuando el usuario pregunta por diferencias entre grupos o quiere ver la composición de un indicador (ej: "Pobreza infantil por grupo de edad").',
+      'Desglosa un indicador del DASHBOARD por dimensión (ej: grupo de edad, género, región). Usala para diferencias entre grupos o composición detallada. Solo datos de indicadores, no documentos.',
     parameters:
       'indicadorNombre (requerido), categoria (opcional), desgloseField (opcional — se auto-detecta si no se especifica)',
   },
   {
     name: 'searchIndicators',
     description:
-      'Busca indicadores por nombre usando coincidencia aproximada (ILIKE). Usala cuando el usuario pregunta con términos generales (ej: "pobreza infantil", "mortalidad", "desempleo", "educación") y no sabés el nombre exacto del indicador. Devuelve hasta 20 resultados con su último valor.',
+      'Busca indicadores del DASHBOARD por nombre/tema (ILIKE). Usala cuando el usuario pregunte por indicadores sobre un tema (ej: "pobreza", "mortalidad") pero no sepa el nombre exacto. Más específica que search_knowledge_base para datos. No para documentos.',
     parameters: 'query (requerido) — término de búsqueda, categoria (opcional) para filtrar por categoría',
   },
 ];
@@ -724,7 +724,7 @@ export const INDICATOR_OPENAPI_TOOLS: Array<{
     function: {
       name: 'listAvailableIndicators',
       description:
-        'Lista todos los indicadores disponibles agrupados por categoría (pobreza, salud, educacion, inversion, demografia, seguridad, etc). Usala cuando el usuario pregunte qué datos hay disponibles o quiera explorar el catálogo.',
+        'Lista todos los indicadores del DASHBOARD agrupados por categoría. Usala PRIMERO cuando el usuario pregunte "¿qué datos tenés?" o antes de buscar un indicador específico si no sabés qué categorías existen. NO busca en documentos — usá search_knowledge_base para eso.',
       parameters: {
         type: 'object',
         properties: {},
@@ -737,7 +737,7 @@ export const INDICATOR_OPENAPI_TOOLS: Array<{
     function: {
       name: 'getLatestIndicatorValue',
       description:
-        'Obtiene los valores más recientes de un indicador específico. Usala para preguntas sobre el estado actual (ej: "¿Cuál es la tasa de pobreza infantil actual?").',
+        'Obtiene los valores más recientes de un indicador específico del DASHBOARD. Usala para preguntas sobre el estado actual (ej: "¿Cuál es la tasa de pobreza infantil actual?"). NO busca en documentos — usá search_knowledge_base para contexto documental.',
       parameters: {
         type: 'object',
         properties: {
@@ -761,7 +761,7 @@ export const INDICATOR_OPENAPI_TOOLS: Array<{
     function: {
       name: 'getIndicatorTimeSeries',
       description:
-        'Obtiene la serie temporal completa de un indicador para análisis de tendencias. Usala cuando pregunten por evolución histórica, tendencias, o cambios a lo largo del tiempo.',
+        'Obtiene la serie temporal completa de un indicador del DASHBOARD para análisis de tendencias. Usala cuando pregunten por evolución histórica, tendencias o cambios a lo largo del tiempo. Solamente aplica a datos de indicadores, no a documentos.',
       parameters: {
         type: 'object',
         properties: {
@@ -790,7 +790,7 @@ export const INDICATOR_OPENAPI_TOOLS: Array<{
     function: {
       name: 'getCategoryOverview',
       description:
-        'Obtiene un resumen de todos los indicadores dentro de una categoría con sus últimos valores. Usala para tener una visión general de un tema o cuando pregunten por "datos sobre educación" sin especificar un indicador concreto.',
+        'Obtiene un resumen de TODOS los indicadores de una categoría con sus últimos valores. Usala para una visión general de un tema (ej: "datos sobre educación", "indicadores de salud") sin especificar un indicador concreto. Datos del DASHBOARD, no de documentos.',
       parameters: {
         type: 'object',
         properties: {
@@ -809,7 +809,7 @@ export const INDICATOR_OPENAPI_TOOLS: Array<{
     function: {
       name: 'getIndicatorBreakdown',
       description:
-        'Desglosa un indicador por una dimensión específica (grupo de edad, género, región). Usala cuando pregunten por diferencias entre grupos o quieran ver la composición de un indicador.',
+        'Desglosa un indicador del DASHBOARD por una dimensión específica (ej: grupo de edad, género, región). Usala cuando pregunten por diferencias entre grupos o quieran ver la composición detallada. Solo aplica a datos de indicadores, no a documentos.',
       parameters: {
         type: 'object',
         properties: {
@@ -838,7 +838,7 @@ export const INDICATOR_OPENAPI_TOOLS: Array<{
     function: {
       name: 'searchIndicators',
       description:
-        'Busca indicadores por nombre usando coincidencia aproximada (ILIKE). Usala cuando el usuario pregunte con términos generales (ej: "pobreza infantil", "mortalidad", "desempleo", "educación") y no sabés el nombre exacto del indicador. Devuelve hasta 20 indicadores con su último valor y fuente.',
+        'Busca indicadores del DASHBOARD por nombre/tema usando coincidencia aproximada (ILIKE). Usá ESTA cuando el usuario pregunte por "indicadores" o "datos" sobre un tema (ej: "pobreza", "mortalidad", "educación") pero no sepa el nombre exacto. Es MÁS específica que search_knowledge_base para datos de indicadores. NO la uses para buscar en documentos.',
       parameters: {
         type: 'object',
         properties: {

@@ -221,18 +221,22 @@ export function MonitoreoTable({ onEditRegistro }: TableViewProps) {
     fechaHasta,
   ]);
 
-  const handleDelete = async (id: number, titulo: string) => {
-    if (!confirm(`¿Eliminar el registro "${titulo}"? Esta acción no se puede deshacer.`)) return;
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: number; titulo: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!deleteConfirm) return;
+    setDeleting(true);
     try {
-      // Delete actors first (foreign key)
-      await supabase.from('monitoreo_actores').delete().eq('registro_id', id);
-      // Delete registro
-      const { error } = await supabase.from('monitoreo_registros').delete().eq('id', id);
+      await supabase.from('monitoreo_actores').delete().eq('registro_id', deleteConfirm.id);
+      const { error } = await supabase.from('monitoreo_registros').delete().eq('id', deleteConfirm.id);
       if (error) throw error;
-      // Refresh table
+      setDeleteConfirm(null);
       fetchRegistros();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Error al eliminar');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -490,7 +494,6 @@ export function MonitoreoTable({ onEditRegistro }: TableViewProps) {
                     currentDir={sortDirection}
                     onSort={handleSort}
                   />
-                  <th className="w-10"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -507,8 +510,20 @@ export function MonitoreoTable({ onEditRegistro }: TableViewProps) {
                       {formatDate(r.fecha_sincronizacion)}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-800 font-medium">{r.medio}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700 max-w-xs truncate">
-                      {r.titulo}
+                    <td className="px-4 py-3 text-sm text-slate-700 max-w-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="truncate">{r.titulo}</span>
+                        <button
+                          onClick={e => {
+                            e.stopPropagation();
+                            setDeleteConfirm({ id: r.id, titulo: r.titulo });
+                          }}
+                          className="flex-shrink-0 p-1 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                          title="Eliminar registro"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">{r.seccion || '—'}</td>
                     <td className="px-4 py-3 text-sm text-slate-600 max-w-[200px] truncate">
@@ -531,18 +546,6 @@ export function MonitoreoTable({ onEditRegistro }: TableViewProps) {
                     </td>
                     <td className="px-4 py-3">
                       <StateBadge estado={r.estado} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <button
-                        onClick={e => {
-                          e.stopPropagation();
-                          handleDelete(r.id, r.titulo);
-                        }}
-                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Eliminar registro"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
                     </td>
                   </tr>
                 ))}
@@ -574,6 +577,51 @@ export function MonitoreoTable({ onEditRegistro }: TableViewProps) {
             Siguiente
             <ChevronRight className="w-4 h-4" />
           </button>
+        </div>
+      )}
+
+      {/* ── Delete confirmation modal ──────────────────────────────── */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+          <div className="bg-white rounded-xl shadow-xl p-6 max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-slate-800 mb-2">Eliminar registro</h3>
+            <p className="text-sm text-slate-600 mb-1">
+              ¿Estás seguro de eliminar el registro?
+            </p>
+            <p className="text-sm font-medium text-slate-800 mb-4 truncate">
+              &ldquo;{deleteConfirm.titulo}&rdquo;
+            </p>
+            <p className="text-xs text-red-600 mb-5 flex items-center gap-1">
+              <AlertCircle className="w-3.5 h-3.5" />
+              Esta acción no se puede deshacer. También se eliminarán los actores asociados.
+            </p>
+            <div className="flex items-center justify-end gap-3">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                disabled={deleting}
+                className="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50 transition-colors"
+              >
+                {deleting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Eliminando...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Eliminar
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

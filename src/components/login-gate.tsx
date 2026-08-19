@@ -156,7 +156,7 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
   if (configLoading || authLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-8 h-8 text-[#1a2556] animate-spin" />
+        <Loader2 className="w-8 h-8 text-[#334155] animate-spin" />
       </div>
     );
   }
@@ -173,7 +173,7 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
   if (config?.enabled && user && !permsLoaded) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-8 h-8 text-[#1a2556] animate-spin" />
+        <Loader2 className="w-8 h-8 text-[#334155] animate-spin" />
       </div>
     );
   }
@@ -187,13 +187,13 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
           <div className="mx-auto w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mb-4">
             <Lock className="w-8 h-8 text-red-500" />
           </div>
-          <h2 className="font-display text-xl text-[#1a2556] mb-2">Acceso restringido</h2>
+          <h2 className="font-display text-xl text-[#334155] mb-2">Acceso restringido</h2>
           <p className="font-body text-sm text-gray-500 mb-6">
             Necesitás iniciar sesión para acceder a esta sección.
           </p>
           <Link
             href={`/login?redirect=${encodeURIComponent(pathname)}`}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-[#1a2556] text-white font-accent font-semibold rounded-xl hover:bg-[#0f1740] transition-colors"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-[#334155] text-white font-accent font-semibold rounded-xl hover:bg-[#0F172A] transition-colors"
           >
             Iniciar sesión
           </Link>
@@ -207,7 +207,7 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
   if (permsLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-8 h-8 text-[#1a2556] animate-spin" />
+        <Loader2 className="w-8 h-8 text-[#334155] animate-spin" />
       </div>
     );
   }
@@ -221,7 +221,7 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
           <div className="mx-auto w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center mb-4">
             <ShieldX className="w-8 h-8 text-amber-600" />
           </div>
-          <h2 className="font-display text-xl text-[#1a2556] mb-2">Sin acceso</h2>
+          <h2 className="font-display text-xl text-[#334155] mb-2">Sin acceso</h2>
           <p className="font-body text-sm text-gray-500 mb-2">
             Tu rol <span className="font-semibold text-gray-700">{roleName ?? '—'}</span> no tiene permiso
             para acceder a esta sección.
@@ -231,7 +231,7 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
           </p>
           <Link
             href="/"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-[#1a2556] text-white font-accent font-semibold rounded-xl hover:bg-[#0f1740] transition-colors"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-[#334155] text-white font-accent font-semibold rounded-xl hover:bg-[#0F172A] transition-colors"
           >
             Volver al inicio
           </Link>

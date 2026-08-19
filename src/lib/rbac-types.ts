@@ -28,6 +28,7 @@ export const APP_ROUTES = [
   { route: '/monitoreo', label: 'Monitoreo de Medios' },
   { route: '/repositorio', label: 'Repositorio' },
   { route: '/fuentes', label: 'Fuentes de Datos' },
+  { route: '/formularios', label: 'Formularios' },
   { route: '/ejecutivo', label: 'Reporte Ejecutivo' },
   { route: '/presupuesto-nnya', label: 'Presupuesto NNyA' },
   { route: '/geo', label: 'Mapa Geo' },

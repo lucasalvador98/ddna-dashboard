@@ -1,0 +1,402 @@
+'use client';
+
+// Builder orchestrator (edit and create modes). Holds the definition in state
+// and applies pure helpers from src/lib/formularios/builder.ts on every edit.
+// Save validates with `validateDefinition` and persists via the admin server
+// actions. Live preview renders the shared FormRenderer. Supports block-based
+// sections (Google Forms-style) and flat mode for backward compatibility.
+
+import { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, CheckCircle, ChevronDown, ChevronUp, Eye, EyeOff, Plus, Save, Trash2, XCircle } from 'lucide-react';
+import clsx from 'clsx';
+import type { Bloque, CampoFormulario, DefinicionFormulario, ReglaLogica, TipoCampo } from '@/lib/formularios/types';
+import { MAX_FIELDS, getAllFields } from '@/lib/formularios/defaults';
+import { slugify } from '@/lib/formularios/slug';
+import { validateDefinition } from '@/lib/formularios/validation';
+import {
+  addBlock,
+  addField,
+  addFieldToBlock,
+  moveBlock,
+  moveField,
+  moveFieldInBlock,
+  removeBlock,
+  removeField,
+  removeFieldFromBlock,
+  updateBlock,
+  updateField,
+  updateFieldInBlock,
+} from '@/lib/formularios/builder';
+import { createForm, updateForm } from '@/lib/actions/formularios';
+import { TextInput } from '@/components/monitoreo/text-input';
+import { FieldTypePicker } from '@/components/formularios/builder/field-type-picker';
+import { FieldEditor } from '@/components/formularios/builder/field-editor';
+import { BuilderPreview } from '@/components/formularios/builder/builder-preview';
+
+interface BuilderClientProps {
+  formId?: string;
+  initialTitulo: string;
+  initialDescripcion: string;
+  initialSlug: string;
+  initialDefinicion: DefinicionFormulario;
+}
+
+interface ToastState {
+  message: string;
+  type: 'success' | 'error';
+}
+
+function Toast({ toast }: { toast: ToastState }) {
+  return (
+    <div
+      className={clsx(
+        'fixed top-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-xl shadow-lg text-sm font-medium',
+        toast.type === 'success'
+          ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+          : 'bg-red-50 border border-red-200 text-red-800'
+      )}
+    >
+      {toast.type === 'success' ? (
+        <CheckCircle className="w-4 h-4 flex-shrink-0" />
+      ) : (
+        <XCircle className="w-4 h-4 flex-shrink-0" />
+      )}
+      {toast.message}
+    </div>
+  );
+}
+
+/** Lightweight block header card used in block mode. */
+function BlockHeader({
+  block,
+  index,
+  total,
+  onUpdate,
+  onMove,
+  onRemove,
+}: {
+  block: Bloque;
+  index: number;
+  total: number;
+  onUpdate: (patch: Partial<Bloque>) => void;
+  onMove: (dir: -1 | 1) => void;
+  onRemove: () => void;
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="text-xs font-mono text-slate-400 w-6 flex-shrink-0 pt-2">{index + 1}</span>
+      <div className="flex-1 space-y-2">
+        <input
+          type="text"
+          value={block.titulo}
+          onChange={(e) => onUpdate({ titulo: e.target.value })}
+          placeholder="Título del bloque"
+          className="w-full text-sm font-semibold text-slate-800 bg-transparent border border-transparent rounded-lg px-2 py-1.5 focus:border-slate-300 focus:bg-white"
+        />
+        <input
+          type="text"
+          value={block.descripcion ?? ''}
+          onChange={(e) => onUpdate({ descripcion: e.target.value || undefined })}
+          placeholder="Descripción del bloque (opcional)"
+          className="w-full text-xs text-slate-500 bg-transparent border border-transparent rounded-lg px-2 py-1 focus:border-slate-300 focus:bg-white"
+        />
+      </div>
+      <button
+        type="button"
+        disabled={index === 0}
+        onClick={() => onMove(-1)}
+        className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed"
+        aria-label="Mover bloque arriba"
+      >
+        <ChevronUp className="w-4 h-4" />
+      </button>
+      <button
+        type="button"
+        disabled={index === total - 1}
+        onClick={() => onMove(1)}
+        className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed"
+        aria-label="Mover bloque abajo"
+      >
+        <ChevronDown className="w-4 h-4" />
+      </button>
+      <button
+        type="button"
+        onClick={onRemove}
+        className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600"
+        aria-label="Eliminar bloque"
+      >
+        <Trash2 className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
+
+export function BuilderClient({
+  formId,
+  initialTitulo,
+  initialDescripcion,
+  initialSlug,
+  initialDefinicion,
+}: BuilderClientProps) {
+  const router = useRouter();
+  const [titulo, setTitulo] = useState(initialTitulo);
+  const [descripcion, setDescripcion] = useState(initialDescripcion);
+  const [slug, setSlug] = useState(initialSlug);
+  const [slugTouched, setSlugTouched] = useState(Boolean(initialSlug));
+  const [def, setDef] = useState(initialDefinicion);
+  const [preview, setPreview] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<ToastState | null>(null);
+
+  function handleTituloChange(value: string) {
+    setTitulo(value);
+    if (!slugTouched) setSlug(slugify(value));
+  }
+
+  function handleLogicChange(logic: ReglaLogica[]) {
+    setDef((d) => ({ ...d, logic }));
+  }
+
+  async function handleSave() {
+    if (saving) return;
+    const validation = validateDefinition(def);
+    if (!validation.valid) {
+      setToast({ message: validation.errors.join(' '), type: 'error' });
+      return;
+    }
+
+    setSaving(true);
+    const input = {
+      titulo,
+      descripcion: descripcion.trim() || null,
+      slug,
+      definicion: def,
+    };
+    const result = formId ? await updateForm(formId, input) : await createForm(input);
+    setSaving(false);
+
+    if (!result.ok) {
+      setToast({ message: result.error, type: 'error' });
+      return;
+    }
+
+    router.refresh();
+    if (!formId) {
+      router.push('/formularios');
+    } else {
+      setToast({ message: 'Formulario guardado.', type: 'success' });
+    }
+  }
+
+  const blockMode = Boolean(def.bloques && def.bloques.length > 0);
+  const allFields = getAllFields(def);
+  const totalFields = allFields.length;
+
+  return (
+    <div className="max-w-5xl mx-auto px-6 py-8">
+      <div className="bg-gradient-to-r from-[#334155] to-[#475569] rounded-xl px-6 py-6 mb-6 flex items-center justify-between gap-4">
+        <div>
+          <h1 className="font-display text-2xl text-white">
+            {formId ? 'Editar formulario' : 'Nuevo formulario'}
+          </h1>
+          <p className="text-sm text-white/60 mt-1">
+            Definí los campos y las reglas de visibilidad
+          </p>
+        </div>
+        <Link
+          href="/formularios"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/10 text-white hover:bg-white/20 transition-colors flex-shrink-0"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          Volver
+        </Link>
+      </div>
+
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 mb-6 space-y-4">
+        <TextInput
+          label="Título"
+          value={titulo}
+          onChange={handleTituloChange}
+          placeholder="Nombre del formulario"
+        />
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Descripción</label>
+          <textarea
+            value={descripcion}
+            onChange={(e) => setDescripcion(e.target.value)}
+            rows={2}
+            placeholder="Descripción opcional"
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-[var(--ddna-blue)] focus:border-transparent"
+          />
+        </div>
+        <TextInput
+          label="Slug"
+          value={slug}
+          onChange={(v) => {
+            setSlug(v);
+            setSlugTouched(true);
+          }}
+          placeholder="url-publica"
+        />
+      </div>
+
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <div className="flex items-center gap-2">
+          <FieldTypePicker
+            disabled={totalFields >= MAX_FIELDS}
+            onSelect={(type: TipoCampo) => setDef((d) => addField(d, type))}
+          />
+          <button
+            type="button"
+            onClick={() => setDef((d) => addBlock(d))}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Agregar bloque
+          </button>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setPreview((p) => !p)}
+            className={clsx(
+              'inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+              preview
+                ? 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+            )}
+          >
+            {preview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            {preview ? 'Editar' : 'Vista previa'}
+          </button>
+          <button
+            type="button"
+            disabled={saving}
+            onClick={handleSave}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-[#334155] hover:bg-[#475569] transition-colors disabled:opacity-60"
+          >
+            <Save className="w-4 h-4" />
+            {saving ? 'Guardando…' : 'Guardar'}
+          </button>
+        </div>
+      </div>
+
+      <p className="text-xs text-slate-400 mb-4">
+        {totalFields} {totalFields === 1 ? 'campo' : 'campos'} de {MAX_FIELDS} máximo
+      </p>
+
+      {preview ? (
+        <BuilderPreview definicion={def} titulo={titulo} descripcion={descripcion} />
+      ) : def.fields.length === 0 && !blockMode ? (
+        <div className="bg-white rounded-xl border border-dashed border-slate-300 p-10 text-center text-sm text-slate-500">
+          Todavía no hay campos. Agregá el primero con el botón «Agregar campo».
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {blockMode && def.bloques!.map((bloque, blockIndex) => {
+            return (
+              <div key={bloque.id} className="bg-white rounded-xl border border-slate-200 shadow-sm">
+                <div className="p-4 border-b border-slate-100">
+                  <BlockHeader
+                    block={bloque}
+                    index={blockIndex}
+                    total={def.bloques!.length}
+                    onUpdate={(patch) => setDef((d) => updateBlock(d, bloque.id, patch))}
+                    onMove={(dir) => setDef((d) => moveBlock(d, bloque.id, dir))}
+                    onRemove={() => setDef((d) => removeBlock(d, bloque.id))}
+                  />
+                </div>
+
+                <div className="p-4 space-y-3">
+                  {bloque.fields.length === 0 ? (
+                    <p className="text-xs text-slate-400 py-2 text-center">
+                      Sin campos en este bloque. Agregá el primero.
+                    </p>
+                  ) : (
+                    bloque.fields.map((field, fieldIndex) => (
+                      <FieldEditor
+                        key={field.id}
+                        field={field}
+                        index={fieldIndex}
+                        total={bloque.fields.length}
+                        logic={def.logic}
+                        allFields={allFields}
+                        onUpdate={(patch: Partial<CampoFormulario>) =>
+                          setDef((d) => updateFieldInBlock(d, bloque.id, field.id, patch))
+                        }
+                        onMove={(dir) =>
+                          setDef((d) => moveFieldInBlock(d, bloque.id, field.id, dir))
+                        }
+                        onRemove={() =>
+                          setDef((d) => removeFieldFromBlock(d, bloque.id, field.id))
+                        }
+                        onLogicChange={handleLogicChange}
+                      />
+                    ))
+                  )}
+                  <div className="flex justify-center pt-2">
+                    <FieldTypePicker
+                      disabled={totalFields >= MAX_FIELDS}
+                      onSelect={(type: TipoCampo) =>
+                        setDef((d) => addFieldToBlock(d, bloque.id, type))
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Orphan fields — shown when blocks exist and there are fields outside them */}
+          {blockMode && (() => {
+            const blockFieldIds = new Set(def.bloques!.flatMap((b) => b.fields.map((f) => f.id)));
+            const orphanFields = def.fields.filter((f) => !blockFieldIds.has(f.id));
+            if (orphanFields.length === 0) return null;
+            return (
+              <div className="bg-white rounded-xl border border-dashed border-slate-200 shadow-sm p-4 space-y-3">
+                <h3 className="text-sm font-semibold text-slate-600">Otros campos</h3>
+                {orphanFields.map((field, index) => (
+                  <FieldEditor
+                    key={field.id}
+                    field={field}
+                    index={index}
+                    total={orphanFields.length}
+                    logic={def.logic}
+                    allFields={allFields}
+                    onUpdate={(patch: Partial<CampoFormulario>) =>
+                      setDef((d) => updateField(d, field.id, patch))
+                    }
+                    onMove={(dir) => setDef((d) => moveField(d, field.id, dir))}
+                    onRemove={() => setDef((d) => removeField(d, field.id))}
+                    onLogicChange={handleLogicChange}
+                  />
+                ))}
+              </div>
+            );
+          })()}
+
+          {!blockMode && def.fields.map((field, index) => (
+            <FieldEditor
+              key={field.id}
+              field={field}
+              index={index}
+              total={def.fields.length}
+              logic={def.logic}
+              allFields={def.fields}
+              onUpdate={(patch: Partial<CampoFormulario>) =>
+                setDef((d) => updateField(d, field.id, patch))
+              }
+              onMove={(dir) => setDef((d) => moveField(d, field.id, dir))}
+              onRemove={() => setDef((d) => removeField(d, field.id))}
+              onLogicChange={handleLogicChange}
+            />
+          ))}
+        </div>
+      )}
+
+      {toast && <Toast toast={toast} />}
+    </div>
+  );
+}

@@ -19,7 +19,7 @@ const colorClasses: Record<ChartCardColor, string> = {
   amber: '#F3A712',
   magenta: '#BF1363',
   blue: '#3777FF',
-  navy: '#1a2556',
+  navy: '#334155',
   orange: '#FFB347',
 };
 
@@ -59,7 +59,7 @@ export function ChartCard({
         <div className="flex items-center gap-3">
           <div className="w-1 h-6 rounded-full" style={{ backgroundColor: accentColor }} />
           <div>
-            <h3 className="font-display text-lg text-[#1a2556] tracking-tight">{title}</h3>
+            <h3 className="font-display text-lg text-[#334155] tracking-tight">{title}</h3>
             {subtitle && <p className="font-body text-sm text-[#4D4D4D] mt-1">{subtitle}</p>}
           </div>
         </div>

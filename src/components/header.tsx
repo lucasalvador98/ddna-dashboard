@@ -1,23 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Menu, X, ChevronRight, LogOut } from 'lucide-react';
 import clsx from 'clsx';
-import { navigation, routeTitles } from '@/lib/navigation';
+import { routeTitles } from '@/lib/navigation';
 import { useSidebar } from '@/components/sidebar-context';
 import { useAuth } from '@/components/auth-provider';
-
-// Build flat nav links from grouped navigation for mobile menu
-const navLinks = navigation.flatMap(group =>
-  group.items.map(item => ({
-    label: item.label,
-    href: item.href,
-    group: group.label,
-  }))
-);
+import { MobileNav } from '@/components/mobile-nav';
 
 function Breadcrumb() {
   const pathname = usePathname();
@@ -40,7 +32,7 @@ function Breadcrumb() {
         <span key={crumb.href} className="flex items-center gap-1">
           <ChevronRight className="w-3 h-3" />
           {crumb.isLast ? (
-            <span className="text-[#1a2556] font-medium">{crumb.title}</span>
+            <span className="text-[#334155] font-medium">{crumb.title}</span>
           ) : (
             <Link href={crumb.href} className="hover:text-[#E07A5F] transition-colors">
               {crumb.title}
@@ -56,14 +48,28 @@ export function Header() {
   const pathname = usePathname();
   const { toggleCollapse, isCollapsed } = useSidebar();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const { user, signOut } = useAuth();
+
+  // Track scroll position to add shadow when not at top
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 4);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   const title = routeTitles[pathname] || 'DDNA';
 
   return (
-    <header className="bg-white border-b border-[#E0E0E0] sticky top-0 z-40">
-      {/* Single gradient accent strip — now only here */}
-      <div className="h-1.5 bg-gradient-to-r from-[#FF7F11] via-[#F3A712] to-[#FF7F11]" />
+    <header
+      className={clsx(
+        'bg-white border-b border-gray-200 sticky top-0 z-40 transition-shadow',
+        scrolled && 'shadow-md',
+      )}
+    >
+      {/* Single gradient accent strip */}
+      <div className="h-1 bg-gradient-to-r from-[#FF7F11] via-[#F3A712] to-[#FF7F11]" />
 
       {/* Desktop Header */}
       <div className="hidden md:flex items-center gap-3 px-6 lg:px-8 py-3">
@@ -94,7 +100,7 @@ export function Header() {
           <>
             <div className="w-px h-6 bg-[#E0E0E0]" />
             <div className="flex-1 min-w-0">
-              <h1 className="font-display text-xl text-[#1a2556] tracking-tight truncate">
+              <h1 className="font-display text-xl text-[#334155] tracking-tight truncate">
                 {title}
               </h1>
               <Breadcrumb />
@@ -148,29 +154,8 @@ export function Header() {
         </button>
       </div>
 
-      {/* Mobile Navigation Menu */}
-      {isMobileMenuOpen && (
-        <nav className="md:hidden border-t border-[#E0E0E0] bg-white max-h-[70vh] overflow-y-auto">
-          <ul className="py-2">
-            {navLinks.map(link => (
-              <li key={link.href}>
-                <Link
-                  href={link.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={clsx(
-                    'block px-4 py-3 font-body text-sm transition-colors',
-                    pathname === link.href
-                      ? 'bg-[#E07A5F]/10 text-[#E07A5F] font-medium border-l-4 border-[#E07A5F]'
-                      : 'text-[#4D4D4D] hover:bg-[#FDF3E7]'
-                  )}
-                >
-                  {link.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      )}
+      {/* Mobile Navigation Drawer */}
+      <MobileNav isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
     </header>
   );
 }

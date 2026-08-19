@@ -15,6 +15,7 @@ import {
   LayoutGrid,
 } from 'lucide-react';
 import clsx from 'clsx';
+import { getPresentacionKpis } from '@/lib/actions/presentacion-kpis';
 import type { PresentationContext, KpiOption, KpisByAxis } from '@/lib/presentacion-ia';
 import { PRESENTATION_AXES } from '@/lib/presentacion-ia';
 
@@ -57,23 +58,15 @@ export function PresentacionForm({ onGenerate }: PresentacionFormProps) {
   }, [selectedTitulos, kpisPorEje]);
 
   useEffect(() => {
-    async function fetchKpis() {
-      try {
-        setLoadingKpis(true);
-        const res = await fetch('/api/repositorio/presentacion/kpis');
-        if (!res.ok) throw new Error('No se pudieron cargar los indicadores disponibles.');
-        const data = await res.json();
-        setKpisPorEje(data.kpis_por_eje || {});
-        if (data.kpis_por_eje) {
-          setOpenAxes(new Set(Object.keys(data.kpis_por_eje)));
-        }
-      } catch (err) {
+    getPresentacionKpis()
+      .then((data) => {
+        setKpisPorEje(data.kpis_por_eje);
+        setOpenAxes(new Set(Object.keys(data.kpis_por_eje)));
+      })
+      .catch((err) => {
         setErrorKpis(err instanceof Error ? err.message : 'Error al cargar indicadores');
-      } finally {
-        setLoadingKpis(false);
-      }
-    }
-    fetchKpis();
+      })
+      .finally(() => setLoadingKpis(false));
   }, []);
 
   const toggleAxisAccordion = (axisId: string) => {
@@ -179,7 +172,7 @@ export function PresentacionForm({ onGenerate }: PresentacionFormProps) {
       <section className="space-y-4">
         <div className="flex items-center gap-2 border-b border-gray-100 pb-2">
           <div className="w-1.5 h-6 bg-[#FF7F11] rounded-full" />
-          <h3 className="font-accent text-base font-semibold text-[#1a2556]">
+          <h3 className="font-accent text-base font-semibold text-[#334155]">
             Sección A — Contexto de la presentación
           </h3>
         </div>
@@ -246,7 +239,7 @@ export function PresentacionForm({ onGenerate }: PresentacionFormProps) {
         <div className="flex items-center justify-between border-b border-gray-100 pb-2">
           <div className="flex items-center gap-2">
             <div className="w-1.5 h-6 bg-[#FF7F11] rounded-full" />
-            <h3 className="font-accent text-base font-semibold text-[#1a2556]">
+            <h3 className="font-accent text-base font-semibold text-[#334155]">
               Sección B — Selección de indicadores
             </h3>
           </div>
@@ -254,7 +247,7 @@ export function PresentacionForm({ onGenerate }: PresentacionFormProps) {
             'text-sm font-semibold px-3 py-1 rounded-full font-accent transition-colors',
             totalSelectedKpis >= 30
               ? 'bg-red-50 text-red-600 border border-red-200'
-              : 'bg-[#1a2556]/5 text-[#1a2556]',
+              : 'bg-[#334155]/5 text-[#334155]',
           )}>
             {totalSelectedKpis} / 30 KPIs
           </div>
@@ -359,7 +352,7 @@ export function PresentacionForm({ onGenerate }: PresentacionFormProps) {
                           <div className="flex items-center gap-2 min-w-0">
                             <span className="text-lg flex-shrink-0">{meta.icon}</span>
                             <div>
-                              <span className="font-accent text-sm font-semibold text-[#1a2556]">
+                              <span className="font-accent text-sm font-semibold text-[#334155]">
                                 {meta.label}
                               </span>
                               <span className="text-xs text-gray-500 ml-2">
@@ -411,7 +404,7 @@ export function PresentacionForm({ onGenerate }: PresentacionFormProps) {
                                     </span>
                                     {/* KPI count badge — only for groups */}
                                     {item.es_grupo && (
-                                      <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-[#1a2556]/8 text-[#1a2556] font-accent font-semibold">
+                                      <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-[#334155]/8 text-[#334155] font-accent font-semibold">
                                         {item.total_kpis} indicadores
                                       </span>
                                     )}
@@ -448,7 +441,7 @@ export function PresentacionForm({ onGenerate }: PresentacionFormProps) {
             'w-full py-3 text-white font-accent font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md',
             isGenerateDisabled
               ? 'bg-gray-300 cursor-not-allowed shadow-none'
-              : 'bg-[#1a2556] hover:bg-[#1a2556]/90 active:scale-[0.99] transform',
+              : 'bg-[#334155] hover:bg-[#334155]/90 active:scale-[0.99] transform',
           )}
         >
           <Play className="w-5 h-5 fill-current" />

@@ -19,9 +19,10 @@ import {
   GENERO_PERIODISTICO_OPTIONS,
   SECCION_OPTIONS,
   TOPICO_PRINCIPAL_OPTIONS,
-  ESTADO_OPTIONS,
   FUENTE_CITADA_OPTIONS,
   USO_FUENTES_OPTIONS,
+  PROVINCIA_OPTIONS,
+  LOCALIDAD_CORDOBA_OPTIONS,
   EMPTY_FORM_DATA,
   EMPTY_ACTOR,
   type RegistroFormData,
@@ -173,7 +174,6 @@ export function MonitoreoForm({ editingId, onSave, onCancel }: FormViewProps) {
 
         setFormData({
           quien_carga: registro.quien_carga ?? '',
-          estado: registro.estado,
           fecha_noticia: registro.fecha_noticia ?? '',
           medio: registro.medio,
           titulo: registro.titulo,
@@ -280,7 +280,6 @@ export function MonitoreoForm({ editingId, onSave, onCancel }: FormViewProps) {
     try {
       const registroPayload = {
         quien_carga: formData.quien_carga || null,
-        estado: formData.estado,
         fecha_noticia: formData.fecha_noticia || null,
         medio: formData.medio,
         titulo: formData.titulo,
@@ -463,13 +462,6 @@ export function MonitoreoForm({ editingId, onSave, onCancel }: FormViewProps) {
               required
               error={medioError}
             />
-            <SelectField
-              label="Estado"
-              value={formData.estado}
-              options={ESTADO_OPTIONS}
-              onChange={v => updateFormField('estado', v)}
-              required
-            />
           </div>
           <div className="mt-4">
             <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -526,23 +518,26 @@ export function MonitoreoForm({ editingId, onSave, onCancel }: FormViewProps) {
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <TextInput
+              <SelectField
                 label="Provincia"
                 value={formData.provincia}
+                options={PROVINCIA_OPTIONS}
                 onChange={v => updateFormField('provincia', v)}
                 placeholder="Córdoba"
               />
-              <TextInput
+              <SelectField
                 label="Ciudad de Córdoba"
                 value={formData.ciudad_cordoba}
+                options={LOCALIDAD_CORDOBA_OPTIONS}
                 onChange={v => updateFormField('ciudad_cordoba', v)}
-                placeholder="Barrio / localidad"
+                placeholder="Buscar localidad..."
               />
             </div>
-            <Toggle
+            <SelectField
               label="¿Es un caso?"
-              value={formData.caso}
-              onChange={v => updateFormField('caso', v)}
+              value={formData.caso ? 'Sí' : 'No'}
+              options={['Sí', 'No'] as const}
+              onChange={v => updateFormField('caso', v === 'Sí')}
             />
           </div>
         </CollapsibleSection>

@@ -24,7 +24,7 @@ const colorClasses: Record<
     bg: 'bg-[#F3A712]/5',
     border: 'border-[#F3A712]/30',
     iconBg: 'bg-[#F3A712]',
-    iconText: 'text-[#1a2556]',
+    iconText: 'text-[#334155]',
     hover: 'hover:border-[#F3A712]/60',
     hoverText: '#F3A712',
   },
@@ -53,12 +53,12 @@ const colorClasses: Record<
     hoverText: '#E07A5F',
   },
   navy: {
-    bg: 'bg-[#1a2556]/5',
-    border: 'border-[#1a2556]/30',
-    iconBg: 'bg-[#1a2556]',
+    bg: 'bg-[#334155]/5',
+    border: 'border-[#334155]/30',
+    iconBg: 'bg-[#334155]',
     iconText: 'text-white',
-    hover: 'hover:border-[#1a2556]/60',
-    hoverText: '#1a2556',
+    hover: 'hover:border-[#334155]/60',
+    hoverText: '#334155',
   },
   orange: {
     bg: 'bg-[#FF7F11]/5',
@@ -106,10 +106,10 @@ export function SectionCard({
         {/* Content */}
         <div className="flex-1 min-w-0">
           <h3
-            className="text-lg font-bold text-[#1a2556] group-hover:transition-colors"
+            className="text-lg font-bold text-[#334155] group-hover:transition-colors"
             style={{ ['--hover-text']: colors.hoverText } as React.CSSProperties}
             onMouseEnter={e => (e.currentTarget.style.color = colors.hoverText)}
-            onMouseLeave={e => (e.currentTarget.style.color = '#1a2556')}
+            onMouseLeave={e => (e.currentTarget.style.color = '#334155')}
           >
             {title}
           </h3>
@@ -134,7 +134,7 @@ export function SectionCard({
             {stats.map((stat, index) => (
               <div key={index}>
                 <p className="text-xs text-[#4D4D4D]/60 uppercase tracking-wide">{stat.label}</p>
-                <p className="text-lg font-bold text-[#1a2556] mt-0.5">{stat.value}</p>
+                <p className="text-lg font-bold text-[#334155] mt-0.5">{stat.value}</p>
               </div>
             ))}
           </div>

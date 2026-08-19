@@ -31,7 +31,7 @@ export default function UsuariosPage() {
       )}
 
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-        <h2 className="font-display text-lg text-[#1a2556] mb-6">Usuarios</h2>
+        <h2 className="font-display text-lg text-[#334155] mb-6">Usuarios</h2>
         <p className="text-sm text-gray-500 mb-4">
           Gestioná los usuarios del sistema y asignales un rol para controlar su acceso a cada pantalla.
         </p>

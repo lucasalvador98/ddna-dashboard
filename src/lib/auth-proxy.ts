@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { sanitizeRedirectUrl } from '@/lib/redirect';
 
 // ─── Settings cache (in-memory, per-middleware-instance) ──────────────────────
 
@@ -10,7 +11,7 @@ interface AuthSettings {
 
 let cachedSettings: AuthSettings | null = null;
 let cacheTimestamp = 0;
-const CACHE_TTL = 5_000; // 5 seconds — faster response to admin changes
+const CACHE_TTL = 5_000;
 
 async function getAuthSettings(): Promise<AuthSettings> {
   const now = Date.now();
@@ -28,13 +29,11 @@ async function getAuthSettings(): Promise<AuthSettings> {
   }
 
   try {
-    // Use raw fetch to avoid @supabase/supabase-js in Edge runtime middleware
     const res = await fetch(`${supabaseUrl}/rest/v1/settings?key=eq.auth&select=value`, {
       headers: {
         apikey: serviceRoleKey,
         Authorization: `Bearer ${serviceRoleKey}`,
       },
-      // Disable fetch cache so Next.js doesn't hold stale responses
       cache: 'no-store',
     });
 
@@ -52,7 +51,6 @@ async function getAuthSettings(): Promise<AuthSettings> {
       protectedRoutes: value?.protected_routes ?? [],
     };
   } catch {
-    // If settings fetch fails, default to auth-disabled (safe fallback)
     cachedSettings = { enabled: false, protectedRoutes: [] };
   }
 
@@ -60,12 +58,11 @@ async function getAuthSettings(): Promise<AuthSettings> {
   return cachedSettings;
 }
 
-// ─── Middleware ───────────────────────────────────────────────────────────────
+// ─── Auth Proxy ───────────────────────────────────────────────────────────────
 
-export async function middleware(request: NextRequest) {
+export async function authProxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
-  // Never interfere with login, API routes, or Next.js internals
   if (
     pathname.startsWith('/login') ||
     pathname.startsWith('/api/') ||
@@ -76,12 +73,10 @@ export async function middleware(request: NextRequest) {
 
   const settings = await getAuthSettings();
 
-  // Auth disabled → allow everything
   if (!settings.enabled) {
     return NextResponse.next();
   }
 
-  // Check if this route is protected
   const isProtected = settings.protectedRoutes.some(
     (route) => pathname === route || pathname.startsWith(route + '/')
   );
@@ -120,27 +115,11 @@ export async function middleware(request: NextRequest) {
   const { data } = await supabase.auth.getUser();
 
   if (!data.user) {
-    // Build redirect URL preserving the original path and query params
     const loginUrl = new URL('/login', request.url);
     const originalPath = pathname + (searchParams.size > 0 ? `?${searchParams}` : '');
-    loginUrl.searchParams.set('redirect', originalPath);
+    loginUrl.searchParams.set('redirect', sanitizeRedirectUrl(originalPath, '/'));
     return NextResponse.redirect(loginUrl);
   }
 
   return supabaseResponse;
 }
-
-// ─── Matcher ─────────────────────────────────────────────────────────────────
-
-export const config = {
-  matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization)
-     * - favicon.ico (favicon)
-     * - Static media files (.svg, .png, .jpg, etc.)
-     */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
-  ],
-};

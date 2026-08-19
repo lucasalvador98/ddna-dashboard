@@ -176,7 +176,7 @@ SCHEMA JSON REQUERIDO:
       "insight": "string (frase clave de 1 oración para el tomador de decisiones)",
       "recomendacion": "string (solo en slides tipo recomendacion o cierre)",
       "fuentes": ["string"],
-      "color_acento": "string hex (#FF7F11 alarma, #1a2556 neutro, #10b981 positivo)"
+      "color_acento": "string hex (#FF7F11 alarma, #334155 neutro, #10b981 positivo)"
     }
   ]
 }`;

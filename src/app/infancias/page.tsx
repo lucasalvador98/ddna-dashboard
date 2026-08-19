@@ -1,5 +1,3 @@
-'use client';
-
 /**
  * Infancias — Barómetro de la Deuda Social de la Infancia (UCA).
  *
@@ -13,9 +11,14 @@
  * NOTA: Varios indicadores de salud aún no están cargados en la DB.
  * Los valores marcados con "*" provienen del informe 2025 de la UCA
  * y se muestran como referencia hasta su carga definitiva.
+ *
+ * NOTE: This page is a Server Component. Data is fetched directly with
+ * createClient() on every request. Loading and error states are handled
+ * by loading.tsx (Suspense) and error.tsx (error boundary) respectively.
  */
 
-import { useState, useEffect } from 'react';
+import { createClient } from '@supabase/supabase-js';
+import { Suspense } from 'react';
 import {
   Users,
   Home,
@@ -31,10 +34,8 @@ import {
   Wifi,
 } from 'lucide-react';
 import { PageLoading } from '@/components/page-loading';
-import { PageError } from '@/components/page-error';
 import { SectionHeader } from '@/components/section-header';
 import { KpiCard } from '@/components/kpi-card';
-import { supabase } from '@/lib/supabase';
 import { parseDesglose } from '@/lib/parse-desglose';
 
 // ─── Types ──────────────────────────────────────────────────────
@@ -76,101 +77,68 @@ function findLatest(data: IndicadorRow[], keyword: string): IndicadorRow | undef
   return matches.reduce((a, b) => (a.periodo > b.periodo ? a : b));
 }
 
-// ─── Page Component ──────────────────────────────────────────────
+// ─── Data Fetching ──────────────────────────────────────────────
+
+async function fetchInfanciasData(): Promise<IndicadorRow[]> {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
+  const NEEDED_INDICATORS = [
+    'Inseguridad alimentaria total (NNyA)',
+    'Inseguridad alimentaria severa (NNyA)',
+    'NNyA sin cuentos/historias orales en familia',
+    'No festejó el ultimo cumpleaños',
+    'NNyA 0-4 años que comparten cama/colchón',
+    'NNyA nivel muy bajo que comparten cama/colchón',
+    'NNyA sin biblioteca familiar',
+    'NNyA que no leen textos impresos',
+    'NNyA nivel muy bajo que no leen textos impresos',
+    'NNyA en hogares con hacinamiento (pobres)',
+    'NNyA sin internet en el hogar',
+    'NNyA sin actividad física extraescolar (interior)',
+    'NNyA en nivel muy bajo - inseguridad alimentaria severa',
+  ];
+
+  const { data, error } = await supabase
+    .from('indicadores')
+    .select('indicador_nombre, valor, periodo, desglose, fuente, region')
+    .eq('categoria', 'pobreza')
+    .eq('activo', true)
+    .in('indicador_nombre', NEEDED_INDICATORS)
+    .order('periodo', { ascending: true });
+
+  if (error) throw error;
+
+  return (data || []).map(r => ({
+    ...r,
+    desglose: parseDesglose(r.desglose),
+  })) as IndicadorRow[];
+}
+
+// ─── Page Component (Server Component) ──────────────────────────
 
 export default function InfanciasPage() {
-  const [ucaData, setUcaData] = useState<IndicadorRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  return (
+    <div className="space-y-6">
+      <SectionHeader
+        icon={Users}
+        title="Infancias"
+        description="Barómetro de la Deuda Social de la Infancia — UCA-ODSA"
+        color="magenta"
+      />
+      <Suspense fallback={<PageLoading />}>
+        <InfanciasContent />
+      </Suspense>
+    </div>
+  );
+}
 
-  useEffect(() => {
-    let cancelled = false;
+// ─── Content: fetched data + TabInfancia ────────────────────────
 
-    async function load() {
-      try {
-        // Targeted query: only fetch indicators this page actually displays.
-        // The UCA-ODSA dataset has 15K+ records; a generic query hits the
-        // Supabase 1000-row default limit and silently drops most indicators.
-        const NEEDED_INDICATORS = [
-          'Inseguridad alimentaria total (NNyA)',
-          'Inseguridad alimentaria severa (NNyA)',
-          'NNyA sin cuentos/historias orales en familia',
-          'No festejó el ultimo cumpleaños',
-          'NNyA 0-4 años que comparten cama/colchón',
-          'NNyA nivel muy bajo que comparten cama/colchón',
-          'NNyA sin biblioteca familiar',
-          'NNyA que no leen textos impresos',
-          'NNyA nivel muy bajo que no leen textos impresos',
-          'NNyA en hogares con hacinamiento (pobres)',
-          'NNyA sin internet en el hogar',
-          'NNyA sin actividad física extraescolar (interior)',
-          'NNyA en nivel muy bajo - inseguridad alimentaria severa',
-        ];
-
-        const { data, error: err } = await supabase
-          .from('indicadores')
-          .select('indicador_nombre, valor, periodo, desglose, fuente, region')
-          .eq('categoria', 'pobreza')
-          .eq('activo', true)
-          .in('indicador_nombre', NEEDED_INDICATORS)
-          .order('periodo', { ascending: true });
-
-        if (err) throw err;
-
-        if (!cancelled) {
-          setUcaData(
-            (data || []).map(r => ({
-              ...r,
-              desglose: parseDesglose(r.desglose),
-            })) as IndicadorRow[]
-          );
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Error al cargar datos');
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // ─── Loading ──────────────────────────────────────────────────
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <SectionHeader
-          icon={Users}
-          title="Infancias"
-          description="Barómetro de la Deuda Social de la Infancia — UCA-ODSA"
-          color="magenta"
-        />
-        <PageLoading />
-      </div>
-    );
-  }
-
-  // ─── Error ────────────────────────────────────────────────────
-  if (error) {
-    return (
-      <div className="space-y-6">
-        <SectionHeader
-          icon={Users}
-          title="Infancias"
-          description="Barómetro de la Deuda Social de la Infancia — UCA-ODSA"
-          color="magenta"
-        />
-        <PageError message={error} />
-      </div>
-    );
-  }
-
-  // ─── Resolve indicators from DB ────────────────────────────────
+async function InfanciasContent() {
+  const ucaData = await fetchInfanciasData();
 
   const insegTotal = findLatest(ucaData, 'inseguridad alimentaria total (nnya)');
   const insegSevera = findLatest(ucaData, 'inseguridad alimentaria severa (nnya)');
@@ -186,42 +154,31 @@ export default function InfanciasPage() {
   const sinActividadFisica = findLatest(ucaData, 'actividad física');
   const insegSeveraBajo = findLatest(ucaData, 'nivel muy bajo - inseguridad');
 
-  // Hardcoded del informe 2025 de la UCA (aún no cargados en DB)
-  const SALUD_SIN_ATENCION = '19.8'; // % que no asistió al médico por razones económicas
-  const SALUD_SIN_ODONTOLOGO = '34.6'; // % que no asistió al odontólogo
+  const SALUD_SIN_ATENCION = '19.8';
+  const SALUD_SIN_ODONTOLOGO = '34.6';
 
-  // ─── Content ──────────────────────────────────────────────────
   return (
-    <div className="space-y-6">
-      <SectionHeader
-        icon={Users}
-        title="Infancias"
-        description="Barómetro de la Deuda Social de la Infancia — UCA-ODSA"
-        color="magenta"
-      />
-
-      <TabInfancia
-        insegTotal={insegTotal}
-        insegSevera={insegSevera}
-        sinCuentos={sinCuentos}
-        sinCumple={sinCumple}
-        comparteCama04={comparteCama04}
-        comparteCamaBajo={comparteCamaBajo}
-        sinBiblioteca={sinBiblioteca}
-        noLeeTextos={noLeeTextos}
-        noLeeTextosBajo={noLeeTextosBajo}
-        hacinamiento={hacinamiento}
-        sinInternet={sinInternet}
-        sinActividadFisica={sinActividadFisica}
-        insegSeveraBajo={insegSeveraBajo}
-        saludSinAtencion={SALUD_SIN_ATENCION}
-        saludSinOdontologo={SALUD_SIN_ODONTOLOGO}
-      />
-    </div>
+    <TabInfancia
+      insegTotal={insegTotal}
+      insegSevera={insegSevera}
+      sinCuentos={sinCuentos}
+      sinCumple={sinCumple}
+      comparteCama04={comparteCama04}
+      comparteCamaBajo={comparteCamaBajo}
+      sinBiblioteca={sinBiblioteca}
+      noLeeTextos={noLeeTextos}
+      noLeeTextosBajo={noLeeTextosBajo}
+      hacinamiento={hacinamiento}
+      sinInternet={sinInternet}
+      sinActividadFisica={sinActividadFisica}
+      insegSeveraBajo={insegSeveraBajo}
+      saludSinAtencion={SALUD_SIN_ATENCION}
+      saludSinOdontologo={SALUD_SIN_ODONTOLOGO}
+    />
   );
 }
 
-// ─── Tab: Infancia (UCA) ─────────────────────────────────────────
+// ─── Tab: Infancia (UCA) — pure presentation ────────────────────
 
 interface TabInfanciaProps {
   insegTotal: IndicadorRow | undefined;

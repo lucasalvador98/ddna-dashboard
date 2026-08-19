@@ -24,10 +24,16 @@ function cleanup(): void {
   lastCleanup = now;
 
   for (const [key, entry] of store) {
-    // Keep only entries that still have a valid window — if none, delete
-    entry.timestamps = []; // will be repopulated on next hit
-    if (entry.timestamps.length === 0) {
+    // Per-entry sliding window: drop timestamps older than 60s (the typical
+    // windowMs we use). Only delete the key when no fresh timestamps remain.
+    // NOTE: this assumes callers use a 60_000ms window — if a caller passes a
+    // different windowMs we may keep slightly stale entries, which is harmless
+    // (they get filtered again on the next check).
+    const fresh = entry.timestamps.filter((ts) => now - ts < 60_000);
+    if (fresh.length === 0) {
       store.delete(key);
+    } else {
+      entry.timestamps = fresh;
     }
   }
 }

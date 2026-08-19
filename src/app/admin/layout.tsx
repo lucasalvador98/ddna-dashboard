@@ -20,7 +20,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <LoginGate>
       <div className="min-h-screen">
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#1a2556] to-[#2a3570]">
+        <div className="bg-gradient-to-r from-[#334155] to-[#475569]">
           <div className="max-w-7xl mx-auto px-6 py-6">
             <h1 className="font-display text-2xl text-white">Panel de Administración</h1>
             <p className="text-sm text-white/60 mt-1">
@@ -45,7 +45,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     className={clsx(
                       'inline-flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors',
                       isActive
-                        ? 'border-[#1a2556] text-[#1a2556]'
+                        ? 'border-[#334155] text-[#334155]'
                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
                     )}
                   >

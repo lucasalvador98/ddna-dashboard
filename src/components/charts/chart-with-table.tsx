@@ -69,7 +69,7 @@ export function ChartWithTable({
       <div className="p-5 border-b border-gray-100">
         <div className="flex items-start justify-between">
           <div>
-            <h3 className="font-display text-lg text-[#1a2556]">{title}</h3>
+            <h3 className="font-display text-lg text-[#334155]">{title}</h3>
             {subtitle && <p className="font-body text-sm text-gray-500 mt-1">{subtitle}</p>}
           </div>
 

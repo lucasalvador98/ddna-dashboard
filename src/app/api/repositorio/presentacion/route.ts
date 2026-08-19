@@ -16,6 +16,7 @@ import {
   type PresentationReport,
 } from '@/lib/presentacion-ia';
 import { withRateLimit } from '@/lib/agent/rate-limit';
+import { trackLLMUsage } from '@/lib/usage-tracker';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -75,7 +76,17 @@ async function callLLM(systemPrompt: string, userPayload: string): Promise<strin
 
       if (response.ok) {
         const data = await response.json();
-        return data?.choices?.[0]?.message?.content || '';
+        const content = data?.choices?.[0]?.message?.content || '';
+        const usage = data?.usage;
+        if (usage) {
+          trackLLMUsage({
+            tool: 'presentacion',
+            model: OPENAI_MODEL,
+            promptTokens: usage.prompt_tokens || 0,
+            completionTokens: usage.completion_tokens || 0,
+          });
+        }
+        return content;
       }
 
       let msg = `HTTP ${response.status}`;

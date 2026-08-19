@@ -8,7 +8,14 @@ import clsx from 'clsx';
 import { navigation, findGroupForPath } from '@/lib/navigation';
 import { useSidebar } from '@/components/sidebar-context';
 
-export function Sidebar() {
+interface SidebarProps {
+  badges?: {
+    repoPending: number;
+    formsActive: number;
+  } | null;
+}
+
+export function Sidebar({ badges }: SidebarProps) {
   const { isCollapsed, toggleCollapse } = useSidebar();
   const [expandedGroups, setExpandedGroups] = React.useState<Set<string>>(new Set());
   const pathname = usePathname();
@@ -40,6 +47,13 @@ export function Sidebar() {
   const isItemActive = (href: string) =>
     pathname === href || (href !== '/' && pathname.startsWith(href));
 
+  const badgeForHref = (href: string): number | null => {
+    if (!badges) return null;
+    if (href === '/repositorio') return badges.repoPending;
+    if (href === '/formularios') return badges.formsActive;
+    return null;
+  };
+
   return (
     <aside
       className={clsx(
@@ -59,6 +73,7 @@ export function Sidebar() {
             if (isSingleItem) {
               const item = group.items[0];
               const active = isItemActive(item.href);
+              const count = badgeForHref(item.href);
               return (
                 <li key={group.label}>
                   <Link
@@ -82,6 +97,11 @@ export function Sidebar() {
                         )}
                       >
                         {item.label}
+                      </span>
+                    )}
+                    {!isCollapsed && count != null && count > 0 && (
+                      <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">
+                        {count}
                       </span>
                     )}
                   </Link>
@@ -132,6 +152,7 @@ export function Sidebar() {
                   <ul className="ml-4 mt-0.5 space-y-0.5 border-l border-[#E0E0E0] pl-3">
                     {group.items.map(item => {
                       const active = isItemActive(item.href);
+                      const count = badgeForHref(item.href);
                       return (
                         <li key={item.href}>
                           <Link
@@ -150,6 +171,11 @@ export function Sidebar() {
                               )}
                             />
                             <span className="font-accent tracking-wide">{item.label}</span>
+                            {count != null && count > 0 && (
+                              <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">
+                                {count}
+                              </span>
+                            )}
                           </Link>
                         </li>
                       );
@@ -175,8 +201,8 @@ export function Sidebar() {
 
       {/* Footer */}
       {!isCollapsed && (
-        <div className="p-4 border-t border-[#E0E0E0]">
-          <p className="font-accent text-xs text-gray-400 text-center">DDNA Dashboard v1.0</p>
+        <div className="p-4 border-t border-gray-200">
+          <p className="font-accent text-xs text-gray-400 text-center">Defensoría de NNyA · Córdoba</p>
         </div>
       )}
     </aside>

@@ -130,7 +130,7 @@ export const categoriasInfo: Record<
     titulo: 'Demografía',
     descripcion:
       'Datos poblacionales: censo, proyecciones, composición etaria, distribución geográfica.',
-    color: '#1a2556',
+    color: '#334155',
     icono: 'BarChart3',
   },
   deis: {

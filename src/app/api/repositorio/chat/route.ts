@@ -1,7 +1,7 @@
 /** 
- * POST /api/repositorio/chat — Agent con Function Calling Nativo
+ * POST /api/repositorio/chat — Agent con Function Calling Nativo + SSE Streaming
  *
- * Usa OpenAI function calling API en vez de parsear TOOL_CALL: textual.
+ * Usa OpenAI function calling API en vez de parsear TOOL_CALL textual.
  * El LLM decide CUÁNDO y CON QUÉ PARÁMETROS llamar cada tool.
  *
  * Tools disponibles:
@@ -18,10 +18,13 @@ import {
   executeIndicatorTool,
   extractDataSources,
   INDICATOR_OPENAPI_TOOLS,
+  listAvailableIndicators,
 } from '@/lib/agent/indicator-tools';
+import type { ListAvailableResult } from '@/lib/agent/indicator-tools';
 import { searchWeb } from '@/lib/agent/web-search';
 import { scrapeUrl } from '@/lib/agent/scrape-url';
 import { withRateLimit } from '@/lib/agent/rate-limit';
+import { trackLLMUsage } from '@/lib/usage-tracker';
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -62,6 +65,30 @@ interface RawIlikeRow {
   repositorio: { nombre_archivo: string; categoria: string } | null;
 }
 
+interface SearchOptions {
+  categoria?: string;
+  maxChunks?: number;
+  maxTokens?: number;
+}
+
+// ---------------------------------------------------------------------------
+// Tool display names for SSE progress events
+// ---------------------------------------------------------------------------
+
+const TOOL_DISPLAY_NAMES: Record<string, string> = {
+  search_knowledge_base: 'Buscando documentos...',
+  listAllDocuments: 'Listando documentos disponibles...',
+  search_web: 'Buscando en la web...',
+  scrape_url: 'Extrayendo contenido web...',
+};
+
+function getToolDisplayName(name: string): string {
+  if (INDICATOR_OPENAPI_TOOLS.some(t => t.function.name === name)) {
+    return 'Consultando indicadores...';
+  }
+  return TOOL_DISPLAY_NAMES[name] || `Ejecutando ${name}...`;
+}
+
 // ---------------------------------------------------------------------------
 // OpenAI-compatible tool definitions (documentos + web)
 // ---------------------------------------------------------------------------
@@ -79,7 +106,7 @@ const DOCUMENT_TOOLS: Array<{
     function: {
       name: 'search_knowledge_base',
       description:
-        'Busca en la base de conocimiento de la DDNA (documentos oficiales, informes, normativas, PDFs, encuestas) usando búsqueda semántica. Devuelve fragmentos relevantes con su fuente. Usala para preguntas que requieran información de documentos o contexto institucional.',
+        'Búsqueda SEMÁNTICA en documentos oficiales, informes, normativas, PDFs y encuestas de la DDNA. Usá ESTA para preguntas sobre documentos específicos, archivos subidos, informes, o "buscar en documentos". NO la uses para datos de indicadores — usá searchIndicators o las herramientas de indicadores.',
       parameters: {
         type: 'object',
         properties: {
@@ -93,6 +120,11 @@ const DOCUMENT_TOOLS: Array<{
             description:
               'Cantidad máxima de fragmentos a retornar (default: 10, máximo: 20).',
           },
+          categoria: {
+            type: 'string',
+            description:
+              'Filtrar por categoría (opcional). Ej: "salud", "educacion", "pobreza", "inversion", "seguridad".',
+          },
         },
         required: ['query'],
       },
@@ -103,7 +135,7 @@ const DOCUMENT_TOOLS: Array<{
     function: {
       name: 'listAllDocuments',
       description:
-        'Lista todos los documentos disponibles en el repositorio de la DDNA. Devuelve nombre, tipo, categoría, y estado de procesamiento. Usala cuando el usuario pregunte "¿qué documentos tenés?", "mostrame los archivos disponibles", o "qué información hay cargada?".',
+        'Lista TODOS los documentos/archivos subidos al repositorio de la DDNA. Devuelve nombre, tipo, categoría y estado de procesamiento. Usala ÚNICAMENTE cuando el usuario pregunte "¿qué documentos tenés?", "mostrame los archivos disponibles", o quiera saber qué PDFs/informes hay cargados.',
       parameters: {
         type: 'object',
         properties: {
@@ -137,7 +169,7 @@ const WEB_TOOLS: Array<{
     function: {
       name: 'search_web',
       description:
-        'Busca en internet (DuckDuckGo) información actualizada. Usala para obtener datos externos, noticias recientes, estadísticas nacionales, o información que no está en los documentos ni indicadores de la DDNA. Importante: NO funciona desde Vercel (DuckDuckGo bloquea).',
+        'Busca en INTERNET (DuckDuckGo) información ACTUALIZADA en tiempo real. Usala SOLO cuando necesites información actual/noticias que NO está en indicadores (getLatestIndicatorValue, etc) ni en documentos del repositorio (search_knowledge_base). También cuando el usuario pida explícitamente "noticias" o "información actual". Limitación: puede no funcionar desde entornos serverless.',
       parameters: {
         type: 'object',
         properties: {
@@ -160,7 +192,7 @@ const WEB_TOOLS: Array<{
     function: {
       name: 'scrape_url',
       description:
-        'Extrae el contenido completo de una página web. Usala cuando necesites leer en detalle un artículo, informe o fuente específica encontrada en la búsqueda web.',
+        'Extrae el contenido completo de una URL específica. Usala DESPUÉS de search_web para leer en detalle un artículo, informe o fuente que encontraste. También cuando el usuario provea una URL directamente.',
       parameters: {
         type: 'object',
         properties: {
@@ -186,16 +218,39 @@ const ALL_TOOLS = [
 // System Prompt
 // ---------------------------------------------------------------------------
 
-const SYSTEM_PROMPT = `Sos un asistente de la Defensoría de Niños, Niñas y Adolescentes de Córdoba (DDNA). Ayudás combinando datos estadísticos y documentos oficiales.
+const SYSTEM_PROMPT = `Sos el asistente de investigación de la Defensoría de Niños, Niñas y Adolescentes de Córdoba (DDNA). Tu objetivo es responder preguntas combinando datos estadísticos, documentos oficiales, y búsqueda web.
 
-## Reglas
+## FUENTES DE DATOS
+
+TENÉS TRES FUENTES DE DATOS, en este orden de prioridad:
+
+1. **INDICADORES** (tabla \`indicadores\`): Datos estructurados con valores numéricos por periodo. Categorías disponibles: pobreza, salud, educacion, inversion, demografia, seguridad, consumo, justicia, salud_adolescente, anuario_educacion, aprender, deis, encuestas_2024, canastas, empleo, precios, senaf. Usá las tools de indicadores para consultarlos.
+
+2. **DOCUMENTOS** (\`doc_chunks\`): PDFs, informes, normativas, encuestas subidas al repositorio. Usá search_knowledge_base para buscar en ellos.
+
+3. **WEB**: Búsqueda en internet actualizada. Usá search_web SOLO cuando la información no esté en las fuentes anteriores.
+
+## WORKFLOW — orden de búsqueda OBLIGATORIO
+
+Cuando te hagan una pregunta, SEGUÍ ESTE ORDEN. No saltees pasos:
+
+PASO 1: Identificá de qué tema habla la pregunta.
+PASO 2: Usá listAvailableIndicators() para ver las categorías de datos disponibles. NO saltees este paso.
+PASO 3: Si hay una categoría relevante, usá getCategoryOverview('categoria') para ver qué indicadores existen.
+PASO 4: Si encontraste indicadores relevantes, usá getLatestIndicatorValue() o getIndicatorTimeSeries() para obtener valores.
+PASO 5: Si no hay datos en indicadores, buscá en documentos con search_knowledge_base().
+PASO 6: Como ÚLTIMO recurso, buscá en la web con search_web().
+
+## REGLAS
+
 1. Respondé SIEMPRE en español, tono profesional pero accesible.
 2. Basate SOLO en los datos recibidos de las herramientas — NO inventes cifras ni fuentes.
-3. Citá las fuentes de donde sacaste la información: [Fuente: nombre_archivo] para documentos, [Indicador: nombre, periodo] para datos.
-4. Si encontraste información en múltiples fuentes, contextualizala y explicá qué significa. No te limites a repetir datos.
-5. Si los datos no alcanzan para responder, decilo con honestidad y sugerí cómo obtener mejor información.
-6. Cuando te pregunten "¿qué documentos tenés?" o similares, usá listAllDocuments.
-7. SIEMPRE que necesites datos actuales o históricos de indicadores, usá las herramientas disponibles. No intentes responder de memoria.`;
+3. Citá las fuentes: [Fuente: nombre_archivo] para documentos, [Indicador: nombre, periodo: valor] para datos, [Web: url] para web.
+4. Si encontraste información en múltiples fuentes, contextualizala y explicá qué significa.
+5. Si tras AGOTAR todos los pasos del workflow no encontrás la información, decilo con honestidad y listá QUÉ datos tenés disponibles que podrían ser relevantes.
+6. NUNCA te rindas después de solo un intento. Siempre probá al menos 2-3 herramientas diferentes antes de responder que no encontraste nada.
+7. Si la pregunta menciona "encuesta", "consumo", "sustancias", buscá PRIMERO en la categoría \`consumo\` o \`encuestas_2024\` de indicadores.
+8. Cuando te pregunten "¿qué documentos tenés?" o similares, usá listAllDocuments.`;
 
 // ---------------------------------------------------------------------------
 // Helpers — Embedding & Search
@@ -220,6 +275,17 @@ async function generateEmbedding(text: string): Promise<number[] | null> {
       return null;
     }
     const data = await response.json();
+
+    const usage = data.usage;
+    if (usage) {
+      trackLLMUsage({
+        tool: 'embeddings',
+        model: 'text-embedding-3-small',
+        promptTokens: usage.prompt_tokens || 0,
+        completionTokens: 0,
+      });
+    }
+
     return data.data[0]?.embedding ?? null;
   } catch (err) {
     console.error('Embedding generation failed:', err);
@@ -256,103 +322,223 @@ function buildSources(chunks: ChunkResult[]) {
 // Tools — Document Search
 // ---------------------------------------------------------------------------
 
-async function searchKnowledgeBase(query: string): Promise<{
+async function searchKnowledgeBase(
+  query: string,
+  options?: SearchOptions
+): Promise<{
   chunks: ChunkResult[];
-  searchMethod: 'vector' | 'text';
+  searchMethod: 'vector' | 'text' | 'hybrid';
   warning?: string;
 }> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabaseClient: any = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  let chunks: ChunkResult[] = [];
-  let searchMethod: 'vector' | 'text' = 'text';
+  const categoria = options?.categoria;
+  const maxChunks = options?.maxChunks ?? 20;
+  const maxTokens = options?.maxTokens ?? 4000;
+
+  let vectorChunks: ChunkResult[] = [];
+  let ftsChunks: ChunkResult[] = [];
+  let ftsFailed = false;
   let warning: string | undefined;
 
-  // Step 1: Vector semantic search
-  const embedding = await generateEmbedding(query);
+  const keywords = query
+    .toLowerCase()
+    .replace(/[?:,;.!¡¿]/g, '')
+    .split(/\s+/)
+    .filter(word => word.length > 3)
+    .slice(0, 5);
+
+  // Step 1 & 2: Vector + FTS in parallel
+  const embeddingPromise = generateEmbedding(query);
+
+  const ftsPromise = (async () => {
+    if (keywords.length === 0) return [];
+    try {
+      // Use websearch syntax with OR so chunks matching ANY keyword are found,
+      // not just those matching ALL keywords (which are often split across chunks)
+      const ftsQueryStr = keywords.join(' OR ');
+      let ftsQuery = supabaseClient
+        .from('doc_chunks')
+        .select('id, content, chunk_index, metadata, repo_file_id, repositorio!inner(nombre_archivo, categoria)')
+        .textSearch('search_vector', ftsQueryStr, { config: 'spanish', type: 'websearch' })
+        .limit(20);
+      if (categoria) {
+        ftsQuery = ftsQuery.eq('repositorio.categoria', categoria);
+      }
+      const { data: ftsData } = await ftsQuery;
+      if (!ftsData || ftsData.length === 0) return [];
+      return (ftsData as RawIlikeRow[]).map(row => ({
+        id: row.id,
+        repo_file_id: row.repo_file_id,
+        chunk_index: row.chunk_index,
+        content: row.content,
+        metadata: row.metadata || {},
+        nombre_archivo: row.repositorio?.nombre_archivo || 'Documento desconocido',
+        categoria: row.repositorio?.categoria || 'Sin categoría',
+        similarity: 0,
+      })) as ChunkResult[];
+    } catch (err) {
+      console.error('FTS search failed:', err);
+      ftsFailed = true;
+      return [];
+    }
+  })();
+
+  const embedding = await embeddingPromise;
 
   if (embedding) {
     const { data: rpcChunks, error: rpcError } = (await supabaseClient.rpc('search_doc_chunks', {
       query_embedding: embedding,
       match_threshold: 0.5,
-      match_count: 15,
-      category_filter: null,
+      match_count: 30,
+      category_filter: categoria || null,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     })) as any;
 
-    if (!rpcError && rpcChunks && rpcChunks.length > 0) {
-      chunks = rpcChunks as ChunkResult[];
-      searchMethod = 'vector';
+    if (!rpcError && rpcChunks) {
+      vectorChunks = rpcChunks as ChunkResult[];
     } else if (rpcError) {
       console.error('RPC search_doc_chunks error:', rpcError);
-      warning = 'Búsqueda vectorial falló, usando búsqueda por texto';
     }
   }
 
-  // Step 2: Fallback to ILIKE text search
-  if (chunks.length === 0) {
+  ftsChunks = await ftsPromise;
+
+  // FTS fallback to ILIKE
+  if (ftsChunks.length === 0 && keywords.length > 0 && ftsFailed) {
     if (!embedding) {
       warning = 'OPENAI_API_KEY no configurada. Usando búsqueda por texto (ILIKE).';
     }
 
-    const keywords = query
-      .toLowerCase()
-      .replace(/[?:,;.!¡¿]/g, '')
-      .split(/\s+/)
-      .filter(word => word.length > 3)
-      .slice(0, 5);
+    const searchConditions = keywords.map(kw => `content.ilike.%${kw}%`).join(',');
 
-    if (keywords.length > 0) {
-      const searchConditions = keywords.map(kw => `content.ilike.%${kw}%`).join(',');
+    const { data: processedFiles } = (await supabaseClient
+      .from('repositorio')
+      .select('id')
+      .eq('processed', true)) as { data: { id: string }[] | null };
 
-      const { data: processedFiles } = (await supabaseClient
-        .from('repositorio')
-        .select('id')
-        .eq('processed', true)) as { data: { id: string }[] | null };
+    const fileIds = processedFiles?.map((f: { id: string }) => f.id) || [];
 
-      const fileIds = processedFiles?.map((f: { id: string }) => f.id) || [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let ilikeResult: any;
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let ilikeResult: any;
+    if (fileIds.length > 0) {
+      ilikeResult = await supabaseClient
+        .from('doc_chunks')
+        .select(
+          'id, content, chunk_index, metadata, repo_file_id, repositorio!inner(nombre_archivo, categoria)'
+        )
+        .in('repo_file_id', fileIds)
+        .or(searchConditions)
+        .limit(20);
+    } else {
+      ilikeResult = await supabaseClient
+        .from('doc_chunks')
+        .select(
+          'id, content, chunk_index, metadata, repo_file_id, repositorio!inner(nombre_archivo, categoria)'
+        )
+        .or(searchConditions)
+        .limit(20);
+    }
 
-      if (fileIds.length > 0) {
-        ilikeResult = await supabaseClient
-          .from('doc_chunks')
-          .select(
-            'id, content, chunk_index, metadata, repo_file_id, repositorio!inner(nombre_archivo, categoria)'
-          )
-          .in('repo_file_id', fileIds)
-          .or(searchConditions)
-          .limit(10);
+    ftsChunks = ((ilikeResult?.data as RawIlikeRow[]) || []).map(row => ({
+      id: row.id,
+      repo_file_id: row.repo_file_id,
+      chunk_index: row.chunk_index,
+      content: row.content,
+      metadata: row.metadata || {},
+      nombre_archivo: row.repositorio?.nombre_archivo || 'Documento desconocido',
+      categoria: row.repositorio?.categoria || 'Sin categoría',
+      similarity: 0,
+    })) as ChunkResult[];
+  }
+
+  // Step 3: Hybrid combination
+  let chunks: ChunkResult[];
+  let searchMethod: 'vector' | 'text' | 'hybrid';
+
+  if (vectorChunks.length > 0 && ftsChunks.length > 0) {
+    const chunkMap = new Map<string, { chunk: ChunkResult; vectorScore: number; ftsRank: number }>();
+
+    for (const chunk of vectorChunks) {
+      const key = `${chunk.repo_file_id}-${chunk.chunk_index}`;
+      chunkMap.set(key, { chunk, vectorScore: chunk.similarity, ftsRank: 0 });
+    }
+
+    for (let i = 0; i < ftsChunks.length; i++) {
+      const chunk = ftsChunks[i];
+      const key = `${chunk.repo_file_id}-${chunk.chunk_index}`;
+      const ftsRank = ftsChunks.length > 1 ? 1.0 - (i / (ftsChunks.length - 1)) : 1.0;
+      if (chunkMap.has(key)) {
+        chunkMap.get(key)!.ftsRank = ftsRank;
       } else {
-        ilikeResult = await supabaseClient
-          .from('doc_chunks')
-          .select(
-            'id, content, chunk_index, metadata, repo_file_id, repositorio!inner(nombre_archivo, categoria)'
-          )
-          .or(searchConditions)
-          .limit(10);
-      }
-
-      const ilikeData = ilikeResult?.data as RawIlikeRow[] | null;
-
-      if (ilikeData && ilikeData.length > 0) {
-        chunks = ilikeData.map(row => ({
-          id: row.id,
-          repo_file_id: row.repo_file_id,
-          chunk_index: row.chunk_index,
-          content: row.content,
-          metadata: row.metadata || {},
-          nombre_archivo: row.repositorio?.nombre_archivo || 'Documento desconocido',
-          categoria: row.repositorio?.categoria || 'Sin categoría',
-          similarity: 0,
-        }));
+        chunkMap.set(key, { chunk, vectorScore: 0, ftsRank });
       }
     }
+
+    const maxVectorScore = Math.max(...Array.from(chunkMap.values()).map(e => e.vectorScore), 0.01);
+
+    const scored = Array.from(chunkMap.values()).map(entry => ({
+      chunk: entry.chunk,
+      combinedScore: (entry.vectorScore / maxVectorScore) * 0.6 + entry.ftsRank * 0.4,
+    }));
+
+    scored.sort((a, b) => b.combinedScore - a.combinedScore);
+    chunks = scored.map(s => s.chunk);
+    searchMethod = 'hybrid';
+  } else if (vectorChunks.length > 0) {
+    chunks = vectorChunks;
+    searchMethod = 'vector';
+  } else if (ftsChunks.length > 0) {
+    chunks = ftsChunks;
+    searchMethod = 'text';
+  } else {
+    chunks = [];
     searchMethod = 'text';
   }
 
+  // Step 4: Smart chunk selection (diversity)
+  if (chunks.length > 1) {
+    const selected: ChunkResult[] = [chunks[0]];
+    let tokenCount = chunks[0].content.length / 4;
+
+    for (let i = 1; i < chunks.length && selected.length < maxChunks && tokenCount < maxTokens; i++) {
+      const candidate = chunks[i];
+      let isRedundant = false;
+
+      for (const existing of selected) {
+        if (contentSimilarity(candidate.content, existing.content) > 0.6) {
+          isRedundant = true;
+          break;
+        }
+      }
+
+      if (!isRedundant) {
+        selected.push(candidate);
+        tokenCount += candidate.content.length / 4;
+      }
+    }
+
+    chunks = selected;
+  }
+
   return { chunks, searchMethod, warning };
+}
+
+function contentSimilarity(a: string, b: string): number {
+  const aWords = new Set(a.toLowerCase().split(/\s+/));
+  const bWords = new Set(b.toLowerCase().split(/\s+/));
+
+  if (aWords.size === 0 || bWords.size === 0) return 0;
+
+  let intersection = 0;
+  for (const word of aWords) {
+    if (bWords.has(word)) intersection++;
+  }
+
+  const union = aWords.size + bWords.size - intersection;
+  return union === 0 ? 0 : intersection / union;
 }
 
 // ---------------------------------------------------------------------------
@@ -429,6 +615,7 @@ async function executeToolCall(
   sourceType: 'documents' | 'indicators' | 'web' | 'unknown';
   chunks?: ChunkResult[];
   indicatorResult?: unknown;
+  searchMethod?: 'vector' | 'text' | 'hybrid';
 }> {
   // --- Indicadores ---
   if (INDICATOR_OPENAPI_TOOLS.some(t => t.function.name === name)) {
@@ -447,11 +634,17 @@ async function executeToolCall(
   // --- Documentos ---
   if (name === 'search_knowledge_base') {
     const query = String(args.query || '');
-    const { chunks, searchMethod, warning } = await searchKnowledgeBase(query);
+    const categoria = args.categoria ? String(args.categoria) : undefined;
+    const maxResults = args.max_results ? Number(args.max_results) : undefined;
+    const { chunks, searchMethod, warning } = await searchKnowledgeBase(query, {
+      categoria,
+      maxChunks: maxResults,
+    });
 
     let formattedResult: string;
     if (chunks.length === 0) {
-      formattedResult = 'No se encontraron documentos relevantes en la base de conocimiento.';
+      // Offer to list available documents so the LLM can retry with a better query
+      formattedResult = 'No se encontraron documentos relevantes en la base de conocimiento con esa búsqueda. Podés usar listAllDocuments para ver qué documentos están disponibles y luego buscar con otros términos. IMPORTANTE: También tenés datos de INDICADORES (listAvailableIndicators, getCategoryOverview, getLatestIndicatorValue) — no te rindas después de solo buscar en documentos.';
     } else {
       const context = buildContext(chunks, 600);
       formattedResult =
@@ -462,7 +655,7 @@ async function executeToolCall(
       formattedResult += `\n\nAdvertencia: ${warning}`;
     }
 
-    return { formattedResult, sourceType: 'documents', chunks };
+    return { formattedResult, sourceType: 'documents', chunks, searchMethod };
   }
 
   if (name === 'listAllDocuments') {
@@ -540,7 +733,7 @@ async function executeToolCall(
 }
 
 // ---------------------------------------------------------------------------
-// LLM call helper (with function calling support)
+// LLM call helper (with function calling + SSE streaming support)
 // ---------------------------------------------------------------------------
 
 type LLMMessage = {
@@ -554,12 +747,15 @@ type LLMMessage = {
   }>;
 };
 
+type ToolDefinition = {
+  type: 'function';
+  function: { name: string; description: string; parameters: Record<string, unknown> };
+};
+
 async function callLLM(
   messages: LLMMessage[],
-  tools?: Array<{
-    type: 'function';
-    function: { name: string; description: string; parameters: Record<string, unknown> };
-  }>
+  tools?: ToolDefinition[],
+  onToken?: (text: string) => void
 ): Promise<{
   content: string | null;
   toolCalls?: Array<{
@@ -567,6 +763,7 @@ async function callLLM(
     type: 'function';
     function: { name: string; arguments: string };
   }>;
+  usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
 }> {
   const llmApiKey = OPENAI_API_KEY;
   const apiUrl = 'https://api.openai.com/v1/chat/completions';
@@ -579,19 +776,22 @@ async function callLLM(
     max_tokens: MAX_TOKENS,
   };
 
-  // Solo pasar tools si hay definidas
   if (tools && tools.length > 0) {
     body.tools = tools;
     body.tool_choice = 'auto';
   }
 
-  // Retry logic for rate limits (up to 3 attempts with exponential backoff)
+  const isStreaming = !!onToken;
+  if (isStreaming) {
+    body.stream = true;
+    body.stream_options = { include_usage: true };
+  }
+
   let lastError: Error | null = null;
   const maxRetries = 3;
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     if (attempt > 0) {
-      // Esperar antes de reintentar: 1s, 3s, 7s
       const delay = Math.pow(2, attempt + 1) * 1000 - 1000;
       await new Promise(resolve => setTimeout(resolve, delay));
     }
@@ -607,7 +807,10 @@ async function callLLM(
       });
 
       if (response.ok) {
-        // Success — parse and return
+        if (isStreaming) {
+          return await readStreamingResponse(response, onToken);
+        }
+
         let data: {
           choices?: Array<{
             message?: {
@@ -619,6 +822,7 @@ async function callLLM(
               }>;
             };
           }>;
+          usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
         };
         try {
           data = await response.json();
@@ -631,10 +835,10 @@ async function callLLM(
         return {
           content: message?.content ?? null,
           toolCalls: message?.tool_calls,
+          usage: data?.usage,
         };
       }
 
-      // Try to extract error message
       let msg = `HTTP ${response.status}`;
       try {
         const errorBody = await response.json();
@@ -644,7 +848,6 @@ async function callLLM(
         msg = `HTTP ${response.status} - ${text.substring(0, 200)}`;
       }
 
-      // If it's a rate limit error, retry; otherwise throw immediately
       const isRateLimit =
         response.status === 429 ||
         msg.toLowerCase().includes('rate limit') ||
@@ -659,7 +862,6 @@ async function callLLM(
       console.warn(
         `Rate limit (attempt ${attempt + 1}/${maxRetries}): ${msg}`
       );
-      // Continue to next attempt
     } catch (err) {
       if (err instanceof Error && (
         err.message.includes('Rate limit') ||
@@ -670,11 +872,101 @@ async function callLLM(
         console.warn(`Rate limit (attempt ${attempt + 1}/${maxRetries})`);
         continue;
       }
-      throw err; // Non-rate-limit errors propagate immediately
+      throw err;
     }
   }
 
   throw lastError || new Error(`Error al generar respuesta con OpenAI: max retries exceeded`);
+}
+
+/**
+ * Read an OpenAI streaming response, emitting tokens via onToken.
+ * Handles both text-only and tool-call responses.
+ */
+async function readStreamingResponse(
+  response: Response,
+  onToken: (text: string) => void
+): Promise<{
+  content: string | null;
+  toolCalls?: Array<{
+    id: string;
+    type: 'function';
+    function: { name: string; arguments: string };
+  }>;
+  usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
+}> {
+  const reader = response.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let content = '';
+  let toolCalls: Array<{
+    id: string;
+    type: 'function';
+    function: { name: string; arguments: string };
+  }> | undefined;
+  let hasToolCalls = false;
+  let streamUsage: { prompt_tokens: number; completion_tokens: number; total_tokens: number } | undefined;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || !trimmed.startsWith('data: ')) continue;
+
+      const payload = trimmed.slice(6);
+      if (payload === '[DONE]') continue;
+
+      try {
+        const parsed = JSON.parse(payload);
+
+        if (parsed.usage) {
+          streamUsage = parsed.usage;
+        }
+
+        const choice = parsed.choices?.[0];
+        if (!choice) continue;
+
+        const delta = choice.delta || {};
+
+        if (delta.tool_calls) {
+          hasToolCalls = true;
+          if (!toolCalls) toolCalls = [];
+          for (const tc of delta.tool_calls) {
+            const idx: number = tc.index;
+            if (!toolCalls[idx]) {
+              toolCalls[idx] = { id: '', type: 'function' as const, function: { name: '', arguments: '' } };
+            }
+            if (tc.id) toolCalls[idx].id = tc.id;
+            if (tc.function) {
+              if (tc.function.name) toolCalls[idx].function.name += tc.function.name;
+              if (tc.function.arguments) toolCalls[idx].function.arguments += tc.function.arguments;
+            }
+          }
+        }
+
+        if (delta.content) {
+          content += delta.content;
+          if (!hasToolCalls) {
+            onToken(delta.content);
+          }
+        }
+      } catch {
+        // skip malformed JSON lines
+      }
+    }
+  }
+
+  return {
+    content: hasToolCalls ? null : content,
+    toolCalls,
+    usage: streamUsage,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -708,253 +1000,358 @@ async function getCachedDocCount(supabaseClient: unknown): Promise<number> {
 }
 
 // ---------------------------------------------------------------------------
-// POST handler — function calling loop
+// SSE helpers
+// ---------------------------------------------------------------------------
+
+type SSEWriter = (event: string, data: Record<string, unknown>) => void;
+
+function createSSEWriter(controller: ReadableStreamDefaultController, encoder: TextEncoder): SSEWriter {
+  return (event: string, data: Record<string, unknown>) => {
+    try {
+      controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+    } catch {
+      // Stream may have been closed by the client
+    }
+  };
+}
+
+// ---------------------------------------------------------------------------
+// POST handler — function calling loop with SSE streaming
 // ---------------------------------------------------------------------------
 
 async function handleChatPOST(request: Request) {
-  const accumulatedSources: ReturnType<typeof buildSources> = [];
-  const accumulatedDataSources: Array<{
-    indicador: string;
-    periodo?: string;
-    valor?: number | string;
-  }> = [];
-  const toolsUsed: string[] = [];
-  let searchMethodUsed: 'vector' | 'text' | undefined;
-  let totalToolCalls = 0;
-  let warning: string | undefined;
+  let question: string;
+  let conversationHistory: Array<{ role: string; content: string }> | undefined;
 
   try {
-    const { question, conversationHistory } = await request.json();
-
-    if (!question || typeof question !== 'string') {
-      return NextResponse.json(
-        { error: "La pregunta es requerida (campo 'question')" },
-        { status: 400 }
-      );
-    }
-
-    // --- Check LLM API key ---
-    if (!OPENAI_API_KEY) {
-      return NextResponse.json(
-        {
-          error: 'No hay API key configurada para OPENAI. Configurá OPENAI_API_KEY en .env.local',
-        },
-        { status: 500 }
-      );
-    }
-
-    // --- Agent loop with function calling ---
-    // Los mensajes de tool results se agregan dinámicamente
-    const messages: LLMMessage[] = [
-      { role: 'system', content: SYSTEM_PROMPT },
-      ...(conversationHistory || []).slice(-6),
-      { role: 'user', content: question },
-    ];
-
-    let finalAnswer = '';
-    let round = 0;
-
-    while (round < MAX_TOOL_ROUNDS && totalToolCalls < MAX_TOOL_CALLS) {
-      round += 1;
-
-      let response;
-      try {
-        response = await callLLM(messages, ALL_TOOLS);
-      } catch (err) {
-        console.error(`LLM call failed (round ${round}):`, err);
-        if (toolsUsed.length > 0) {
-          const errMsg = err instanceof Error ? err.message : String(err);
-          finalAnswer =
-            '⚠️ No pude generar la respuesta final (error: ' + errMsg.substring(0, 300) + ').\n\n' +
-            '**Herramientas ejecutadas**: ' + toolsUsed.join(', ') + '\n\n' +
-            'Los datos se obtuvieron correctamente pero el servicio de IA falló al sintetizarlos. ' +
-            'Probá con una consulta más específica o reintentá en unos segundos.';
-          break;
-        }
-        throw err;
-      }
-
-      // Si el LLM devolvió texto (no tool calls), es la respuesta final
-      if (!response.toolCalls || response.toolCalls.length === 0) {
-        finalAnswer = response.content || '';
-        break;
-      }
-
-      // --- El LLM pidió ejecutar tools ---
-      // OpenAI requiere que los mensajes 'tool' respondan a un mensaje 'assistant' con tool_calls.
-      // Agregamos el mensaje del assistant ANTES de los resultados de las tools.
-      messages.push({
-        role: 'assistant',
-        content: response.content ?? null,
-        tool_calls: response.toolCalls.map(tc => ({
-          id: tc.id,
-          type: 'function' as const,
-          function: {
-            name: tc.function.name,
-            arguments: tc.function.arguments,
-          },
-        })),
-      });
-
-      const toolResults: string[] = [];
-      let allFailed = true;
-
-      for (const toolCall of response.toolCalls) {
-        if (totalToolCalls >= MAX_TOOL_CALLS) break;
-        totalToolCalls += 1;
-
-        const toolName = toolCall.function.name;
-        let toolArgs: Record<string, unknown> = {};
-
-        try {
-          toolArgs = JSON.parse(toolCall.function.arguments);
-        } catch {
-          toolArgs = {};
-        }
-
-        try {
-          const { formattedResult, sourceType, chunks, indicatorResult } = await executeToolCall(
-            toolName,
-            toolArgs
-          );
-
-          toolsUsed.push(toolName);
-          allFailed = false;
-
-          // Truncar si excede el límite de contexto
-          let truncatedResult = formattedResult;
-          if (truncatedResult.length > MAX_CONTEXT_CHARS) {
-            truncatedResult = truncatedResult.substring(0, MAX_CONTEXT_CHARS) +
-              '\n\n[... resultado truncado por límite de contexto ...]';
-          }
-
-          toolResults.push(`[Resultado de "${toolName}"]:\n${truncatedResult}`);
-
-          // Agregar resultado como mensaje tool (function calling nativo)
-          messages.push({
-            role: 'tool',
-            tool_call_id: toolCall.id,
-            content: truncatedResult,
-          });
-
-          // Acumular fuentes
-          if (sourceType === 'documents' && chunks) {
-            accumulatedSources.push(...buildSources(chunks));
-          }
-
-          // Acumular fuentes de indicadores
-          if (sourceType === 'indicators' && indicatorResult) {
-            const dataRefs = extractDataSources(toolName, indicatorResult);
-            accumulatedDataSources.push(...dataRefs);
-          }
-
-          // Track search method
-          if (toolName === 'search_knowledge_base' && chunks) {
-            // El search method se infiere de los chunks (no tenemos el flag directo aquí)
-            // Se puede mejorar si searchKnowledgeBase devuelve el método
-          }
-        } catch (toolErr) {
-          console.error(`Tool "${toolName}" execution error:`, toolErr);
-          const errorMsg = `[Error ejecutando "${toolName}"]: ${String(toolErr)}`;
-          toolResults.push(errorMsg);
-
-          // Aún así agregamos el resultado para que el LLM sepa que falló
-          messages.push({
-            role: 'tool',
-            tool_call_id: toolCall.id,
-            content: `Error: ${String(toolErr).substring(0, 500)}`,
-          });
-        }
-      }
-
-      // Si todas las tools fallaron, damos una instrucción clara
-      if (allFailed) {
-        messages.push({
-          role: 'user',
-          content:
-            'Todas las herramientas fallaron. Informá al usuario que no se pudieron obtener los datos y sugerí alternativas. NO intentes llamar herramientas de nuevo.',
-        });
-      } else {
-        // Instrucción suave para que el LLM intente sintetizar
-        // (no forzamos, el LLM puede decidir llamar más tools si lo necesita)
-        if (totalToolCalls < MAX_TOOL_CALLS) {
-          messages.push({
-            role: 'user',
-            content:
-              'Si ya tenés suficiente información con estos resultados, sintetizá la respuesta final. Si necesitás más datos, podés llamar otras herramientas.',
-          });
-        }
-      }
-
-      // Si tenemos tool results en el último round, no vamos a tener otra oportunidad
-      if (toolResults.length > 0 && round >= MAX_TOOL_ROUNDS - 1) {
-        messages.push({
-          role: 'user',
-          content:
-            'Llegaste al límite de rondas. Sintetizá AHORA una respuesta final con los datos que tengas. NO uses herramientas.',
-        });
-      }
-    }
-
-    // --- Edge cases ---
-    if (!finalAnswer && toolsUsed.length > 0) {
-      // Último intento: forzar síntesis sin tools
-      try {
-        messages.push({
-          role: 'user',
-          content:
-            'Sintetizá AHORA una respuesta final con todos los datos disponibles. NO uses herramientas.',
-        });
-        const { content } = await callLLM(messages);
-        finalAnswer = content || '';
-      } catch {
-        finalAnswer =
-          'No se pudo completar el análisis en el tiempo disponible. Por favor, intentá con una consulta más específica.';
-      }
-    }
-
-    if (!finalAnswer) {
-      finalAnswer =
-        'No encontré información relevante para tu consulta en los documentos ni en los indicadores disponibles.\n\n' +
-        '**Sugerencias**:\n' +
-        '- Probá con otros términos de búsqueda\n' +
-        '- Usá la herramienta listAvailableIndicators para ver qué datos hay disponibles\n' +
-        '- Subí documentos a la biblioteca para ampliar la base de conocimiento\n\n' +
-        '**Categorías de indicadores disponibles**: pobreza, salud, educacion, inversion, demografia, seguridad, justicia, salud_adolescente, anuario_educacion, aprender, consumo, deis.';
-    }
-
-    // --- Contar documentos procesados (cacheado 5 min) ---
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const supabaseClient: any = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const totalDocs = await getCachedDocCount(supabaseClient);
-
-    // --- Build final response ---
-    const responseBody: Record<string, unknown> = {
-      answer: finalAnswer,
-      sources:
-        accumulatedSources.length > 0
-          ? Array.from(new Map(accumulatedSources.map(s => [s.fileName, s])).values())
-          : [],
-      dataSources:
-        accumulatedDataSources.length > 0
-          ? Array.from(new Map(accumulatedDataSources.map(d => [d.indicador, d])).values())
-          : [],
-      hasContext: accumulatedSources.length > 0,
-      totalDocs: totalDocs ?? 0,
-      searchMethod: searchMethodUsed || 'vector',
-      toolsUsed: [...new Set(toolsUsed)],
-      reportGenerated: (finalAnswer.match(/^#{1,3}\s/gm) || []).length >= 2 && finalAnswer.length > 400,
-      model: OPENAI_MODEL,
-      functionCalling: true,
-    };
-
-    if (warning) responseBody.warning = warning;
-
-    return NextResponse.json(responseBody);
-  } catch (err) {
-    console.error('Chat error:', err);
-    return NextResponse.json({ error: `Error interno: ${String(err)}` }, { status: 500 });
+    const body = await request.json();
+    question = body.question;
+    conversationHistory = body.conversationHistory;
+  } catch {
+    return NextResponse.json(
+      { error: "Cuerpo de la solicitud inválido. Se esperaba JSON con campo 'question'." },
+      { status: 400 }
+    );
   }
+
+  if (!question || typeof question !== 'string' || !question.trim()) {
+    return NextResponse.json(
+      { error: "La pregunta es requerida (campo 'question')" },
+      { status: 400 }
+    );
+  }
+
+  if (!OPENAI_API_KEY) {
+    return NextResponse.json(
+      {
+        error: 'No hay API key configurada para OPENAI. Configurá OPENAI_API_KEY en .env.local',
+      },
+      { status: 500 }
+    );
+  }
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      const encoder = new TextEncoder();
+      const send = createSSEWriter(controller, encoder);
+
+      const accumulatedSources: ReturnType<typeof buildSources> = [];
+      const accumulatedDataSources: Array<{
+        indicador: string;
+        periodo?: string;
+        valor?: number | string;
+      }> = [];
+      const toolsUsed: string[] = [];
+      let searchMethodUsed: 'vector' | 'text' | 'hybrid' | undefined;
+
+      // Auto-discover available indicator categories and inject into context
+      let catalogContext = '';
+      try {
+        const { listAvailableIndicators } = await import('@/lib/agent/indicator-tools');
+        const catalog = await listAvailableIndicators();
+        if (catalog.categorias.length > 0) {
+          const lines = catalog.categorias.map(c => {
+            // Show indicators whose name matches the category keyword first
+            const sorted = [...c.indicadores].sort((a, b) => {
+              const aMatch = a.nombre.toLowerCase().includes(c.nombre.toLowerCase()) ? 0 : 1;
+              const bMatch = b.nombre.toLowerCase().includes(c.nombre.toLowerCase()) ? 0 : 1;
+              return aMatch - bMatch;
+            });
+            return `  - "${c.nombre}" (${c.indicadores.length} indicadores, ej: ${sorted.slice(0, 5).map(i => i.nombre).join(', ')}${c.indicadores.length > 5 ? '...' : ''})`;
+          });
+          catalogContext = `\n\n## CATÁLOGO DE DATOS DISPONIBLES\n\nEstas son las categorías de indicadores con datos cargados. TODAS tienen datos disponibles — no necesitás buscarlas en documentos:\n${lines.join('\n')}\n\nINSTRUCCIÓN: SIEMPRE que te pregunten sobre un tema que coincida con alguna categoría, usá las herramientas de indicadores. NO uses search_knowledge_base para buscar datos de indicadores.`;
+        }
+      } catch {
+        // Non-critical — continue without catalog
+      }
+
+      try {
+        const messages: LLMMessage[] = [
+          { role: 'system', content: SYSTEM_PROMPT + catalogContext },
+          ...(conversationHistory || []).slice(-6),
+          { role: 'user', content: question },
+        ];
+
+        let finalAnswer = '';
+        let round = 0;
+        let totalToolCalls = 0;
+
+        while (round < MAX_TOOL_ROUNDS && totalToolCalls < MAX_TOOL_CALLS) {
+          round += 1;
+
+          let response;
+          try {
+            response = await callLLM(messages, ALL_TOOLS, (text) => {
+              send('token', { text });
+            });
+            if (response.usage) {
+              trackLLMUsage({
+                tool: 'chat',
+                model: OPENAI_MODEL,
+                promptTokens: response.usage.prompt_tokens,
+                completionTokens: response.usage.completion_tokens,
+              });
+            }
+          } catch (err) {
+            console.error(`LLM call failed (round ${round}):`, err);
+            if (toolsUsed.length > 0) {
+              const errMsg = err instanceof Error ? err.message : String(err);
+              finalAnswer =
+                '⚠️ No pude generar la respuesta final (error: ' + errMsg.substring(0, 300) + ').\n\n' +
+                '**Herramientas ejecutadas**: ' + toolsUsed.join(', ') + '\n\n' +
+                'Los datos se obtuvieron correctamente pero el servicio de IA falló al sintetizarlos. ' +
+                'Probá con una consulta más específica o reintentá en unos segundos.';
+              // Emit the fallback answer as tokens
+              for (const chunk of splitIntoChunks(finalAnswer)) {
+                send('token', { text: chunk });
+              }
+              break;
+            }
+            throw err;
+          }
+
+          if (!response.toolCalls || response.toolCalls.length === 0) {
+            finalAnswer = response.content || '';
+            break;
+          }
+
+          messages.push({
+            role: 'assistant',
+            content: response.content ?? null,
+            tool_calls: response.toolCalls.map(tc => ({
+              id: tc.id,
+              type: 'function' as const,
+              function: {
+                name: tc.function.name,
+                arguments: tc.function.arguments,
+              },
+            })),
+          });
+
+          const toolResults: string[] = [];
+          let allFailed = true;
+
+          for (const toolCall of response.toolCalls) {
+            if (totalToolCalls >= MAX_TOOL_CALLS) break;
+            totalToolCalls += 1;
+
+            const toolName = toolCall.function.name;
+            let toolArgs: Record<string, unknown> = {};
+
+            try {
+              toolArgs = JSON.parse(toolCall.function.arguments);
+            } catch {
+              toolArgs = {};
+            }
+
+            send('tool', { tool: toolName, status: 'start', label: getToolDisplayName(toolName) });
+
+            try {
+              const { formattedResult, sourceType, chunks, indicatorResult, searchMethod } = await executeToolCall(
+                toolName,
+                toolArgs
+              );
+
+              if (searchMethod) searchMethodUsed = searchMethod;
+              toolsUsed.push(toolName);
+              allFailed = false;
+
+              let truncatedResult = formattedResult;
+              if (truncatedResult.length > MAX_CONTEXT_CHARS) {
+                truncatedResult = truncatedResult.substring(0, MAX_CONTEXT_CHARS) +
+                  '\n\n[... resultado truncado por límite de contexto ...]';
+              }
+
+              toolResults.push(`[Resultado de "${toolName}"]:\n${truncatedResult}`);
+
+              messages.push({
+                role: 'tool',
+                tool_call_id: toolCall.id,
+                content: truncatedResult,
+              });
+
+              if (sourceType === 'documents' && chunks) {
+                accumulatedSources.push(...buildSources(chunks));
+              }
+
+              if (sourceType === 'indicators' && indicatorResult) {
+                const dataRefs = extractDataSources(toolName, indicatorResult);
+                accumulatedDataSources.push(...dataRefs);
+              }
+            } catch (toolErr) {
+              console.error(`Tool "${toolName}" execution error:`, toolErr);
+              const errorMsg = `[Error ejecutando "${toolName}"]: ${String(toolErr)}`;
+              toolResults.push(errorMsg);
+
+              messages.push({
+                role: 'tool',
+                tool_call_id: toolCall.id,
+                content: `Error: ${String(toolErr).substring(0, 500)}`,
+              });
+            }
+
+            send('tool', { tool: toolName, status: 'end' });
+          }
+
+          if (allFailed) {
+            messages.push({
+              role: 'user',
+              content:
+                'Todas las herramientas fallaron. Probá con herramientas DIFERENTES a las que ya intentaste. Por ejemplo, si falló search_knowledge_base, probá listAvailableIndicators o searchIndicators. O si fallaron indicadores, buscá en documentos o web. Usá al menos 2-3 herramientas diferentes antes de rendirte.',
+            });
+          } else {
+            // If only search_knowledge_base was used and found nothing, force other tools
+            const onlySearchedDocs = toolsUsed.length === 1 && toolsUsed[0] === 'search_knowledge_base';
+            if (onlySearchedDocs) {
+              messages.push({
+                role: 'user',
+                content:
+                  'Los documentos no tenían la información. NO te rindas. Ahora usá las herramientas de INDICADORES (listAvailableIndicators, getCategoryOverview, getLatestIndicatorValue, searchIndicators). Buscá en los indicadores antes de responder.',
+              });
+            } else if (totalToolCalls < MAX_TOOL_CALLS) {
+              messages.push({
+                role: 'user',
+                content:
+                  'Si ya tenés suficiente información con estos resultados, sintetizá la respuesta final. Si necesitás más datos, podés llamar otras herramientas.',
+              });
+            }
+          }
+
+          if (toolResults.length > 0 && round >= MAX_TOOL_ROUNDS - 1) {
+            messages.push({
+              role: 'user',
+              content:
+                'Llegaste al límite de rondas. Sintetizá AHORA una respuesta final con los datos que tengas. NO uses herramientas.',
+            });
+          }
+        }
+
+        if (!finalAnswer && toolsUsed.length > 0) {
+          try {
+            messages.push({
+              role: 'user',
+              content:
+                'Sintetizá AHORA una respuesta final con todos los datos disponibles. NO uses herramientas.',
+            });
+            const { content, usage } = await callLLM(messages, undefined, (text) => {
+              send('token', { text });
+            });
+            if (usage) {
+              trackLLMUsage({
+                tool: 'chat',
+                model: OPENAI_MODEL,
+                promptTokens: usage.prompt_tokens,
+                completionTokens: usage.completion_tokens,
+              });
+            }
+            finalAnswer = content || '';
+          } catch {
+            finalAnswer =
+              'No se pudo completar el análisis en el tiempo disponible. Por favor, intentá con una consulta más específica.';
+            for (const chunk of splitIntoChunks(finalAnswer)) {
+              send('token', { text: chunk });
+            }
+          }
+        }
+
+        if (!finalAnswer) {
+          let availableData = '';
+          try {
+            const indicators = await listAvailableIndicators();
+            if (indicators.categorias.length > 0) {
+              availableData = '\n\n**Datos disponibles en el sistema**:\n';
+              for (const cat of indicators.categorias) {
+                const names = cat.indicadores.map(i => `\`${i.nombre}\``).join(', ');
+                availableData += `\n- *${cat.nombre}* (${cat.indicadores.length} indicadores): ${names}`;
+              }
+            }
+          } catch {
+            availableData = '\n\n*No se pudieron consultar los indicadores disponibles.*';
+          }
+
+          finalAnswer =
+            'No encontré información específica para tu consulta en las fuentes disponibles.' +
+            availableData +
+            '\n\n**Sugerencias**:\n' +
+            '- Probá con otros términos de búsqueda\n' +
+            '- Subí documentos a la biblioteca para ampliar la base de conocimiento\n' +
+            '- Consultá a la Defensoría para obtener información más específica';
+          for (const chunk of splitIntoChunks(finalAnswer)) {
+            send('token', { text: chunk });
+          }
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const supabaseClient: any = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const totalDocs = await getCachedDocCount(supabaseClient);
+
+        const dedupedSources = accumulatedSources.length > 0
+          ? Array.from(new Map(accumulatedSources.map(s => [s.fileName, s])).values())
+          : [];
+
+        const dedupedDataSources = accumulatedDataSources.length > 0
+          ? Array.from(new Map(accumulatedDataSources.map(d => [d.indicador, d])).values())
+          : [];
+
+        send('done', {
+          sources: dedupedSources,
+          dataSources: dedupedDataSources,
+          hasContext: dedupedSources.length > 0,
+          totalDocs: totalDocs ?? 0,
+          searchMethod: searchMethodUsed || 'vector',
+          toolsUsed: [...new Set(toolsUsed)],
+          reportGenerated: (finalAnswer.match(/^#{1,3}\s/gm) || []).length >= 2 && finalAnswer.length > 400,
+          model: OPENAI_MODEL,
+          functionCalling: true,
+        });
+      } catch (err) {
+        console.error('Chat error:', err);
+        send('error', { error: `Error interno: ${String(err)}` });
+      } finally {
+        try {
+          controller.close();
+        } catch {
+          // Stream already closed
+        }
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+    },
+  });
+}
+
+function splitIntoChunks(text: string, size = 80): string[] {
+  const chunks: string[] = [];
+  for (let i = 0; i < text.length; i += size) {
+    chunks.push(text.slice(i, i + size));
+  }
+  return chunks;
 }
 
 // Exported with rate limiting (30 requests/min per IP)

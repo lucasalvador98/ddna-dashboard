@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Shield, Loader2, CheckCircle, XCircle } from 'lucide-react';
 import clsx from 'clsx';
+import { getAuthConfig } from '@/lib/actions/auth-config';
 
 export default function ConfigPage() {
   const [enabled, setEnabled] = useState(false);
@@ -12,8 +13,8 @@ export default function ConfigPage() {
 
   const loadConfig = useCallback(async () => {
     try {
-      const r = await fetch('/api/auth/config');
-      if (r.ok) setEnabled((await r.json()).enabled ?? false);
+      const { data } = await getAuthConfig();
+      setEnabled(data.value?.enabled ?? false);
     } catch {}
     setLoading(false);
   }, []);
@@ -54,7 +55,7 @@ export default function ConfigPage() {
   return (
     <div className="max-w-2xl space-y-6">
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-        <h2 className="font-display text-lg text-[#1a2556] mb-4">Autenticación</h2>
+        <h2 className="font-display text-lg text-[#334155] mb-4">Autenticación</h2>
 
         <div
           className={clsx(
@@ -64,7 +65,7 @@ export default function ConfigPage() {
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-accent text-sm font-semibold text-[#1a2556]">
+              <p className="font-accent text-sm font-semibold text-[#334155]">
                 {enabled ? '🔒 Autenticación activada' : '🔓 Sin restricciones'}
               </p>
               <p className="text-xs text-gray-500 mt-0.5">
@@ -97,7 +98,7 @@ export default function ConfigPage() {
 
         {/* Info */}
         <div className="border-t border-gray-100 pt-4 space-y-3 text-sm text-gray-500">
-          <h3 className="font-medium text-[#1a2556]">¿Cómo funciona?</h3>
+          <h3 className="font-medium text-[#334155]">¿Cómo funciona?</h3>
           <p>
             Cuando la autenticación está <strong>activada</strong>, cada usuario debe iniciar sesión y su
             rol determina qué pantallas puede ver y editar.
