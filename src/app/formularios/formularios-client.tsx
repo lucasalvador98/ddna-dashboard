@@ -17,10 +17,14 @@ import {
   X,
 } from 'lucide-react';
 import clsx from 'clsx';
-import QRCode from 'qrcode';
 import type { Formulario } from '@/lib/formularios/types';
 import { deleteForm, toggleForm } from '@/lib/actions/formularios';
 import { Toggle } from '@/components/monitoreo/toggle';
+
+/** Public URL for a form — shared by the copy button and the QR modal. */
+function publicFormUrl(slug: string): string {
+  return `${window.location.origin}/f/${slug}`;
+}
 
 interface FormulariosClientProps {
   formularios: Formulario[];
@@ -63,13 +67,17 @@ function QrModal({
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [qrError, setQrError] = useState(false);
   const backdropRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
-  const link = `${window.location.origin}/f/${form.slug}`;
+  const link = publicFormUrl(form.slug);
 
   // Generate the QR lazily when the modal opens (client-side only).
   useEffect(() => {
     let cancelled = false;
-    QRCode.toDataURL(link, { width: 256, margin: 2, errorCorrectionLevel: 'M' })
+    import('qrcode')
+      .then(({ default: QRCode }) =>
+        QRCode.toDataURL(link, { width: 256, margin: 2, errorCorrectionLevel: 'M' })
+      )
       .then((dataUrl: string) => {
         if (!cancelled) setQrDataUrl(dataUrl);
       })
@@ -81,10 +89,38 @@ function QrModal({
     };
   }, [link]);
 
-  // Escape closes the modal; lock body scroll while it is open.
+  // Move focus into the dialog on open and restore it on close.
+  useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    dialogRef.current?.focus();
+    return () => {
+      previouslyFocused?.focus();
+    };
+  }, []);
+
+  // Escape closes the modal; Tab cycles within the dialog; lock body scroll.
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (e.key === 'Tab' && dialogRef.current) {
+        const focusables = dialogRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusables.length === 0) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        const active = document.activeElement;
+        if (e.shiftKey && (active === first || active === dialogRef.current)) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && active === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     },
     [onClose]
   );
@@ -109,10 +145,12 @@ function QrModal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
     >
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label="Compartí este formulario"
-        className="bg-white rounded-xl shadow-2xl w-full max-w-md"
+        tabIndex={-1}
+        className="bg-white rounded-xl shadow-2xl w-full max-w-md outline-none"
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <h2 className="font-accent text-lg text-[#334155] font-semibold">
@@ -270,6 +308,7 @@ export function FormulariosClient({ formularios }: FormulariosClientProps) {
   const [qrFormId, setQrFormId] = useState<string | null>(null);
 
   const qrForm = items.find((f) => f.id === qrFormId) ?? null;
+  const closeQr = useCallback(() => setQrFormId(null), []);
 
   async function handleToggle(id: string) {
     if (busyId) return;
@@ -297,7 +336,7 @@ export function FormulariosClient({ formularios }: FormulariosClientProps) {
 
   async function handleCopy(form: Formulario) {
     try {
-      await navigator.clipboard.writeText(`${window.location.origin}/f/${form.slug}`);
+      await navigator.clipboard.writeText(publicFormUrl(form.slug));
       setToast({ message: 'Link copiado al portapapeles.', type: 'success' });
     } catch {
       setToast({ message: 'No se pudo copiar el link.', type: 'error' });
@@ -367,7 +406,7 @@ export function FormulariosClient({ formularios }: FormulariosClientProps) {
       {qrForm && (
         <QrModal
           form={qrForm}
-          onClose={() => setQrFormId(null)}
+          onClose={closeQr}
           onCopy={handleCopy}
         />
       )}
