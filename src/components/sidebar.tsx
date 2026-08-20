@@ -57,6 +57,7 @@ export function Sidebar({ badges }: SidebarProps) {
 
   return (
     <aside
+      aria-label="Navegación principal"
       className={clsx(
         'hidden sm:flex flex-col bg-white border-r border-border transition-all duration-300 ease-in-out relative shrink-0',
         isCollapsed ? 'w-14 sm:w-16' : 'w-60'
@@ -79,15 +80,17 @@ export function Sidebar({ badges }: SidebarProps) {
                 <li key={group.label}>
                   <Link
                     href={item.href}
+                    aria-label={item.label}
+                    title={item.label}
                     className={clsx(
-                      'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
+                      'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:ring-offset-2',
                       active ? 'bg-terracotta/10 text-terracotta' : 'text-text-primary hover:bg-gray-100'
                     )}
                   >
                     <item.icon
                       className={clsx(
                         'w-5 h-5 flex-shrink-0',
-                        active ? 'text-terracotta' : 'text-[#9CA3AF]'
+                        active ? 'text-terracotta' : 'text-gray-400'
                       )}
                     />
                     {!isCollapsed && (
@@ -115,8 +118,10 @@ export function Sidebar({ badges }: SidebarProps) {
               <li key={group.label}>
                 <button
                   onClick={() => toggleGroup(group.label)}
+                  aria-expanded={isExpanded}
+                  aria-controls={`group-${group.label.replace(/\s+/g, '-')}`}
                   className={clsx(
-                    'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-left',
+                    'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:ring-offset-2',
                     activeChild
                       ? 'bg-terracotta/10 text-terracotta'
                       : 'text-text-primary hover:bg-gray-100'
@@ -125,7 +130,7 @@ export function Sidebar({ badges }: SidebarProps) {
                   <group.icon
                     className={clsx(
                       'w-5 h-5 flex-shrink-0',
-                      activeChild ? 'text-terracotta' : 'text-[#9CA3AF]'
+                      activeChild ? 'text-terracotta' : 'text-gray-400'
                     )}
                   />
                   {!isCollapsed && (
@@ -150,7 +155,7 @@ export function Sidebar({ badges }: SidebarProps) {
 
                 {/* Children */}
                 {!isCollapsed && isExpanded && (
-                  <ul className="ml-4 mt-0.5 space-y-0.5 border-l border-border pl-3">
+                  <ul id={`group-${group.label.replace(/\s+/g, '-')}`} className="ml-4 mt-0.5 space-y-0.5 border-l border-border pl-3">
                     {group.items.map(item => {
                       const active = isItemActive(item.href);
                       const count = badgeForHref(item.href);
@@ -159,16 +164,16 @@ export function Sidebar({ badges }: SidebarProps) {
                           <Link
                             href={item.href}
                             className={clsx(
-                              'flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-sm',
+                              'flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:ring-offset-2',
                               active
                                 ? 'bg-terracotta/10 text-terracotta font-medium'
-                                : 'text-[#6B7280] hover:bg-gray-50 hover:text-text-primary'
+                                : 'text-gray-500 hover:bg-gray-50 hover:text-text-primary'
                             )}
                           >
                             <item.icon
                               className={clsx(
                                 'w-4 h-4 flex-shrink-0',
-                                active ? 'text-terracotta' : 'text-[#D1D5DB]'
+                                active ? 'text-terracotta' : 'text-gray-300'
                               )}
                             />
                             <span className="font-accent tracking-wide">{item.label}</span>
@@ -192,7 +197,7 @@ export function Sidebar({ badges }: SidebarProps) {
       {/* Collapse toggle */}
       <button
         onClick={toggleCollapse}
-        className="absolute -right-3 top-3 w-6 h-6 bg-white border border-border rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:border-gray-300 transition-colors shadow-sm"
+        className="absolute -right-3 top-3 w-6 h-6 bg-white border border-border rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:border-gray-300 transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-2"
         aria-label={isCollapsed ? 'Expandir sidebar' : 'Colapsar sidebar'}
       >
         <ChevronLeft

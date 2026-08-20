@@ -20,6 +20,8 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
   useEffect(() => {
     const activeGroup = findGroupForPath(pathname);
     if (activeGroup) {
+      // Sync expanded state to pathname — intentional
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setExpandedGroups(prev => {
         const next = new Set(prev);
         next.add(activeGroup);
@@ -30,9 +32,8 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
 
   // Close on route change
   useEffect(() => {
-    onClose();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]);
+    if (isOpen) onClose();
+  }, [pathname, isOpen, onClose]);
 
   // Lock body scroll when open
   useEffect(() => {
@@ -75,6 +76,9 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
 
       {/* Drawer */}
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Navegación"
         className={clsx(
           'fixed top-0 left-0 z-50 h-full w-72 bg-white shadow-xl transition-transform duration-300 ease-in-out',
           isOpen ? 'translate-x-0' : '-translate-x-full'
@@ -85,7 +89,7 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
           <span className="font-display text-lg text-navy">Navegación</span>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-secondary-bg transition-colors text-text-primary"
+            className="p-2 rounded-lg hover:bg-secondary-bg transition-colors text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-2"
             aria-label="Cerrar menú"
           >
             <X className="w-5 h-5" />
@@ -119,7 +123,7 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
                       <item.icon
                         className={clsx(
                           'w-5 h-5 flex-shrink-0',
-                          active ? 'text-terracotta' : 'text-[#9CA3AF]'
+                          active ? 'text-terracotta' : 'text-gray-400'
                         )}
                       />
                       <span
@@ -150,7 +154,7 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
                     <group.icon
                       className={clsx(
                         'w-5 h-5 flex-shrink-0',
-                        activeChild ? 'text-terracotta' : 'text-[#9CA3AF]'
+                        activeChild ? 'text-terracotta' : 'text-gray-400'
                       )}
                     />
                     <span
@@ -182,13 +186,13 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
                                 'flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-sm',
                                 active
                                   ? 'bg-terracotta/10 text-terracotta font-medium'
-                                  : 'text-[#6B7280] hover:bg-gray-50 hover:text-text-primary'
+                                  : 'text-gray-500 hover:bg-gray-50 hover:text-text-primary'
                               )}
                             >
                               <item.icon
                                 className={clsx(
                                   'w-4 h-4 flex-shrink-0',
-                                  active ? 'text-terracotta' : 'text-[#D1D5DB]'
+                                  active ? 'text-terracotta' : 'text-gray-300'
                                 )}
                               />
                               <span className="font-accent tracking-wide">{item.label}</span>
