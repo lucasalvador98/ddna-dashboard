@@ -303,7 +303,7 @@ function TabIngresos({
       </ChartCard>
 
       <div className="bg-white rounded-xl border border-border overflow-hidden">
-        <div className="p-5 border-b border-border">
+        <div className="p-6 border-b border-border">
           <div className="flex items-center gap-3">
             <div className="w-1 h-6 rounded-full" style={{ backgroundColor: COLORS.magenta }} />
             <h3 className="font-display text-lg text-navy">Últimos Períodos</h3>
@@ -313,23 +313,23 @@ function TabIngresos({
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-left">
               <tr>
-                <th className="px-5 py-3 font-medium text-gray-600">Período</th>
-                <th className="px-5 py-3 font-medium text-gray-600 text-right">Pobreza Hogares</th>
-                <th className="px-5 py-3 font-medium text-gray-600 text-right">Pobreza Personas</th>
+                <th className="px-6 py-3 font-medium text-text-primary">Período</th>
+                <th className="px-6 py-3 font-medium text-text-primary text-right">Pobreza Hogares</th>
+                <th className="px-6 py-3 font-medium text-text-primary text-right">Pobreza Personas</th>
               </tr>
             </thead>
             <tbody>
               {tableRows.map((row, i) => (
-                <tr key={i} className="border-t border-gray-100 hover:bg-gray-50">
-                  <td className="px-5 py-3 font-medium text-gray-700">{row.periodo}</td>
-                  <td className="px-5 py-3 text-right text-gray-700">{row.ph}</td>
-                  <td className="px-5 py-3 text-right text-gray-700">{row.pp}</td>
+                <tr key={i} className="border-t border-border hover:bg-gray-50">
+                  <td className="px-6 py-3 font-medium text-text-primary">{row.periodo}</td>
+                  <td className="px-6 py-3 text-right text-text-primary">{row.ph}</td>
+                  <td className="px-6 py-3 text-right text-text-primary">{row.pp}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <div className="px-5 py-3 text-xs text-gray-400 border-t border-gray-100">
+        <div className="px-6 py-3 text-xs text-text-primary/60 border-t border-border">
           Fuente: {INDEC_FUENTE}
         </div>
       </div>
