@@ -218,7 +218,7 @@ function TabInfancia({
   return (
     <div className="space-y-8">
       {/* ── Contexto introductorio ────────────────────────────── */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-5">
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <div className="flex gap-3">
           <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
           <div className="text-sm text-blue-900 leading-relaxed space-y-2">
@@ -241,7 +241,7 @@ function TabInfancia({
       <section>
         <div className="flex items-center gap-2 mb-4">
           <span className="w-2 h-2 rounded-full bg-magenta inline-block" />
-          <h2 className="font-accent text-sm text-magenta uppercase tracking-wide">
+          <h2 className="font-accent text-sm text-text-primary/60 uppercase tracking-wide">
             Alimentación
           </h2>
         </div>
@@ -294,7 +294,7 @@ function TabInfancia({
       <section>
         <div className="flex items-center gap-2 mb-4">
           <span className="w-2 h-2 rounded-full bg-terracotta inline-block" />
-          <h2 className="font-accent text-sm text-terracotta uppercase tracking-wide">Salud</h2>
+          <h2 className="font-accent text-sm text-text-primary/60 uppercase tracking-wide">Salud</h2>
         </div>
         <p className="font-body text-sm text-gray-600 mb-4">
           El 15.7% de NNyA no realizó ninguna consulta médica en 2025 y el 34.6% no asistió al
@@ -338,7 +338,7 @@ function TabInfancia({
       <section>
         <div className="flex items-center gap-2 mb-4">
           <span className="w-2 h-2 rounded-full bg-amber inline-block" />
-          <h2 className="font-accent text-sm text-amber uppercase tracking-wide">
+          <h2 className="font-accent text-sm text-text-primary/60 uppercase tracking-wide">
             Crianza y Socialización
           </h2>
         </div>
@@ -385,7 +385,7 @@ function TabInfancia({
       <section>
         <div className="flex items-center gap-2 mb-4">
           <span className="w-2 h-2 rounded-full bg-blue inline-block" />
-          <h2 className="font-accent text-sm text-blue uppercase tracking-wide">
+          <h2 className="font-accent text-sm text-text-primary/60 uppercase tracking-wide">
             Hábitat, Educación e Información
           </h2>
         </div>
@@ -435,7 +435,7 @@ function TabInfancia({
       <section>
         <div className="flex items-center gap-2 mb-4">
           <span className="w-2 h-2 rounded-full bg-red-600 inline-block" />
-          <h2 className="font-accent text-sm text-red-600 uppercase tracking-wide">
+          <h2 className="font-accent text-sm text-text-primary/60 uppercase tracking-wide">
             Desigualdad: las brechas que persisten
           </h2>
         </div>
@@ -498,7 +498,7 @@ function TabInfancia({
       </section>
 
       {/* ── Fuente ────────────────────────────────────────────── */}
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-5 flex gap-3">
+      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex gap-3">
         <Info className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
         <div className="text-sm text-amber-800 font-body">
           <p className="mb-2">

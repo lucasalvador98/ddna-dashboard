@@ -382,7 +382,7 @@ function TabMultidimensional({
 
   return (
     <div className="space-y-6">
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-5">
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <div className="flex gap-3">
           <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
           <div className="text-sm text-blue-900 leading-relaxed">
@@ -553,7 +553,7 @@ function TabMultidimensional({
         </ChartCard>
       )}
 
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-5">
+      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
         <div className="flex gap-3">
           <Info className="w-5 h-5 text-amber flex-shrink-0 mt-0.5" />
           <div className="text-sm text-amber-900 leading-relaxed">

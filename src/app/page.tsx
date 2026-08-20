@@ -56,7 +56,7 @@ export default function HomePage() {
       <main className="flex-1 max-w-5xl mx-auto px-6 py-8 lg:py-12 space-y-12">
         {/* Section cards — Explorar por tema */}
         <section>
-          <h2 className="font-display text-xl text-slate-800 mb-5 text-center">Explorar por tema</h2>
+          <h2 className="font-display text-xl text-navy mb-5 text-center">Explorar por tema</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <SectionCard
               title="Salud"
@@ -105,7 +105,7 @@ export default function HomePage() {
 
         {/* Tools — quick links */}
         <section>
-          <h2 className="font-display text-xl text-slate-800 mb-5 text-center">Herramientas</h2>
+          <h2 className="font-display text-xl text-navy mb-5 text-center">Herramientas</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {tools.map(tool => (
               <Link
