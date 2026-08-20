@@ -26,7 +26,7 @@ const colorClasses: Record<
     iconBg: 'bg-[#F3A712]',
     iconText: 'text-[#334155]',
     hover: 'hover:border-[#F3A712]/60',
-    hoverText: '#F3A712',
+    hoverText: 'group-hover:text-[#F3A712]',
   },
   magenta: {
     bg: 'bg-[#BF1363]/5',
@@ -34,7 +34,7 @@ const colorClasses: Record<
     iconBg: 'bg-[#BF1363]',
     iconText: 'text-white',
     hover: 'hover:border-[#BF1363]/60',
-    hoverText: '#BF1363',
+    hoverText: 'group-hover:text-[#BF1363]',
   },
   blue: {
     bg: 'bg-[#3777FF]/5',
@@ -42,7 +42,7 @@ const colorClasses: Record<
     iconBg: 'bg-[#3777FF]',
     iconText: 'text-white',
     hover: 'hover:border-[#3777FF]/60',
-    hoverText: '#3777FF',
+    hoverText: 'group-hover:text-[#3777FF]',
   },
   terracotta: {
     bg: 'bg-[#E07A5F]/5',
@@ -50,7 +50,7 @@ const colorClasses: Record<
     iconBg: 'bg-[#E07A5F]',
     iconText: 'text-white',
     hover: 'hover:border-[#E07A5F]/60',
-    hoverText: '#E07A5F',
+    hoverText: 'group-hover:text-[#E07A5F]',
   },
   navy: {
     bg: 'bg-[#334155]/5',
@@ -58,7 +58,7 @@ const colorClasses: Record<
     iconBg: 'bg-[#334155]',
     iconText: 'text-white',
     hover: 'hover:border-[#334155]/60',
-    hoverText: '#334155',
+    hoverText: 'group-hover:text-[#334155]',
   },
   orange: {
     bg: 'bg-[#FF7F11]/5',
@@ -66,7 +66,7 @@ const colorClasses: Record<
     iconBg: 'bg-[#FF7F11]',
     iconText: 'text-white',
     hover: 'hover:border-[#FF7F11]/60',
-    hoverText: '#FF7F11',
+    hoverText: 'group-hover:text-[#FF7F11]',
   },
 };
 
@@ -105,12 +105,7 @@ export function SectionCard({
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <h3
-            className="text-lg font-bold text-[#334155] group-hover:transition-colors"
-            style={{ ['--hover-text']: colors.hoverText } as React.CSSProperties}
-            onMouseEnter={e => (e.currentTarget.style.color = colors.hoverText)}
-            onMouseLeave={e => (e.currentTarget.style.color = '#334155')}
-          >
+          <h3 className={clsx('text-lg font-bold text-[#334155] transition-colors', colors.hoverText)}>
             {title}
           </h3>
           <p className="text-sm text-[#4D4D4D] mt-1 leading-relaxed">{description}</p>
@@ -119,11 +114,9 @@ export function SectionCard({
         {/* Arrow */}
         <ArrowRight
           className={clsx(
-            'w-5 h-5 text-[#4D4D4D] flex-shrink-0 transition-transform duration-200 group-hover:translate-x-1'
+            'w-5 h-5 text-[#4D4D4D] flex-shrink-0 transition-all duration-200 group-hover:translate-x-1',
+            colors.hoverText
           )}
-          style={{ ['--arrow-hover']: colors.hoverText } as React.CSSProperties}
-          onMouseEnter={e => (e.currentTarget.style.color = colors.hoverText)}
-          onMouseLeave={e => (e.currentTarget.style.color = '#4D4D4D')}
         />
       </div>
 

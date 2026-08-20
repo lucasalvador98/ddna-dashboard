@@ -11,6 +11,7 @@ import {
 } from '@/lib/format-inversion';
 import { KpiCard } from '@/components/kpi-card';
 import { ChartWithTable } from '@/components/charts/chart-with-table';
+import { EmptyState } from '@/components/empty-state';
 import {
   LineChart,
   Line,
@@ -173,11 +174,7 @@ export function InversionCharts({ inversionData, periods, evolutionData }: Inver
   // ── Empty state ─────────────────────────────────────────────
 
   if (inversionData.length === 0) {
-    return (
-      <div className="bg-gray-50 p-8 rounded text-center text-gray-500">
-        Sin datos disponibles
-      </div>
-    );
+    return <EmptyState title="Sin datos disponibles" />;
   }
 
   return (

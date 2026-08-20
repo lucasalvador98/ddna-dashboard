@@ -1,3 +1,5 @@
+'use client';
+
 import { FolderOpen, Plus, Copy, CheckCircle } from 'lucide-react';
 import { useState } from 'react';
 

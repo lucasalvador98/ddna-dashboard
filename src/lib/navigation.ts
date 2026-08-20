@@ -3,7 +3,6 @@ import {
   Heart,
   HeartPulse,
   BookOpen,
-  GraduationCap,
   ClipboardList,
   Users,
   Shield,
@@ -81,16 +80,28 @@ export const navigation: NavGroup[] = [
     items: [{ label: 'Monitoreo de Medios', href: '/monitoreo', icon: Newspaper }],
   },
   {
-    label: 'Herramientas',
-    icon: Map,
+    label: 'Documentos',
+    icon: FolderOpen,
+    color: '#3599B8',
+    items: [
+      { label: 'Repositorio', href: '/repositorio', icon: FolderOpen },
+      { label: 'Informe Ejecutivo', href: '/ejecutivo', icon: FileText },
+    ],
+  },
+  {
+    label: 'Datos',
+    icon: Database,
     color: '#3599B8',
     items: [
       { label: 'Mapas', href: '/geo', icon: Map },
-      { label: 'Repositorio', href: '/repositorio', icon: FolderOpen },
       { label: 'Fuentes de Datos', href: '/fuentes', icon: Database },
-      { label: 'Formularios', href: '/formularios', icon: ClipboardList },
-      { label: 'Informe Ejecutivo', href: '/ejecutivo', icon: FileText },
     ],
+  },
+  {
+    label: 'Formularios',
+    icon: ClipboardList,
+    color: '#F3A712',
+    items: [{ label: 'Formularios', href: '/formularios', icon: ClipboardList }],
   },
   {
     label: 'Admin',

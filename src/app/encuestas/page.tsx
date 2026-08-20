@@ -3,6 +3,7 @@ import { Suspense } from 'react';
 import { ClipboardList, Heart, Brain, Users, AlertTriangle, Info } from 'lucide-react';
 import { PageLoading } from '@/components/page-loading';
 import { SectionHeader } from '@/components/section-header';
+import { EmptyState } from '@/components/empty-state';
 import { KpiCard } from '@/components/kpi-card';
 import { EncuestasCharts } from './encuestas-charts';
 
@@ -126,13 +127,11 @@ async function EncuestasContent() {
 
   if (data.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
-        <Info className="w-12 h-12 text-gray-300 mb-4" />
-        <p className="font-body text-gray-600">No hay datos de encuestas disponibles</p>
-        <p className="text-sm text-gray-400 mt-1">
-          Los datos de la encuesta 2024 aún no se han cargado.
-        </p>
-      </div>
+      <EmptyState
+        icon={Info}
+        title="No hay datos de encuestas disponibles"
+        description="Los datos de la encuesta 2024 aún no se han cargado."
+      />
     );
   }
 

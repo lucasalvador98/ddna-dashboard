@@ -3,6 +3,7 @@ import { Heart, Baby, Syringe, AlertCircle, Info } from 'lucide-react';
 import { parseDesglose } from '@/lib/parse-desglose';
 import { INDICATOR_NAMES } from '@/lib/indicator-names';
 import { SectionHeader } from '@/components/section-header';
+import { EmptyState } from '@/components/empty-state';
 import { KpiCard } from '@/components/kpi-card';
 import { SaludCharts } from './salud-charts';
 import type { SaludChartsProps } from './salud-charts';
@@ -56,13 +57,11 @@ export default async function SaludPage() {
           description="Seguimiento de indicadores de salud materno-infantil y adolescente en Córdoba"
           color="terracotta"
         />
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <Info className="w-12 h-12 text-gray-300 mb-4" />
-          <p className="font-body text-gray-600">No hay datos de salud disponibles</p>
-          <p className="text-sm text-gray-400 mt-1">
-            Los datos de salud aún no se han cargado en la base.
-          </p>
-        </div>
+        <EmptyState
+          icon={Info}
+          title="No hay datos de salud disponibles"
+          description="Los datos de salud aún no se han cargado en la base."
+        />
       </div>
     );
   }
@@ -263,6 +262,7 @@ export default async function SaludPage() {
           title="Cobertura de Vacunación"
           description="Evolución histórica 2015-2024 — Calendario Nacional de Vacunación"
           color="terracotta"
+          as="h2"
         />
 
         {/* Nomenclatura */}
@@ -285,7 +285,7 @@ export default async function SaludPage() {
         </div>
 
         {/* KPIs cobertura */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <KpiCard
             title="DPT3"
             value={latestDpt3 ? `${latestDpt3.valor}%` : '—'}
@@ -325,7 +325,7 @@ export default async function SaludPage() {
 
         {/* KPIs esquemas incompletos */}
         {(esquemasIncompletos || sinDpt4 || sinSrp1 || sinPcv13) && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <KpiCard
               title="Esquemas incompletos <1 año"
               value={

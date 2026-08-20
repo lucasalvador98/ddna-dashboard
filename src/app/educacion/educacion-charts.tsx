@@ -14,6 +14,7 @@ import {
 import { Users, BookOpen, GraduationCap, AlertCircle } from 'lucide-react';
 import { KpiCard } from '@/components/kpi-card';
 import { ChartWithTable } from '@/components/charts/chart-with-table';
+import { EmptyState } from '@/components/empty-state';
 import { computeAprenderByQuintil } from '@/lib/aprender-transform';
 import type { AprenderRow } from '@/lib/aprender-transform';
 
@@ -471,9 +472,7 @@ export default function EducacionClient(props: EducacionClientProps) {
       )}
 
       {!tieneDatos && (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
-          <p className="text-gray-500">No hay datos de educación disponibles</p>
-        </div>
+        <EmptyState title="No hay datos de educación disponibles" />
       )}
     </>
   );

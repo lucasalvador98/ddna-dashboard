@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { Users, Info } from 'lucide-react';
 import { SectionHeader } from '@/components/section-header';
+import { EmptyState } from '@/components/empty-state';
 import { parseDesglose } from '@/lib/parse-desglose';
 import { INDICATOR_NAMES } from '@/lib/indicator-names';
 import PobrezaCharts from './pobreza-charts';
@@ -143,13 +144,11 @@ export default async function PobrezaPage() {
           description="Medición por ingresos (INDEC) y multidimensional (UCA-ODSA)"
           color="magenta"
         />
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <Info className="w-12 h-12 text-gray-300 mb-4" />
-          <p className="font-body text-gray-600">No hay datos disponibles</p>
-          <p className="text-sm text-gray-400 mt-1">
-            Los datos de pobreza aún no se han cargado en la base.
-          </p>
-        </div>
+        <EmptyState
+          icon={Info}
+          title="No hay datos disponibles"
+          description="Los datos de pobreza aún no se han cargado en la base."
+        />
       </div>
     );
   }

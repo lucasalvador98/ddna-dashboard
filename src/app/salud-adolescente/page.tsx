@@ -3,6 +3,7 @@ import { Suspense } from 'react';
 import { HeartPulse, Baby, AlertTriangle, TrendingDown, TrendingUp } from 'lucide-react';
 import { PageLoading } from '@/components/page-loading';
 import { SectionHeader } from '@/components/section-header';
+import { EmptyState } from '@/components/empty-state';
 import { KpiCard } from '@/components/kpi-card';
 import { ChartWithTable } from '@/components/charts/chart-with-table';
 import {
@@ -225,9 +226,7 @@ async function SaludAdolescenteContent() {
       )}
 
       {data.length === 0 && (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
-          <p className="text-gray-500">No hay datos de salud adolescente disponibles</p>
-        </div>
+        <EmptyState title="No hay datos de salud adolescente disponibles" />
       )}
     </div>
   );

@@ -5,6 +5,7 @@ interface SectionHeaderProps {
   title: string;
   description: string;
   color: 'amber' | 'magenta' | 'blue' | 'terracotta' | 'navy' | 'orange' | 'green';
+  as?: 'h1' | 'h2';
 }
 
 const colorClasses: Record<string, string> = {
@@ -17,7 +18,13 @@ const colorClasses: Record<string, string> = {
   green: 'bg-[#10B981]',
 };
 
-export function SectionHeader({ icon: Icon, title, description, color }: SectionHeaderProps) {
+export function SectionHeader({
+  icon: Icon,
+  title,
+  description,
+  color,
+  as: Heading = 'h1',
+}: SectionHeaderProps) {
   return (
     <div className="flex items-start gap-4 mb-6">
       <div
@@ -29,7 +36,7 @@ export function SectionHeader({ icon: Icon, title, description, color }: Section
         <Icon className="w-7 h-7" />
       </div>
       <div>
-        <h1 className="font-display text-2xl text-[#334155] tracking-tight">{title}</h1>
+        <Heading className="font-display text-2xl text-[#334155] tracking-tight">{title}</Heading>
         <p className="font-body text-sm text-[#4D4D4D] mt-1">{description}</p>
       </div>
     </div>

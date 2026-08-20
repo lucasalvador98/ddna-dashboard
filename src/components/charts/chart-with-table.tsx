@@ -2,6 +2,17 @@
 
 import { useState } from 'react';
 import { Table, Table2, ChevronDown, ChevronUp } from 'lucide-react';
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
 
 interface ChartWithTableProps {
   title: string;
@@ -64,13 +75,13 @@ export function ChartWithTable({
   const allKeys = data.length > 0 ? Object.keys(data[0]).filter(k => k !== xAxisKey) : [];
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div className="bg-white rounded-xl border border-[#E0E0E0] overflow-hidden">
       {/* Header del chart */}
-      <div className="p-5 border-b border-gray-100">
+      <div className="p-6 border-b border-[#E0E0E0]">
         <div className="flex items-start justify-between">
           <div>
             <h3 className="font-display text-lg text-[#334155]">{title}</h3>
-            {subtitle && <p className="font-body text-sm text-gray-500 mt-1">{subtitle}</p>}
+            {subtitle && <p className="font-body text-sm text-[#4D4D4D] mt-1">{subtitle}</p>}
           </div>
 
           {/* Metadata */}
@@ -92,7 +103,7 @@ export function ChartWithTable({
       <div className="border-t border-gray-100">
         <button
           onClick={() => setShowTable(!showTable)}
-          className="w-full px-5 py-3 flex items-center justify-between text-gray-500 hover:bg-gray-50 transition-colors"
+          className="w-full px-5 py-3 flex items-center justify-between text-[#4D4D4D] hover:bg-[#FDF3E7] transition-colors"
         >
           <span className="font-body text-sm flex items-center gap-2">
             <Table2 className="w-4 h-4" />
@@ -161,17 +172,6 @@ interface TimeSeriesChartProps {
 }
 
 export function SimpleLineChart({ data, color = '#E07A5F', unit = '' }: TimeSeriesChartProps) {
-  // Importar aquí para evitar errores de SSR
-  const {
-    LineChart,
-    Line,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    ResponsiveContainer,
-  } = require('recharts');
-
   if (!data || data.length === 0) {
     return (
       <div className="h-64 flex items-center justify-center text-gray-400">
@@ -200,7 +200,7 @@ export function SimpleLineChart({ data, color = '#E07A5F', unit = '' }: TimeSeri
             border: '1px solid #E0E0E0',
             borderRadius: '8px',
           }}
-          formatter={(value: number | string) => [`${value ?? 0}${unit}`, 'Valor']}
+          formatter={(value) => [`${value ?? 0}${unit}`, 'Valor']}
         />
         <Line
           type="monotone"
@@ -232,16 +232,6 @@ export function SimpleBarChart({
   color?: string;
   unit?: string;
 }) {
-  const {
-    BarChart,
-    Bar,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    ResponsiveContainer,
-  } = require('recharts');
-
   if (!data || data.length === 0) {
     return (
       <div className="h-64 flex items-center justify-center text-gray-400">
@@ -270,7 +260,7 @@ export function SimpleBarChart({
             border: '1px solid #E0E0E0',
             borderRadius: '8px',
           }}
-          formatter={(value: number | string) => [`${value ?? 0}${unit}`, 'Valor']}
+          formatter={(value) => [`${value ?? 0}${unit}`, 'Valor']}
         />
         <Bar dataKey="value" fill={color} radius={[4, 4, 0, 0]} />
       </BarChart>

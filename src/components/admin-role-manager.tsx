@@ -13,8 +13,10 @@ const BUILT_IN_ROLES = ['admin', 'editor', 'visor'];
 const ROUTE_GROUPS = [
   { label: 'Administración', routes: ['/admin'] },
   { label: 'Indicadores sociales', routes: ['/salud', '/educacion', '/pobreza', '/seguridad'] },
-  { label: 'Finanzas públicas', routes: ['/inversion', '/presupuesto-nnya', '/ejecutivo'] },
-  { label: 'Herramientas', routes: ['/monitoreo', '/repositorio', '/fuentes', '/geo'] },
+  { label: 'Finanzas públicas', routes: ['/inversion', '/presupuesto-nnya'] },
+  { label: 'Monitoreo', routes: ['/monitoreo'] },
+  { label: 'Documentos', routes: ['/repositorio', '/ejecutivo'] },
+  { label: 'Datos', routes: ['/geo', '/fuentes'] },
 ];
 
 // ── Toggle Pill ─────────────────────────────────────────────────────

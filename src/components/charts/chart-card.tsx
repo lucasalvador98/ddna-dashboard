@@ -20,7 +20,7 @@ const colorClasses: Record<ChartCardColor, string> = {
   magenta: '#BF1363',
   blue: '#3777FF',
   navy: '#334155',
-  orange: '#FFB347',
+  orange: '#FF7F11',
 };
 
 function formatDate(dateString: string): string {

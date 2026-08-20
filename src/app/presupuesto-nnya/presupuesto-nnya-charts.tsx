@@ -18,6 +18,7 @@ import { formatInversionValue } from '@/lib/format-inversion';
 import { LoginGate } from '@/components/login-gate';
 import { KpiCard } from '@/components/kpi-card';
 import { ChartWithTable } from '@/components/charts/chart-with-table';
+import { EmptyState } from '@/components/empty-state';
 import {
   LineChart,
   Line,
@@ -478,9 +479,7 @@ export default function PresupuestoNnyaCharts({
 
         {/* Empty state */}
         {inversionData.length === 0 && (
-          <div className="bg-gray-50 p-8 rounded text-center text-gray-500">
-            Sin datos disponibles
-          </div>
+          <EmptyState title="Sin datos disponibles" />
         )}
       </div>
     </LoginGate>
