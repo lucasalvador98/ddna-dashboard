@@ -31,7 +31,7 @@ export default function RolesPage() {
       )}
 
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-        <h2 className="font-display text-lg text-[#334155] mb-6">Roles y permisos</h2>
+        <h2 className="font-display text-lg text-navy mb-6">Roles y permisos</h2>
         <p className="text-sm text-gray-500 mb-4">
           Cada rol define qué pantallas puede ver y editar. Los roles fijos (admin, editor, visor) no se pueden eliminar.
         </p>

@@ -61,9 +61,9 @@ export function SlideViewer({ presentation }: SlideViewerProps) {
     switch (slide.tipo) {
       case 'cover':
         return (
-          <div className="h-full flex flex-col justify-between p-8 bg-[#334155] text-white">
+          <div className="h-full flex flex-col justify-between p-8 bg-navy text-white">
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
-              <span className="text-xs font-accent tracking-widest text-[#FF7F11] font-bold uppercase">
+              <span className="text-xs font-accent tracking-widest text-orange font-bold uppercase">
                 DDNA Córdoba • Presentación IA
               </span>
               <BookOpen className="w-5 h-5 text-white/60" />
@@ -97,10 +97,10 @@ export function SlideViewer({ presentation }: SlideViewerProps) {
         return (
           <div className="h-full flex flex-col justify-between p-8 bg-white">
             <div>
-              <span className="text-xs font-accent tracking-widest text-[#334155] font-bold uppercase">
+              <span className="text-xs font-accent tracking-widest text-navy font-bold uppercase">
                 Índice de Temas
               </span>
-              <h2 className="font-accent text-xl md:text-2xl font-bold text-[#334155] mt-1">
+              <h2 className="font-accent text-xl md:text-2xl font-bold text-navy mt-1">
                 {slide.titulo}
               </h2>
               <p className="font-body text-sm text-gray-500 mt-2">
@@ -111,7 +111,7 @@ export function SlideViewer({ presentation }: SlideViewerProps) {
             <div className="my-auto grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[50%] overflow-y-auto pr-2">
               {slide.datos.map((item, idx) => (
                 <div key={idx} className="flex items-center gap-3 p-2 rounded-lg bg-gray-50 border border-gray-100">
-                  <div className="w-6 h-6 rounded-full bg-[#FF7F11] text-white flex items-center justify-center text-xs font-bold font-accent">
+                  <div className="w-6 h-6 rounded-full bg-orange text-white flex items-center justify-center text-xs font-bold font-accent">
                     {idx + 1}
                   </div>
                   <span className="font-body text-xs font-semibold text-gray-700 truncate">
@@ -144,10 +144,10 @@ export function SlideViewer({ presentation }: SlideViewerProps) {
         return (
           <div className="h-full flex flex-col justify-between p-8 bg-white">
             <div>
-              <span className="text-xs font-accent tracking-widest text-[#334155] font-bold uppercase">
+              <span className="text-xs font-accent tracking-widest text-navy font-bold uppercase">
                 Métrica Destacada
               </span>
-              <h2 className="font-accent text-xl md:text-2xl font-bold text-[#334155] mt-1">
+              <h2 className="font-accent text-xl md:text-2xl font-bold text-navy mt-1">
                 {slide.titulo}
               </h2>
             </div>
@@ -158,7 +158,7 @@ export function SlideViewer({ presentation }: SlideViewerProps) {
                   {dp.label}
                 </span>
                 <div className="flex items-baseline gap-2">
-                  <span className="font-display text-5xl md:text-6xl font-black text-[#334155]">
+                  <span className="font-display text-5xl md:text-6xl font-black text-navy">
                     {dp.valor}
                   </span>
                   <span className="font-accent text-xl text-gray-500 font-bold">
@@ -204,10 +204,10 @@ export function SlideViewer({ presentation }: SlideViewerProps) {
         return (
           <div className="h-full flex flex-col justify-between p-8 bg-white">
             <div>
-              <span className="text-xs font-accent tracking-widest text-[#334155] font-bold uppercase">
+              <span className="text-xs font-accent tracking-widest text-navy font-bold uppercase">
                 Serie Temporal / Evolución
               </span>
-              <h2 className="font-accent text-xl md:text-2xl font-bold text-[#334155] mt-1">
+              <h2 className="font-accent text-xl md:text-2xl font-bold text-navy mt-1">
                 {slide.titulo}
               </h2>
             </div>
@@ -217,7 +217,7 @@ export function SlideViewer({ presentation }: SlideViewerProps) {
                 {allPeriods.length > 0 ? (
                   <table className="w-full text-xs font-body border border-gray-150 rounded-lg overflow-hidden">
                     <thead>
-                      <tr className="bg-gray-150 text-[#334155] border-b border-gray-200">
+                      <tr className="bg-gray-150 text-navy border-b border-gray-200">
                         <th className="p-2.5 text-left font-accent font-semibold">Indicador</th>
                         {allPeriods.map((p) => (
                           <th key={p} className="p-2.5 text-center font-accent font-semibold">{p}</th>
@@ -270,10 +270,10 @@ export function SlideViewer({ presentation }: SlideViewerProps) {
         return (
           <div className="h-full flex flex-col justify-between p-8 bg-white">
             <div>
-              <span className="text-xs font-accent tracking-widest text-[#334155] font-bold uppercase">
+              <span className="text-xs font-accent tracking-widest text-navy font-bold uppercase">
                 Análisis Comparativo
               </span>
-              <h2 className="font-accent text-xl md:text-2xl font-bold text-[#334155] mt-1">
+              <h2 className="font-accent text-xl md:text-2xl font-bold text-navy mt-1">
                 {slide.titulo}
               </h2>
             </div>
@@ -297,7 +297,7 @@ export function SlideViewer({ presentation }: SlideViewerProps) {
                       
                       <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-[#334155] rounded-full transition-all duration-500"
+                          className="h-full bg-navy rounded-full transition-all duration-500"
                           style={{ width: `${percent}%` }}
                         />
                       </div>
@@ -376,16 +376,16 @@ export function SlideViewer({ presentation }: SlideViewerProps) {
         return (
           <div className="h-full flex flex-col justify-between p-8 bg-white">
             <div>
-              <span className="text-xs font-accent tracking-widest text-[#334155] font-bold uppercase">
+              <span className="text-xs font-accent tracking-widest text-navy font-bold uppercase">
                 Contexto General
               </span>
-              <h2 className="font-accent text-xl md:text-2xl font-bold text-[#334155] mt-1">
+              <h2 className="font-accent text-xl md:text-2xl font-bold text-navy mt-1">
                 {slide.titulo}
               </h2>
             </div>
 
             <div className="my-auto">
-              <div className="bg-[#334155]/5 border-l-4 border-[#334155] p-4 rounded-r-xl">
+              <div className="bg-navy/5 border-l-4 border-navy p-4 rounded-r-xl">
                 <p className="font-body text-sm md:text-base text-gray-700 leading-relaxed whitespace-pre-line">
                   {slide.narrativa}
                 </p>
@@ -400,10 +400,10 @@ export function SlideViewer({ presentation }: SlideViewerProps) {
         return (
           <div className="h-full flex flex-col justify-between p-8 bg-white">
             <div>
-              <span className="text-xs font-accent tracking-widest text-[#FF7F11] font-bold uppercase">
+              <span className="text-xs font-accent tracking-widest text-orange font-bold uppercase">
                 Propuestas / Recomendaciones
               </span>
-              <h2 className="font-accent text-xl md:text-2xl font-bold text-[#334155] mt-1">
+              <h2 className="font-accent text-xl md:text-2xl font-bold text-navy mt-1">
                 {slide.titulo}
               </h2>
             </div>
@@ -434,12 +434,12 @@ export function SlideViewer({ presentation }: SlideViewerProps) {
 
       case 'cierre':
         return (
-          <div className="h-full flex flex-col justify-between p-8 bg-[#334155] text-white">
+          <div className="h-full flex flex-col justify-between p-8 bg-navy text-white">
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
-              <span className="text-xs font-accent tracking-widest text-[#FF7F11] font-bold uppercase">
+              <span className="text-xs font-accent tracking-widest text-orange font-bold uppercase">
                 Conclusiones
               </span>
-              <Sparkles className="w-5 h-5 text-[#FF7F11] animate-pulse" />
+              <Sparkles className="w-5 h-5 text-orange animate-pulse" />
             </div>
 
             <div className="my-auto space-y-4 text-center">
@@ -450,7 +450,7 @@ export function SlideViewer({ presentation }: SlideViewerProps) {
                 {slide.narrativa}
               </p>
               {slide.recomendacion && (
-                <div className="max-w-md mx-auto p-3 bg-white/5 border border-white/10 rounded-lg text-xs italic text-[#FF7F11] mt-4">
+                <div className="max-w-md mx-auto p-3 bg-white/5 border border-white/10 rounded-lg text-xs italic text-orange mt-4">
                   {slide.recomendacion}
                 </div>
               )}
@@ -501,7 +501,7 @@ export function SlideViewer({ presentation }: SlideViewerProps) {
       {/* Visual Progress Bar */}
       <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
         <div
-          className="h-full bg-[#FF7F11] transition-all duration-300"
+          className="h-full bg-orange transition-all duration-300"
           style={{ width: `${progressPercent}%` }}
         />
       </div>
@@ -523,9 +523,9 @@ export function SlideViewer({ presentation }: SlideViewerProps) {
              currentSlide.tipo !== 'cover' &&
              currentSlide.tipo !== 'cierre' &&
              currentSlide.tipo !== 'alarma' && (
-              <div className="absolute bottom-6 left-8 right-8 bg-[#FF7F11]/10 border border-[#FF7F11] rounded-lg p-2.5">
-                <p className="text-xs text-[#334155] italic font-semibold line-clamp-2" title={currentSlide.insight}>
-                  <span className="font-accent uppercase font-bold text-[#FF7F11] mr-1.5 not-italic">Insight:</span>
+              <div className="absolute bottom-6 left-8 right-8 bg-orange/10 border border-orange rounded-lg p-2.5">
+                <p className="text-xs text-navy italic font-semibold line-clamp-2" title={currentSlide.insight}>
+                  <span className="font-accent uppercase font-bold text-orange mr-1.5 not-italic">Insight:</span>
                   {currentSlide.insight}
                 </p>
               </div>
@@ -554,7 +554,7 @@ export function SlideViewer({ presentation }: SlideViewerProps) {
             <ChevronLeft className="w-5 h-5" />
           </button>
 
-          <span className="font-accent text-sm font-semibold text-[#334155]">
+          <span className="font-accent text-sm font-semibold text-navy">
             {currentIdx + 1} / {totalSlides}
           </span>
 
@@ -577,7 +577,7 @@ export function SlideViewer({ presentation }: SlideViewerProps) {
                 className={clsx(
                   "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold font-accent transition-all border",
                   currentIdx === idx
-                    ? "bg-[#FF7F11] border-[#FF7F11] text-white shadow-sm"
+                    ? "bg-orange border-orange text-white shadow-sm"
                     : "bg-white border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
                 )}
                 title={`${idx + 1}: ${slide.titulo} (${slide.tipo})`}
@@ -590,7 +590,7 @@ export function SlideViewer({ presentation }: SlideViewerProps) {
           {/* PDF button */}
           <button
             onClick={handlePrintPDF}
-            className="flex items-center gap-2 px-3 py-2 bg-[#334155] hover:bg-[#334155]/90 text-white text-xs font-accent font-semibold rounded-lg transition-colors flex-shrink-0"
+            className="flex items-center gap-2 px-3 py-2 bg-navy hover:bg-navy/90 text-white text-xs font-accent font-semibold rounded-lg transition-colors flex-shrink-0"
             title="Descargar como PDF (igual a lo que ves)"
           >
             <FileDown className="w-4 h-4" />
@@ -618,9 +618,9 @@ export function SlideViewer({ presentation }: SlideViewerProps) {
                    slide.tipo !== 'cover' &&
                    slide.tipo !== 'cierre' &&
                    slide.tipo !== 'alarma' && (
-                    <div className="absolute bottom-6 left-8 right-8 bg-[#FF7F11]/10 border border-[#FF7F11] rounded-lg p-2.5">
-                      <p className="text-xs text-[#334155] italic font-semibold">
-                        <span className="font-accent uppercase font-bold text-[#FF7F11] mr-1.5 not-italic">Insight:</span>
+                    <div className="absolute bottom-6 left-8 right-8 bg-orange/10 border border-orange rounded-lg p-2.5">
+                      <p className="text-xs text-navy italic font-semibold">
+                        <span className="font-accent uppercase font-bold text-orange mr-1.5 not-italic">Insight:</span>
                         {slide.insight}
                       </p>
                     </div>

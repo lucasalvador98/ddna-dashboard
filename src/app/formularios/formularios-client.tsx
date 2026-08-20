@@ -153,7 +153,7 @@ function QrModal({
         className="bg-white rounded-xl shadow-2xl w-full max-w-md outline-none"
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h2 className="font-accent text-lg text-[#334155] font-semibold">
+          <h2 className="font-accent text-lg text-navy font-semibold">
             Compartí este formulario
           </h2>
           <button
@@ -365,7 +365,7 @@ export function FormulariosClient({ formularios }: FormulariosClientProps) {
         </p>
         <Link
           href="/formularios/nuevo"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-[#334155] hover:bg-[#475569] transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-navy hover:bg-[#475569] transition-colors"
         >
           <Plus className="w-4 h-4" />
           Nuevo formulario

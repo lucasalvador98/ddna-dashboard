@@ -21,7 +21,7 @@ export function RepoStats({ files }: Props) {
       value: stats.total,
       label: 'Total archivos',
       icon: FolderOpen,
-      color: 'text-[#334155]',
+      color: 'text-navy',
       bg: 'bg-slate-50',
     },
     {
@@ -68,7 +68,7 @@ export function RepoStats({ files }: Props) {
                 <Icon className={`w-4 h-4 ${item.color}`} />
               </div>
             </div>
-            <p className="text-2xl font-display text-[#334155] leading-none">{item.value}</p>
+            <p className="text-2xl font-display text-navy leading-none">{item.value}</p>
             <p className="text-xs text-gray-500 mt-1">{item.label}</p>
           </div>
         );

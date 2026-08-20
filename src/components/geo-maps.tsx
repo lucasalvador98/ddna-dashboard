@@ -222,8 +222,8 @@ function Legend({
   items: { color: string; label: string }[];
 }) {
   return (
-    <div className="bg-white rounded-lg border border-[#E0E0E0] p-3 text-xs">
-      <p className="font-semibold text-[#334155] mb-2">{title}</p>
+    <div className="bg-white rounded-lg border border-border p-3 text-xs">
+      <p className="font-semibold text-navy mb-2">{title}</p>
       <div className="space-y-1.5">
         {items.map((it) => (
           <div key={it.label} className="flex items-center gap-2">
@@ -231,7 +231,7 @@ function Legend({
               className="w-3.5 h-3.5 rounded-sm flex-shrink-0"
               style={{ backgroundColor: it.color }}
             />
-            <span className="text-[#4D4D4D]">{it.label}</span>
+            <span className="text-text-primary">{it.label}</span>
           </div>
         ))}
       </div>
@@ -245,8 +245,8 @@ function Legend({
 function Spinner({ text = 'Cargando datos...' }: { text?: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 gap-3">
-      <Loader2 className="w-10 h-10 text-[#3777FF] animate-spin" />
-      <p className="text-sm text-[#4D4D4D]">{text}</p>
+      <Loader2 className="w-10 h-10 text-blue animate-spin" />
+      <p className="text-sm text-text-primary">{text}</p>
     </div>
   );
 }
@@ -333,7 +333,7 @@ function EducativoMap() {
   if (loading) return <Spinner text="Cargando establecimientos educativos..." />;
   if (error) return <ErrorBanner message={error} onRetry={fetchSchools} />;
   if (!schools)
-    return <div className="text-sm text-[#4D4D4D] text-center py-10">Sin datos.</div>;
+    return <div className="text-sm text-text-primary text-center py-10">Sin datos.</div>;
 
   return (
     <div className="space-y-4">
@@ -341,7 +341,7 @@ function EducativoMap() {
       <div className="flex flex-wrap items-center gap-3">
         {/* Nivel filter */}
         <div className="flex flex-wrap gap-1.5">
-          <span className="text-xs font-medium text-[#4D4D4D] self-center mr-1">
+          <span className="text-xs font-medium text-text-primary self-center mr-1">
             Nivel:
           </span>
           {NIVELES.map((n) => (
@@ -351,8 +351,8 @@ function EducativoMap() {
               className={clsx(
                 'px-2.5 py-1 text-xs rounded-full border transition-colors',
                 selectedNiveles.has(n)
-                  ? 'bg-[#3777FF] text-white border-[#3777FF]'
-                  : 'bg-white text-[#4D4D4D] border-gray-300 hover:border-gray-400',
+                  ? 'bg-blue text-white border-blue'
+                  : 'bg-white text-text-primary border-gray-300 hover:border-gray-400',
               )}
             >
               {n}
@@ -370,7 +370,7 @@ function EducativoMap() {
 
         {/* Sector filter */}
         <div className="flex gap-1.5">
-          <span className="text-xs font-medium text-[#4D4D4D] self-center mr-1">
+          <span className="text-xs font-medium text-text-primary self-center mr-1">
             Sector:
           </span>
           {SECTORES.map((s) => (
@@ -380,8 +380,8 @@ function EducativoMap() {
               className={clsx(
                 'px-2.5 py-1 text-xs rounded-full border transition-colors',
                 selectedSector === s
-                  ? 'bg-[#334155] text-white border-[#334155]'
-                  : 'bg-white text-[#4D4D4D] border-gray-300 hover:border-gray-400',
+                  ? 'bg-navy text-white border-navy'
+                  : 'bg-white text-text-primary border-gray-300 hover:border-gray-400',
               )}
             >
               {s}
@@ -398,7 +398,7 @@ function EducativoMap() {
         </div>
 
         {/* Count */}
-        <span className="text-xs text-[#4D4D4D] ml-auto">
+        <span className="text-xs text-text-primary ml-auto">
           {filteredFeatures.length} / {schools.features.length} establecimientos
         </span>
       </div>
@@ -463,17 +463,17 @@ function EducativoLayer({ features }: { features: GeoJSONFeature[] }) {
           >
             <Popup>
               <div className="text-xs space-y-1 min-w-[180px]">
-                <p className="font-semibold text-[#334155]">{p.nombre ?? 'Sin nombre'}</p>
-                <p className="text-[#4D4D4D]">{p.est_domicilio ?? ''}</p>
-                {p.est_barrio && <p className="text-[#4D4D4D]">Barrio: {p.est_barrio}</p>}
-                <p className="text-[#4D4D4D]">
+                <p className="font-semibold text-navy">{p.nombre ?? 'Sin nombre'}</p>
+                <p className="text-text-primary">{p.est_domicilio ?? ''}</p>
+                {p.est_barrio && <p className="text-text-primary">Barrio: {p.est_barrio}</p>}
+                <p className="text-text-primary">
                   {p.est_localidad ?? ''}{p.est_departamento ? `, ${p.est_departamento}` : ''}
                 </p>
-                <p className="text-[#4D4D4D]">
+                <p className="text-text-primary">
                   <span
                     className={clsx(
                       'inline-block px-1.5 py-0.5 rounded text-white text-[10px] font-medium',
-                      isPublic ? 'bg-[#3777FF]' : 'bg-[#FF7F11]',
+                      isPublic ? 'bg-blue' : 'bg-orange',
                     )}
                   >
                     {p.est_sector ?? '?'}
@@ -484,7 +484,7 @@ function EducativoLayer({ features }: { features: GeoJSONFeature[] }) {
                     {niveles.map((n) => (
                       <span
                         key={n}
-                        className="px-1.5 py-0.5 rounded bg-gray-100 text-[10px] text-[#4D4D4D]"
+                        className="px-1.5 py-0.5 rounded bg-gray-100 text-[10px] text-text-primary"
                       >
                         {n}
                       </span>
@@ -588,7 +588,7 @@ function NacimientosMap() {
     <div className="space-y-4">
       {/* Year selector */}
       <div className="flex items-center gap-2">
-        <span className="text-xs font-medium text-[#4D4D4D]">Año:</span>
+        <span className="text-xs font-medium text-text-primary">Año:</span>
         {YEARS.map((y) => (
           <button
             key={y}
@@ -596,8 +596,8 @@ function NacimientosMap() {
             className={clsx(
               'px-3 py-1 text-xs rounded-full border transition-colors',
               selectedYear === y
-                ? 'bg-[#BF1363] text-white border-[#BF1363]'
-                : 'bg-white text-[#4D4D4D] border-gray-300 hover:border-gray-400',
+                ? 'bg-magenta text-white border-magenta'
+                : 'bg-white text-text-primary border-gray-300 hover:border-gray-400',
             )}
           >
             {y}
@@ -990,7 +990,7 @@ function SaludMap() {
 
   if (loading) return <Spinner text="Cargando centros de salud..." />;
   if (error) return <ErrorBanner message={error} onRetry={fetchCenters} />;
-  if (!centers) return <div className="text-sm text-[#4D4D4D] text-center py-10">Sin datos.</div>;
+  if (!centers) return <div className="text-sm text-text-primary text-center py-10">Sin datos.</div>;
 
   return (
     <div className="space-y-4">
@@ -1002,7 +1002,7 @@ function SaludMap() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar por nombre, domicilio o localidad..."
-          className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E07A5F]/30 focus:border-[#E07A5F]"
+          className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta"
         />
         {search && (
           <button
@@ -1015,7 +1015,7 @@ function SaludMap() {
       </div>
 
       {/* Count */}
-      <p className="text-xs text-[#4D4D4D]">
+      <p className="text-xs text-text-primary">
         {filteredFeatures.length} / {centers.features.length} centros de salud
       </p>
 
@@ -1074,10 +1074,10 @@ function SaludLayer({ features }: { features: GeoJSONFeature[] }) {
           >
             <Popup>
               <div className="text-xs space-y-1 min-w-[180px]">
-                <p className="font-semibold text-[#334155]">
+                <p className="font-semibold text-navy">
                   {p.establecimiento_salud ?? 'Sin nombre'}
                 </p>
-                {p.domicilio && <p className="text-[#4D4D4D]">{p.domicilio}</p>}
+                {p.domicilio && <p className="text-text-primary">{p.domicilio}</p>}
                 {p.codigo_cuie && (
                   <p className="text-[10px] text-gray-400">CUIE: {p.codigo_cuie}</p>
                 )}
@@ -1139,7 +1139,7 @@ export default function GeoPage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className="group bg-white rounded-xl border border-gray-200 p-6 text-left hover:shadow-lg hover:border-[#334155]/20 transition-all hover:-translate-y-1"
+              className="group bg-white rounded-xl border border-gray-200 p-6 text-left hover:shadow-lg hover:border-navy/20 transition-all hover:-translate-y-1"
             >
               <div
                 className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"
@@ -1149,7 +1149,7 @@ export default function GeoPage() {
                   <tab.icon className="w-6 h-6" />
                 </span>
               </div>
-              <h3 className="font-accent font-semibold text-[#334155] mb-1">{tab.label}</h3>
+              <h3 className="font-accent font-semibold text-navy mb-1">{tab.label}</h3>
               <p className="text-sm text-gray-500">{tab.desc}</p>
             </button>
           ))}
@@ -1162,7 +1162,7 @@ export default function GeoPage() {
           {/* Back button */}
           <button
             onClick={() => setActiveTab(null)}
-            className="flex items-center gap-2 text-sm text-gray-500 hover:text-[#334155] mb-4 transition-colors"
+            className="flex items-center gap-2 text-sm text-gray-500 hover:text-navy mb-4 transition-colors"
           >
             <X className="w-4 h-4" />
             Volver a todos los mapas
@@ -1177,11 +1177,11 @@ export default function GeoPage() {
       )}
 
       {/* Footer attribution */}
-      <div className="bg-white rounded-xl border border-[#E0E0E0] p-4">
-        <h3 className="font-medium text-[#334155] text-sm mb-2">
+      <div className="bg-white rounded-xl border border-border p-4">
+        <h3 className="font-medium text-navy text-sm mb-2">
           Acerca de los datos
         </h3>
-        <ul className="text-xs text-[#4D4D4D] space-y-1">
+        <ul className="text-xs text-text-primary space-y-1">
           <li>
             <strong>IDECOR</strong> — Infraestructura de Datos Espaciales de la
             Provincia de Córdoba.

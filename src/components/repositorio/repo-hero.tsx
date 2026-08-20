@@ -5,7 +5,7 @@ export function RepoHero() {
   return (
     <div className="bg-white border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-6 py-8">
-        <h1 className="font-display text-3xl text-[#334155]">Repositorio DDNA</h1>
+        <h1 className="font-display text-3xl text-navy">Repositorio DDNA</h1>
         <p className="font-body text-gray-600 mt-2">
           Archivos propios de la Defensoría — Fuentes primarias, encuestas, informes
         </p>

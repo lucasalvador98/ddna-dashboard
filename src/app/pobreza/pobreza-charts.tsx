@@ -133,7 +133,7 @@ export default function PobrezaCharts({
             onClick={() => setTab(t.id)}
             className={`flex-1 px-4 py-2.5 rounded-md text-sm font-medium transition-colors ${
               tab === t.id
-                ? 'bg-white text-[#334155] shadow-sm'
+                ? 'bg-white text-navy shadow-sm'
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
@@ -302,11 +302,11 @@ function TabIngresos({
         )}
       </ChartCard>
 
-      <div className="bg-white rounded-xl border border-[#E0E0E0] overflow-hidden">
-        <div className="p-5 border-b border-[#E0E0E0]">
+      <div className="bg-white rounded-xl border border-border overflow-hidden">
+        <div className="p-5 border-b border-border">
           <div className="flex items-center gap-3">
             <div className="w-1 h-6 rounded-full" style={{ backgroundColor: COLORS.magenta }} />
-            <h3 className="font-display text-lg text-[#334155]">Últimos Períodos</h3>
+            <h3 className="font-display text-lg text-navy">Últimos Períodos</h3>
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -555,7 +555,7 @@ function TabMultidimensional({
 
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-5">
         <div className="flex gap-3">
-          <Info className="w-5 h-5 text-[#F3A712] flex-shrink-0 mt-0.5" />
+          <Info className="w-5 h-5 text-amber flex-shrink-0 mt-0.5" />
           <div className="text-sm text-amber-900 leading-relaxed">
             <p>
               La UCA mide <strong>pobreza multidimensional</strong>: no solo ingreso, sino también

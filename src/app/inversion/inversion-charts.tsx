@@ -189,8 +189,8 @@ export function InversionCharts({ inversionData, periods, evolutionData }: Inver
               className={clsx(
                 'px-4 py-2 rounded-full text-sm font-accent transition-all',
                 activePeriod === period
-                  ? 'bg-[#334155] text-white shadow-md'
-                  : 'bg-white text-[#4D4D4D] border border-[#E0E0E0] hover:border-[#334155] hover:text-[#334155]'
+                  ? 'bg-navy text-white shadow-md'
+                  : 'bg-white text-text-primary border border-border hover:border-navy hover:text-navy'
               )}
             >
               {period}
@@ -341,7 +341,7 @@ export function InversionCharts({ inversionData, periods, evolutionData }: Inver
 
       {/* Methodology note */}
       <div className="bg-[#F5F5F5] rounded-xl p-5 border border-gray-200">
-        <h3 className="font-display text-sm text-[#334155] mb-2">Metodología de Ponderación</h3>
+        <h3 className="font-display text-sm text-navy mb-2">Metodología de Ponderación</h3>
         <p className="font-body text-sm text-gray-600 leading-relaxed">
           Los valores mostrados corresponden al <strong>DEVENGADO PONDERADO</strong> calculado por
           la Dirección Nacional de Política de Presupuesto y Evaluación del Gasto (DNPPE) en

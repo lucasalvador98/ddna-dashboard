@@ -275,7 +275,7 @@ export function BuilderClient({
             type="button"
             disabled={saving}
             onClick={handleSave}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-[#334155] hover:bg-[#475569] transition-colors disabled:opacity-60"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-navy hover:bg-[#475569] transition-colors disabled:opacity-60"
           >
             <Save className="w-4 h-4" />
             {saving ? 'Guardando…' : 'Guardar'}

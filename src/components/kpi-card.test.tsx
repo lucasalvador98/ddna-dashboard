@@ -70,14 +70,14 @@ describe('KpiCard', () => {
   it('renders icon with correct color class', () => {
     render(<KpiCard title="Test" value="1" subtitle="Desc" icon={MockIcon} color="blue" />);
     const icon = screen.getByTestId('mock-icon');
-    expect(icon.getAttribute('class')).toContain('text-[#3777FF]');
+    expect(icon.getAttribute('class')).toContain('text-blue');
   });
 
   it('renders icon with different color per prop', () => {
     const { rerender } = render(
       <KpiCard title="Test" value="1" subtitle="Desc" icon={MockIcon} color="amber" />,
     );
-    expect(screen.getByTestId('mock-icon').getAttribute('class')).toContain('text-[#F3A712]');
+    expect(screen.getByTestId('mock-icon').getAttribute('class')).toContain('text-amber');
 
     rerender(<KpiCard title="Test" value="1" subtitle="Desc" icon={MockIcon} color="green" />);
     expect(screen.getByTestId('mock-icon').getAttribute('class')).toContain('text-[#10B981]');

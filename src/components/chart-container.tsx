@@ -18,19 +18,19 @@ export function ChartContainer({
 }: ChartContainerProps) {
   return (
     <section
-      className={clsx('bg-white rounded-xl border border-[#E0E0E0] overflow-hidden', className)}
+      className={clsx('bg-white rounded-xl border border-border overflow-hidden', className)}
     >
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-6 border-b border-[#E0E0E0]">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-6 border-b border-border">
         <div>
-          <h3 className="text-lg font-bold text-[#334155]">{title}</h3>
-          {subtitle && <p className="text-sm text-[#4D4D4D] mt-1">{subtitle}</p>}
+          <h3 className="text-lg font-bold text-navy">{title}</h3>
+          {subtitle && <p className="text-sm text-text-primary mt-1">{subtitle}</p>}
         </div>
 
         {actions && (
           <div className="flex items-center gap-2">
             <button
-              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-[#4D4D4D] bg-[#FDF3E7] rounded-lg hover:bg-[#FFE8CD] transition-colors"
+              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-text-primary bg-secondary-bg rounded-lg hover:bg-outspace transition-colors"
               aria-label="Filtrar datos"
             >
               <Filter className="w-4 h-4" />
@@ -59,13 +59,13 @@ export function ChartPlaceholder({
   return (
     <div
       className={clsx(
-        'flex flex-col items-center justify-center bg-[#FDF3E7] rounded-lg border-2 border-dashed border-[#E0E0E0]',
+        'flex flex-col items-center justify-center bg-secondary-bg rounded-lg border-2 border-dashed border-border',
         height
       )}
     >
-      <div className="w-16 h-16 rounded-full bg-[#FFE8CD] flex items-center justify-center mb-4">
+      <div className="w-16 h-16 rounded-full bg-outspace flex items-center justify-center mb-4">
         <svg
-          className="w-8 h-8 text-[#F3A712]"
+          className="w-8 h-8 text-amber"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -78,8 +78,8 @@ export function ChartPlaceholder({
           />
         </svg>
       </div>
-      <p className="text-sm font-medium text-[#4D4D4D]">{message}</p>
-      <p className="text-xs text-[#4D4D4D]/60 mt-1">Los datos se mostrarán aquí</p>
+      <p className="text-sm font-medium text-text-primary">{message}</p>
+      <p className="text-xs text-text-primary/60 mt-1">Los datos se mostrarán aquí</p>
     </div>
   );
 }

@@ -48,9 +48,9 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 const AXIS_COLORS: Record<string, { border: string; text: string; bg: string; bar: string }> = {
   pobreza: {
-    border: 'border-[#BF1363]',
-    text: 'text-[#BF1363]',
-    bg: 'bg-[#BF1363]/5',
+    border: 'border-magenta',
+    text: 'text-magenta',
+    bg: 'bg-magenta/5',
     bar: '#BF1363',
   },
   salud: {
@@ -60,15 +60,15 @@ const AXIS_COLORS: Record<string, { border: string; text: string; bg: string; ba
     bar: '#10B981',
   },
   educacion: {
-    border: 'border-[#F3A712]',
-    text: 'text-[#F3A712]',
-    bg: 'bg-[#F3A712]/5',
+    border: 'border-amber',
+    text: 'text-amber',
+    bg: 'bg-amber/5',
     bar: '#F3A712',
   },
   inversion: {
-    border: 'border-[#3777FF]',
-    text: 'text-[#3777FF]',
-    bg: 'bg-[#3777FF]/5',
+    border: 'border-blue',
+    text: 'text-blue',
+    bg: 'bg-blue/5',
     bar: '#3777FF',
   },
   seguridad_justicia: {
@@ -285,7 +285,7 @@ export function ReportContent({ report, generatedAt }: ReportContentProps) {
     <article className="space-y-6 print:space-y-4">
       {/* ── Header ──────────────────────────────────────────── */}
       <header className="border-b border-gray-200 pb-4 print:pb-2">
-        <h1 className="font-display text-2xl text-[#334155] print:text-xl">{report.title}</h1>
+        <h1 className="font-display text-2xl text-navy print:text-xl">{report.title}</h1>
         <div className="flex items-center gap-3 mt-2 text-sm text-gray-500 font-body">
           <span>{report.date}</span>
           {formattedDate && (
@@ -328,8 +328,8 @@ export function ReportContent({ report, generatedAt }: ReportContentProps) {
       )}
 
       {/* ── Overview ────────────────────────────────────────── */}
-      <section className="bg-[#FFF8F2] border border-[#FFE2BF] rounded-lg p-4 print:bg-white print:border-gray-200">
-        <h2 className="font-accent text-sm uppercase tracking-wider text-[#FF7F11] mb-2">
+      <section className="bg-[#FFF8F2] border border-cream rounded-lg p-4 print:bg-white print:border-gray-200">
+        <h2 className="font-accent text-sm uppercase tracking-wider text-orange mb-2">
           Resumen Ejecutivo
         </h2>
         <div className="font-body text-gray-700 leading-relaxed whitespace-pre-line">
@@ -355,7 +355,7 @@ export function ReportContent({ report, generatedAt }: ReportContentProps) {
                 <span className={clsx('font-accent text-xs uppercase tracking-wider', colors.text)}>
                   {CATEGORY_LABELS[section.category] || section.category}
                 </span>
-                <h3 className="font-display text-lg text-[#334155] mt-0.5">{section.title}</h3>
+                <h3 className="font-display text-lg text-navy mt-0.5">{section.title}</h3>
               </div>
             </div>
 
@@ -399,7 +399,7 @@ export function ReportContent({ report, generatedAt }: ReportContentProps) {
       {/* ── Data Quality ────────────────────────────────────── */}
       {report.dataQuality && report.dataQuality.length > 0 && (
         <section className="border border-gray-200 rounded-lg p-4">
-          <h2 className="font-accent text-sm uppercase tracking-wider text-[#FF7F11] mb-3">
+          <h2 className="font-accent text-sm uppercase tracking-wider text-orange mb-3">
             Calidad de Datos por Categoría
           </h2>
           <div className="space-y-3">
@@ -468,7 +468,7 @@ export function ReportContent({ report, generatedAt }: ReportContentProps) {
       {/* ── Cross-References ────────────────────────────────── */}
       {report.crossReferences && report.crossReferences.length > 0 && (
         <section className="border border-gray-200 rounded-lg p-4">
-          <h2 className="font-accent text-sm uppercase tracking-wider text-[#334155] mb-3">
+          <h2 className="font-accent text-sm uppercase tracking-wider text-navy mb-3">
             Referencias Cruzadas
           </h2>
           <div className="space-y-3">
@@ -504,7 +504,7 @@ export function ReportContent({ report, generatedAt }: ReportContentProps) {
       {/* ── Suggested Improvements ──────────────────────────── */}
       {report.suggestedImprovements && report.suggestedImprovements.length > 0 && (
         <section className="border border-gray-200 rounded-lg p-4">
-          <h2 className="font-accent text-sm uppercase tracking-wider text-[#FF7F11] mb-3">
+          <h2 className="font-accent text-sm uppercase tracking-wider text-orange mb-3">
             Mejoras Sugeridas
           </h2>
           <ul className="space-y-2">
@@ -513,7 +513,7 @@ export function ReportContent({ report, generatedAt }: ReportContentProps) {
                 key={`imp-${iIdx}`}
                 className="flex items-start gap-3 font-body text-gray-700 text-sm"
               >
-                <span className="w-5 h-5 rounded-full bg-[#FF7F11]/10 text-[#FF7F11] flex items-center justify-center flex-shrink-0 text-xs font-accent font-bold">
+                <span className="w-5 h-5 rounded-full bg-orange/10 text-orange flex items-center justify-center flex-shrink-0 text-xs font-accent font-bold">
                   {iIdx + 1}
                 </span>
                 <span className="leading-relaxed">{imp}</span>
@@ -524,8 +524,8 @@ export function ReportContent({ report, generatedAt }: ReportContentProps) {
       )}
 
       {/* ── Conclusion ──────────────────────────────────────── */}
-      <section className="bg-[#334155]/5 border border-[#334155]/20 rounded-lg p-4 print:bg-gray-50 print:border-gray-300">
-        <h2 className="font-accent text-sm uppercase tracking-wider text-[#334155] mb-2">
+      <section className="bg-navy/5 border border-navy/20 rounded-lg p-4 print:bg-gray-50 print:border-gray-300">
+        <h2 className="font-accent text-sm uppercase tracking-wider text-navy mb-2">
           Conclusión
         </h2>
         <div className="font-body text-gray-700 leading-relaxed whitespace-pre-line">
@@ -536,13 +536,13 @@ export function ReportContent({ report, generatedAt }: ReportContentProps) {
       {/* ── Recommendations ─────────────────────────────────── */}
       {report.recommendations.length > 0 && (
         <section className="border border-gray-200 rounded-lg p-4">
-          <h2 className="font-accent text-sm uppercase tracking-wider text-[#FF7F11] mb-3">
+          <h2 className="font-accent text-sm uppercase tracking-wider text-orange mb-3">
             Recomendaciones
           </h2>
           <ul className="space-y-2">
             {report.recommendations.map((rec, rIdx) => (
               <li key={`rec-${rIdx}`} className="flex items-start gap-3 font-body text-gray-700">
-                <span className="w-6 h-6 rounded-full bg-[#FF7F11]/10 text-[#FF7F11] flex items-center justify-center flex-shrink-0 text-xs font-accent font-bold">
+                <span className="w-6 h-6 rounded-full bg-orange/10 text-orange flex items-center justify-center flex-shrink-0 text-xs font-accent font-bold">
                   {rIdx + 1}
                 </span>
                 <span className="leading-relaxed">{rec}</span>

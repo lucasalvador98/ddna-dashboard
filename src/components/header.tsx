@@ -25,16 +25,16 @@ function Breadcrumb() {
 
   return (
     <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-sm text-[#9CA3AF]">
-      <Link href="/" className="hover:text-[#E07A5F] transition-colors">
+      <Link href="/" className="hover:text-terracotta transition-colors">
         Inicio
       </Link>
       {crumbs.map(crumb => (
         <span key={crumb.href} className="flex items-center gap-1">
           <ChevronRight className="w-3 h-3" />
           {crumb.isLast ? (
-            <span className="text-[#334155] font-medium">{crumb.title}</span>
+            <span className="text-navy font-medium">{crumb.title}</span>
           ) : (
-            <Link href={crumb.href} className="hover:text-[#E07A5F] transition-colors">
+            <Link href={crumb.href} className="hover:text-terracotta transition-colors">
               {crumb.title}
             </Link>
           )}
@@ -76,7 +76,7 @@ export function Header() {
         {/* Hamburger — toggle sidebar collapse */}
         <button
           onClick={toggleCollapse}
-          className="p-2 -ml-2 rounded-lg hover:bg-[#FDF3E7] transition-colors text-[#4D4D4D]"
+          className="p-2 -ml-2 rounded-lg hover:bg-secondary-bg transition-colors text-text-primary"
           aria-label={isCollapsed ? 'Expandir sidebar' : 'Colapsar sidebar'}
         >
           <Menu className="w-5 h-5" />
@@ -98,9 +98,9 @@ export function Header() {
         {/* Page title + breadcrumb — hidden on homepage to avoid duplication */}
         {pathname !== '/' && (
           <>
-            <div className="w-px h-6 bg-[#E0E0E0]" />
+            <div className="w-px h-6 bg-border" />
             <div className="flex-1 min-w-0">
-              <h1 className="font-display text-xl text-[#334155] tracking-tight truncate">
+              <h1 className="font-display text-xl text-navy tracking-tight truncate">
                 {title}
               </h1>
               <Breadcrumb />
@@ -147,7 +147,7 @@ export function Header() {
 
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="p-2 rounded-lg hover:bg-[#FDF3E7] transition-colors text-[#4D4D4D]"
+          className="p-2 rounded-lg hover:bg-secondary-bg transition-colors text-text-primary"
           aria-label={isMobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
         >
           {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}

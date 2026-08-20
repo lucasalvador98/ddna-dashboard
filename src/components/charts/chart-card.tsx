@@ -52,15 +52,15 @@ export function ChartCard({
 
   return (
     <section
-      className={clsx('bg-white rounded-xl border border-[#E0E0E0] overflow-hidden', className)}
+      className={clsx('bg-white rounded-xl border border-border overflow-hidden', className)}
     >
       {/* Header */}
-      <div className="p-6 border-b border-[#E0E0E0]">
+      <div className="p-6 border-b border-border">
         <div className="flex items-center gap-3">
           <div className="w-1 h-6 rounded-full" style={{ backgroundColor: accentColor }} />
           <div>
-            <h3 className="font-display text-lg text-[#334155] tracking-tight">{title}</h3>
-            {subtitle && <p className="font-body text-sm text-[#4D4D4D] mt-1">{subtitle}</p>}
+            <h3 className="font-display text-lg text-navy tracking-tight">{title}</h3>
+            {subtitle && <p className="font-body text-sm text-text-primary mt-1">{subtitle}</p>}
           </div>
         </div>
       </div>
@@ -70,7 +70,7 @@ export function ChartCard({
 
       {/* Footer con fuente y fecha */}
       {(fuente || ultimaActualizacion) && (
-        <div className="px-6 pb-4 pt-0 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#4D4D4D]/70">
+        <div className="px-6 pb-4 pt-0 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-text-primary/70">
           {fuente && (
             <span className="flex items-center gap-1">
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">

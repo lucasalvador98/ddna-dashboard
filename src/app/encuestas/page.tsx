@@ -159,12 +159,12 @@ async function EncuestasContent() {
   return (
     <div className="space-y-6">
       {/* Banner informativo */}
-      <div className="bg-gradient-to-r from-[#BF1363]/5 to-[#FF7F11]/5 border border-[#BF1363]/20 rounded-lg p-4">
+      <div className="bg-gradient-to-r from-[#BF1363]/5 to-[#FF7F11]/5 border border-magenta/20 rounded-lg p-4">
         <div className="flex items-start gap-3">
-          <ClipboardList className="w-5 h-5 text-[#BF1363] mt-0.5 shrink-0" />
+          <ClipboardList className="w-5 h-5 text-magenta mt-0.5 shrink-0" />
           <div>
-            <p className="font-body text-sm text-[#4D4D4D]">
-              <strong className="text-[#BF1363]">1.757 respuestas</strong> en total — 718 personas
+            <p className="font-body text-sm text-text-primary">
+              <strong className="text-magenta">1.757 respuestas</strong> en total — 718 personas
               adultas con hijos y 1.038 jóvenes de 12 a 18 años. La encuesta relevó información
               sobre bienestar, alimentación, vínculos afectivos, salud emocional y consumo.
             </p>
@@ -244,11 +244,11 @@ async function EncuestasContent() {
 
       {/* Nota metodológica */}
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-5 mt-6">
-        <h3 className="font-accent text-sm text-[#334155] font-medium mb-2 flex items-center gap-2">
-          <Info className="w-4 h-4 text-[#BF1363]" />
+        <h3 className="font-accent text-sm text-navy font-medium mb-2 flex items-center gap-2">
+          <Info className="w-4 h-4 text-magenta" />
           Nota metodológica
         </h3>
-        <p className="font-body text-sm text-[#4D4D4D] leading-relaxed">
+        <p className="font-body text-sm text-text-primary leading-relaxed">
           Los datos provienen de una encuesta autoadministrada digital y en papel realizada durante
           2024 en la provincia de Córdoba. Participaron 718 personas adultas con hijos a cargo y
           1.038 jóvenes de 12 a 18 años. Los porcentajes representan el proportion de respuestas

@@ -58,7 +58,7 @@ export function Sidebar({ badges }: SidebarProps) {
   return (
     <aside
       className={clsx(
-        'hidden sm:flex flex-col bg-white border-r border-[#E0E0E0] transition-all duration-300 ease-in-out relative shrink-0',
+        'hidden sm:flex flex-col bg-white border-r border-border transition-all duration-300 ease-in-out relative shrink-0',
         isCollapsed ? 'w-14 sm:w-16' : 'w-60'
       )}
     >
@@ -81,13 +81,13 @@ export function Sidebar({ badges }: SidebarProps) {
                     href={item.href}
                     className={clsx(
                       'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
-                      active ? 'bg-[#E07A5F]/10 text-[#E07A5F]' : 'text-[#4D4D4D] hover:bg-gray-100'
+                      active ? 'bg-terracotta/10 text-terracotta' : 'text-text-primary hover:bg-gray-100'
                     )}
                   >
                     <item.icon
                       className={clsx(
                         'w-5 h-5 flex-shrink-0',
-                        active ? 'text-[#E07A5F]' : 'text-[#9CA3AF]'
+                        active ? 'text-terracotta' : 'text-[#9CA3AF]'
                       )}
                     />
                     {!isCollapsed && (
@@ -118,14 +118,14 @@ export function Sidebar({ badges }: SidebarProps) {
                   className={clsx(
                     'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-left',
                     activeChild
-                      ? 'bg-[#E07A5F]/10 text-[#E07A5F]'
-                      : 'text-[#4D4D4D] hover:bg-gray-100'
+                      ? 'bg-terracotta/10 text-terracotta'
+                      : 'text-text-primary hover:bg-gray-100'
                   )}
                 >
                   <group.icon
                     className={clsx(
                       'w-5 h-5 flex-shrink-0',
-                      activeChild ? 'text-[#E07A5F]' : 'text-[#9CA3AF]'
+                      activeChild ? 'text-terracotta' : 'text-[#9CA3AF]'
                     )}
                   />
                   {!isCollapsed && (
@@ -150,7 +150,7 @@ export function Sidebar({ badges }: SidebarProps) {
 
                 {/* Children */}
                 {!isCollapsed && isExpanded && (
-                  <ul className="ml-4 mt-0.5 space-y-0.5 border-l border-[#E0E0E0] pl-3">
+                  <ul className="ml-4 mt-0.5 space-y-0.5 border-l border-border pl-3">
                     {group.items.map(item => {
                       const active = isItemActive(item.href);
                       const count = badgeForHref(item.href);
@@ -161,14 +161,14 @@ export function Sidebar({ badges }: SidebarProps) {
                             className={clsx(
                               'flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-sm',
                               active
-                                ? 'bg-[#E07A5F]/10 text-[#E07A5F] font-medium'
-                                : 'text-[#6B7280] hover:bg-gray-50 hover:text-[#4D4D4D]'
+                                ? 'bg-terracotta/10 text-terracotta font-medium'
+                                : 'text-[#6B7280] hover:bg-gray-50 hover:text-text-primary'
                             )}
                           >
                             <item.icon
                               className={clsx(
                                 'w-4 h-4 flex-shrink-0',
-                                active ? 'text-[#E07A5F]' : 'text-[#D1D5DB]'
+                                active ? 'text-terracotta' : 'text-[#D1D5DB]'
                               )}
                             />
                             <span className="font-accent tracking-wide">{item.label}</span>
@@ -192,7 +192,7 @@ export function Sidebar({ badges }: SidebarProps) {
       {/* Collapse toggle */}
       <button
         onClick={toggleCollapse}
-        className="absolute -right-3 top-3 w-6 h-6 bg-white border border-[#E0E0E0] rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:border-gray-300 transition-colors shadow-sm"
+        className="absolute -right-3 top-3 w-6 h-6 bg-white border border-border rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:border-gray-300 transition-colors shadow-sm"
         aria-label={isCollapsed ? 'Expandir sidebar' : 'Colapsar sidebar'}
       >
         <ChevronLeft

@@ -31,7 +31,7 @@ export function RepoFilters({
           placeholder="Buscar por nombre o descripción..."
           value={search}
           onChange={e => onSearchChange(e.target.value)}
-          className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#334155] focus:border-transparent outline-none"
+          className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-navy focus:border-transparent outline-none"
         />
       </div>
       <div className="text-xs text-gray-400 hidden sm:block">
@@ -42,7 +42,7 @@ export function RepoFilters({
           onClick={() => onViewChange('grid')}
           className={clsx(
             'p-1.5 rounded-md transition-colors',
-            view === 'grid' ? 'bg-[#334155] text-white' : 'text-gray-400 hover:text-gray-600',
+            view === 'grid' ? 'bg-navy text-white' : 'text-gray-400 hover:text-gray-600',
           )}
           title="Vista grid"
           type="button"
@@ -53,7 +53,7 @@ export function RepoFilters({
           onClick={() => onViewChange('list')}
           className={clsx(
             'p-1.5 rounded-md transition-colors',
-            view === 'list' ? 'bg-[#334155] text-white' : 'text-gray-400 hover:text-gray-600',
+            view === 'list' ? 'bg-navy text-white' : 'text-gray-400 hover:text-gray-600',
           )}
           title="Vista lista"
           type="button"

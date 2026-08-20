@@ -75,13 +75,13 @@ export function ChartWithTable({
   const allKeys = rows.length > 0 ? Object.keys(rows[0]).filter(k => k !== xAxisKey) : [];
 
   return (
-    <div className="bg-white rounded-xl border border-[#E0E0E0] overflow-hidden">
+    <div className="bg-white rounded-xl border border-border overflow-hidden">
       {/* Header del chart */}
-      <div className="p-6 border-b border-[#E0E0E0]">
+      <div className="p-6 border-b border-border">
         <div className="flex items-start justify-between">
           <div>
-            <h3 className="font-display text-lg text-[#334155]">{title}</h3>
-            {subtitle && <p className="font-body text-sm text-[#4D4D4D] mt-1">{subtitle}</p>}
+            <h3 className="font-display text-lg text-navy">{title}</h3>
+            {subtitle && <p className="font-body text-sm text-text-primary mt-1">{subtitle}</p>}
           </div>
 
           {/* Metadata */}
@@ -103,7 +103,7 @@ export function ChartWithTable({
       <div className="border-t border-gray-100">
         <button
           onClick={() => setShowTable(!showTable)}
-          className="w-full px-5 py-3 flex items-center justify-between text-[#4D4D4D] hover:bg-[#FDF3E7] transition-colors"
+          className="w-full px-5 py-3 flex items-center justify-between text-text-primary hover:bg-secondary-bg transition-colors"
         >
           <span className="font-body text-sm flex items-center gap-2">
             <Table2 className="w-4 h-4" />

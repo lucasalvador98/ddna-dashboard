@@ -37,18 +37,18 @@ interface EndpointData {
 // Partial: only the 6 core categories have palette entries; the rest render
 // without a colored badge (see the `?.` access below).
 const categoryColors: Partial<Record<CategoriaIndicador, { bg: string; text: string }>> = {
-  salud: { bg: 'bg-[#E07A5F]/10', text: 'text-[#E07A5F]' },
-  educacion: { bg: 'bg-[#F3A712]/10', text: 'text-[#F3A712]' },
-  pobreza: { bg: 'bg-[#BF1363]/10', text: 'text-[#BF1363]' },
-  seguridad: { bg: 'bg-[#3777FF]/10', text: 'text-[#3777FF]' },
-  inversion: { bg: 'bg-[#FF7F11]/10', text: 'text-[#FF7F11]' },
-  demografia: { bg: 'bg-[#334155]/10', text: 'text-[#334155]' },
+  salud: { bg: 'bg-terracotta/10', text: 'text-terracotta' },
+  educacion: { bg: 'bg-amber/10', text: 'text-amber' },
+  pobreza: { bg: 'bg-magenta/10', text: 'text-magenta' },
+  seguridad: { bg: 'bg-blue/10', text: 'text-blue' },
+  inversion: { bg: 'bg-orange/10', text: 'text-orange' },
+  demografia: { bg: 'bg-navy/10', text: 'text-navy' },
 };
 
 const methodColors: Record<string, { bg: string; text: string }> = {
-  api: { bg: 'bg-[#22C55E]/10', text: 'text-[#22C55E]' },
-  manual: { bg: 'bg-[#F59E0B]/10', text: 'text-[#F59E0B]' },
-  csv_upload: { bg: 'bg-[#F3A712]/10', text: 'text-[#F3A712]' },
+  api: { bg: 'bg-success/10', text: 'text-success' },
+  manual: { bg: 'bg-warning/10', text: 'text-warning' },
+  csv_upload: { bg: 'bg-amber/10', text: 'text-amber' },
 };
 
 const methodLabels: Record<string, string> = {
@@ -287,15 +287,15 @@ export function FuentesClient({
 
   return (
     <div className="space-y-6">
-      <div className="border-b border-[#E0E0E0]">
+      <div className="border-b border-border">
         <nav className="flex gap-1">
           <button
             onClick={() => setActiveTab('fuentes')}
             className={clsx(
               'px-4 py-3 font-accent text-sm border-b-2 transition-colors',
               activeTab === 'fuentes'
-                ? 'border-[#FF7F11] text-[#FF7F11]'
-                : 'border-transparent text-[#4D4D4D] hover:text-[#334155]'
+                ? 'border-orange text-orange'
+                : 'border-transparent text-text-primary hover:text-navy'
             )}
           >
             Fuentes de Datos
@@ -305,8 +305,8 @@ export function FuentesClient({
             className={clsx(
               'px-4 py-3 font-accent text-sm border-b-2 transition-colors',
               activeTab === 'apis'
-                ? 'border-[#FF7F11] text-[#FF7F11]'
-                : 'border-transparent text-[#4D4D4D] hover:text-[#334155]'
+                ? 'border-orange text-orange'
+                : 'border-transparent text-text-primary hover:text-navy'
             )}
           >
             APIs Externas
@@ -321,21 +321,21 @@ export function FuentesClient({
             className={clsx(
               'rounded-lg p-4 flex items-center justify-between',
               usingFallback
-                ? 'bg-[#F59E0B]/10 border border-[#F59E0B]/30'
-                : 'bg-[#22C55E]/10 border border-[#22C55E]/30'
+                ? 'bg-warning/10 border border-warning/30'
+                : 'bg-success/10 border border-success/30'
             )}
           >
             <div className="flex items-center gap-3">
               <div
                 className={clsx(
                   'w-2 h-2 rounded-full',
-                  usingFallback ? 'bg-[#F59E0B]' : 'bg-[#22C55E]'
+                  usingFallback ? 'bg-warning' : 'bg-success'
                 )}
               />
               <span
                 className={clsx(
                   'font-body text-sm font-medium',
-                  usingFallback ? 'text-[#F59E0B]' : 'text-[#22C55E]'
+                  usingFallback ? 'text-warning' : 'text-success'
                 )}
               >
                 {usingFallback
@@ -344,7 +344,7 @@ export function FuentesClient({
               </span>
             </div>
             {lastFetch && (
-              <span className="font-body text-xs text-[#4D4D4D]">
+              <span className="font-body text-xs text-text-primary">
                 Actualizado: {lastFetch.toLocaleTimeString('es-AR')}
               </span>
             )}
@@ -361,23 +361,23 @@ export function FuentesClient({
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead>
-                    <tr className="border-b border-[#E0E0E0]">
-                      <th className="py-3 px-4 font-body text-sm font-medium text-[#4D4D4D]">
+                    <tr className="border-b border-border">
+                      <th className="py-3 px-4 font-body text-sm font-medium text-text-primary">
                         Nombre
                       </th>
-                      <th className="py-3 px-4 font-body text-sm font-medium text-[#4D4D4D]">
+                      <th className="py-3 px-4 font-body text-sm font-medium text-text-primary">
                         Organización
                       </th>
-                      <th className="py-3 px-4 font-body text-sm font-medium text-[#4D4D4D]">
+                      <th className="py-3 px-4 font-body text-sm font-medium text-text-primary">
                         Categoría
                       </th>
-                      <th className="py-3 px-4 font-body text-sm font-medium text-[#4D4D4D]">
+                      <th className="py-3 px-4 font-body text-sm font-medium text-text-primary">
                         Frecuencia
                       </th>
-                      <th className="py-3 px-4 font-body text-sm font-medium text-[#4D4D4D]">
+                      <th className="py-3 px-4 font-body text-sm font-medium text-text-primary">
                         Método
                       </th>
-                      <th className="py-3 px-4 font-body text-sm font-medium text-[#4D4D4D]">
+                      <th className="py-3 px-4 font-body text-sm font-medium text-text-primary">
                         Última actualización
                       </th>
                     </tr>
@@ -386,24 +386,24 @@ export function FuentesClient({
                     {fuentes.map(fuente => (
                       <tr
                         key={fuente.id}
-                        className="border-b border-[#E0E0E0]/50 hover:bg-[#FDF3E7]/50 transition-colors"
+                        className="border-b border-border/50 hover:bg-secondary-bg/50 transition-colors"
                       >
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-2">
-                            <span className="font-medium text-[#334155]">{fuente.nombre}</span>
+                            <span className="font-medium text-navy">{fuente.nombre}</span>
                             {fuente.url && (
                               <a
                                 href={fuente.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-[#3777FF] hover:text-[#334155] transition-colors"
+                                className="text-blue hover:text-navy transition-colors"
                               >
                                 <ExternalLink className="w-3.5 h-3.5" />
                               </a>
                             )}
                           </div>
                         </td>
-                        <td className="py-4 px-4 font-body text-sm text-[#4D4D4D]">
+                        <td className="py-4 px-4 font-body text-sm text-text-primary">
                           {fuente.organizacion}
                         </td>
                         <td className="py-4 px-4">
@@ -417,7 +417,7 @@ export function FuentesClient({
                             {fuente.categoria}
                           </span>
                         </td>
-                        <td className="py-4 px-4 font-body text-sm text-[#4D4D4D]">
+                        <td className="py-4 px-4 font-body text-sm text-text-primary">
                           {fuente.frecuencia}
                         </td>
                         <td className="py-4 px-4">
@@ -431,7 +431,7 @@ export function FuentesClient({
                             {methodLabels[fuente.metodo_ingesta] || fuente.metodo_ingesta}
                           </span>
                         </td>
-                        <td className="py-4 px-4 font-body text-sm text-[#4D4D4D]">
+                        <td className="py-4 px-4 font-body text-sm text-text-primary">
                           {formatDate(fuente.ultima_actualizacion)}
                         </td>
                       </tr>
@@ -455,7 +455,7 @@ export function FuentesClient({
                   onClick={() => setActiveSource(s.id)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg font-accent text-sm transition-colors ${
                     activeSource === s.id
-                      ? 'bg-[#334155] text-white'
+                      ? 'bg-navy text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
@@ -474,7 +474,7 @@ export function FuentesClient({
                 placeholder="Buscar datasets..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#334155] focus:border-transparent"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-transparent"
               />
             </div>
           )}
@@ -623,7 +623,7 @@ export function FuentesClient({
                 onClick={() => setActiveSource(s.id)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg font-accent text-sm transition-colors ${
                   activeSource === s.id
-                    ? 'bg-[#334155] text-white'
+                    ? 'bg-navy text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
@@ -640,13 +640,13 @@ export function FuentesClient({
               placeholder="Buscar datasets..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#334155] focus:border-transparent"
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-transparent"
             />
           </div>
 
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#334155]" />
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-navy" />
               <span className="ml-3 text-gray-500">Cargando...</span>
             </div>
           ) : (

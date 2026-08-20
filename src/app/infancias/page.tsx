@@ -240,8 +240,8 @@ function TabInfancia({
       {/* ── Sección 1: Alimentación ───────────────────────────── */}
       <section>
         <div className="flex items-center gap-2 mb-4">
-          <span className="w-2 h-2 rounded-full bg-[#BF1363] inline-block" />
-          <h2 className="font-accent text-sm text-[#BF1363] uppercase tracking-wide">
+          <span className="w-2 h-2 rounded-full bg-magenta inline-block" />
+          <h2 className="font-accent text-sm text-magenta uppercase tracking-wide">
             Alimentación
           </h2>
         </div>
@@ -293,8 +293,8 @@ function TabInfancia({
       {/* ── Sección 2: Salud ──────────────────────────────────── */}
       <section>
         <div className="flex items-center gap-2 mb-4">
-          <span className="w-2 h-2 rounded-full bg-[#E07A5F] inline-block" />
-          <h2 className="font-accent text-sm text-[#E07A5F] uppercase tracking-wide">Salud</h2>
+          <span className="w-2 h-2 rounded-full bg-terracotta inline-block" />
+          <h2 className="font-accent text-sm text-terracotta uppercase tracking-wide">Salud</h2>
         </div>
         <p className="font-body text-sm text-gray-600 mb-4">
           El 15.7% de NNyA no realizó ninguna consulta médica en 2025 y el 34.6% no asistió al
@@ -337,8 +337,8 @@ function TabInfancia({
       {/* ── Sección 3: Crianza y Socialización ────────────────── */}
       <section>
         <div className="flex items-center gap-2 mb-4">
-          <span className="w-2 h-2 rounded-full bg-[#F3A712] inline-block" />
-          <h2 className="font-accent text-sm text-[#F3A712] uppercase tracking-wide">
+          <span className="w-2 h-2 rounded-full bg-amber inline-block" />
+          <h2 className="font-accent text-sm text-amber uppercase tracking-wide">
             Crianza y Socialización
           </h2>
         </div>
@@ -384,8 +384,8 @@ function TabInfancia({
       {/* ── Sección 4: Hábitat y Desarrollo ───────────────────── */}
       <section>
         <div className="flex items-center gap-2 mb-4">
-          <span className="w-2 h-2 rounded-full bg-[#3777FF] inline-block" />
-          <h2 className="font-accent text-sm text-[#3777FF] uppercase tracking-wide">
+          <span className="w-2 h-2 rounded-full bg-blue inline-block" />
+          <h2 className="font-accent text-sm text-blue uppercase tracking-wide">
             Hábitat, Educación e Información
           </h2>
         </div>

@@ -38,7 +38,7 @@ export function RepoFileCard({ file, onClick }: Props) {
   return (
     <div
       onClick={onClick}
-      className="group bg-white border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-[#334155]/40 hover:shadow-md transition-all"
+      className="group bg-white border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-navy/40 hover:shadow-md transition-all"
     >
       <div className="flex items-start justify-between mb-3">
         <div className={clsx('w-11 h-11 rounded-lg flex items-center justify-center', colors.bg)}>
@@ -46,7 +46,7 @@ export function RepoFileCard({ file, onClick }: Props) {
         </div>
         <button
           onClick={handleDownload}
-          className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-[#3777FF] hover:bg-blue-50 rounded-lg transition-all"
+          className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-blue hover:bg-blue-50 rounded-lg transition-all"
           title="Descargar"
           type="button"
         >
@@ -55,7 +55,7 @@ export function RepoFileCard({ file, onClick }: Props) {
       </div>
 
       <p
-        className="text-sm font-medium text-[#334155] line-clamp-2 leading-snug min-h-[2.5rem]"
+        className="text-sm font-medium text-navy line-clamp-2 leading-snug min-h-[2.5rem]"
         title={file.nombre_archivo}
       >
         {file.nombre_archivo}

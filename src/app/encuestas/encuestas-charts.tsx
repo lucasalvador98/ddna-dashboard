@@ -92,7 +92,7 @@ export function EncuestasCharts({ priorityCharts, showOtherCharts }: EncuestasCh
 
       {showOtherCharts.length > 0 && (
         <>
-          <h2 className="font-display text-xl text-[#334155] mt-8 mb-4">Otros indicadores</h2>
+          <h2 className="font-display text-xl text-navy mt-8 mb-4">Otros indicadores</h2>
           <div className="grid grid-cols-1 gap-6">
             {showOtherCharts.map(chart => {
               const chartData = chart.items;

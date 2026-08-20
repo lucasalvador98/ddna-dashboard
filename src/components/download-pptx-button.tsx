@@ -231,7 +231,7 @@ export function DownloadPptxButton({ presentation }: DownloadPptxButtonProps) {
     <button
       onClick={handleDownload}
       disabled={isDownloading}
-      className="px-4 py-2 bg-[#FF7F11] hover:bg-[#FF7F11]/90 disabled:bg-gray-300 text-white font-accent font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+      className="px-4 py-2 bg-orange hover:bg-orange/90 disabled:bg-gray-300 text-white font-accent font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
     >
       {isDownloading ? (
         <>

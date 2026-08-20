@@ -132,7 +132,7 @@ export function PresentacionForm({ onGenerate }: PresentacionFormProps) {
     return (
       <span>
         {text.slice(0, idx)}
-        <mark className="bg-[#FF7F11]/20 text-[#FF7F11] rounded px-0.5 not-italic font-medium">
+        <mark className="bg-orange/20 text-orange rounded px-0.5 not-italic font-medium">
           {text.slice(idx, idx + query.length)}
         </mark>
         {text.slice(idx + query.length)}
@@ -171,8 +171,8 @@ export function PresentacionForm({ onGenerate }: PresentacionFormProps) {
       {/* SECTION A */}
       <section className="space-y-4">
         <div className="flex items-center gap-2 border-b border-gray-100 pb-2">
-          <div className="w-1.5 h-6 bg-[#FF7F11] rounded-full" />
-          <h3 className="font-accent text-base font-semibold text-[#334155]">
+          <div className="w-1.5 h-6 bg-orange rounded-full" />
+          <h3 className="font-accent text-base font-semibold text-navy">
             Sección A — Contexto de la presentación
           </h3>
         </div>
@@ -188,7 +188,7 @@ export function PresentacionForm({ onGenerate }: PresentacionFormProps) {
               value={titulo}
               onChange={e => setTitulo(e.target.value)}
               placeholder="Ej: Situación de la Niñez en Córdoba"
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF7F11] focus:border-[#FF7F11]"
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-orange focus:border-orange"
             />
           </div>
 
@@ -202,7 +202,7 @@ export function PresentacionForm({ onGenerate }: PresentacionFormProps) {
               value={tematica}
               onChange={e => setTematica(e.target.value)}
               placeholder="Ej: Derechos de NNyA en Córdoba 2024"
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF7F11] focus:border-[#FF7F11]"
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-orange focus:border-orange"
             />
           </div>
 
@@ -215,7 +215,7 @@ export function PresentacionForm({ onGenerate }: PresentacionFormProps) {
               value={objetivo}
               onChange={e => setObjetivo(e.target.value)}
               placeholder="Ej: Informar a funcionarios sobre situación de infancia y proponer mejoras en inversión"
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-[#FF7F11] focus:border-[#FF7F11]"
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-orange focus:border-orange"
             />
           </div>
 
@@ -228,7 +228,7 @@ export function PresentacionForm({ onGenerate }: PresentacionFormProps) {
               value={poblacionObjetivo}
               onChange={e => setPoblacionObjetivo(e.target.value)}
               placeholder="Ej: Funcionarios del área de niñez, legisladores y organizaciones sociales"
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#FF7F11] focus:border-[#FF7F11]"
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-orange focus:border-orange"
             />
           </div>
         </div>
@@ -238,8 +238,8 @@ export function PresentacionForm({ onGenerate }: PresentacionFormProps) {
       <section className="space-y-4">
         <div className="flex items-center justify-between border-b border-gray-100 pb-2">
           <div className="flex items-center gap-2">
-            <div className="w-1.5 h-6 bg-[#FF7F11] rounded-full" />
-            <h3 className="font-accent text-base font-semibold text-[#334155]">
+            <div className="w-1.5 h-6 bg-orange rounded-full" />
+            <h3 className="font-accent text-base font-semibold text-navy">
               Sección B — Selección de indicadores
             </h3>
           </div>
@@ -247,7 +247,7 @@ export function PresentacionForm({ onGenerate }: PresentacionFormProps) {
             'text-sm font-semibold px-3 py-1 rounded-full font-accent transition-colors',
             totalSelectedKpis >= 30
               ? 'bg-red-50 text-red-600 border border-red-200'
-              : 'bg-[#334155]/5 text-[#334155]',
+              : 'bg-navy/5 text-navy',
           )}>
             {totalSelectedKpis} / 30 KPIs
           </div>
@@ -291,7 +291,7 @@ export function PresentacionForm({ onGenerate }: PresentacionFormProps) {
                       else if (e.key === 'Escape') { e.stopPropagation(); setSearchQuery(''); }
                     }}
                     placeholder="Buscar indicador... (ej: pobreza, mortalidad, cariño)"
-                    className="w-full pl-9 pr-10 py-2.5 border border-gray-200 rounded-lg text-sm font-body focus:outline-none focus:ring-2 focus:ring-[#FF7F11]/30 focus:border-[#FF7F11]"
+                    className="w-full pl-9 pr-10 py-2.5 border border-gray-200 rounded-lg text-sm font-body focus:outline-none focus:ring-2 focus:ring-orange/30 focus:border-orange"
                   />
                   {searchQuery && (
                     <button
@@ -347,12 +347,12 @@ export function PresentacionForm({ onGenerate }: PresentacionFormProps) {
                             ref={el => { if (el) el.indeterminate = isSomeSelected; }}
                             onChange={() => handleSelectAllAxis(axisId, filtered)}
                             disabled={totalSelectedKpis >= 30 && !isSomeSelected && !isAllSelected}
-                            className="w-4 h-4 rounded border-gray-300 text-[#FF7F11] focus:ring-[#FF7F11] cursor-pointer"
+                            className="w-4 h-4 rounded border-gray-300 text-orange focus:ring-orange cursor-pointer"
                           />
                           <div className="flex items-center gap-2 min-w-0">
                             <span className="text-lg flex-shrink-0">{meta.icon}</span>
                             <div>
-                              <span className="font-accent text-sm font-semibold text-[#334155]">
+                              <span className="font-accent text-sm font-semibold text-navy">
                                 {meta.label}
                               </span>
                               <span className="text-xs text-gray-500 ml-2">
@@ -380,7 +380,7 @@ export function PresentacionForm({ onGenerate }: PresentacionFormProps) {
                                 className={clsx(
                                   'flex items-start gap-3 p-3 rounded-lg border transition-all select-none',
                                   isChecked
-                                    ? 'border-[#FF7F11]/40 bg-[#FF7F11]/5 shadow-sm'
+                                    ? 'border-orange/40 bg-orange/5 shadow-sm'
                                     : 'border-gray-100 hover:bg-gray-50',
                                   isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
                                 )}
@@ -390,7 +390,7 @@ export function PresentacionForm({ onGenerate }: PresentacionFormProps) {
                                   checked={isChecked}
                                   disabled={isDisabled}
                                   onChange={() => toggleItem(item)}
-                                  className="w-4 h-4 rounded border-gray-300 text-[#FF7F11] focus:ring-[#FF7F11] mt-1 cursor-pointer"
+                                  className="w-4 h-4 rounded border-gray-300 text-orange focus:ring-orange mt-1 cursor-pointer"
                                 />
                                 <div className="flex-1 min-w-0">
                                   <p className="font-accent text-sm font-semibold text-gray-800 leading-tight">
@@ -404,7 +404,7 @@ export function PresentacionForm({ onGenerate }: PresentacionFormProps) {
                                     </span>
                                     {/* KPI count badge — only for groups */}
                                     {item.es_grupo && (
-                                      <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-[#334155]/8 text-[#334155] font-accent font-semibold">
+                                      <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-navy/8 text-navy font-accent font-semibold">
                                         {item.total_kpis} indicadores
                                       </span>
                                     )}
@@ -441,7 +441,7 @@ export function PresentacionForm({ onGenerate }: PresentacionFormProps) {
             'w-full py-3 text-white font-accent font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md',
             isGenerateDisabled
               ? 'bg-gray-300 cursor-not-allowed shadow-none'
-              : 'bg-[#334155] hover:bg-[#334155]/90 active:scale-[0.99] transform',
+              : 'bg-navy hover:bg-navy/90 active:scale-[0.99] transform',
           )}
         >
           <Play className="w-5 h-5 fill-current" />

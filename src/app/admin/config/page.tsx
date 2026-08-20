@@ -57,7 +57,7 @@ export default function ConfigPage() {
   return (
     <div className="max-w-2xl space-y-6">
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-        <h2 className="font-display text-lg text-[#334155] mb-4">Autenticación</h2>
+        <h2 className="font-display text-lg text-navy mb-4">Autenticación</h2>
 
         <div
           className={clsx(
@@ -67,7 +67,7 @@ export default function ConfigPage() {
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-accent text-sm font-semibold text-[#334155]">
+              <p className="font-accent text-sm font-semibold text-navy">
                 {enabled ? '🔒 Autenticación activada' : '🔓 Sin restricciones'}
               </p>
               <p className="text-xs text-gray-500 mt-0.5">
@@ -100,7 +100,7 @@ export default function ConfigPage() {
 
         {/* Info */}
         <div className="border-t border-gray-100 pt-4 space-y-3 text-sm text-gray-500">
-          <h3 className="font-medium text-[#334155]">¿Cómo funciona?</h3>
+          <h3 className="font-medium text-navy">¿Cómo funciona?</h3>
           <p>
             Cuando la autenticación está <strong>activada</strong>, cada usuario debe iniciar sesión y su
             rol determina qué pantallas puede ver y editar.

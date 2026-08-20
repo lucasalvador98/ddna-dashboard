@@ -97,7 +97,7 @@ export default function PresupuestoNnyaCharts({
         <div className="flex items-center gap-4">
           <button
             onClick={() => setShowMethodology(!showMethodology)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-accent text-[#334155] bg-[#F5F5F5] rounded-lg hover:bg-[#E0E0E0] transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-accent text-navy bg-[#F5F5F5] rounded-lg hover:bg-border transition-colors"
           >
             <Info className="w-4 h-4" />
             {showMethodology ? 'Ocultar Metodología' : 'Ver Metodología'}
@@ -107,10 +107,10 @@ export default function PresupuestoNnyaCharts({
         {/* Methodology Panel */}
         {showMethodology && (
           <div className="bg-[#F5F5F5] rounded-xl p-6 border border-gray-200">
-            <h3 className="font-display text-lg text-[#334155] mb-4">Metodología de Ponderación</h3>
+            <h3 className="font-display text-lg text-navy mb-4">Metodología de Ponderación</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <h4 className="font-accent text-sm font-semibold text-[#334155] mb-2">
+                <h4 className="font-accent text-sm font-semibold text-navy mb-2">
                   ¿Qué es el ponderador?
                 </h4>
                 <p className="font-body text-sm text-gray-600 leading-relaxed">
@@ -120,7 +120,7 @@ export default function PresupuestoNnyaCharts({
                 </p>
               </div>
               <div>
-                <h4 className="font-accent text-sm font-semibold text-[#334155] mb-2">
+                <h4 className="font-accent text-sm font-semibold text-navy mb-2">
                   Categorías de gasto
                 </h4>
                 <ul className="font-body text-sm text-gray-600 space-y-1">
@@ -145,8 +145,8 @@ export default function PresupuestoNnyaCharts({
             className={clsx(
               'flex items-center gap-2 px-4 py-2 rounded-full text-sm font-accent transition-all',
               viewMode === 'area'
-                ? 'bg-[#334155] text-white shadow-md'
-                : 'bg-white text-[#4D4D4D] border border-[#E0E0E0] hover:border-[#334155] hover:text-[#334155]'
+                ? 'bg-navy text-white shadow-md'
+                : 'bg-white text-text-primary border border-border hover:border-navy hover:text-navy'
             )}
           >
             <PieChart className="w-4 h-4" />
@@ -157,8 +157,8 @@ export default function PresupuestoNnyaCharts({
             className={clsx(
               'flex items-center gap-2 px-4 py-2 rounded-full text-sm font-accent transition-all',
               viewMode === 'programa'
-                ? 'bg-[#334155] text-white shadow-md'
-                : 'bg-white text-[#4D4D4D] border border-[#E0E0E0] hover:border-[#334155] hover:text-[#334155]'
+                ? 'bg-navy text-white shadow-md'
+                : 'bg-white text-text-primary border border-border hover:border-navy hover:text-navy'
             )}
           >
             <BarChart3 className="w-4 h-4" />
@@ -169,8 +169,8 @@ export default function PresupuestoNnyaCharts({
             className={clsx(
               'flex items-center gap-2 px-4 py-2 rounded-full text-sm font-accent transition-all',
               viewMode === 'comparativa'
-                ? 'bg-[#334155] text-white shadow-md'
-                : 'bg-white text-[#4D4D4D] border border-[#E0E0E0] hover:border-[#334155] hover:text-[#334155]'
+                ? 'bg-navy text-white shadow-md'
+                : 'bg-white text-text-primary border border-border hover:border-navy hover:text-navy'
             )}
           >
             <TrendingUp className="w-4 h-4" />
@@ -190,8 +190,8 @@ export default function PresupuestoNnyaCharts({
               className={clsx(
                 'px-3 py-1 rounded-full text-xs font-accent transition-all',
                 filterArea === 'all'
-                  ? 'bg-[#334155] text-white'
-                  : 'bg-white text-[#4D4D4D] border border-[#E0E0E0] hover:border-[#334155]'
+                  ? 'bg-navy text-white'
+                  : 'bg-white text-text-primary border border-border hover:border-navy'
               )}
             >
               Todas
@@ -203,8 +203,8 @@ export default function PresupuestoNnyaCharts({
                 className={clsx(
                   'px-3 py-1 rounded-full text-xs font-accent transition-all',
                   filterArea === area
-                    ? 'bg-[#334155] text-white'
-                    : 'bg-white text-[#4D4D4D] border border-[#E0E0E0] hover:border-[#334155]'
+                    ? 'bg-navy text-white'
+                    : 'bg-white text-text-primary border border-border hover:border-navy'
                 )}
               >
                 {area}
@@ -223,8 +223,8 @@ export default function PresupuestoNnyaCharts({
                 className={clsx(
                   'px-4 py-2 rounded-full text-sm font-accent transition-all',
                   activePeriod === period
-                    ? 'bg-[#334155] text-white shadow-md'
-                    : 'bg-white text-[#4D4D4D] border border-[#E0E0E0] hover:border-[#334155] hover:text-[#334155]'
+                    ? 'bg-navy text-white shadow-md'
+                    : 'bg-white text-text-primary border border-border hover:border-navy hover:text-navy'
                 )}
               >
                 {period}
@@ -437,22 +437,22 @@ export default function PresupuestoNnyaCharts({
         )}
 
         {/* Data Table */}
-        <div className="bg-white rounded-xl border border-[#E0E0E0] p-6">
-          <h3 className="font-display text-lg text-[#334155] mb-4">Detalle por Programa</h3>
+        <div className="bg-white rounded-xl border border-border p-6">
+          <h3 className="font-display text-lg text-navy mb-4">Detalle por Programa</h3>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 font-accent text-[#334155]">Programa</th>
-                  <th className="text-left py-3 px-4 font-accent text-[#334155]">Área</th>
-                  <th className="text-right py-3 px-4 font-accent text-[#334155]">Ponderador</th>
-                  <th className="text-right py-3 px-4 font-accent text-[#334155]">Devengado Ponderado</th>
+                  <th className="text-left py-3 px-4 font-accent text-navy">Programa</th>
+                  <th className="text-left py-3 px-4 font-accent text-navy">Área</th>
+                  <th className="text-right py-3 px-4 font-accent text-navy">Ponderador</th>
+                  <th className="text-right py-3 px-4 font-accent text-navy">Devengado Ponderado</th>
                 </tr>
               </thead>
               <tbody>
                 {inversionPrograma.map((prog, idx) => (
                   <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 px-4 font-body text-[#4D4D4D]">{prog.name}</td>
+                    <td className="py-3 px-4 font-body text-text-primary">{prog.name}</td>
                     <td className="py-3 px-4">
                       <span
                         className="px-2 py-1 rounded-full text-xs font-accent"
@@ -464,10 +464,10 @@ export default function PresupuestoNnyaCharts({
                         {prog.area}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-right font-body text-[#4D4D4D]">
+                    <td className="py-3 px-4 text-right font-body text-text-primary">
                       {(prog.ponderador * 100).toFixed(1)}%
                     </td>
-                    <td className="py-3 px-4 text-right font-body font-medium text-[#334155]">
+                    <td className="py-3 px-4 text-right font-body font-medium text-navy">
                       {formatInversionValue(prog.value)}
                     </td>
                   </tr>

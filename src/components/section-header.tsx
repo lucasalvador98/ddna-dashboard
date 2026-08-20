@@ -9,12 +9,12 @@ interface SectionHeaderProps {
 }
 
 const colorClasses: Record<string, string> = {
-  amber: 'bg-[#F3A712]',
-  magenta: 'bg-[#BF1363]',
-  blue: 'bg-[#3777FF]',
-  terracotta: 'bg-[#E07A5F]',
-  navy: 'bg-[#334155]',
-  orange: 'bg-[#FF7F11]',
+  amber: 'bg-amber',
+  magenta: 'bg-magenta',
+  blue: 'bg-blue',
+  terracotta: 'bg-terracotta',
+  navy: 'bg-navy',
+  orange: 'bg-orange',
   green: 'bg-[#10B981]',
 };
 
@@ -36,8 +36,8 @@ export function SectionHeader({
         <Icon className="w-7 h-7" />
       </div>
       <div>
-        <Heading className="font-display text-2xl text-[#334155] tracking-tight">{title}</Heading>
-        <p className="font-body text-sm text-[#4D4D4D] mt-1">{description}</p>
+        <Heading className="font-display text-2xl text-navy tracking-tight">{title}</Heading>
+        <p className="font-body text-sm text-text-primary mt-1">{description}</p>
       </div>
     </div>
   );

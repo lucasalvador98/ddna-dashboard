@@ -53,7 +53,7 @@ export function RepoFileRow({ file, onClick }: Props) {
       </div>
       <div className="flex-1 min-w-0 grid grid-cols-12 gap-3 items-center">
         <p
-          className="col-span-5 text-sm font-medium text-[#334155] truncate"
+          className="col-span-5 text-sm font-medium text-navy truncate"
           title={file.nombre_archivo}
         >
           {file.nombre_archivo}
@@ -81,7 +81,7 @@ export function RepoFileRow({ file, onClick }: Props) {
           </span>
           <button
             onClick={handleDownload}
-            className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-[#3777FF] transition-all"
+            className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-blue transition-all"
             title="Descargar"
             type="button"
           >

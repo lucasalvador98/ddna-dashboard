@@ -47,7 +47,7 @@ export function ResponseDetail({ respuesta, busyId, onClose, onDelete }: Respons
         style={{ animation: 'drawer-in 200ms ease-out' }}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
-          <h2 className="font-accent text-base text-[#334155]">Detalle de la respuesta</h2>
+          <h2 className="font-accent text-base text-navy">Detalle de la respuesta</h2>
           <button
             onClick={onClose}
             className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"

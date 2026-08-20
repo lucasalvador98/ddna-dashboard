@@ -249,11 +249,11 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
         {/* ── Header ─────────────────────────────────────────── */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-205 print:hidden">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#334155]/10 rounded-lg flex items-center justify-center">
-              <FileText className="w-5 h-5 text-[#334155]" />
+            <div className="w-10 h-10 bg-navy/10 rounded-lg flex items-center justify-center">
+              <FileText className="w-5 h-5 text-navy" />
             </div>
             <div>
-              <h2 className="font-accent text-lg text-[#334155] font-semibold">
+              <h2 className="font-accent text-lg text-navy font-semibold">
                 Repositorio de Reportes IA
               </h2>
               <p className="text-xs text-gray-500 font-body">Análisis avanzado de indicadores de NNyA</p>
@@ -276,7 +276,7 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
             className={clsx(
               'py-3 px-4 font-accent text-sm font-semibold border-b-2 transition-all cursor-pointer',
               activeTab === 'informe'
-                ? 'border-[#FF7F11] text-[#FF7F11]'
+                ? 'border-orange text-orange'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             )}
           >
@@ -287,7 +287,7 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
             className={clsx(
               'py-3 px-4 font-accent text-sm font-semibold border-b-2 transition-all cursor-pointer',
               activeTab === 'presentacion'
-                ? 'border-[#FF7F11] text-[#FF7F11]'
+                ? 'border-orange text-orange'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             )}
           >
@@ -315,9 +315,9 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
                         type="checkbox"
                         checked={allSelected}
                         onChange={toggleAll}
-                        className="w-4 h-4 rounded border-gray-300 text-[#334155] focus:ring-[#334155]"
+                        className="w-4 h-4 rounded border-gray-300 text-navy focus:ring-navy"
                       />
-                      <span className="font-accent text-sm font-semibold text-[#334155]">
+                      <span className="font-accent text-sm font-semibold text-navy">
                         Todos los ejes temáticos
                       </span>
                     </label>
@@ -331,7 +331,7 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
                           className={clsx(
                             'flex items-start gap-3 cursor-pointer p-3 rounded-lg border transition-colors',
                             selectedAxes.has(axis.id)
-                              ? 'border-[#FF7F11]/40 bg-[#FF7F11]/5'
+                              ? 'border-orange/40 bg-orange/5'
                               : 'border-gray-100 hover:bg-gray-50'
                           )}
                         >
@@ -339,7 +339,7 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
                             type="checkbox"
                             checked={selectedAxes.has(axis.id)}
                             onChange={() => toggleAxis(axis.id)}
-                            className="w-4 h-4 rounded border-gray-300 text-[#FF7F11] focus:ring-[#FF7F11] mt-0.5"
+                            className="w-4 h-4 rounded border-gray-300 text-orange focus:ring-orange mt-0.5"
                           />
                           <div>
                             <span className="font-accent text-sm font-semibold text-gray-800">
@@ -355,7 +355,7 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
                   {/* Generate button */}
                   <button
                     onClick={generateReport}
-                    className="w-full py-3 bg-[#334155] hover:bg-[#334155]/90 text-white font-accent font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                    className="w-full py-3 bg-navy hover:bg-navy/90 text-white font-accent font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm"
                   >
                     <FileText className="w-5 h-5" />
                     Generar Informe
@@ -378,7 +378,7 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
                   <p className="font-body text-gray-500 text-sm text-center max-w-md">{reportState.error}</p>
                   <button
                     onClick={generateReport}
-                    className="px-6 py-2.5 bg-[#FF7F11] hover:bg-[#FF7F11]/90 text-white font-accent font-semibold rounded-lg transition-colors cursor-pointer"
+                    className="px-6 py-2.5 bg-orange hover:bg-orange/90 text-white font-accent font-semibold rounded-lg transition-colors cursor-pointer"
                   >
                     Reintentar
                   </button>
@@ -432,7 +432,7 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
                           setPresentacionState({ phase: 'form' });
                         }
                       }}
-                      className="px-6 py-2.5 bg-[#FF7F11] hover:bg-[#FF7F11]/90 text-white font-accent font-semibold rounded-lg transition-colors cursor-pointer"
+                      className="px-6 py-2.5 bg-orange hover:bg-orange/90 text-white font-accent font-semibold rounded-lg transition-colors cursor-pointer"
                     >
                       Reintentar
                     </button>
@@ -461,7 +461,7 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
             </button>
             <button
               onClick={handlePrint}
-              className="px-4 py-2 bg-[#334155] hover:bg-[#334155]/90 text-white font-accent font-semibold rounded-lg transition-colors flex items-center gap-2 cursor-pointer"
+              className="px-4 py-2 bg-navy hover:bg-navy/90 text-white font-accent font-semibold rounded-lg transition-colors flex items-center gap-2 cursor-pointer"
             >
               <Printer className="w-4 h-4" />
               Imprimir
@@ -545,7 +545,7 @@ function LoadingSteps({ steps = LOADING_STEPS }: LoadingStepsProps) {
 
   return (
     <div className="flex flex-col items-center justify-center py-12 space-y-6">
-      <Loader2 className="w-12 h-12 text-[#FF7F11] animate-spin" />
+      <Loader2 className="w-12 h-12 text-orange animate-spin" />
       <div className="space-y-4 w-full max-w-sm">
         {steps.map((step, idx) => {
           const isActive = idx === currentStep;
@@ -561,7 +561,7 @@ function LoadingSteps({ steps = LOADING_STEPS }: LoadingStepsProps) {
               <div
                 className={clsx(
                   'w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5',
-                  isDone ? 'bg-green-100' : isActive ? 'bg-[#FF7F11]/10' : 'bg-gray-100'
+                  isDone ? 'bg-green-100' : isActive ? 'bg-orange/10' : 'bg-gray-100'
                 )}
               >
                 {isDone ? (
@@ -570,7 +570,7 @@ function LoadingSteps({ steps = LOADING_STEPS }: LoadingStepsProps) {
                   <div
                     className={clsx(
                       'w-2 h-2 rounded-full',
-                      isActive ? 'bg-[#FF7F11] animate-pulse' : 'bg-gray-300'
+                      isActive ? 'bg-orange animate-pulse' : 'bg-gray-300'
                     )}
                   />
                 )}

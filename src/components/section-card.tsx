@@ -21,52 +21,52 @@ const colorClasses: Record<
   { bg: string; border: string; iconBg: string; iconText: string; hover: string; hoverText: string }
 > = {
   amber: {
-    bg: 'bg-[#F3A712]/5',
-    border: 'border-[#F3A712]/30',
-    iconBg: 'bg-[#F3A712]',
-    iconText: 'text-[#334155]',
-    hover: 'hover:border-[#F3A712]/60',
-    hoverText: 'group-hover:text-[#F3A712]',
+    bg: 'bg-amber/5',
+    border: 'border-amber/30',
+    iconBg: 'bg-amber',
+    iconText: 'text-navy',
+    hover: 'hover:border-amber/60',
+    hoverText: 'group-hover:text-amber',
   },
   magenta: {
-    bg: 'bg-[#BF1363]/5',
-    border: 'border-[#BF1363]/30',
-    iconBg: 'bg-[#BF1363]',
+    bg: 'bg-magenta/5',
+    border: 'border-magenta/30',
+    iconBg: 'bg-magenta',
     iconText: 'text-white',
-    hover: 'hover:border-[#BF1363]/60',
-    hoverText: 'group-hover:text-[#BF1363]',
+    hover: 'hover:border-magenta/60',
+    hoverText: 'group-hover:text-magenta',
   },
   blue: {
-    bg: 'bg-[#3777FF]/5',
-    border: 'border-[#3777FF]/30',
-    iconBg: 'bg-[#3777FF]',
+    bg: 'bg-blue/5',
+    border: 'border-blue/30',
+    iconBg: 'bg-blue',
     iconText: 'text-white',
-    hover: 'hover:border-[#3777FF]/60',
-    hoverText: 'group-hover:text-[#3777FF]',
+    hover: 'hover:border-blue/60',
+    hoverText: 'group-hover:text-blue',
   },
   terracotta: {
-    bg: 'bg-[#E07A5F]/5',
-    border: 'border-[#E07A5F]/30',
-    iconBg: 'bg-[#E07A5F]',
+    bg: 'bg-terracotta/5',
+    border: 'border-terracotta/30',
+    iconBg: 'bg-terracotta',
     iconText: 'text-white',
-    hover: 'hover:border-[#E07A5F]/60',
-    hoverText: 'group-hover:text-[#E07A5F]',
+    hover: 'hover:border-terracotta/60',
+    hoverText: 'group-hover:text-terracotta',
   },
   navy: {
-    bg: 'bg-[#334155]/5',
-    border: 'border-[#334155]/30',
-    iconBg: 'bg-[#334155]',
+    bg: 'bg-navy/5',
+    border: 'border-navy/30',
+    iconBg: 'bg-navy',
     iconText: 'text-white',
-    hover: 'hover:border-[#334155]/60',
-    hoverText: 'group-hover:text-[#334155]',
+    hover: 'hover:border-navy/60',
+    hoverText: 'group-hover:text-navy',
   },
   orange: {
-    bg: 'bg-[#FF7F11]/5',
-    border: 'border-[#FF7F11]/30',
-    iconBg: 'bg-[#FF7F11]',
+    bg: 'bg-orange/5',
+    border: 'border-orange/30',
+    iconBg: 'bg-orange',
     iconText: 'text-white',
-    hover: 'hover:border-[#FF7F11]/60',
-    hoverText: 'group-hover:text-[#FF7F11]',
+    hover: 'hover:border-orange/60',
+    hoverText: 'group-hover:text-orange',
   },
 };
 
@@ -105,16 +105,16 @@ export function SectionCard({
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <h3 className={clsx('text-lg font-bold text-[#334155] transition-colors', colors.hoverText)}>
+          <h3 className={clsx('text-lg font-bold text-navy transition-colors', colors.hoverText)}>
             {title}
           </h3>
-          <p className="text-sm text-[#4D4D4D] mt-1 leading-relaxed">{description}</p>
+          <p className="text-sm text-text-primary mt-1 leading-relaxed">{description}</p>
         </div>
 
         {/* Arrow */}
         <ArrowRight
           className={clsx(
-            'w-5 h-5 text-[#4D4D4D] flex-shrink-0 transition-all duration-200 group-hover:translate-x-1',
+            'w-5 h-5 text-text-primary flex-shrink-0 transition-all duration-200 group-hover:translate-x-1',
             colors.hoverText
           )}
         />
@@ -122,12 +122,12 @@ export function SectionCard({
 
       {/* Stats (if provided) */}
       {stats && stats.length > 0 && (
-        <div className="mt-4 pt-4 border-t border-[#E0E0E0]">
+        <div className="mt-4 pt-4 border-t border-border">
           <div className="grid grid-cols-2 gap-4">
             {stats.map((stat, index) => (
               <div key={index}>
-                <p className="text-xs text-[#4D4D4D]/60 uppercase tracking-wide">{stat.label}</p>
-                <p className="text-lg font-bold text-[#334155] mt-0.5">{stat.value}</p>
+                <p className="text-xs text-text-primary/60 uppercase tracking-wide">{stat.label}</p>
+                <p className="text-lg font-bold text-navy mt-0.5">{stat.value}</p>
               </div>
             ))}
           </div>

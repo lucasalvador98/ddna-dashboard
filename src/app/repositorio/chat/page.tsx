@@ -171,8 +171,8 @@ export default function ChatPage() {
       {/* Header */}
       <div className="mb-8 flex items-start justify-between">
         <div>
-          <h1 className="font-display text-3xl text-[#334155] flex items-center gap-3">
-            <Bot className="w-8 h-8 text-[#3777FF]" />
+          <h1 className="font-display text-3xl text-navy flex items-center gap-3">
+            <Bot className="w-8 h-8 text-blue" />
             Asistente de Investigación DDNA
           </h1>
           <p className="font-body text-gray-600 mt-2">
@@ -213,10 +213,10 @@ export default function ChatPage() {
           {messages.length === 0 && !streamingContent ? (
             /* Welcome State */
             <div className="h-full flex flex-col items-center justify-center text-center">
-              <div className="w-16 h-16 bg-[#3777FF]/10 rounded-full flex items-center justify-center mb-4">
-                <Bot className="w-8 h-8 text-[#3777FF]" />
+              <div className="w-16 h-16 bg-blue/10 rounded-full flex items-center justify-center mb-4">
+                <Bot className="w-8 h-8 text-blue" />
               </div>
-              <h3 className="font-display text-xl text-[#334155] mb-2">
+              <h3 className="font-display text-xl text-navy mb-2">
                 ¡Bienvenido al Asistente DDNA!
               </h3>
               <p className="font-body text-gray-600 max-w-md mb-6">
@@ -247,15 +247,15 @@ export default function ChatPage() {
             messages.map((msg, idx) => (
               <div key={idx} className={`flex gap-4 ${msg.role === 'user' ? 'justify-end' : ''}`}>
                 {msg.role === 'assistant' && (
-                  <div className="w-8 h-8 bg-[#3777FF]/10 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Bot className="w-4 h-4 text-[#3777FF]" />
+                  <div className="w-8 h-8 bg-blue/10 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Bot className="w-4 h-4 text-blue" />
                   </div>
                 )}
 
                 <div
                   className={`max-w-[80%] ${
                     msg.role === 'user'
-                      ? 'bg-[#334155] text-white'
+                      ? 'bg-navy text-white'
                       : 'bg-gray-50 border border-gray-200'
                   } rounded-lg px-4 py-3`}
                 >
@@ -272,7 +272,7 @@ export default function ChatPage() {
                           return (
                             <span
                               key={sIdx}
-                              className="inline-flex items-center gap-1 px-2 py-1 bg-[#3777FF]/10 text-[#3777FF] rounded text-xs font-medium"
+                              className="inline-flex items-center gap-1 px-2 py-1 bg-blue/10 text-blue rounded text-xs font-medium"
                               title={name}
                             >
                               <FileText className="w-3 h-3" />
@@ -286,7 +286,7 @@ export default function ChatPage() {
                 </div>
 
                 {msg.role === 'user' && (
-                  <div className="w-8 h-8 bg-[#334155] rounded-full flex items-center justify-center flex-shrink-0">
+                  <div className="w-8 h-8 bg-navy rounded-full flex items-center justify-center flex-shrink-0">
                     <User className="w-4 h-4 text-white" />
                   </div>
                 )}
@@ -297,12 +297,12 @@ export default function ChatPage() {
           {/* Streaming message */}
           {streamingContent && (
             <div className="flex gap-4">
-              <div className="w-8 h-8 bg-[#3777FF]/10 rounded-full flex items-center justify-center flex-shrink-0">
-                <Bot className="w-4 h-4 text-[#3777FF]" />
+              <div className="w-8 h-8 bg-blue/10 rounded-full flex items-center justify-center flex-shrink-0">
+                <Bot className="w-4 h-4 text-blue" />
               </div>
               <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 max-w-[80%]">
                 <p className="font-body text-sm whitespace-pre-wrap">{streamingContent}</p>
-                <span className="inline-block w-1.5 h-4 bg-[#3777FF] animate-pulse ml-0.5 align-text-bottom" />
+                <span className="inline-block w-1.5 h-4 bg-blue animate-pulse ml-0.5 align-text-bottom" />
               </div>
             </div>
           )}
@@ -310,8 +310,8 @@ export default function ChatPage() {
           {/* Loading / Tool progress indicator */}
           {loading && !streamingContent && (
             <div className="flex gap-4">
-              <div className="w-8 h-8 bg-[#3777FF]/10 rounded-full flex items-center justify-center flex-shrink-0">
-                <Bot className="w-4 h-4 text-[#3777FF]" />
+              <div className="w-8 h-8 bg-blue/10 rounded-full flex items-center justify-center flex-shrink-0">
+                <Bot className="w-4 h-4 text-blue" />
               </div>
               <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
                 {toolProgress.length > 0 ? (
@@ -351,13 +351,13 @@ export default function ChatPage() {
               onChange={e => setInput(e.target.value)}
               aria-label="Escribí tu pregunta"
               placeholder="Escribí tu pregunta sobre los documentos..."
-              className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3777FF] focus:border-transparent outline-none font-body text-sm"
+              className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue focus:border-transparent outline-none font-body text-sm"
               disabled={loading}
             />
             <button
               type="submit"
               disabled={loading || !input.trim()}
-              className="px-6 py-3 bg-[#334155] text-white rounded-lg font-accent text-sm hover:bg-[#00063E] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              className="px-6 py-3 bg-navy text-white rounded-lg font-accent text-sm hover:bg-[#00063E] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
             >
               {loading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -375,7 +375,7 @@ export default function ChatPage() {
         <p className="text-xs text-gray-500 font-body">
           Este asistente usa Agent con Tools — busca en tus documentos y complementa con búsqueda
           web cuando es necesario.
-          <a href="/repositorio" className="text-[#3777FF] hover:underline ml-1">
+          <a href="/repositorio" className="text-blue hover:underline ml-1">
             Ver documentos disponibles →
           </a>
         </p>

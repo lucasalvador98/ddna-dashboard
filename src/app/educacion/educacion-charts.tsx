@@ -363,7 +363,7 @@ export default function EducacionClient(props: EducacionClientProps) {
                 onClick={() => setAprenderSubject('lengua')}
                 className={`px-5 py-2 text-sm font-semibold transition-colors ${
                   aprenderSubject === 'lengua'
-                    ? 'bg-[#334155] text-white'
+                    ? 'bg-navy text-white'
                     : 'bg-white text-gray-600 hover:bg-gray-50'
                 }`}
               >
@@ -373,7 +373,7 @@ export default function EducacionClient(props: EducacionClientProps) {
                 onClick={() => setAprenderSubject('matematica')}
                 className={`px-5 py-2 text-sm font-semibold transition-colors ${
                   aprenderSubject === 'matematica'
-                    ? 'bg-[#334155] text-white'
+                    ? 'bg-navy text-white'
                     : 'bg-white text-gray-600 hover:bg-gray-50'
                 }`}
               >
@@ -391,7 +391,7 @@ export default function EducacionClient(props: EducacionClientProps) {
                     onClick={() => setSector(s)}
                     className={`px-3 py-1.5 text-xs font-medium transition-colors ${
                       sector === s
-                        ? 'bg-[#334155] text-white'
+                        ? 'bg-navy text-white'
                         : 'bg-white text-gray-500 hover:bg-gray-50'
                     }`}
                   >

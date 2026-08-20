@@ -41,7 +41,7 @@ function TogglePill({
       disabled={disabled}
       className={clsx(
         'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium transition-colors',
-        active ? 'bg-[#334155] text-white' : 'bg-gray-100 text-gray-400 hover:bg-gray-200',
+        active ? 'bg-navy text-white' : 'bg-gray-100 text-gray-400 hover:bg-gray-200',
         disabled && 'opacity-50 cursor-not-allowed',
       )}
     >
@@ -226,7 +226,7 @@ export function RoleManager({ onFlash }: RoleManagerProps) {
                 className={clsx(
                   'group flex items-center gap-2 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left shrink-0 lg:shrink',
                   selectedRoleId === role.id
-                    ? 'bg-[#334155] text-white border-l-2 border-l-[#334155]'
+                    ? 'bg-navy text-white border-l-2 border-l-navy'
                     : 'text-gray-600 hover:bg-gray-50',
                 )}
               >
@@ -294,7 +294,7 @@ export function RoleManager({ onFlash }: RoleManagerProps) {
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder="Nombre del rol"
-                  className="w-full px-2.5 py-1.5 border border-gray-200 rounded-md text-sm focus:ring-2 focus:ring-[#334155] focus:border-transparent outline-none bg-white"
+                  className="w-full px-2.5 py-1.5 border border-gray-200 rounded-md text-sm focus:ring-2 focus:ring-navy focus:border-transparent outline-none bg-white"
                   onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
                   autoFocus
                 />
@@ -303,14 +303,14 @@ export function RoleManager({ onFlash }: RoleManagerProps) {
                   value={newDesc}
                   onChange={(e) => setNewDesc(e.target.value)}
                   placeholder="Descripción (opcional)"
-                  className="w-full px-2.5 py-1.5 border border-gray-200 rounded-md text-sm focus:ring-2 focus:ring-[#334155] focus:border-transparent outline-none bg-white"
+                  className="w-full px-2.5 py-1.5 border border-gray-200 rounded-md text-sm focus:ring-2 focus:ring-navy focus:border-transparent outline-none bg-white"
                   onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
                 />
                 <div className="flex gap-2">
                   <button
                     onClick={handleCreate}
                     disabled={creating || !newName.trim()}
-                    className="flex items-center gap-1 px-3 py-1.5 bg-[#334155] text-white rounded-md text-xs font-medium hover:bg-[#0F172A] disabled:opacity-50 transition-colors"
+                    className="flex items-center gap-1 px-3 py-1.5 bg-navy text-white rounded-md text-xs font-medium hover:bg-[#0F172A] disabled:opacity-50 transition-colors"
                   >
                     {creating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
                     Crear
@@ -339,7 +339,7 @@ export function RoleManager({ onFlash }: RoleManagerProps) {
             {/* Role header */}
             <div className="px-4 lg:px-6 py-4 border-b border-gray-200">
               <div className="flex items-center gap-2 mb-1">
-                <h3 className="text-sm font-semibold text-[#334155] capitalize">{selectedRole.name}</h3>
+                <h3 className="text-sm font-semibold text-navy capitalize">{selectedRole.name}</h3>
                 {isBuiltIn && (
                   <span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md font-medium">
                     Rol fijo
@@ -368,7 +368,7 @@ export function RoleManager({ onFlash }: RoleManagerProps) {
                           key={p.route}
                           className="border border-gray-200 rounded-lg p-3 hover:border-gray-300 transition-colors"
                         >
-                          <p className="text-sm font-medium text-[#334155]">{routeLabel(p.route)}</p>
+                          <p className="text-sm font-medium text-navy">{routeLabel(p.route)}</p>
                           <p className="text-[10px] text-gray-400 font-mono mb-2">{p.route}</p>
                           <div className="flex items-center gap-1.5">
                             <TogglePill
@@ -407,7 +407,7 @@ export function RoleManager({ onFlash }: RoleManagerProps) {
               <button
                 onClick={handleSave}
                 disabled={saving || !hasChanges}
-                className="flex items-center gap-1.5 px-5 py-2 bg-[#334155] text-white rounded-lg text-sm font-medium hover:bg-[#0F172A] disabled:opacity-50 transition-colors"
+                className="flex items-center gap-1.5 px-5 py-2 bg-navy text-white rounded-lg text-sm font-medium hover:bg-[#0F172A] disabled:opacity-50 transition-colors"
               >
                 {saving ? (
                   <Loader2 className="w-4 h-4 animate-spin" />

@@ -11,9 +11,9 @@ interface PageLoadingProps {
 export function PageLoading({ message = 'Cargando datos...' }: PageLoadingProps) {
   return (
     <div className="flex flex-col items-center justify-center py-20 gap-3">
-      <Loader2 className="w-8 h-8 text-[#BF1363] animate-spin" />
+      <Loader2 className="w-8 h-8 text-magenta animate-spin" />
       {message && (
-        <span className="font-body text-sm text-[#4D4D4D]">{message}</span>
+        <span className="font-body text-sm text-text-primary">{message}</span>
       )}
     </div>
   );

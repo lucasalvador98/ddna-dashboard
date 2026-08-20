@@ -81,11 +81,11 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 h-16 border-b border-[#E0E0E0]">
-          <span className="font-display text-lg text-[#334155]">Navegación</span>
+        <div className="flex items-center justify-between px-4 h-16 border-b border-border">
+          <span className="font-display text-lg text-navy">Navegación</span>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-[#FDF3E7] transition-colors text-[#4D4D4D]"
+            className="p-2 rounded-lg hover:bg-secondary-bg transition-colors text-text-primary"
             aria-label="Cerrar menú"
           >
             <X className="w-5 h-5" />
@@ -112,14 +112,14 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
                       className={clsx(
                         'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
                         active
-                          ? 'bg-[#E07A5F]/10 text-[#E07A5F]'
-                          : 'text-[#4D4D4D] hover:bg-gray-100'
+                          ? 'bg-terracotta/10 text-terracotta'
+                          : 'text-text-primary hover:bg-gray-100'
                       )}
                     >
                       <item.icon
                         className={clsx(
                           'w-5 h-5 flex-shrink-0',
-                          active ? 'text-[#E07A5F]' : 'text-[#9CA3AF]'
+                          active ? 'text-terracotta' : 'text-[#9CA3AF]'
                         )}
                       />
                       <span
@@ -143,14 +143,14 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
                     className={clsx(
                       'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-left',
                       activeChild
-                        ? 'bg-[#E07A5F]/10 text-[#E07A5F]'
-                        : 'text-[#4D4D4D] hover:bg-gray-100'
+                        ? 'bg-terracotta/10 text-terracotta'
+                        : 'text-text-primary hover:bg-gray-100'
                     )}
                   >
                     <group.icon
                       className={clsx(
                         'w-5 h-5 flex-shrink-0',
-                        activeChild ? 'text-[#E07A5F]' : 'text-[#9CA3AF]'
+                        activeChild ? 'text-terracotta' : 'text-[#9CA3AF]'
                       )}
                     />
                     <span
@@ -170,7 +170,7 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
                   </button>
 
                   {isExpanded && (
-                    <ul className="ml-4 mt-0.5 space-y-0.5 border-l border-[#E0E0E0] pl-3">
+                    <ul className="ml-4 mt-0.5 space-y-0.5 border-l border-border pl-3">
                       {group.items.map(item => {
                         const active = isItemActive(item.href);
                         return (
@@ -181,14 +181,14 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
                               className={clsx(
                                 'flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-sm',
                                 active
-                                  ? 'bg-[#E07A5F]/10 text-[#E07A5F] font-medium'
-                                  : 'text-[#6B7280] hover:bg-gray-50 hover:text-[#4D4D4D]'
+                                  ? 'bg-terracotta/10 text-terracotta font-medium'
+                                  : 'text-[#6B7280] hover:bg-gray-50 hover:text-text-primary'
                               )}
                             >
                               <item.icon
                                 className={clsx(
                                   'w-4 h-4 flex-shrink-0',
-                                  active ? 'text-[#E07A5F]' : 'text-[#D1D5DB]'
+                                  active ? 'text-terracotta' : 'text-[#D1D5DB]'
                                 )}
                               />
                               <span className="font-accent tracking-wide">{item.label}</span>

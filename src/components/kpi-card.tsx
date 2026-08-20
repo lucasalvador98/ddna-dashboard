@@ -15,34 +15,34 @@ interface KpiCardProps {
 
 const colorClasses: Record<KpiColor, { border: string; iconBg: string; iconText: string }> = {
   amber: {
-    border: 'border-l-[#F3A712]',
-    iconBg: 'bg-[#F3A712]/10',
-    iconText: 'text-[#F3A712]',
+    border: 'border-l-amber',
+    iconBg: 'bg-amber/10',
+    iconText: 'text-amber',
   },
   magenta: {
-    border: 'border-l-[#BF1363]',
-    iconBg: 'bg-[#BF1363]/10',
-    iconText: 'text-[#BF1363]',
+    border: 'border-l-magenta',
+    iconBg: 'bg-magenta/10',
+    iconText: 'text-magenta',
   },
   blue: {
-    border: 'border-l-[#3777FF]',
-    iconBg: 'bg-[#3777FF]/10',
-    iconText: 'text-[#3777FF]',
+    border: 'border-l-blue',
+    iconBg: 'bg-blue/10',
+    iconText: 'text-blue',
   },
   terracotta: {
-    border: 'border-l-[#E07A5F]',
-    iconBg: 'bg-[#E07A5F]/10',
-    iconText: 'text-[#E07A5F]',
+    border: 'border-l-terracotta',
+    iconBg: 'bg-terracotta/10',
+    iconText: 'text-terracotta',
   },
   navy: {
-    border: 'border-l-[#334155]',
-    iconBg: 'bg-[#334155]/10',
-    iconText: 'text-[#334155]',
+    border: 'border-l-navy',
+    iconBg: 'bg-navy/10',
+    iconText: 'text-navy',
   },
   orange: {
-    border: 'border-l-[#FF7F11]',
-    iconBg: 'bg-[#FF7F11]/10',
-    iconText: 'text-[#FF7F11]',
+    border: 'border-l-orange',
+    iconBg: 'bg-orange/10',
+    iconText: 'text-orange',
   },
   green: {
     border: 'border-l-[#10B981]',
@@ -65,7 +65,7 @@ export function KpiCard({
   return (
     <article
       className={clsx(
-        'bg-white rounded-xl border border-[#E0E0E0] border-l-4 p-5',
+        'bg-white rounded-xl border border-border border-l-4 p-5',
         'transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:shadow-lg',
         colors.border
       )}
@@ -86,9 +86,9 @@ export function KpiCard({
           <div
             className={clsx(
               'flex items-center gap-1 text-sm font-body font-medium px-2 py-1 rounded-full',
-              changeType === 'up' && 'bg-[#22C55E]/10 text-[#22C55E]',
-              changeType === 'down' && 'bg-[#EF4444]/10 text-[#EF4444]',
-              changeType === 'neutral' && 'bg-[#E0E0E0]/50 text-[#4D4D4D]'
+              changeType === 'up' && 'bg-success/10 text-success',
+              changeType === 'down' && 'bg-error/10 text-error',
+              changeType === 'neutral' && 'bg-border/50 text-text-primary'
             )}
           >
             {changeType === 'up' && <TrendingUp className="w-4 h-4" />}
@@ -100,9 +100,9 @@ export function KpiCard({
 
       {/* Content */}
       <div className="mt-4">
-        <h3 className="font-accent text-sm text-[#4D4D4D] tracking-wide">{title}</h3>
-        <p className="font-display text-4xl text-[#334155] mt-1">{value}</p>
-        <p className="font-body text-sm text-[#4D4D4D]/70 mt-2 leading-relaxed">{subtitle}</p>
+        <h3 className="font-accent text-sm text-text-primary tracking-wide">{title}</h3>
+        <p className="font-display text-4xl text-navy mt-1">{value}</p>
+        <p className="font-body text-sm text-text-primary/70 mt-2 leading-relaxed">{subtitle}</p>
       </div>
     </article>
   );
