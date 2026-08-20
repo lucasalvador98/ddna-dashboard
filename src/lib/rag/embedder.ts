@@ -74,8 +74,8 @@ export async function generateEmbeddingsBatch(texts: string[]): Promise<number[]
       throw new Error(`OpenAI API error: ${JSON.stringify(error)}`);
     }
 
-    const data = await response.json();
-    const embeddings = data.data.map((item: any) => item.embedding);
+    const data = await response.json() as { data: Array<{ embedding: number[] }> };
+    const embeddings = data.data.map((item) => item.embedding);
     allEmbeddings.push(...embeddings);
   }
 

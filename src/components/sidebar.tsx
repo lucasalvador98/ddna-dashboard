@@ -20,10 +20,11 @@ export function Sidebar({ badges }: SidebarProps) {
   const [expandedGroups, setExpandedGroups] = React.useState<Set<string>>(new Set());
   const pathname = usePathname();
 
-  // Auto-expand the group that contains the current route
   useEffect(() => {
     const activeGroup = findGroupForPath(pathname);
     if (activeGroup) {
+      // Sync expanded state to pathname — intentional
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setExpandedGroups(prev => {
         const next = new Set(prev);
         next.add(activeGroup);

@@ -20,7 +20,9 @@ export default function ConfigPage() {
   }, []);
 
   useEffect(() => {
-    loadConfig();
+    // Mount-only config fetch — setState in async callback is intentional
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadConfig();
   }, [loadConfig]);
 
   const handleToggle = async () => {

@@ -28,12 +28,13 @@ async function fetchInitialData() {
 }
 
 async function ApisContent() {
+  let initialData: Awaited<ReturnType<typeof fetchInitialData>>;
   try {
-    const initialData = await fetchInitialData();
-    return <ApisClient initialData={initialData} />;
+    initialData = await fetchInitialData();
   } catch {
-    return <ApisClient initialData={{ source: 'datos.gob.ar', datasets: [] }} />;
+    initialData = { source: 'datos.gob.ar', total: 0, datasets: [] };
   }
+  return <ApisClient initialData={initialData} />;
 }
 
 export default function ApisPage() {

@@ -405,7 +405,7 @@ export function buildReportPayload(
 ): ReportPayload {
   const activeCategories =
     categories.length > 0
-      ? categories.filter((c) => ALL_CATEGORIES.includes(c as any))
+      ? categories.filter((c) => (ALL_CATEGORIES as readonly string[]).includes(c))
       : [...ALL_CATEGORIES];
 
   // Group by category

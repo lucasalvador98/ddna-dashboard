@@ -463,11 +463,10 @@ function TabMultidimensional({
                 borderRadius: '8px',
                 fontSize: '13px',
               }}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              formatter={((value: any, _name: any, props: any) => [
-                `${value ?? '—'}%`,
-                props?.payload?.indicator || _name,
-              ]) as any}
+              formatter={((value: unknown, _name: unknown, props: unknown) => [
+                `${(value as number | null) ?? '—'}%`,
+                ((props as Record<string, unknown>)?.["payload"] as Record<string, unknown> | undefined)?.["indicator"] as string | undefined || String(_name ?? ''),
+              ]) as unknown as never}
             />
             <Bar dataKey="valor" radius={[0, 4, 4, 0]}>
               {dimensionChartData.map((d, i) => (
@@ -509,8 +508,7 @@ function TabMultidimensional({
                     borderRadius: '8px',
                     fontSize: '13px',
                   }}
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  formatter={((value: any) => [value !== null ? `${value}%` : '—', '']) as any}
+                  formatter={((value: unknown) => [(value as number | null) !== null ? `${value as number}%` : '—', '']) as unknown as never}
                 />
                 <Legend />
                 <Line

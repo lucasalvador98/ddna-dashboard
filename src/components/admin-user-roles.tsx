@@ -166,7 +166,9 @@ export function UserRoleManager({ onFlash }: UserRoleManagerProps) {
   }, []);
 
   useEffect(() => {
-    loadData();
+    // Mount-only data fetch — setState in async callback is intentional
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadData();
   }, [loadData]);
 
   const handleRoleChange = async (userId: string, roleId: number | null) => {

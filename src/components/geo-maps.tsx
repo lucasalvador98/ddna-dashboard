@@ -180,6 +180,8 @@ function MapWrapper({
 }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
+    // SSR hydration guard — setState on mount is intentional
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 

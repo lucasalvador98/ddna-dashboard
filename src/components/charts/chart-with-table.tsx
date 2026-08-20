@@ -20,7 +20,7 @@ interface ChartWithTableProps {
   color?: 'terracotta' | 'amber' | 'magenta' | 'blue' | 'green';
   fuente?: string;
   ultimaActualizacion?: string | null;
-  data: Record<string, any>[];
+  data: object[];
   dataKey: string; // La key principal para los valores (ej: "valor", "cobertura")
   xAxisKey: string; // La key del eje X (ej: "periodo", "year", "area")
   chartType?: 'line' | 'bar' | 'area' | 'pie';
@@ -71,8 +71,8 @@ export function ChartWithTable({
 
   const colors = colorStyles[color];
 
-  // Obtener todas las keys disponibles en los datos
-  const allKeys = data.length > 0 ? Object.keys(data[0]).filter(k => k !== xAxisKey) : [];
+  const rows = data as unknown as Record<string, unknown>[];
+  const allKeys = rows.length > 0 ? Object.keys(rows[0]).filter(k => k !== xAxisKey) : [];
 
   return (
     <div className="bg-white rounded-xl border border-[#E0E0E0] overflow-hidden">
@@ -112,8 +112,7 @@ export function ChartWithTable({
           {showTable ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </button>
 
-        {/* Tabla de datos */}
-        {showTable && data.length > 0 && (
+        {showTable && rows.length > 0 && (
           <div className="px-5 pb-5">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -133,16 +132,16 @@ export function ChartWithTable({
                   </tr>
                 </thead>
                 <tbody>
-                  {data.map((row, idx) => (
+                  {rows.map((row, idx) => (
                     <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="py-2 px-3 text-gray-700">{row[xAxisKey]}</td>
+                      <td className="py-2 px-3 text-gray-700">{String(row[xAxisKey] ?? '')}</td>
                       {allKeys.map(key => (
                         <td key={key} className="text-right py-2 px-3 text-gray-700">
                           {typeof row[key] === 'number'
-                            ? row[key].toLocaleString('es-AR', {
+                            ? (row[key] as number).toLocaleString('es-AR', {
                                 maximumFractionDigits: 2,
                               })
-                            : row[key]}
+                            : String(row[key] ?? '')}
                         </td>
                       ))}
                     </tr>
@@ -151,7 +150,7 @@ export function ChartWithTable({
               </table>
             </div>
 
-            {data.length === 0 && (
+            {rows.length === 0 && (
               <p className="text-gray-400 text-center py-8">No hay datos disponibles</p>
             )}
           </div>

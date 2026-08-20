@@ -20,7 +20,7 @@ export async function extractTextFromDOCX(buffer: Buffer): Promise<DOCXExtractRe
     
     return {
       text: result.value.trim(),
-      messages: result.messages.map((m: any) => m.message),
+      messages: result.messages.map((m: { message: string }) => m.message),
     };
   } catch (error) {
     console.error("DOCX extraction error:", error);
@@ -38,7 +38,7 @@ export async function extractDOCXWithHTML(buffer: Buffer): Promise<DOCXExtractRe
     return {
       text: result.value.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
       html: result.value,
-      messages: result.messages.map((m: any) => m.message),
+      messages: result.messages.map((m: { message: string }) => m.message),
     };
   } catch (error) {
     console.error("DOCX extraction error:", error);

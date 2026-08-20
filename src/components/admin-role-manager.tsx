@@ -94,14 +94,17 @@ export function RoleManager({ onFlash }: RoleManagerProps) {
   }, [selectedRoleId]);
 
   useEffect(() => {
-    loadRoles();
+    // Mount-only data fetch — setState in async callback is intentional
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadRoles();
   }, []); // Only on mount
 
-  // When roles load or selection changes, update local permissions
   useEffect(() => {
     if (!selectedRoleId || roles.length === 0) return;
     const role = roles.find((r) => r.id === selectedRoleId);
     if (role) {
+      // Intentional form reset when selection changes — sync editable copy
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPerms(JSON.parse(JSON.stringify(role.permissions))); // deep clone
       setHasChanges(false);
     }

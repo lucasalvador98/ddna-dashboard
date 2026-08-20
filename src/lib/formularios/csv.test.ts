@@ -87,7 +87,7 @@ describe('buildCsv', () => {
       respuesta({ respuestas: { nombre: '+sum(1+1)', intereses: [] } }),
     ]);
     const body = csv.replace('\uFEFF', '');
-    let row = body.split('\r\n')[1];
+    const row = body.split('\r\n')[1];
     expect(row).toContain("'+sum(1+1)");
 
     const csv2 = buildCsv(def, [

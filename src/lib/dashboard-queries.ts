@@ -136,53 +136,53 @@ export const dashboardQueries = {
 
 // Funciones helper para formatear datos de gráficos
 export function formatChartData(
-  data: any[],
+  data: Record<string, unknown>[],
   xKey: string,
   yKeys: string[],
   options?: { transform?: (val: number) => number }
-): any[] {
+): Record<string, unknown>[] {
   if (!data || data.length === 0) return [];
   
   const { transform = (v: number) => v } = options || {};
   
   return data.map(row => {
-    const result: any = {};
-    result[xKey] = row[xKey] || row[xKey.replace('_', '')];
+    const result: Record<string, unknown> = {};
+    const rowRecord = row as Record<string, unknown>;
+    result[xKey] = rowRecord[xKey] ?? rowRecord[xKey.replace('_', '')];
     yKeys.forEach(key => {
-      result[key] = transform(Number(row[key]) || 0);
+      result[key] = transform(Number(rowRecord[key] as string | number) || 0);
     });
     return result;
   });
 }
 
-// Agrupar datos por indicador para evolución temporal
-export function groupByPeriodo(data: any[], indicadorField: string = 'indicador_nombre'): Record<string, any[]> {
-  const groups: Record<string, any[]> = {};
+export function groupByPeriodo(data: Record<string, unknown>[], indicadorField: string = 'indicador_nombre'): Record<string, Record<string, unknown>[]> {
+  const groups: Record<string, Record<string, unknown>[]> = {};
   
   data.forEach(row => {
-    const key = row[indicadorField] || 'valor';
+    const r = row as Record<string, unknown>;
+    const key = String(r[indicadorField] ?? 'valor');
     if (!groups[key]) groups[key] = [];
     groups[key].push({
-      periodo: row.periodo,
-      valor: Number(row.valor) || 0
+      periodo: r.periodo,
+      valor: Number(r.valor as string | number) || 0
     });
   });
   
   return groups;
 }
 
-// Combinar series para gráfico de líneas
-export function combineTimeSeries(data: Record<string, any[]>, periodoKey: string = 'periodo'): any[] {
+export function combineTimeSeries(data: Record<string, Record<string, unknown>[]>, periodoKey: string = 'periodo'): Record<string, unknown>[] {
   const periodoSet = new Set<string>();
   Object.values(data).forEach(series => {
-    series.forEach(item => periodoSet.add(item[periodoKey]));
+    series.forEach(item => periodoSet.add(String((item as Record<string, unknown>)[periodoKey])));
   });
   
   return Array.from(periodoSet).sort().map(periodo => {
-    const row: any = { [periodoKey]: periodo };
+    const row: Record<string, unknown> = { [periodoKey]: periodo };
     Object.entries(data).forEach(([key, series]) => {
-      const match = series.find(s => s[periodoKey] === periodo);
-      row[key] = match ? match.valor : null;
+      const match = series.find(s => String((s as Record<string, unknown>)[periodoKey]) === periodo);
+      row[key] = match ? (match as Record<string, unknown>).valor as unknown : null;
     });
     return row;
   });

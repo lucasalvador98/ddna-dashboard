@@ -70,12 +70,12 @@ export async function GET(request: Request) {
           title: r.title,
           notes: r.notes,
           organization: r.organization?.title,
-          resources: r.resources?.map((res: any) => ({
-            id: res.id,
-            name: res.name,
-            format: res.format,
-            url: res.url,
-            description: res.description,
+          resources: (r.resources as Array<Record<string, unknown>> | undefined)?.map((res) => ({
+            id: res["id"],
+            name: res["name"],
+            format: res["format"],
+            url: res["url"],
+            description: res["description"],
           })),
         });
       }
@@ -85,11 +85,11 @@ export async function GET(request: Request) {
           q,
           rows: limit,
         });
-        const results = (data.result?.results || []).map((r: any) => ({
-          name: r.name,
-          title: r.title,
-          organization: r.organization?.title,
-          num_resources: r.num_resources,
+        const results = ((data.result?.results as Array<Record<string, unknown>> | undefined) || []).map((r) => ({
+          name: r["name"],
+          title: r["title"],
+          organization: (r["organization"] as Record<string, unknown> | undefined)?.["title"],
+          num_resources: r["num_resources"],
         }));
         return NextResponse.json({
           source: "datos.gob.ar",
@@ -104,9 +104,9 @@ export async function GET(request: Request) {
           all_fields: "true",
           limit,
         });
-        const orgs = (data.result || []).map((o: any) => ({
-          name: o.name,
-          title: o.title,
+        const orgs = ((data.result as Array<Record<string, unknown>> | undefined) || []).map((o) => ({
+          name: o["name"],
+          title: o["title"],
         }));
         return NextResponse.json({
           source: "datos.gob.ar",
@@ -120,10 +120,10 @@ export async function GET(request: Request) {
           include_datasets: "true",
           limit,
         });
-        const datasets = (data.result?.datasets || []).map((d: any) => ({
-          name: d.name,
-          title: d.title,
-          num_resources: d.num_resources,
+        const datasets = ((data.result?.datasets as Array<Record<string, unknown>> | undefined) || []).map((d) => ({
+          name: d["name"],
+          title: d["title"],
+          num_resources: d["num_resources"],
         }));
         return NextResponse.json({
           source: "datos.gob.ar",
@@ -156,11 +156,11 @@ export async function GET(request: Request) {
           title: r.title,
           notes: r.notes,
           organization: r.organization?.title,
-          resources: r.resources?.map((res: any) => ({
-            id: res.id,
-            name: res.name,
-            format: res.format,
-            url: res.url,
+          resources: (r.resources as Array<Record<string, unknown>> | undefined)?.map((res) => ({
+            id: res["id"],
+            name: res["name"],
+            format: res["format"],
+            url: res["url"],
           })),
         });
       }
@@ -170,10 +170,10 @@ export async function GET(request: Request) {
           q,
           rows: limit,
         });
-        const results = (data.result?.results || []).map((r: any) => ({
-          name: r.name,
-          title: r.title,
-          num_resources: r.num_resources,
+        const results = ((data.result?.results as Array<Record<string, unknown>> | undefined) || []).map((r) => ({
+          name: r["name"],
+          title: r["title"],
+          num_resources: r["num_resources"],
         }));
         return NextResponse.json({
           source: "Gestión Abierta Córdoba",

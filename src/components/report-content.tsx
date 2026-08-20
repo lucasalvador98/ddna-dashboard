@@ -277,7 +277,7 @@ export function ReportContent({ report, generatedAt }: ReportContentProps) {
       })
     : '';
 
-  const kpis = (report as any).kpis as ReportKPI[] | undefined;
+  const kpis = (report as unknown as { kpis?: ReportKPI[] }).kpis;
   const alertKpis = kpis?.filter(k => k.alert) ?? [];
   const normalKpis = kpis?.filter(k => !k.alert) ?? [];
 

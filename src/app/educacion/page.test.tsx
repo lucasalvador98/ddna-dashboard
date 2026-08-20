@@ -6,8 +6,11 @@ import type { AprenderRow } from '@/lib/aprender-transform';
 // ─── Mocks ──────────────────────────────────────────────────────
 
 vi.mock('recharts', () => {
-  const createComp = (testId: string) => ({ children }: { children: React.ReactNode }) =>
-    <div data-testid={testId}>{children}</div>;
+  const createComp = (testId: string) => {
+    const Comp = ({ children }: { children: React.ReactNode }) => <div data-testid={testId}>{children}</div>;
+    Comp.displayName = `Mock-${testId}`;
+    return Comp;
+  };
   return {
     ResponsiveContainer: createComp('responsive-container'),
     BarChart: createComp('bar-chart'),

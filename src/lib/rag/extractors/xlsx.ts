@@ -60,15 +60,15 @@ export function extractTextFromXLSX(buffer: Buffer): XLSXExtractResult {
 /**
  * Extract with JSON format (for structured data)
  */
-export function extractJSONFromXLSX(buffer: Buffer): Record<string, any>[] {
+export function extractJSONFromXLSX(buffer: Buffer): Record<string, unknown>[] {
   try {
     const workbook = XLSX.read(buffer, { type: 'buffer' });
     const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
     
     return XLSX.utils.sheet_to_json(firstSheet, {
-      defval: '', // Default value for empty cells
-      raw: false, // Convert values to strings/numbers
-    }) as Record<string, any>[];
+      defval: '',
+      raw: false,
+    }) as Record<string, unknown>[];
   } catch (error) {
     console.error("XLSX extraction error:", error);
     throw new Error(`Failed to extract XLSX: ${error}`);
@@ -86,14 +86,14 @@ export async function extractXLSXFromFile(file: File): Promise<XLSXExtractResult
 /**
  * Convert XLSX data to readable text format
  */
-export function formatXLSXData(data: Record<string, any>[]): string {
+export function formatXLSXData(data: Record<string, unknown>[]): string {
   if (data.length === 0) return '';
 
   const headers = Object.keys(data[0]);
   let text = headers.join('\t') + '\n';
   
   for (const row of data) {
-    const values = headers.map(h => String(row[h] || ''));
+    const values = headers.map(h => String((row as Record<string, unknown>)[h] ?? ''));
     text += values.join('\t') + '\n';
   }
 

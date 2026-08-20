@@ -45,7 +45,9 @@ export default function AiUsagePage() {
   }, [days]);
 
   useEffect(() => {
-    load();
+    // Initial data fetch on mount / days change — requires setState in callback
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void load();
   }, [load]);
 
   const totalCalls = logs.length;

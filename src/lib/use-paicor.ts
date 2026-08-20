@@ -89,24 +89,24 @@ export function usePaicor(año?: number): UsePaicorResult {
           return;
         }
 
-        // Get unique fuentes and latest update date
-        const fuentes = [...new Set(data.map((d: any) => d.fuente).filter(Boolean))];
-        const fechas = data
-          .map((d: any) => d.created_at)
-          .filter(Boolean)
+        const rows = data as unknown as Record<string, unknown>[];
+        const fuentes = [...new Set(rows.map((d) => d["fuente"] as string | undefined).filter(Boolean as unknown as (v: string | undefined) => v is string))];
+        const fechas = rows
+          .map((d) => d["created_at"] as string | undefined)
+          .filter((v): v is string => Boolean(v))
           .sort((a: string, b: string) => new Date(b).getTime() - new Date(a).getTime());
         
-        const totalBeneficiarios = data.reduce(
-          (sum: number, d: any) => sum + (Number(d.cant_beneficios) || 0),
+        const totalBeneficiarios = rows.reduce(
+          (sum: number, d) => sum + (Number(d["cant_beneficios"] as string | number) || 0),
           0
         );
         
         const uniqueDepartamentos = new Set(
-          data.map((d: any) => d.departamento).filter(Boolean)
+          rows.map((d) => d["departamento"] as string | undefined).filter((v): v is string => Boolean(v))
         );
 
         setMetadata({
-          fuente: fuentes.length === 1 ? fuentes[0] : fuentes.join(", "),
+          fuente: fuentes.length === 1 ? (fuentes[0] as string) : (fuentes as string[]).join(", "),
           ultimaActualizacion: fechas[0] ? new Date(fechas[0]).toISOString() : null,
           totalBeneficiarios,
           totalDepartamentos: uniqueDepartamentos.size,
@@ -135,14 +135,13 @@ export function usePaicor(año?: number): UsePaicorResult {
           ],
         });
 
-        // Store raw data
         setRawData(
-          data.map((d: any) => ({
-            departamento: d.departamento,
-            turno: d.turno,
-            nivel: d.nivel,
-            cant_beneficios: Number(d.cant_beneficios) || 0,
-            año: Number(d.año) || 0,
+          rows.map((d) => ({
+            departamento: String(d["departamento"] ?? ""),
+            turno: String(d["turno"] ?? ""),
+            nivel: String(d["nivel"] ?? ""),
+            cant_beneficios: Number(d["cant_beneficios"] as string | number) || 0,
+            ["año"]: Number(d["año"] as string | number) || 0,
           }))
         );
 

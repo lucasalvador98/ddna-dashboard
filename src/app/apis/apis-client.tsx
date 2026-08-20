@@ -195,8 +195,8 @@ export function ApisClient({ initialData }: ApisClientProps) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {filteredResults.slice(0, 50).map((d: any, i) => {
-                    const name = typeof d === 'string' ? d : d.name || d.title;
+                  {filteredResults.slice(0, 50).map((d: unknown, i) => {
+                    const name = typeof d === 'string' ? d : (d as Record<string, unknown>)["name"] as string | undefined || (d as Record<string, unknown>)["title"] as string | undefined;
                     return (
                       <tr key={i} className="hover:bg-gray-50">
                         <td className="px-4 py-3 font-mono text-sm text-gray-700">

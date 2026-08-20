@@ -51,25 +51,25 @@ describe('FormulariosClient', () => {
 
     expect(screen.getByText('Encuesta 2026')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Editar' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Copiar link' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'QR' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Compartir' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Respuestas' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Borrar' })).toBeInTheDocument();
   });
 
-  it('copies the public form link to the clipboard on "Copiar link"', async () => {
+  it('copies the public form link to the clipboard via the share modal', async () => {
     render(<FormulariosClient formularios={FORMS} />);
 
+    fireEvent.click(screen.getByRole('button', { name: 'Compartir' }));
     fireEvent.click(screen.getByRole('button', { name: 'Copiar link' }));
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(PUBLIC_URL);
     expect(await screen.findByText('Link copiado al portapapeles.')).toBeInTheDocument();
   });
 
-  it('opens the QR modal with the public link when clicking "QR"', () => {
+  it('opens the share modal with the public link when clicking "Compartir"', () => {
     render(<FormulariosClient formularios={FORMS} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'QR' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Compartir' }));
 
     expect(screen.getByRole('dialog', { name: 'Compartí este formulario' })).toBeInTheDocument();
     expect(screen.getByText(PUBLIC_URL)).toBeInTheDocument();
@@ -78,7 +78,7 @@ describe('FormulariosClient', () => {
   it('renders the generated QR image and the download action', async () => {
     render(<FormulariosClient formularios={FORMS} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'QR' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Compartir' }));
 
     const img = await screen.findByAltText('Código QR para Encuesta 2026');
     expect(img).toHaveAttribute('src', 'data:image/png;base64,FAKE_QR');
@@ -88,10 +88,10 @@ describe('FormulariosClient', () => {
     expect(download).toHaveAttribute('href', 'data:image/png;base64,FAKE_QR');
   });
 
-  it('closes the QR modal with the Escape key', async () => {
+  it('closes the share modal with the Escape key', async () => {
     render(<FormulariosClient formularios={FORMS} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'QR' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Compartir' }));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
     fireEvent.keyDown(document, { key: 'Escape' });
@@ -105,7 +105,7 @@ describe('FormulariosClient', () => {
 
     render(<FormulariosClient formularios={FORMS} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'QR' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Compartir' }));
 
     expect(await screen.findByText('No se pudo generar el código QR.')).toBeInTheDocument();
   });

@@ -62,10 +62,10 @@ export function useChartData(categoria: CategoriaIndicador): UseChartDataResult 
         }
 
         // Extract metadata from indicators (fuente and latest update date)
-        const fuentes = [...new Set(indicadores.map((i: any) => i.fuente).filter(Boolean))];
-        const ultimaFecha = indicadores.reduce((latest: Date, ind: any) => {
+        const fuentes = [...new Set(indicadores.map((i: Record<string, unknown>) => i.fuente as string).filter(Boolean))];
+        const ultimaFecha = indicadores.reduce((latest: Date, ind: Record<string, unknown>) => {
           if (!ind.ultima_actualizacion) return latest;
-          const fecha = new Date(ind.ultima_actualizacion);
+          const fecha = new Date(ind.ultima_actualizacion as string);
           return fecha > latest ? fecha : latest;
         }, new Date(0));
         

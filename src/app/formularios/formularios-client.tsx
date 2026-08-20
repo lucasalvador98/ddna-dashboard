@@ -11,7 +11,7 @@ import {
   ClipboardList,
   CheckCircle,
   XCircle,
-  QrCode,
+  Share2,
   Download,
   Loader2,
   X,
@@ -225,15 +225,13 @@ function FormRow({
   busyId,
   onToggle,
   onDelete,
-  onCopy,
-  onShowQr,
+  onShare,
 }: {
   form: Formulario;
   busyId: string | null;
   onToggle: (id: string) => void;
   onDelete: (form: Formulario) => void;
-  onCopy: (form: Formulario) => void;
-  onShowQr: (form: Formulario) => void;
+  onShare: (form: Formulario) => void;
 }) {
   const isBusy = busyId === form.id;
 
@@ -266,19 +264,11 @@ function FormRow({
         </Link>
         <button
           type="button"
-          onClick={() => onCopy(form)}
+          onClick={() => onShare(form)}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
         >
-          <Link2 className="w-3.5 h-3.5" />
-          Copiar link
-        </button>
-        <button
-          type="button"
-          onClick={() => onShowQr(form)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
-        >
-          <QrCode className="w-3.5 h-3.5" />
-          QR
+          <Share2 className="w-3.5 h-3.5" />
+          Compartir
         </button>
         <Link
           href={`/formularios/respuestas/${form.id}`}
@@ -396,8 +386,7 @@ export function FormulariosClient({ formularios }: FormulariosClientProps) {
               busyId={busyId}
               onToggle={handleToggle}
               onDelete={handleDelete}
-              onCopy={handleCopy}
-              onShowQr={(f) => setQrFormId(f.id)}
+              onShare={(f: Formulario) => setQrFormId(f.id)}
             />
           ))}
         </div>

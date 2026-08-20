@@ -27,6 +27,14 @@ export function SlideViewer({ presentation }: SlideViewerProps) {
   const totalSlides = slides.length;
   const progressPercent = Math.round(((currentIdx + 1) / totalSlides) * 100);
 
+  const nextSlide = () => {
+    setCurrentIdx((prev) => (prev < totalSlides - 1 ? prev + 1 : prev));
+  };
+
+  const prevSlide = () => {
+    setCurrentIdx((prev) => (prev > 0 ? prev - 1 : prev));
+  };
+
   // Keyboard navigation support
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -38,15 +46,7 @@ export function SlideViewer({ presentation }: SlideViewerProps) {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentIdx, totalSlides]);
-
-  const nextSlide = () => {
-    setCurrentIdx((prev) => (prev < totalSlides - 1 ? prev + 1 : prev));
-  };
-
-  const prevSlide = () => {
-    setCurrentIdx((prev) => (prev > 0 ? prev - 1 : prev));
-  };
+  }, [nextSlide, prevSlide]);
 
   // Helper to parse numeric values for charts/bars
   const parseNumericValue = (v: string | number): number => {
