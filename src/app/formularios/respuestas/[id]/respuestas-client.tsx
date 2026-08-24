@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { ArrowLeft, Download, Loader2, Inbox, CheckCircle, XCircle } from 'lucide-react';
 import clsx from 'clsx';
 import type { Formulario, FormularioRespuesta } from '@/lib/formularios/types';
-import { deleteRespuesta, exportRespuestasCsv } from '@/lib/actions/formularios';
+import { deleteRespuesta, exportRespuestasXlsx } from '@/lib/actions/formularios';
 import { ResponsesTable } from '@/components/formularios/admin/responses-table';
 import { ResponseDetail } from '@/components/formularios/admin/response-detail';
 
@@ -83,7 +83,7 @@ export function RespuestasClient({ form, respuestas }: RespuestasClientProps) {
   async function handleExport() {
     if (!form || exporting) return;
     setExporting(true);
-    const result = await exportRespuestasCsv(form.id);
+    const result = await exportRespuestasXlsx(form.id);
     setExporting(false);
 
     if (!result.ok) {
@@ -91,14 +91,14 @@ export function RespuestasClient({ form, respuestas }: RespuestasClientProps) {
       return;
     }
 
-    const blob = new Blob([result.csv], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([result.buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `respuestas-${form.slug}.csv`;
+    link.download = `respuestas-${form.slug}.xlsx`;
     link.click();
     URL.revokeObjectURL(url);
-    setToast({ message: 'Archivo CSV descargado.', type: 'success' });
+    setToast({ message: 'Archivo XLSX descargado.', type: 'success' });
   }
 
   if (!form) {
@@ -137,7 +137,7 @@ export function RespuestasClient({ form, respuestas }: RespuestasClientProps) {
           ) : (
             <Download className="w-4 h-4" />
           )}
-          Exportar CSV
+          Exportar XLSX
         </button>
       </div>
 

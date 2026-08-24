@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { RespuestasClient } from './respuestas-client';
-import { deleteRespuesta, exportRespuestasCsv } from '@/lib/actions/formularios';
+import { deleteRespuesta, exportRespuestasXlsx } from '@/lib/actions/formularios';
 import type { Formulario, FormularioRespuesta } from '@/lib/formularios/types';
 
 vi.mock('@/lib/actions/formularios', () => ({
   deleteRespuesta: vi.fn(async () => ({ ok: true })),
-  exportRespuestasCsv: vi.fn(async () => ({
+  exportRespuestasXlsx: vi.fn(async () => ({
     ok: true,
-    csv: '\uFEFFNombre;Edad;submitted_at\r\nAna;12;2026-08-11T13:00:00Z',
+    buffer: new ArrayBuffer(0),
   })),
 }));
 
@@ -65,7 +65,7 @@ describe('RespuestasClient', () => {
     render(<RespuestasClient form={FORM} respuestas={[]} />);
 
     expect(screen.getByText('Todavía no hay respuestas para este formulario.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Exportar CSV' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Exportar XLSX' })).toBeDisabled();
   });
 
   it('shows the not-found state when the form is missing', () => {
@@ -105,13 +105,13 @@ describe('RespuestasClient', () => {
     expect(screen.getByText('Ana')).toBeInTheDocument();
   });
 
-  it('exports the CSV through the server action and downloads a Blob', async () => {
+  it('exports the XLSX through the server action and downloads a Blob', async () => {
     render(<RespuestasClient form={FORM} respuestas={RESPUESTAS} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Exportar CSV' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Exportar XLSX' }));
 
-    expect(await screen.findByText('Archivo CSV descargado.')).toBeInTheDocument();
-    expect(exportRespuestasCsv).toHaveBeenCalledWith('f1');
+    expect(await screen.findByText('Archivo XLSX descargado.')).toBeInTheDocument();
+    expect(exportRespuestasXlsx).toHaveBeenCalledWith('f1');
     expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
   });
 });

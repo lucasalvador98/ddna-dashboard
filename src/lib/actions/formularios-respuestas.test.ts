@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { deleteRespuesta, exportRespuestasCsv, type CsvExportResult } from './formularios';
+import { deleteRespuesta, exportRespuestasXlsx, type XlsxExportResult } from './formularios';
 import { listRespuestas } from '@/lib/formularios/queries';
 import { assertAdminAuth } from './assert-admin';
 import type { DefinicionFormulario, FormularioRespuesta } from '@/lib/formularios/types';
@@ -53,9 +53,9 @@ const RESPUESTA: FormularioRespuesta = {
   submitted_at: '2026-08-11T13:00:00Z',
 };
 
-function expectCsv(result: CsvExportResult): string {
+function expectXlsx(result: XlsxExportResult): ArrayBuffer {
   if (!result.ok) throw new Error(result.error);
-  return result.csv;
+  return result.buffer;
 }
 
 describe('listRespuestas', () => {
@@ -103,7 +103,7 @@ describe('deleteRespuesta', () => {
   });
 });
 
-describe('exportRespuestasCsv', () => {
+describe('exportRespuestasXlsx', () => {
   beforeEach(() => {
     rows = [];
     singleRow = null;
@@ -111,20 +111,20 @@ describe('exportRespuestasCsv', () => {
     vi.clearAllMocks();
   });
 
-  it('builds the CSV with field labels plus submitted_at', async () => {
+  it('builds an XLSX with field labels plus submitted_at', async () => {
     singleRow = { definicion: DEF };
     rows = [RESPUESTA];
 
-    const result = await exportRespuestasCsv('f1');
-    const body = expectCsv(result).replace('\uFEFF', '');
+    const result = await exportRespuestasXlsx('f1');
+    const buffer = expectXlsx(result);
 
-    expect(body.split('\r\n')[0]).toBe('Nombre;Edad;submitted_at');
-    expect(body.split('\r\n')[1]).toBe('Ana;12;2026-08-11T13:00:00Z');
+    expect(buffer).toBeInstanceOf(ArrayBuffer);
+    expect(buffer.byteLength).toBeGreaterThan(0);
     expect(assertAdminAuth).toHaveBeenCalledTimes(1);
   });
 
   it('returns an error when the form does not exist', async () => {
-    const result = await exportRespuestasCsv('f1');
+    const result = await exportRespuestasXlsx('f1');
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error).toBe('El formulario no existe.');
   });

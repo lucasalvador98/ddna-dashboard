@@ -10,12 +10,12 @@ import { assertAdminAuth } from './assert-admin';
 import { getSupabaseAdminClient } from '@/lib/supabase';
 import { validateDefinition } from '@/lib/formularios/validation';
 import { slugify, isValidSlug } from '@/lib/formularios/slug';
-import { buildCsv } from '@/lib/formularios/csv';
+import { buildXlsx } from '@/lib/formularios/xlsx';
 import type { DefinicionFormulario, FormularioRespuesta } from '@/lib/formularios/types';
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
-export type CsvExportResult = { ok: true; csv: string } | { ok: false; error: string };
+export type XlsxExportResult = { ok: true; buffer: ArrayBuffer } | { ok: false; error: string };
 
 export interface FormularioInput {
   titulo: string;
@@ -123,9 +123,9 @@ export async function deleteRespuesta(id: string): Promise<ActionResult> {
   return { ok: true };
 }
 
-// Exports the newest responses (same 100 cap as the admin list) as a CSV
-// string built by the pure buildCsv helper; the client downloads it as a Blob.
-export async function exportRespuestasCsv(formularioId: string): Promise<CsvExportResult> {
+// Exports the newest responses (same 100 cap as the admin list) as an XLSX
+// buffer built by the pure buildXlsx helper; the client downloads it as a Blob.
+export async function exportRespuestasXlsx(formularioId: string): Promise<XlsxExportResult> {
   await assertAdminAuth();
 
   try {
@@ -148,11 +148,11 @@ export async function exportRespuestasCsv(formularioId: string): Promise<CsvExpo
 
     if (respuestasError) throw new Error(respuestasError.message);
 
-    const csv = buildCsv(
+    const buffer = buildXlsx(
       formData.definicion as DefinicionFormulario,
       (respuestasData ?? []) as FormularioRespuesta[]
     );
-    return { ok: true, csv };
+    return { ok: true, buffer };
   } catch (err) {
     return errorResult(err, 'Error al exportar las respuestas.');
   }
