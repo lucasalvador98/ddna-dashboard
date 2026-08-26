@@ -1,6 +1,6 @@
 # DDNA Dashboard — Roadmap
 
-> **Última actualización**: Julio 2026
+> **Última actualización**: Agosto 2026
 
 ---
 

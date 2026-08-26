@@ -1,6 +1,6 @@
 # DDNA Dashboard — Estado del Proyecto
 
-> **Última actualización**: Julio 2026
+> **Última actualización**: Agosto 2026
 > **Live**: https://ddna-dashboard.vercel.app/
 > **Repo**: https://github.com/lucasalvador98/ddna-dashboard
 > **Supabase**: `ddna-dashboard` (ppyyqrvirjqmfpqaqnxy)
