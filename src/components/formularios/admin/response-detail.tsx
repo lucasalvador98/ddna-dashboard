@@ -3,6 +3,7 @@
 // Response detail drawer (repo-file-drawer pattern): submitted_at, id and the
 // pretty-printed JSON answers, with a delete action in the footer.
 
+import { useRef, useEffect, useCallback } from 'react';
 import { X, Trash2, Loader2 } from 'lucide-react';
 import type { FormularioRespuesta } from '@/lib/formularios/types';
 
@@ -24,6 +25,41 @@ function formatSubmittedAt(iso: string): string {
 }
 
 export function ResponseDetail({ respuesta, busyId, onClose, onDelete }: ResponseDetailProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    dialogRef.current?.focus();
+    return () => { previouslyFocused?.focus(); };
+  }, []);
+
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') { onClose(); return; }
+    if (e.key === 'Tab' && dialogRef.current) {
+      const focusables = dialogRef.current.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey && (active === first || active === dialogRef.current)) {
+        e.preventDefault(); last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault(); first.focus();
+      }
+    }
+  }, [onClose]);
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+    };
+  }, [handleKeyDown]);
+
   if (!respuesta) return null;
 
   const handleDelete = () => {
@@ -37,12 +73,13 @@ export function ResponseDetail({ respuesta, busyId, onClose, onDelete }: Respons
       <div
         onClick={onClose}
         className="fixed inset-0 bg-black/30 z-40 transition-opacity"
-        aria-hidden="true"
       />
       <div
         role="dialog"
         aria-modal="true"
         aria-label="Detalle de la respuesta"
+        tabIndex={-1}
+        ref={dialogRef}
         className="fixed top-0 right-0 bottom-0 w-full max-w-md bg-white shadow-2xl z-50 flex flex-col"
         style={{ animation: 'drawer-in 200ms ease-out' }}
       >
