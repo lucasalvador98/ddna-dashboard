@@ -1,0 +1,41 @@
+# Dependencies
+node_modules
+
+# Build output
+.next
+
+# Version control
+.git
+.gitignore
+
+# Environment files (secrets)
+.env*
+!.env.production.example
+
+# Tests and coverage
+e2e
+coverage
+*.test.*
+*.spec.
+
+# Documentation
+docs
+README.md
+DEPLOY.md
+
+# IDE
+.vscode
+.idea
+
+# OS files
+.DS_Store
+Thumbs.db
+nul
+
+# Playwright
+playwright-report
+test-results
+
+# Misc
+*.log
+npm-debug.log*
