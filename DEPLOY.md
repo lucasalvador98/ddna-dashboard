@@ -1,8 +1,9 @@
 # Deployment Plan — Docker for Hostinger VPS
 
-> **Status**: Ready for deployment
-> **Last updated**: 2026-08-26
+> **Status**: ✅ App deployed and running
+> **Last updated**: 2026-08-27
 > **Goal**: Package the dashboard in Docker for deployment on Hostinger VPS
+> **VPS IP**: 179.199.132.207
 
 ---
 
@@ -10,99 +11,172 @@
 
 - **Current stack**: Next.js 16 (App Router) + React 19 + TypeScript + Tailwind v4 + Supabase
 - **App**: `ddna-dashboard` (Defensoría de Niños, Niñas y Adolescentes de Córdoba)
-- **Target**: Hostinger VPS (Linux, Docker available)
+- **Target**: Hostinger VPS KVM 2 (2 vCPU / 4GB RAM / Ubuntu 24.04)
 - **Source**: GitHub repo `lucasalvador98/ddna-dashboard`
+- **Database**: Supabase Pro (stays external, no migration)
 
 ### Key dependencies affecting deployment
 - `next: 16.2.3` — uses `output: 'standalone'` for Docker
 - `cheerio`, `mammoth`, `pdf-parse`, `pptxgenjs`, `xlsx` — pure JavaScript libraries
 - `recharts` — bundle size consideration (~200KB gzipped)
 - `playwright` — dev only, not included in production image
-- `@playwright/mcp` — dev only
+- `@tailwindcss/postcss` — devDependency required during build (see Dockerfile fix)
 
 ---
 
-## Prerequisites
+## VPS Setup (Completed)
 
-- [x] `next.config.ts` configured with `output: 'standalone'`
-- [x] `Dockerfile` created (3-stage multi-stage build)
-- [x] `.dockerignore` created
-- [x] `docker-compose.yml` created (development)
-- [x] `docker-compose.prod.yml` created (production override)
-- [x] `.env.production.example` created
-- [x] `/api/health` endpoint already exists and returns `{ status: "healthy" }`
-- [x] Docker scripts added to `package.json`
+### System configuration
+- **User**: `deploy` (sudo enabled)
+- **Firewall**: ufw — ports 22 (SSH), 80 (HTTP), 443 (HTTPS) open
+- **Swap**: 2GB at `/swapfile` (vm.swappiness=10)
+- **Docker**: Docker Engine 29.7.2 + Docker Compose
+
+### SSH access
+```powershell
+ssh deploy@179.199.132.207
+```
+Password authentication enabled. Root login disabled.
 
 ---
 
-## Required Environment Variables
+## Environment Variables
 
 | Variable | Required | Secret | Source |
 |----------|----------|--------|--------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Yes | No | Supabase dashboard |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | No | Supabase dashboard |
-| `SUPABASE_SERVICE_ROLE_KEY` | Yes | Yes | Supabase dashboard |
-| `OPENAI_API_KEY` | Yes | Yes | OpenAI platform |
-| `INTERNAL_API_SECRET` | Yes | Yes | Generated per-deploy |
+| `NEXT_PUBLIC_SUPABASE_URL` | Yes | No | Supabase dashboard → Settings → API |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | No | Supabase dashboard → Settings → API |
+| `SUPABASE_SERVICE_ROLE_KEY` | Yes | Yes | Supabase dashboard → Settings → API |
+| `OPENAI_API_KEY` | Yes | Yes | platform.openai.com → API Keys |
+| `INTERNAL_API_SECRET` | Yes | Yes | Generated per-deploy (`openssl rand -hex 32`) |
 | `NODE_ENV` | Yes | No | Set to `production` |
 
----
-
-## Phase 1 — Build and Test Locally
-
-### 1.1 Build the Docker image
-```bash
-npm run docker:build
-# or
-docker compose build
-```
-
-### 1.2 Run locally
-```bash
-npm run docker:dev
-# or
-docker compose up
-```
-
-### 1.3 Verify
-- App serves on `http://localhost:3000`
-- Health check: `curl http://localhost:3000/api/health`
-- Expected response: `{"status":"healthy",...}`
+⚠️ **Never commit `.env.production` or `.env.local` to git.**
 
 ---
 
-## Phase 2 — Deploy to VPS
+## Docker Architecture
 
-### 2.1 Setup VPS
-- Install Docker + Docker Compose
-- Create non-root user
-- Configure SSH key
-- Firewall (ufw): only 22, 80, 443
+### Dockerfile (3-stage multi-stage build)
 
-### 2.2 Deploy
-```bash
-git clone https://github.com/lucasalvador98/ddna-dashboard.git
-cd ddna-dashboard
-cp .env.production.example .env.production
-# Edit .env.production with real values
-npm run docker:prod
-# or
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+```
+Stage 1: deps (node:20-alpine)
+  └─ npm ci (ALL dependencies, including dev for build)
+
+Stage 2: builder (node:20-alpine)
+  └─ Copy deps + source → npm run build
+  └─ Env vars passed via ARG/ENV for Supabase connectivity during build
+
+Stage 3: runner (node:20-alpine)
+  └─ Copy .next/standalone + static + public
+  └─ Non-root user (nextjs:nodejs, UID 1001)
+  └─ HEALTHCHECK via wget to /api/health
+  └─ Exposes port 3000
 ```
 
-### 2.3 Verify
+### Docker Compose files
+
+| File | Purpose | Key features |
+|------|---------|--------------|
+| `docker-compose.yml` | Development | Hot-reload volumes, port 3000, .env.local |
+| `docker-compose.prod.yml` | Production | Build args for env vars, port 80→3000, restart policy |
+
+### Important Dockerfile fix
+The initial build failed because `@tailwindcss/postcss` is a devDependency. The `deps` stage must use `npm ci` (without `--omit=dev`) so the builder stage has all dependencies needed for `next build`.
+
+---
+
+## Deployment
+
+### Current state
+- ✅ App running on `http://179.199.132.207`
+- ✅ Health check: `curl http://localhost:80/api/health` → `{"status":"healthy"}`
+- ⏳ CI/CD via GitHub Actions — pending setup
+- ⏳ Domain + HTTPS — pending DNS configuration
+
+### Deploy commands (manual)
 ```bash
-docker compose logs -f app
-curl https://your-domain/api/health
+ssh deploy@179.199.132.207
+cd /home/deploy/ddna-dashboard
+git pull origin main
+export $(grep -v '^#' .env.production | xargs)
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --remove-orphans
+docker image prune -f
+```
+
+### Verify
+```bash
+docker compose ps
+curl http://localhost:80/api/health
 ```
 
 ---
 
-## Phase 3 — Reverse Proxy + HTTPS (Optional)
+## CI/CD — GitHub Actions (Pending)
 
-- Nginx reverse proxy to `app:3000`
-- HTTPS with Let's Encrypt / certbot
-- Auto-renewal via cron
+### Setup steps
+
+1. **Generate SSH key on dev machine:**
+```powershell
+ssh-keygen -t ed25519 -C "github-actions" -f $env:USERPROFILE\.ssh\github_actions -N '""'
+```
+
+2. **Copy public key to VPS:**
+```powershell
+type $env:USERPROFILE\.ssh\github_actions.pub | ssh deploy@179.199.132.207 "cat >> /home/deploy/.ssh/authorized_keys"
+```
+
+3. **Add GitHub secrets** (Settings → Secrets → Actions):
+
+| Secret | Value |
+|--------|-------|
+| `VPS_HOST` | `179.199.132.207` |
+| `VPS_USER` | `deploy` |
+| `VPS_SSH_KEY` | Full content of `github_actions` private key |
+
+4. **Workflow file:** `.github/workflows/deploy.yml`
+
+```yaml
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /home/deploy/ddna-dashboard
+            git pull origin main
+            export $(grep -v '^#' .env.production | xargs)
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --remove-orphans
+            docker image prune -f
+```
+
+---
+
+## Domain + HTTPS (Pending)
+
+### DNS configuration
+- **Domain**: `ddna.com.ar` (registered at NIC Arca)
+- **Status**: Waiting for fiscal key (clave fiscal) to configure DNS
+- **Records needed**:
+
+| Type | Name | Value |
+|------|------|-------|
+| A | @ | 179.199.132.207 |
+| A | panel | 179.199.132.207 |
+
+### Traefik (planned)
+When domain is ready, add Traefik as reverse proxy with automatic Let's Encrypt SSL. See `docker-compose.traefik.yml` template.
 
 ---
 
@@ -121,23 +195,31 @@ The `scripts/*.mjs` ETL scripts run **outside** Docker, directly on the VPS or i
 
 ---
 
-## Docker Scripts
+## Troubleshooting
 
-| Script | Command | Description |
-|--------|---------|-------------|
-| `docker:dev` | `docker compose up` | Start development server |
-| `docker:build` | `docker compose build` | Build Docker image |
-| `docker:prod` | `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d` | Start production |
+### Build fails with "Cannot find module '@tailwindcss/postcss'"
+Ensure `deps` stage uses `npm ci` (not `npm ci --omit=dev`). DevDependencies are needed during build.
 
----
+### Port 80 already in use
+```bash
+sudo lsof -i :80
+sudo kill <PID>
+```
 
-## Risks
+### Health check fails
+```bash
+docker compose logs --tail=50
+docker compose exec app env | grep -i supabase
+```
 
-| Risk | Mitigation |
-|------|------------|
-| Build OOM on 2GB VPS | Build locally or in CI; copy image via `docker save/load` |
-| Missing env vars → runtime crash | `.env.production.example` documents all vars; health check catches misconfig |
-| Rollback needed | Keep Vercel active; DNS switch back. No data migration risk |
+### Out of memory during build
+Increase swap or build locally:
+```bash
+docker build -t ddna-dashboard .
+docker save ddna-dashboard | gzip > ddna-dashboard.tar.gz
+scp ddna-dashboard.tar.gz deploy@179.199.132.207:/home/deploy/
+ssh deploy@179.199.132.207 "docker load < /home/deploy/ddna-dashboard.tar.gz"
+```
 
 ---
 
@@ -146,3 +228,4 @@ The `scripts/*.mjs` ETL scripts run **outside** Docker, directly on the VPS or i
 - [Next.js Docker deployment](https://nextjs.org/docs/app/api-reference/config/next-config-js/output#standalone)
 - [Docker multi-stage builds](https://docs.docker.com/build/building/multi-stage/)
 - [Hostinger VPS docs](https://www.hostinger.com/tutorials/vps)
+- [GitHub Actions SSH deploy](https://github.com/appleboy/ssh-action)
