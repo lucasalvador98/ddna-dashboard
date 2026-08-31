@@ -4,19 +4,28 @@ import { createBrowserClient } from '@supabase/ssr';
 // ⚠️ CLIENTE PARA BROWSER: SOLO usa anon key (NEXT_PUBLIC_)
 // ⚠️ NO usar getSupabaseClient() aca - esa usa service_role (prohibido en browser)
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-
 // ── Single browser client singleton ─────────────────────────────────────────
 // Uses createBrowserClient from @supabase/ssr for proper cookie handling.
 // Safe during SSR — createBrowserClient guards against missing browser APIs
 // (typeof document === 'undefined' checks). This is the ONE and ONLY client
 // for all browser-side supabase operations (auth + data queries).
+// NOTE: env is read lazily inside the function (not at module top-level)
+// so that Docker builds with ARG and runtime env both work correctly.
 
 let _supabaseClient: SupabaseClient | null = null;
+let _cachedUrl: string | null = null;
+let _cachedAnonKey: string | null = null;
 
 /** Get the ONE shared browser client. Safe for both SSR and browser. */
 export function getBrowserClient(): SupabaseClient {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+  // If env changed (e.g. after a rebuild), invalidate the cached client
+  if (_supabaseClient && (_cachedUrl !== supabaseUrl || _cachedAnonKey !== supabaseAnonKey)) {
+    _supabaseClient = null;
+  }
+
   if (!_supabaseClient) {
     if (!supabaseUrl || !supabaseAnonKey) {
       throw new Error(
@@ -24,6 +33,8 @@ export function getBrowserClient(): SupabaseClient {
       );
     }
     _supabaseClient = createBrowserClient(supabaseUrl, supabaseAnonKey);
+    _cachedUrl = supabaseUrl;
+    _cachedAnonKey = supabaseAnonKey;
   }
   return _supabaseClient;
 }
@@ -150,18 +161,22 @@ export async function getFuentesDatos(categoria?: CategoriaIndicador) {
   return data as FuenteDato[];
 }
 
-// Check if Supabase is configured
+// Check if Supabase is configured (reads env lazily at call time)
 export function isSupabaseConfigured(): boolean {
-  return !!(supabaseUrl && supabaseAnonKey);
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  return !!(url && anonKey);
 }
 
 // Para APIs de administración (SOLO en API routes, NO en browser)
 // Esta función usa service_role y debe llamarse SOLO desde API routes
+// Reads env at call time so Docker runtime env is respected.
 export function getSupabaseAdminClient(): SupabaseClient {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
   if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error('Supabase admin not configured. Set SUPABASE_SERVICE_ROLE_KEY for API routes');
+    throw new Error('Supabase admin not configured. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY for API routes');
   }
 
   return createClient(supabaseUrl, serviceRoleKey, {

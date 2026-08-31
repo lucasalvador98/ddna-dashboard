@@ -98,35 +98,63 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
       setPermsLoading(true);
       setPermsLoaded(false);
       try {
-        // 1. Obtener el rol del usuario
+        // 1. Obtener el rol del usuario — with status check to avoid "No apikey" 200 masquerading as success
         const roleRes = await fetch(`/api/auth/users/${userId}/role`);
-        const roleData = await roleRes.json();
+        let roleData: Record<string, unknown> | null = null;
+        try {
+          roleData = (await roleRes.json()) as Record<string, unknown>;
+        } catch {
+          // Invalid JSON — treat as error
+        }
 
         if (cancelled) return;
 
-        if (!roleData.role_name) {
-          setRoleName(null);
+        // If the API returned an error (401/403/500) or the Supabase "No apikey" hint, treat as no role
+        const isErrorResponse =
+          !roleRes.ok ||
+          (roleData && typeof roleData === 'object' && ('error' in roleData || 'hint' in roleData));
+
+        if (isErrorResponse || !roleData || typeof roleData['role_name'] !== 'string' || !roleData['role_name']) {
+          // Log for debugging but don't block UI — show "Sin acceso" instead of infinite spinner
+          if (isErrorResponse) {
+            console.warn('[LoginGate] role fetch failed', roleRes.status, roleData);
+          }
+          setRoleName((roleData?.['role_name'] as string) ?? null);
           setPermissions([]);
           setPermsLoaded(true);
           return;
         }
 
-        setRoleName(roleData.role_name);
+        setRoleName(roleData['role_name'] as string);
 
         // 2. Obtener todos los roles con permisos y filtrar por el nuestro
         const rolesRes = await fetch('/api/auth/roles');
-        const roles = await rolesRes.json();
+        let roles: unknown = null;
+        try {
+          roles = await rolesRes.json();
+        } catch {
+          // Invalid JSON
+        }
 
         if (cancelled) return;
 
+        if (!rolesRes.ok || !Array.isArray(roles)) {
+          console.warn('[LoginGate] roles fetch failed', rolesRes.status, roles);
+          setPermissions([]);
+          setPermsLoaded(true);
+          return;
+        }
+
         const myRole = (roles as Array<{ id: number; name: string; permissions: RolePermission[] }>).find(
-          (r) => r.name === roleData.role_name,
+          (r) => r.name === (roleData['role_name'] as string),
         );
 
         setPermissions(myRole?.permissions ?? []);
         setPermsLoaded(true);
-      } catch {
-        // Si falla la red, dejamos permisos vacíos pero marcamos como cargados
+      } catch (err) {
+        // Si falla la red, dejamos permisos vacíos pero marcamos como cargados para no quedar en spinner infinito
+        console.warn('[LoginGate] unexpected error loading permissions', err);
+        setPermissions([]);
         setPermsLoaded(true);
       } finally {
         if (!cancelled) setPermsLoading(false);
