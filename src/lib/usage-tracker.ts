@@ -35,11 +35,9 @@ export async function trackLLMUsage(data: UsageData): Promise<void> {
     const totalTokens = data.promptTokens + data.completionTokens;
     const costEstimate = estimateCost(data.model, data.promptTokens, data.completionTokens);
 
-    const { createClient } = await import('@supabase/supabase-js');
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    );
+    // Reuse the singleton admin client from supabase.ts — avoids Multiple GoTrueClient warning
+    const { getSupabaseAdminClient } = await import('@/lib/supabase');
+    const supabase = getSupabaseAdminClient();
 
     await supabase.from('ai_usage_logs').insert({
       tool: data.tool,

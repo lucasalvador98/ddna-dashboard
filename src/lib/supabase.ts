@@ -41,8 +41,17 @@ export function getBrowserClient(): SupabaseClient {
 
 // Export PARA EL BROWSER (páginas y componentes)
 // SOLO usa anon key ✅
-// Uses the SAME singleton as getBrowserClient() — NO second instance.
-export const supabase = getBrowserClient();
+// Lazy Proxy — no crea el cliente al importar el módulo (evita "Multiple GoTrueClient instances"
+// en HMR y en SSR). La primera vez que se accede a `supabase.from()` se crea el singleton.
+export const supabase = new Proxy({} as SupabaseClient, {
+  get(_target, prop) {
+    const client = getBrowserClient();
+    const value = Reflect.get(client as unknown as Record<string, unknown>, prop);
+    // Si es función, bindearla al cliente original
+    if (typeof value === 'function') return value.bind(client);
+    return value;
+  },
+}) as SupabaseClient;
 
 // Tipos para las tablas principales del dashboard
 export type CategoriaIndicador =

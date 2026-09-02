@@ -1,15 +1,12 @@
 'use client';
 
-import { createClient } from '@supabase/supabase-js';
 import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
 
 type RouteKey = '/monitoreo' | '/repositorio' | '/formularios';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-
 async function fetchCounts(): Promise<Record<RouteKey, number>> {
-  const anon = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const anon = supabase;
 
   const [repoRes, formRes] = await Promise.allSettled([
     anon
