@@ -21,6 +21,7 @@ jobs:
             export $(grep -v '^#' .env.production | xargs)
             docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --remove-orphans
             docker image prune -f
+            docker builder prune -f
             echo "Deploy done - checking health..."
             sleep 10
             curl -f http://localhost:80/api/health || (docker compose logs --tail=50; exit 1)
