@@ -38,7 +38,8 @@
     "react-dom": "19.2.4",
     "react-leaflet": "^5.0.0",
     "recharts": "^3.8.1",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@playwright/mcp": "^0.0.77",

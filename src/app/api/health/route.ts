@@ -35,10 +35,42 @@ export async function GET() {
     }
 
     checks.supabase = "connected";
+
+    // Per-category staleness check
+    let perCategory: Record<string, { ultima_carga: string | null; days_since: number | null; stale: boolean }> = {};
+    let staleCategories: string[] = [];
+    try {
+      const { data: rows, error: catError } = await supabase
+        .from("indicadores")
+        .select("categoria, ultima_actualizacion")
+        .order("ultima_actualizacion", { ascending: false });
+
+      if (!catError && rows) {
+        const byCat = new Map<string, string>();
+        for (const r of rows as Array<{ categoria: string; ultima_actualizacion: string }>) {
+          if (!byCat.has(r.categoria)) byCat.set(r.categoria, r.ultima_actualizacion);
+        }
+        const now = Date.now();
+        for (const [cat, ultima] of byCat) {
+          const days = ultima ? Math.floor((now - new Date(ultima).getTime()) / (1000 * 60 * 60 * 24)) : null;
+          // umbral: 45 días general, 90 para consumo (datos esporádicos)
+          const threshold = cat === "consumo" ? 90 : 45;
+          const stale = days !== null ? days > threshold : true;
+          perCategory[cat] = { ultima_carga: ultima, days_since: days, stale };
+          if (stale) staleCategories.push(cat);
+        }
+      }
+    } catch {
+      // ignore per-category errors, keep basic health
+    }
+
+    const hasStale = staleCategories.length > 0;
     return NextResponse.json({
-      status: "healthy",
-      message: "All systems operational.",
-      checks,
+      status: hasStale ? "degraded" : "healthy",
+      message: hasStale
+        ? `Stale categories: ${staleCategories.join(", ")}`
+        : "All systems operational.",
+      checks: { ...checks, perCategory, staleCategories },
     });
   } catch {
     checks.supabase = "error";
