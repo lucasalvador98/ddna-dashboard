@@ -69,3 +69,6 @@ nul
 
 # CSV cache from ETL scripts
 .senaf-cache/
+
+# credentials (never commit)
+docs/CREDENCIALES.md
