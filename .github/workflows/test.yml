@@ -1,0 +1,10 @@
+name: test-vps
+on: workflow_dispatch
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: curl health
+        run: curl -v --connect-timeout 10 http://179.199.132.207/api/health || echo "HTTP_BLOCKED"
+      - name: ssh test
+        run: nc -vz -w10 179.199.132.207 22 || echo "SSH_BLOCKED"
