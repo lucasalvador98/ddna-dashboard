@@ -138,15 +138,17 @@ INSERT INTO fuentes_datos (nombre, organizacion, url, categoria, frecuencia, met
   ('Ministerio Público de la Provincia de Córdoba', 'Poder Judicial de Córdoba', 'https://www.mpcordoba.gob.ar', 'seguridad', 'anual', 'manual', 'Estadísticas de denuncias, delitos y acceso a justicia'),
   ('Dirección General de Estadística y Censos', 'Gobierno de la Provincia de Córdoba', 'https://estadistica.cba.gov.ar', 'demografia', 'anual', 'manual', 'Estadísticas provinciales de Educación, Salud y Trabajo'),
   ('Observatorio de la Deuda Social Argentina', 'Universidad Católica Argentina', 'https://www.uca.edu.ar/observatorio', 'pobreza', 'anual', 'manual', 'Barómetro social de la infancia y adolescencia'),
-  ('Datos Abiertos de Argentina', 'datos.gob.ar', 'https://datos.gob.ar', 'demografia', 'diaria', 'api', 'Portal de datos abiertos con APIs series de tiempo');
+  ('Datos Abiertos de Argentina', 'datos.gob.ar', 'https://datos.gob.ar', 'demografia', 'diaria', 'api', 'Portal de datos abiertos con APIs series de tiempo')
+ON CONFLICT DO NOTHING;
 
 -- Datos semilla: Indicadores principales
 INSERT INTO indicadores (categoria, nombre, descripcion, unidad, fuente_id, frecuencia_actualizacion, orden) VALUES
-  ('pobreza', 'Pobreza infantil', 'Porcentaje de niñas, niños y adolescentes bajo la línea de pobreza', '%', (SELECT id FROM fuentes_datos WHERE nombre LIKE '%INDEC%'), 'semestral', 1),
-  ('salud', 'Mortalidad infantil', 'Tasa de mortalidad infantil por cada mil nacidos vivos', '‰', (SELECT id FROM fuentes_datos WHERE nombre LIKE '%DEIS%'), 'anual', 2),
-  ('educacion', 'Tasa neta de escolarización', 'Porcentaje de niños y adolescentes que asisten al nivel educativo correspondiente', '%', (SELECT id FROM fuentes_datos WHERE nombre LIKE '%Aprender%'), 'anual', 3),
-  ('inversion', 'Inversión social en infancia', 'Presupuesto destinado a políticas de infancia y adolescencia', 'Md', (SELECT id FROM fuentes_datos WHERE nombre LIKE '%Estadística%Córdoba%'), 'anual', 4),
-  ('demografia', 'Población adolescente', 'Población de 12-17 años en la provincia de Córdoba', 'hab', (SELECT id FROM fuentes_datos WHERE nombre LIKE '%Censo%'), 'ad_hoc', 5),
-  ('seguridad', 'Denuncias registradas', 'Cantidad de denuncias vinculadas a derechos de NNyA', 'casos', (SELECT id FROM fuentes_datos WHERE nombre LIKE '%Ministerio Público%'), 'anual', 6),
-  ('salud', 'Cobertura vacunal', 'Porcentaje de cobertura del esquema de vacunación completo', '%', (SELECT id FROM fuentes_datos WHERE nombre LIKE '%DEIS%'), 'anual', 7),
-  ('educacion', 'Abandono escolar', 'Tasa de abandono interanual en nivel secundario', '%', (SELECT id FROM fuentes_datos WHERE nombre LIKE '%Aprender%'), 'anual', 8);
+  ('pobreza', 'Pobreza infantil', 'Porcentaje de niñas, niños y adolescentes bajo la línea de pobreza', '%', (SELECT id FROM fuentes_datos WHERE nombre LIKE '%INDEC%' LIMIT 1), 'semestral', 1),
+  ('salud', 'Mortalidad infantil', 'Tasa de mortalidad infantil por cada mil nacidos vivos', '‰', (SELECT id FROM fuentes_datos WHERE nombre LIKE '%DEIS%' LIMIT 1), 'anual', 2),
+  ('educacion', 'Tasa neta de escolarización', 'Porcentaje de niños y adolescentes que asisten al nivel educativo correspondiente', '%', (SELECT id FROM fuentes_datos WHERE nombre LIKE '%Aprender%' LIMIT 1), 'anual', 3),
+  ('inversion', 'Inversión social en infancia', 'Presupuesto destinado a políticas de infancia y adolescencia', 'Md', (SELECT id FROM fuentes_datos WHERE nombre LIKE '%Estadística%Córdoba%' LIMIT 1), 'anual', 4),
+  ('demografia', 'Población adolescente', 'Población de 12-17 años en la provincia de Córdoba', 'hab', (SELECT id FROM fuentes_datos WHERE nombre LIKE '%Censo%' LIMIT 1), 'ad_hoc', 5),
+  ('seguridad', 'Denuncias registradas', 'Cantidad de denuncias vinculadas a derechos de NNyA', 'casos', (SELECT id FROM fuentes_datos WHERE nombre LIKE '%Ministerio Público%' LIMIT 1), 'anual', 6),
+  ('salud', 'Cobertura vacunal', 'Porcentaje de cobertura del esquema de vacunación completo', '%', (SELECT id FROM fuentes_datos WHERE nombre LIKE '%DEIS%' LIMIT 1), 'anual', 7),
+  ('educacion', 'Abandono escolar', 'Tasa de abandono interanual en nivel secundario', '%', (SELECT id FROM fuentes_datos WHERE nombre LIKE '%Aprender%' LIMIT 1), 'anual', 8)
+ON CONFLICT DO NOTHING;
