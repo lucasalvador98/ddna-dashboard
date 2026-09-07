@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Plus, LayoutDashboard, Table2 } from 'lucide-react';
 import clsx from 'clsx';
 import { MonitoreoDashboard } from '@/components/monitoreo/monitoreo-dashboard';
@@ -42,9 +42,51 @@ function TabButton({
 // CLIENT WRAPPER — view machine + editing state
 // ═══════════════════════════════════════════════════════════════════
 
+const VIEW_KEY = 'monitoreo:view';
+const EDITING_KEY = 'monitoreo:editingId';
+
+function loadView(): ViewType {
+  try {
+    const v = localStorage.getItem(VIEW_KEY) as ViewType | null;
+    if (v === 'dashboard' || v === 'table' || v === 'form') return v;
+  } catch {}
+  return 'dashboard';
+}
+
+function loadEditingId(): number | null {
+  try {
+    const v = localStorage.getItem(EDITING_KEY);
+    if (v) {
+      const n = Number(v);
+      if (!Number.isNaN(n)) return n;
+    }
+  } catch {}
+  return null;
+}
+
 export function MonitoreoClient() {
-  const [view, setView] = useState<ViewType>('dashboard');
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [view, setView] = useState<ViewType>(() => {
+    if (typeof window === 'undefined') return 'dashboard';
+    return loadView();
+  });
+  const [editingId, setEditingId] = useState<number | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return loadEditingId();
+  });
+
+  // Persist view/editingId without triggering reload on tab change
+  useEffect(() => {
+    try {
+      localStorage.setItem(VIEW_KEY, view);
+    } catch {}
+  }, [view]);
+
+  useEffect(() => {
+    try {
+      if (editingId !== null) localStorage.setItem(EDITING_KEY, String(editingId));
+      else localStorage.removeItem(EDITING_KEY);
+    } catch {}
+  }, [editingId]);
 
   const handleNewClick = () => {
     setEditingId(null);
