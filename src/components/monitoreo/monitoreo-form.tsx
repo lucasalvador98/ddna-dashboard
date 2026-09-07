@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/components/auth-provider';
+import { useMonitoreoDraft } from '@/lib/monitoreo/useMonitoreoDraft';
 import {
   MEDIO_OPTIONS,
   GENERO_PERIODISTICO_OPTIONS,
@@ -137,6 +139,7 @@ function getFieldError(
 }
 
 export function MonitoreoForm({ editingId, onSave, onCancel }: FormViewProps) {
+  const { user } = useAuth();
   const [formData, setFormData] = useState<RegistroFormData>(EMPTY_FORM_DATA);
   const [actors, setActors] = useState<ActorFormData[]>([{ ...EMPTY_ACTOR }]);
   const [saving, setSaving] = useState(false);
@@ -147,6 +150,43 @@ export function MonitoreoForm({ editingId, onSave, onCancel }: FormViewProps) {
 
   // Track if form was submitted (to show all errors)
   const [submitted, setSubmitted] = useState(false);
+  const [showRestoreBanner, setShowRestoreBanner] = useState(false);
+  const [pendingDraft, setPendingDraft] = useState<Record<string, unknown> | null>(null);
+
+  // Draft persistence — only for new records (editingId === null) to avoid clashing with DB data
+  const draftFormId = editingId ? `edit-${editingId}` : 'new';
+  const { clearDraft, getDraft } = useMonitoreoDraft({
+    userId: user?.id ?? null,
+    formId: draftFormId,
+    watch: { ...formData, _actors: actors } as unknown as Record<string, unknown>,
+    onRestore: (data) => {
+      // Don't auto-restore if we're editing an existing record (DB is source of truth)
+      if (editingId) return;
+      // If draft is from >24h, handled by hook (expired), otherwise show banner if form is still empty
+      const isEmpty =
+        formData.medio === '' && formData.titulo === '' && formData.fecha_noticia === '' && actors.length === 1 && !actors[0].actor_descripcion;
+      if (isEmpty && data && Object.keys(data).length > 0) {
+        // Check if draft is stale (>24h already filtered by hook, but we check timestamp for banner)
+        const draft = getDraft();
+        if (draft && Date.now() - draft.timestamp > 24 * 60 * 60 * 1000) {
+          setPendingDraft(data as Record<string, unknown>);
+          setShowRestoreBanner(true);
+        } else {
+          // Auto-restore silently if recent and form is empty
+          const d = data as Record<string, unknown> & { _actors?: ActorFormData[] };
+          setFormData((prev) => ({ ...prev, ...(d as unknown as RegistroFormData) }));
+          if (d._actors && Array.isArray(d._actors) && d._actors.length > 0) {
+            setActors(d._actors as ActorFormData[]);
+          }
+        }
+      } else if (data && Object.keys(data).length > 0) {
+        // Form already has data, show banner to avoid overwriting
+        setPendingDraft(data as Record<string, unknown>);
+        setShowRestoreBanner(true);
+      }
+    },
+    enabled: !editingId, // only persist for new records for now
+  });
 
   // Load existing registro if editing
   useEffect(() => {
@@ -359,6 +399,9 @@ export function MonitoreoForm({ editingId, onSave, onCancel }: FormViewProps) {
         type: 'success',
       });
 
+      // Clear draft on success
+      clearDraft();
+
       // Brief delay so user sees the toast before redirect
       setTimeout(() => onSave(), 600);
     } catch (err) {
@@ -392,9 +435,56 @@ export function MonitoreoForm({ editingId, onSave, onCancel }: FormViewProps) {
     );
   }
 
+  const handleCancel = () => {
+    clearDraft();
+    onCancel();
+  };
+
+  const handleRestore = () => {
+    if (!pendingDraft) return;
+    const d = pendingDraft as Record<string, unknown> & { _actors?: ActorFormData[] };
+    setFormData((prev) => ({ ...prev, ...(d as unknown as RegistroFormData) }));
+    if (d._actors && Array.isArray(d._actors) && d._actors.length > 0) {
+      setActors(d._actors as ActorFormData[]);
+    }
+    setShowRestoreBanner(false);
+    setPendingDraft(null);
+  };
+
+  const handleDiscard = () => {
+    clearDraft();
+    setShowRestoreBanner(false);
+    setPendingDraft(null);
+  };
+
   return (
     <>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
+      {showRestoreBanner && pendingDraft && (
+        <div className="flex items-center justify-between gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm">
+          <div className="flex items-center gap-2 text-amber-800">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <span>Encontramos un borrador guardado. ¿Querés restaurarlo?</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleDiscard}
+              className="px-3 py-1.5 text-sm text-slate-600 hover:text-slate-800 transition-colors"
+            >
+              Descartar
+            </button>
+            <button
+              type="button"
+              onClick={handleRestore}
+              className="px-4 py-1.5 bg-[var(--ddna-blue)] text-white rounded-lg text-sm font-medium hover:opacity-90 transition-colors"
+            >
+              Restaurar
+            </button>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Header */}
@@ -405,7 +495,7 @@ export function MonitoreoForm({ editingId, onSave, onCancel }: FormViewProps) {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={onCancel}
+              onClick={handleCancel}
               className="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 transition-colors"
             >
               Cancelar
@@ -627,7 +717,7 @@ export function MonitoreoForm({ editingId, onSave, onCancel }: FormViewProps) {
         <div className="flex items-center justify-end gap-3 pt-2 pb-8">
           <button
             type="button"
-            onClick={onCancel}
+            onClick={handleCancel}
             className="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 transition-colors"
           >
             Cancelar
