@@ -1,0 +1,45 @@
+name: ETL
+
+on:
+  schedule:
+    # Canastas, empleo, pobreza — mensual el día 1 a las 03:00 UTC
+    - cron: '0 3 1 * *'
+  workflow_dispatch:
+    inputs:
+      categoria:
+        description: 'Categoría a actualizar (canastas, empleo, pobreza, senaf, all)'
+        required: false
+        default: 'all'
+        type: choice
+        options: [all, canastas, empleo, pobreza, senaf]
+
+jobs:
+  etl:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - run: npm ci
+
+      - name: Run ETL — INDEC (canastas, empleo, pobreza)
+        if: inputs.categoria == 'all' || inputs.categoria == 'canastas' || inputs.categoria == 'empleo' || inputs.categoria == 'pobreza'
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/update-indec-indicators.mjs
+
+      - name: Run ETL — SENAF
+        if: inputs.categoria == 'all' || inputs.categoria == 'senaf'
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/load-senaf-data.mjs
+
+      - name: Health check
+        run: curl -f https://monitoreo.ddna.com.ar/api/health || curl -f http://179.199.132.207/api/health

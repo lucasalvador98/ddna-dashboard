@@ -1,0 +1,12 @@
+services:
+  etl:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file: .env.production
+    volumes:
+      - ./scripts:/app/scripts
+      - ./.senaf-cache:/app/.senaf-cache
+    working_dir: /app
+    command: node scripts/update-indec-indicators.mjs
+    profiles: ["etl"]

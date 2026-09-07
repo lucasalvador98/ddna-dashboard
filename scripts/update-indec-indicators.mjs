@@ -11,6 +11,7 @@
  * Requiere: SUPABASE_SERVICE_ROLE_KEY en .env.local
  */
 import { supabase } from './config.mjs';
+import { fetchWithRetry, validateRows, upsertRows } from './etl-runner.mjs';
 
 const BASE_URL = 'https://apis.datos.gob.ar/series/api/series/';
 
@@ -176,19 +177,9 @@ const SERIES = [
 
 async function fetchSeries(id) {
   const url = `${BASE_URL}?ids=${id}&format=json&sort=desc&limit=100`;
-  const res = await fetch(url, { redirect: 'follow' });
-  if (!res.ok) throw new Error(`HTTP ${res.status} for ${id}`);
+  const res = await fetchWithRetry(url, { retries: 3, backoffMs: [1000, 2000, 4000] });
   const json = await res.json();
   return json.data || [];
-}
-
-async function deleteOld(nombre, fuente) {
-  const { error } = await supabase
-    .from('indicadores')
-    .delete()
-    .eq('indicador_nombre', nombre)
-    .eq('fuente', fuente);
-  if (error) throw error;
 }
 
 function parseDate(dateStr) {
@@ -218,39 +209,40 @@ async function main() {
         continue;
       }
 
-      // Eliminar datos anteriores de esta serie
-      await deleteOld(s.nombre, s.fuente);
-
       // Transformar datos
-      const rows = data.map(([periodo, valor]) => {
+      const rawRows = data.map(([periodo, valor]) => {
         const { year, month } = parseDate(periodo);
         return {
           indicador_nombre: s.nombre,
           categoria: s.categoria,
-          valor: Number(Number(valor).toFixed(2)),
+          valor: Number(valor),
           unidad: s.unidad,
           periodo: year,
           region: s.region,
-          desglose: JSON.stringify({
+          desglose: {
             mes: month,
             fuente_api: s.id,
             frecuencia: month ? 'mensual' : 'anual',
-          }),
+          },
           fuente: s.fuente,
-          ultima_actualizacion: new Date().toISOString(),
-          activo: true,
         };
       });
 
-      // Insertar en lotes de 100
-      for (let i = 0; i < rows.length; i += 100) {
-        const batch = rows.slice(i, i + 100);
-        const { error } = await supabase.from('indicadores').insert(batch);
-        if (error) throw error;
+      // Validar y upsert (sin delete previo, idempotente)
+      const { valid, warnings } = validateRows(rawRows);
+      if (warnings.length > 0) {
+        warnings.forEach((w) => console.warn(`  ⚠️  ${w}`));
+      }
+      if (valid.length === 0) {
+        console.log('⚠️  Nada válido para insertar');
+        continue;
       }
 
-      totalInserted += rows.length;
-      console.log(`✅ ${rows.length} rows (${rows[0].periodo} → ${rows[rows.length - 1].periodo})`);
+      const { inserted, error } = await upsertRows(valid);
+      if (error) throw error;
+
+      totalInserted += inserted;
+      console.log(`✅ ${inserted} rows validados (${valid[0].periodo} → ${valid[valid.length - 1].periodo}) ${warnings.length ? `+${warnings.length} warnings` : ''}`);
     } catch (err) {
       totalErrors++;
       console.log(`❌ ${err.message}`);
