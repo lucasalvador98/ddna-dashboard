@@ -48,11 +48,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     // Subscribe to auth state changes (login, logout, token refresh)
+    // Avoid re-render on TOKEN_REFRESHED if session is effectively the same (prevents full app reload on tab switch)
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession);
-      setUser(newSession?.user ?? null);
+      setSession((prev) => {
+        if (prev?.access_token === newSession?.access_token && prev?.user?.id === newSession?.user?.id) {
+          return prev;
+        }
+        return newSession;
+      });
+      setUser((prev) => {
+        if (prev?.id === newSession?.user?.id) return prev;
+        return newSession?.user ?? null;
+      });
       setLoading(false);
     });
 

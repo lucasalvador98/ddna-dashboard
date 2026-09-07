@@ -180,8 +180,10 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
   const showDenied = config?.enabled === true && user && !hasPermission && permsLoaded;
 
   // ── Loading ───────────────────────────────────────────────────────────────
-
-  if (configLoading || authLoading) {
+  // Only show full-page spinner on initial load — after mount, keep children mounted
+  // to avoid full app reload when Supabase does a token refresh on tab visibilitychange
+  const isInitialLoading = configLoading || (authLoading && !config);
+  if (isInitialLoading) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="w-8 h-8 text-navy animate-spin" />
