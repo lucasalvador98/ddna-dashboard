@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   CheckCircle,
   Loader2,
@@ -155,6 +155,7 @@ export function MonitoreoForm({ editingId, onSave, onCancel }: FormViewProps) {
 
   // Draft persistence — only for new records (editingId === null) to avoid clashing with DB data
   const draftFormId = editingId ? `edit-${editingId}` : 'new';
+  const hasRestoredRef = useRef(false);
   const { clearDraft, getDraft } = useMonitoreoDraft({
     userId: user?.id ?? null,
     formId: draftFormId,
@@ -162,17 +163,31 @@ export function MonitoreoForm({ editingId, onSave, onCancel }: FormViewProps) {
     onRestore: (data) => {
       // Don't auto-restore if we're editing an existing record (DB is source of truth)
       if (editingId) return;
-      // If draft is from >24h, handled by hook (expired), otherwise show banner if form is still empty
+      // Only restore once per mount — avoids banner on every tab hide/show that causes remount
+      if (hasRestoredRef.current) return;
+      hasRestoredRef.current = true;
       const isEmpty =
         formData.medio === '' && formData.titulo === '' && formData.fecha_noticia === '' && actors.length === 1 && !actors[0].actor_descripcion;
       if (isEmpty && data && Object.keys(data).length > 0) {
-        // Check if draft is stale (>24h already filtered by hook, but we check timestamp for banner)
         const draft = getDraft();
-        if (draft && Date.now() - draft.timestamp > 24 * 60 * 60 * 1000) {
+        const age = draft ? Date.now() - draft.timestamp : 0;
+        // Only show banner if draft is older than 30s and form is empty — indicates a real reload/close, not just a quick tab switch
+        // If draft is very recent (<30s) and form is empty, it's likely a remount from visibilitychange -> silently restore
+        if (age > 30 * 1000 && age < 24 * 60 * 60 * 1000) {
+          setPendingDraft(data as Record<string, unknown>);
+          setShowRestoreBanner(true);
+        } else if (age <= 30 * 1000) {
+          // Recent draft from same session (tab switch) -> silently restore without banner
+          const d = data as Record<string, unknown> & { _actors?: ActorFormData[] };
+          setFormData((prev) => ({ ...prev, ...(d as unknown as RegistroFormData) }));
+          if (d._actors && Array.isArray(d._actors) && d._actors.length > 0) {
+            setActors(d._actors as ActorFormData[]);
+          }
+        } else if (age >= 24 * 60 * 60 * 1000) {
+          // Expired (should have been filtered, but just in case) -> show banner
           setPendingDraft(data as Record<string, unknown>);
           setShowRestoreBanner(true);
         } else {
-          // Auto-restore silently if recent and form is empty
           const d = data as Record<string, unknown> & { _actors?: ActorFormData[] };
           setFormData((prev) => ({ ...prev, ...(d as unknown as RegistroFormData) }));
           if (d._actors && Array.isArray(d._actors) && d._actors.length > 0) {
