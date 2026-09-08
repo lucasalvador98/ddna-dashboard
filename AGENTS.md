@@ -53,3 +53,13 @@
 - Commits con prefijos: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`
 - Branch naming: `feature/nombre`, `fix/nombre`
 - PRs con descripción clara
+
+---
+
+## Project Skills
+
+Skills locales del proyecto en `.agents/skills/` (leer el `SKILL.md` antes de trabajar en el tema):
+
+- `supabase` — tareas generales con Supabase (RLS, Data API, CLI, seguridad)
+- `supabase-postgres-best-practices` — performance y best practices de Postgres
+- `supabase-selfhosted-mcp` — acceso MCP al Supabase self-hosted del VPS vía túnel SSH (nunca exponer `/mcp` público)
