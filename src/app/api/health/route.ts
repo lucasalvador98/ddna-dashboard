@@ -40,24 +40,23 @@ export async function GET() {
     let perCategory: Record<string, { ultima_carga: string | null; days_since: number | null; stale: boolean }> = {};
     let staleCategories: string[] = [];
     try {
+      // Consulta la vista agregada (una fila por categoría con el max de
+      // ultima_actualizacion). Consultar la tabla completa estaba acotado
+      // por PGRST_DB_MAX_ROWS (1000) y ocultaba categorías stale.
       const { data: rows, error: catError } = await supabase
-        .from("indicadores")
-        .select("categoria, ultima_actualizacion")
-        .order("ultima_actualizacion", { ascending: false });
+        .from("vw_category_freshness")
+        .select("categoria, ultima_actualizacion");
 
       if (!catError && rows) {
-        const byCat = new Map<string, string>();
-        for (const r of rows as Array<{ categoria: string; ultima_actualizacion: string }>) {
-          if (!byCat.has(r.categoria)) byCat.set(r.categoria, r.ultima_actualizacion);
-        }
         const now = Date.now();
-        for (const [cat, ultima] of byCat) {
+        for (const r of rows as Array<{ categoria: string; ultima_actualizacion: string | null }>) {
+          const ultima = r.ultima_actualizacion;
           const days = ultima ? Math.floor((now - new Date(ultima).getTime()) / (1000 * 60 * 60 * 24)) : null;
           // umbral: 45 días general, 90 para consumo (datos esporádicos)
-          const threshold = cat === "consumo" ? 90 : 45;
+          const threshold = r.categoria === "consumo" ? 90 : 45;
           const stale = days !== null ? days > threshold : true;
-          perCategory[cat] = { ultima_carga: ultima, days_since: days, stale };
-          if (stale) staleCategories.push(cat);
+          perCategory[r.categoria] = { ultima_carga: ultima, days_since: days, stale };
+          if (stale) staleCategories.push(r.categoria);
         }
       }
     } catch {
