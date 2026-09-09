@@ -3,6 +3,8 @@
 import { Users, Heart, BookOpen, Coins, AlertTriangle, BarChart3, FileText, MapPin, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 import { SectionCard } from '@/components/section-card';
+import { motion } from 'motion/react';
+import { Card, CardContent } from '@/components/ui/card';
 
 const tools = [
   {
@@ -107,20 +109,29 @@ export default function HomePage() {
         <section>
           <h2 className="font-display text-xl text-navy mb-5 text-center">Herramientas</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {tools.map(tool => (
-              <Link
+            {tools.map((tool, i) => (
+              <motion.div
                 key={tool.href}
-                href={tool.href}
-                className="group flex flex-col items-center gap-3 p-5 bg-white border border-gray-200 rounded-xl hover:border-terracotta/40 hover:shadow-md transition-all"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.06, type: 'spring', stiffness: 260, damping: 24 }}
+                whileHover={{ y: -4 }}
+                whileTap={{ scale: 0.97 }}
               >
-                <div className="w-12 h-12 rounded-xl bg-terracotta/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <tool.icon className="w-6 h-6 text-terracotta" />
-                </div>
-                <div className="text-center">
-                  <p className="font-accent text-sm font-semibold text-slate-700">{tool.label}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{tool.description}</p>
-                </div>
-              </Link>
+                <Link href={tool.href} className="group block h-full">
+                  <Card className="h-full border-gray-200 hover:border-terracotta/40 hover:shadow-md transition-colors">
+                    <CardContent className="flex flex-col items-center gap-3 p-5">
+                      <div className="w-12 h-12 rounded-xl bg-terracotta/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <tool.icon className="w-6 h-6 text-terracotta" />
+                      </div>
+                      <div className="text-center">
+                        <p className="font-accent text-sm font-semibold text-slate-700">{tool.label}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{tool.description}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              </motion.div>
             ))}
           </div>
         </section>
