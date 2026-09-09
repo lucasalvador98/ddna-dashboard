@@ -5,6 +5,7 @@ import {
   Line,
   BarChart,
   Bar,
+  Brush,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -62,7 +63,11 @@ export function SaludCharts({
   selectedYear = null,
   onSelectYear,
 }: SaludChartsProps) {
-  const handleTmiChartClick = (state: MouseHandlerDataParam) => {
+  // Shared click handler for all cross-filter-enabled charts. Recharts only
+  // provides activeLabel when the click lands on a plotted category, so drags
+  // or plain clicks on the Brush (no activeLabel) are ignored and never clear
+  // the selected year.
+  const handleChartClick = (state: MouseHandlerDataParam) => {
     if (!onSelectYear) return;
     const { activeLabel } = state;
     if (typeof activeLabel === 'string' || typeof activeLabel === 'number') {
@@ -70,27 +75,23 @@ export function SaludCharts({
     }
   };
 
-  // Custom dot for the Córdoba series: enlarges + adds a ring when the year
-  // matches the cross-filter selection (pilot).
-  const renderTmiDot = (dotProps: DotItemDotProps) => {
-    const { cx, cy } = dotProps;
-    if (typeof cx !== 'number' || typeof cy !== 'number') return null;
-    const payload = dotProps.payload as { periodo?: unknown } | null | undefined;
-    const isSelected = selectedYear !== null && String(payload?.periodo) === String(selectedYear);
-    if (isSelected) {
-      return (
-        <circle
-          cx={cx}
-          cy={cy}
-          r={6.5}
-          fill={COLORS.terracotta}
-          stroke="#FFFFFF"
-          strokeWidth={2.5}
-        />
-      );
-    }
-    return <circle cx={cx} cy={cy} r={4} fill={COLORS.terracotta} />;
-  };
+  // Dot factory (pattern from the TMI chart): enlarges the point and adds a
+  // white ring when its year matches the cross-filter selection. Points with
+  // no data (null values) never reach this renderer, so a selected year is
+  // only highlighted on series that actually have data for it.
+  const makeSelectedDot = (color: string, radius = 4) =>
+    function SaludDot(dotProps: DotItemDotProps) {
+      const { cx, cy } = dotProps;
+      if (typeof cx !== 'number' || typeof cy !== 'number') return null;
+      const payload = dotProps.payload as { periodo?: unknown } | null | undefined;
+      const isSelected = selectedYear !== null && String(payload?.periodo) === String(selectedYear);
+      if (isSelected) {
+        return <circle cx={cx} cy={cy} r={6.5} fill={color} stroke="#FFFFFF" strokeWidth={2.5} />;
+      }
+      return <circle cx={cx} cy={cy} r={radius} fill={color} />;
+    };
+
+  const renderTmiDot = makeSelectedDot(COLORS.terracotta);
 
   if (variant === 'mortality') {
     return (
@@ -110,7 +111,7 @@ export function SaludCharts({
               <LineChart
                 data={mortalidadComparativaData}
                 margin={{ top: 10, right: 30, left: 10, bottom: 10 }}
-                onClick={onSelectYear ? handleTmiChartClick : undefined}
+                onClick={onSelectYear ? handleChartClick : undefined}
                 style={onSelectYear ? { cursor: 'pointer' } : undefined}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
@@ -210,6 +211,8 @@ export function SaludCharts({
                       .sort((a, b) => Number(a.periodo) - Number(b.periodo));
                   })()}
                   margin={{ top: 10, right: 30, left: 10, bottom: 10 }}
+                  onClick={onSelectYear ? handleChartClick : undefined}
+                  style={onSelectYear ? { cursor: 'pointer' } : undefined}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
                   <XAxis dataKey="periodo" tick={{ fill: '#4D4D4D', fontSize: 12 }} />
@@ -232,7 +235,7 @@ export function SaludCharts({
                     dataKey="RMM Cba"
                     stroke={COLORS.blue}
                     strokeWidth={2}
-                    dot={{ fill: COLORS.blue, r: 4 }}
+                    dot={makeSelectedDot(COLORS.blue)}
                     name="Córdoba"
                     connectNulls
                   />
@@ -242,7 +245,7 @@ export function SaludCharts({
                       dataKey="RMM Nacional"
                       stroke={COLORS.magenta}
                       strokeWidth={2}
-                      dot={{ fill: COLORS.magenta, r: 4 }}
+                      dot={makeSelectedDot(COLORS.magenta)}
                       name="Nacional"
                       strokeDasharray="5 5"
                       connectNulls
@@ -292,11 +295,13 @@ export function SaludCharts({
                 dataKey="valor"
                 xAxisKey="periodo"
               >
-                <div className="h-72">
-                  <ResponsiveContainer width="100%" height={280}>
+                <div className="h-80">
+                  <ResponsiveContainer width="100%" height={320}>
                     <LineChart
                       data={chartData}
                       margin={{ top: 10, right: 30, left: 10, bottom: 10 }}
+                      onClick={onSelectYear ? handleChartClick : undefined}
+                      style={onSelectYear ? { cursor: 'pointer' } : undefined}
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
                       <XAxis
@@ -327,11 +332,19 @@ export function SaludCharts({
                           dataKey={s.key}
                           stroke={s.color}
                           strokeWidth={2}
-                          dot={{ fill: s.color, r: 3 }}
+                          dot={makeSelectedDot(s.color, 3)}
                           name={s.key}
                           connectNulls
                         />
                       ))}
+                      {/* Brush temporalmente deshabilitado: interfiere con el onClick del chart en recharts 3 (activeLabel no se emite). Ver issue de zoom pendiente. */}
+                      {/* Brush temporalmente deshabilitado: interfiere con el onClick del chart en recharts 3 (activeLabel no se emite). Ver issue de zoom pendiente. */}
+                      {/* <Brush
+                        dataKey="periodo"
+                        height={24}
+                        stroke={COLORS.amber}
+                        travellerWidth={8}
+                      /> */}
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
