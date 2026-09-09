@@ -41,20 +41,22 @@ export async function GET() {
     let staleCategories: string[] = [];
     try {
       // Consulta la vista agregada (una fila por categoría con el max de
-      // ultima_actualizacion). Consultar la tabla completa estaba acotado
-      // por PGRST_DB_MAX_ROWS (1000) y ocultaba categorías stale.
+      // ultima_actualizacion y el umbral en días según la cadencia esperada
+      // de la fuente). Consultar la tabla completa estaba acotado por
+      // PGRST_DB_MAX_ROWS (1000) y ocultaba categorías stale.
       const { data: rows, error: catError } = await supabase
         .from("vw_category_freshness")
-        .select("categoria, ultima_actualizacion");
+        .select("categoria, ultima_actualizacion, umbral_dias");
 
       if (!catError && rows) {
         const now = Date.now();
-        for (const r of rows as Array<{ categoria: string; ultima_actualizacion: string | null }>) {
+        for (const r of rows as Array<{ categoria: string; ultima_actualizacion: string | null; umbral_dias: number | null }>) {
           const ultima = r.ultima_actualizacion;
           const days = ultima ? Math.floor((now - new Date(ultima).getTime()) / (1000 * 60 * 60 * 24)) : null;
-          // umbral: 45 días general, 90 para consumo (datos esporádicos)
-          const threshold = r.categoria === "consumo" ? 90 : 45;
-          const stale = days !== null ? days > threshold : true;
+          // Umbral por categoría (v2 de la vista). umbral_dias null = fuente
+          // ad hoc (censo, encuestas puntuales): no vence, nunca stale.
+          const threshold = typeof r.umbral_dias === "number" ? r.umbral_dias : null;
+          const stale = threshold !== null && (days === null || days > threshold);
           perCategory[r.categoria] = { ultima_carga: ultima, days_since: days, stale };
           if (stale) staleCategories.push(r.categoria);
         }
