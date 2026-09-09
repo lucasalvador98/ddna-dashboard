@@ -13,6 +13,7 @@ import {
   Legend,
 } from 'recharts';
 import { ChartWithTable } from '@/components/charts/chart-with-table';
+import type { DotItemDotProps, MouseHandlerDataParam } from 'recharts';
 import type { Indicador as DashboardIndicador } from '@/lib/use-dashboard-data';
 
 const COLORS = {
@@ -37,6 +38,10 @@ export interface SaludChartsProps {
   dptEscolarCba: DashboardIndicador | undefined;
   latestDpt4Valor: number | null;
   latestSrp2Valor: number | null;
+  /** Año seleccionado por cross-filtering (piloto). null = sin filtro */
+  selectedYear?: string | null;
+  /** Emite el año clickeado desde el chart principal de TMI (serie Córdoba) */
+  onSelectYear?: (periodo: string) => void;
 }
 
 export function SaludCharts({
@@ -54,7 +59,39 @@ export function SaludCharts({
   dptEscolarCba,
   latestDpt4Valor,
   latestSrp2Valor,
+  selectedYear = null,
+  onSelectYear,
 }: SaludChartsProps) {
+  const handleTmiChartClick = (state: MouseHandlerDataParam) => {
+    if (!onSelectYear) return;
+    const { activeLabel } = state;
+    if (typeof activeLabel === 'string' || typeof activeLabel === 'number') {
+      onSelectYear(String(activeLabel));
+    }
+  };
+
+  // Custom dot for the Córdoba series: enlarges + adds a ring when the year
+  // matches the cross-filter selection (pilot).
+  const renderTmiDot = (dotProps: DotItemDotProps) => {
+    const { cx, cy } = dotProps;
+    if (typeof cx !== 'number' || typeof cy !== 'number') return null;
+    const payload = dotProps.payload as { periodo?: unknown } | null | undefined;
+    const isSelected = selectedYear !== null && String(payload?.periodo) === String(selectedYear);
+    if (isSelected) {
+      return (
+        <circle
+          cx={cx}
+          cy={cy}
+          r={6.5}
+          fill={COLORS.terracotta}
+          stroke="#FFFFFF"
+          strokeWidth={2.5}
+        />
+      );
+    }
+    return <circle cx={cx} cy={cy} r={4} fill={COLORS.terracotta} />;
+  };
+
   if (variant === 'mortality') {
     return (
       <>
@@ -73,6 +110,8 @@ export function SaludCharts({
               <LineChart
                 data={mortalidadComparativaData}
                 margin={{ top: 10, right: 30, left: 10, bottom: 10 }}
+                onClick={onSelectYear ? handleTmiChartClick : undefined}
+                style={onSelectYear ? { cursor: 'pointer' } : undefined}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
                 <XAxis dataKey="periodo" tick={{ fill: '#4D4D4D', fontSize: 12 }} />
@@ -95,7 +134,8 @@ export function SaludCharts({
                   dataKey="TMI Cba"
                   stroke={COLORS.terracotta}
                   strokeWidth={2}
-                  dot={{ fill: COLORS.terracotta, r: 4 }}
+                  dot={renderTmiDot}
+                  activeDot={{ r: 7, stroke: '#FFFFFF', strokeWidth: 2 }}
                   name="Córdoba"
                   connectNulls
                 />

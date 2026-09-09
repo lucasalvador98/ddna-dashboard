@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Heart, Baby, Syringe, AlertCircle, Info } from 'lucide-react';
+import { Heart, Syringe, AlertCircle, Info } from 'lucide-react';
 import { parseDesglose } from '@/lib/parse-desglose';
 import { INDICATOR_NAMES } from '@/lib/indicator-names';
 import { SectionHeader } from '@/components/section-header';
@@ -7,18 +7,8 @@ import { EmptyState } from '@/components/empty-state';
 import { KpiCard } from '@/components/kpi-card';
 import { SaludCharts } from './salud-charts';
 import type { SaludChartsProps } from './salud-charts';
+import { SaludInteractive } from './salud-interactive';
 import type { Indicador as DashboardIndicador } from '@/lib/use-dashboard-data';
-
-const getCambio = (arr: { periodo: string; valor: number }[]) => {
-  if (arr.length < 2) return null;
-  const actual = arr[arr.length - 1].valor;
-  const anterior = arr[arr.length - 2].valor;
-  const cambio = actual - anterior;
-  return {
-    value: cambio.toFixed(1),
-    tipo: cambio < 0 ? ('down' as const) : cambio > 0 ? ('up' as const) : ('neutral' as const),
-  };
-};
 
 export default async function SaludPage() {
   const supabase = createClient(
@@ -69,16 +59,17 @@ export default async function SaludPage() {
   // ─── Nacimientos adolescentes ────────────────────────────────
   const nacimientosData = data
     .filter((d) => d.indicador_nombre === INDICATOR_NAMES.NACIMIENTOS_ADOLESCENTES)
-    .sort((a, b) => Number(b.periodo) - Number(a.periodo));
-  const latestNacimientos = nacimientosData.length > 0 ? nacimientosData[0] : null;
-  const nacimientosValor = latestNacimientos?.valor ?? null;
+    .map((d) => ({ periodo: String(d.periodo), valor: Number(d.valor) || 0 }))
+    .sort((a, b) => Number(a.periodo) - Number(b.periodo));
 
   // ─── Time series helper ──────────────────────────────────────
   const getTimeSeries = (nombreIndicador: string) =>
     data
       .filter((d) => d.indicador_nombre === nombreIndicador)
       .map((d) => ({
-        periodo: d.periodo,
+        // periodo llega como number desde la DB (ej: 2015); normalizo a string
+        // para que el cross-filtering compare consistentemente (selectedYear).
+        periodo: String(d.periodo),
         valor: Number(d.valor) || 0,
         region: d.region,
       }))
@@ -90,12 +81,6 @@ export default async function SaludPage() {
   const tmneoData = getTimeSeries(INDICATOR_NAMES.TMNEO_CBA);
   const tmposData = getTimeSeries(INDICATOR_NAMES.TMPOS_CBA);
   const rmmNacional = getTimeSeries(INDICATOR_NAMES.TMI_RMM);
-
-  const latestMortalidad = mortalidadData.length > 0 ? mortalidadData[mortalidadData.length - 1] : null;
-  const latestRmm = rmmData.length > 0 ? rmmData[rmmData.length - 1] : null;
-  const latestTmneo = tmneoData.length > 0 ? tmneoData[tmneoData.length - 1] : null;
-  const latestTmpos = tmposData.length > 0 ? tmposData[tmposData.length - 1] : null;
-  const cambioMortalidad = getCambio(mortalidadData);
 
   const mortalidadComparativaData = (() => {
     const series = [INDICATOR_NAMES.TMI_CBA, INDICATOR_NAMES.TMI_NAC]
@@ -120,7 +105,7 @@ export default async function SaludPage() {
     data
       .filter((d) => d.indicador_nombre === nombreIndicador)
       .map((d) => ({
-        periodo: d.periodo,
+        periodo: String(d.periodo),
         valor: Number(d.valor) || 0,
         region: d.region,
       }))
@@ -207,53 +192,15 @@ export default async function SaludPage() {
         color="terracotta"
       />
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <KpiCard
-          title="Mortalidad infantil Córdoba"
-          value={latestMortalidad ? `${Number(latestMortalidad.valor).toFixed(1)}‰` : '—'}
-          subtitle={`TMI - Córdoba ${latestMortalidad?.periodo || ''}`}
-          change={cambioMortalidad ? `${cambioMortalidad.value}‰` : undefined}
-          changeType={cambioMortalidad?.tipo as 'up' | 'down' | undefined}
-          icon={Baby}
-          color="terracotta"
-        />
-        <KpiCard
-          title="RMM Córdoba"
-          value={latestRmm ? `${Number(latestRmm.valor).toFixed(1)}‰` : '—'}
-          subtitle={`RMM ${latestRmm?.periodo || ''} — Mortalidad posneonatal`}
-          icon={Syringe}
-          color="blue"
-        />
-        <KpiCard
-          title="Nacimientos adolescentes"
-          value={nacimientosValor !== null ? nacimientosValor.toLocaleString('es-AR') : '—'}
-          subtitle={
-            nacimientosValor !== null
-              ? `Registrados en ${latestNacimientos?.periodo || ''}`
-              : 'Sin datos disponibles'
-          }
-          icon={Heart}
-          color="magenta"
-        />
-        <KpiCard
-          title="Mortalidad Neonatal Córdoba"
-          value={latestTmneo ? `${Number(latestTmneo.valor).toFixed(1)}‰` : '—'}
-          subtitle={`TMNEO ${latestTmneo?.periodo || ''} — Tasa mortalidad neonatal`}
-          icon={Baby}
-          color="orange"
-        />
-        <KpiCard
-          title="Mortalidad Post-Neonatal Córdoba"
-          value={latestTmpos ? `${Number(latestTmpos.valor).toFixed(1)}‰` : '—'}
-          subtitle={`TMPOS ${latestTmpos?.periodo || ''} — Tasa mortalidad post-neonatal`}
-          icon={Syringe}
-          color="amber"
-        />
-      </div>
-
-      {/* Charts: Mortalidad */}
-      <SaludCharts variant="mortality" {...chartProps} />
+      {/* KPI Cards + Mortality charts — piloto de cross-filtering */}
+      <SaludInteractive
+        mortalidadData={mortalidadData}
+        rmmData={rmmData}
+        tmneoData={tmneoData}
+        tmposData={tmposData}
+        nacimientosData={nacimientosData}
+        chartProps={chartProps}
+      />
 
       {/* Vacunación Section */}
       <div className="space-y-4">
