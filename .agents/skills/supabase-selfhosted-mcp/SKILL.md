@@ -13,6 +13,15 @@ metadata:
 
 Load when enabling, verifying, or troubleshooting MCP access to the self-hosted Supabase on VPS 179.199.132.207 (srv1932068, user `deploy`), or when the `supabase-selfhosted` MCP in opencode fails.
 
+## MCP Ecosystem (VPS 179.199.132.207)
+
+| MCP Server | Purpose | Can do | Cannot do |
+|---|---|---|---|
+| **supabase-selfhosted** | Database queries, migrations, RLS, SQL | Query tables, run SQL, manage schema, deploy edge functions | Docker management, VPS infrastructure, deploys |
+| **hostinger** (Hostinger API) | VPS infrastructure management | Restart/build Docker projects, manage firewall, VPS lifecycle, snapshots | Git pull, execute arbitrary commands, manage cron directly |
+
+**They complement each other.** Use supabase-selfhosted for DB work, hostinger for infrastructure.
+
 ## Hard Rules
 
 - NEVER expose `/mcp` via Traefik or to the Internet: the self-hosted MCP has no OAuth. SSH-tunnel-only access.
