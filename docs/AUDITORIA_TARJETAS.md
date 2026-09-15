@@ -52,7 +52,7 @@
 | educacion | 2024 | 2026-04-24 | 136 | desactualizada |
 | encuestas_2024 | 2024 | 2026-06-10 | 89 | stale |
 | inversion | 2024 | 2026-06-09 | 89 | stale |
-| pobreza | 2024 | 2026-06-17 | 81 | stale |
+| pobreza | 2024 | 2026-06-17 | 82 | stale |
 | salud | 2024 | 2026-06-12 | 86 | stale |
 | salud_adolescente | 2022 | 2026-04-28 | 132 | desactualizada |
 
