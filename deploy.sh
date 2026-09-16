@@ -6,6 +6,7 @@ echo "📦 Deploying ddna-dashboard..."
 cd /home/deploy/ddna-dashboard
 
 echo "⬇️  Pulling latest code..."
+git stash --quiet 2>/dev/null || true
 git pull origin main
 
 echo "🔗 Linking .env.production → .env for build args..."
