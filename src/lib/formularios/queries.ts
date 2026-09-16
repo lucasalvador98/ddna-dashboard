@@ -10,11 +10,13 @@ import type { Formulario, FormularioRespuesta } from './types';
 export async function listFormularios(): Promise<Formulario[]> {
   try {
     const admin = getSupabaseAdminClient();
-    const { data, error } = await retry(() =>
-      admin
-        .from('formularios')
-        .select('*')
-        .order('created_at', { ascending: false })
+    const { data, error } = await retry(
+      () =>
+        admin
+          .from('formularios')
+          .select('*')
+          .order('created_at', { ascending: false }),
+      { extractError: (r) => (r as { error: unknown }).error }
     );
 
     if (error) throw new Error(error.message);
@@ -29,12 +31,14 @@ export async function listFormularios(): Promise<Formulario[]> {
 export async function fetchFormById(id: string): Promise<Formulario | null> {
   try {
     const admin = getSupabaseAdminClient();
-    const { data, error } = await retry(() =>
-      admin
-        .from('formularios')
-        .select('*')
-        .eq('id', id)
-        .maybeSingle()
+    const { data, error } = await retry(
+      () =>
+        admin
+          .from('formularios')
+          .select('*')
+          .eq('id', id)
+          .maybeSingle(),
+      { extractError: (r) => (r as { error: unknown }).error }
     );
 
     if (error) throw new Error(error.message);
@@ -52,13 +56,15 @@ export async function listRespuestas(
 ): Promise<FormularioRespuesta[]> {
   try {
     const admin = getSupabaseAdminClient();
-    const { data, error } = await retry(() =>
-      admin
-        .from('respuestas_formulario')
-        .select('*')
-        .eq('formulario_id', formularioId)
-        .order('submitted_at', { ascending: false })
-        .limit(limit)
+    const { data, error } = await retry(
+      () =>
+        admin
+          .from('respuestas_formulario')
+          .select('*')
+          .eq('formulario_id', formularioId)
+          .order('submitted_at', { ascending: false })
+          .limit(limit),
+      { extractError: (r) => (r as { error: unknown }).error }
     );
 
     if (error) throw new Error(error.message);

@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { CheckCircle, XCircle } from 'lucide-react';
-import { UserRoleManager } from '@/components/admin-user-roles';
+import { UsersRolesManager } from '@/components/admin-users-roles';
 
 export default function UsuariosPage() {
   const [flash, setFlash] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
@@ -31,11 +31,11 @@ export default function UsuariosPage() {
       )}
 
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-        <h2 className="font-display text-lg text-navy mb-6">Usuarios</h2>
-        <p className="text-sm text-gray-500 mb-4">
-          Gestioná los usuarios del sistema y asignales un rol para controlar su acceso a cada pantalla.
+        <h2 className="font-display text-lg text-navy mb-2">Usuarios y Roles</h2>
+        <p className="text-sm text-gray-500 mb-6">
+          Gestioná los usuarios del sistema, asignales roles y configurá los permisos de cada rol.
         </p>
-        <UserRoleManager onFlash={flashFn} />
+        <UsersRolesManager onFlash={flashFn} />
       </div>
     </div>
   );

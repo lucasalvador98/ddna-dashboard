@@ -2,13 +2,12 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { LayoutDashboard, Shield, Users, Settings } from 'lucide-react';
+import { LayoutDashboard, Users, Settings } from 'lucide-react';
 import clsx from 'clsx';
 import { LoginGate } from '@/components/login-gate';
 
 const TABS = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/admin/roles', label: 'Roles', icon: Shield },
   { href: '/admin/usuarios', label: 'Usuarios', icon: Users },
   { href: '/admin/config', label: 'Configuración', icon: Settings },
 ];

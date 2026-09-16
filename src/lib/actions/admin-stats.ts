@@ -3,6 +3,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { getSupabaseAdminClient } from '@/lib/supabase';
+import { retry } from '@/lib/retry';
 
 async function assertAdminAuth(): Promise<void> {
   const cookieStore = await cookies();
@@ -32,11 +33,15 @@ async function assertAdminAuth(): Promise<void> {
   }
 
   const adminClient = getSupabaseAdminClient();
-  const { data: userRole } = await adminClient
-    .from('user_roles')
-    .select('role_id, roles(name)')
-    .eq('user_id', user.id)
-    .maybeSingle();
+  const { data: userRole } = await retry(
+    () =>
+      adminClient
+        .from('user_roles')
+        .select('role_id, roles(name)')
+        .eq('user_id', user.id)
+        .maybeSingle(),
+    { extractError: (r) => (r as { error: unknown }).error }
+  );
 
   const rolesData = userRole?.roles;
   const roleName =
@@ -55,27 +60,53 @@ export async function getAdminStats() {
   const admin = getSupabaseAdminClient();
 
   const [indicadores, datosIndicadores, fuentes, monitoreo, actores, grupos] = await Promise.all([
-    admin.from('indicadores').select('id', { count: 'exact', head: true }),
-    admin.from('datos_indicadores').select('id', { count: 'exact', head: true }),
-    admin.from('fuentes_datos').select('id', { count: 'exact', head: true }),
-    admin.from('monitoreo_registros').select('id', { count: 'exact', head: true }),
-    admin.from('monitoreo_actores').select('id', { count: 'exact', head: true }),
-    admin.from('grupos_indicadores').select('id', { count: 'exact', head: true }),
+    retry(
+      () => admin.from('indicadores').select('id', { count: 'exact', head: true }),
+      { extractError: (r) => (r as { error: unknown }).error }
+    ),
+    retry(
+      () => admin.from('datos_indicadores').select('id', { count: 'exact', head: true }),
+      { extractError: (r) => (r as { error: unknown }).error }
+    ),
+    retry(
+      () => admin.from('fuentes_datos').select('id', { count: 'exact', head: true }),
+      { extractError: (r) => (r as { error: unknown }).error }
+    ),
+    retry(
+      () => admin.from('monitoreo_registros').select('id', { count: 'exact', head: true }),
+      { extractError: (r) => (r as { error: unknown }).error }
+    ),
+    retry(
+      () => admin.from('monitoreo_actores').select('id', { count: 'exact', head: true }),
+      { extractError: (r) => (r as { error: unknown }).error }
+    ),
+    retry(
+      () => admin.from('grupos_indicadores').select('id', { count: 'exact', head: true }),
+      { extractError: (r) => (r as { error: unknown }).error }
+    ),
   ]);
 
   const [latestIndicador, latestMonitoreo] = await Promise.all([
-    admin
-      .from('datos_indicadores')
-      .select('periodo')
-      .order('periodo', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-    admin
-      .from('monitoreo_registros')
-      .select('fecha_publicacion')
-      .order('fecha_publicacion', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+    retry(
+      () =>
+        admin
+          .from('datos_indicadores')
+          .select('periodo')
+          .order('periodo', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      { extractError: (r) => (r as { error: unknown }).error }
+    ),
+    retry(
+      () =>
+        admin
+          .from('monitoreo_registros')
+          .select('fecha_publicacion')
+          .order('fecha_publicacion', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      { extractError: (r) => (r as { error: unknown }).error }
+    ),
   ]);
 
   return {
