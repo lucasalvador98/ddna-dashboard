@@ -40,18 +40,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [supabase] = useState(() => getBrowserClient());
 
   useEffect(() => {
+    let mounted = true;
+
     // Hydrate initial session from cookies (SSR middleware may have set them)
     supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
-      setSession(initialSession);
-      setUser(initialSession?.user ?? null);
-      setLoading(false);
+      if (mounted) {
+        setSession(initialSession);
+        setUser(initialSession?.user ?? null);
+        setLoading(false);
+      }
     });
 
     // Subscribe to auth state changes (login, logout, token refresh)
-    // Avoid re-render on TOKEN_REFRESHED if session is effectively the same (prevents full app reload on tab switch)
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    } = supabase.auth.onAuthStateChange((event, newSession) => {
+      if (!mounted) return;
+
+      // If token refresh failed (null session after a previous valid session),
+      // try to recover: keep the previous session state briefly instead of
+      // immediately clearing user — the next refresh attempt may succeed.
+      if (event === 'SIGNED_OUT' && !newSession) {
+        // Only clear if we were previously loaded (not initial state)
+        setSession((prev) => {
+          if (prev) {
+            // Token refresh failed — don't immediately clear, give it one cycle
+            // The next onAuthStateChange with a valid session will restore
+            return prev;
+          }
+          return null;
+        });
+        setUser((prev) => {
+          // Keep user visible briefly so the UI doesn't flash to login gate
+          // The signOut() call will properly clear everything
+          if (prev) return prev;
+          return null;
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Normal session update
       setSession((prev) => {
         if (prev?.access_token === newSession?.access_token && prev?.user?.id === newSession?.user?.id) {
           return prev;
@@ -66,6 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, [supabase]);

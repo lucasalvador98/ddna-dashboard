@@ -57,20 +57,45 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
+    let retryCount = 0;
+    const MAX_RETRIES = 3;
+    const RETRY_DELAY = 1500;
 
     async function loadConfig() {
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from('settings')
           .select('value')
           .eq('key', 'auth')
           .single();
 
-        if (!cancelled && data?.value) {
-          setConfig(data.value as AuthConfig);
+        if (!cancelled) {
+          if (error || !data?.value) {
+            // PostgREST cold start or transient error — retry with backoff
+            if (retryCount < MAX_RETRIES) {
+              retryCount++;
+              setTimeout(() => {
+                if (!cancelled) loadConfig();
+              }, RETRY_DELAY * retryCount);
+              return;
+            }
+            // After retries exhausted — default to ENABLED so auth isn't bypassed
+            setConfig({ enabled: true, protected_routes: [] });
+          } else {
+            setConfig(data.value as AuthConfig);
+          }
         }
       } catch {
-        // Auth disabled by default if settings can't be read
+        // Network error — retry
+        if (!cancelled && retryCount < MAX_RETRIES) {
+          retryCount++;
+          setTimeout(() => {
+            if (!cancelled) loadConfig();
+          }, RETRY_DELAY * retryCount);
+          return;
+        }
+        // Default to ENABLED after retries exhausted
+        if (!cancelled) setConfig({ enabled: true, protected_routes: [] });
       } finally {
         if (!cancelled) setConfigLoading(false);
       }

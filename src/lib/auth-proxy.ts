@@ -38,7 +38,8 @@ async function getAuthSettings(): Promise<AuthSettings> {
     });
 
     if (!res.ok) {
-      cachedSettings = { enabled: false, protectedRoutes: [] };
+      // PostgREST cold start — default to ENABLED so auth isn't bypassed
+      cachedSettings = { enabled: true, protectedRoutes: [] };
       cacheTimestamp = now;
       return cachedSettings;
     }
@@ -51,7 +52,8 @@ async function getAuthSettings(): Promise<AuthSettings> {
       protectedRoutes: value?.protected_routes ?? [],
     };
   } catch {
-    cachedSettings = { enabled: false, protectedRoutes: [] };
+    // Network error — default to ENABLED so auth isn't bypassed
+    cachedSettings = { enabled: true, protectedRoutes: [] };
   }
 
   cacheTimestamp = now;
