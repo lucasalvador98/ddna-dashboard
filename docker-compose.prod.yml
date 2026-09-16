@@ -3,7 +3,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      env_file: .env.production
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+        SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+        OPENAI_API_KEY: ${OPENAI_API_KEY}
+        INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
     restart: unless-stopped
     env_file: .env.production
     environment:
