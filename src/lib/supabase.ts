@@ -1,5 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { createBrowserClient } from '@supabase/ssr';
+import { retry } from '@/lib/retry';
 
 // ⚠️ CLIENTE PARA BROWSER: SOLO usa anon key (NEXT_PUBLIC_)
 // ⚠️ NO usar getSupabaseClient() aca - esa usa service_role (prohibido en browser)
@@ -115,7 +116,7 @@ export async function getIndicadores(categoria?: CategoriaIndicador) {
     query = query.eq('categoria', categoria);
   }
 
-  const { data, error } = await query;
+  const { data, error } = await retry(() => query);
 
   if (error) {
     console.error('Error fetching indicadores:', error.message);
@@ -143,7 +144,7 @@ export async function getDatosIndicador(
     query = query.lte('periodo', periodoHasta);
   }
 
-  const { data, error } = await query;
+  const { data, error } = await retry(() => query);
 
   if (error) {
     console.error('Error fetching datos:', error.message);
@@ -160,7 +161,7 @@ export async function getFuentesDatos(categoria?: CategoriaIndicador) {
     query = query.eq('categoria', categoria);
   }
 
-  const { data, error } = await query;
+  const { data, error } = await retry(() => query);
 
   if (error) {
     console.error('Error fetching fuentes:', error.message);

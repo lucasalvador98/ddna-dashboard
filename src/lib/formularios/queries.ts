@@ -1,17 +1,21 @@
 // Server-only queries for the formularios module.
 // Uses the service_role client so admins can read every form (including
 // inactive ones, which the anon RLS policy hides). Error strings are Spanish.
+// Queries use retry() to survive PostgREST cold-start 500s after deploys.
 
 import { getSupabaseAdminClient } from '@/lib/supabase';
+import { retry } from '@/lib/retry';
 import type { Formulario, FormularioRespuesta } from './types';
 
 export async function listFormularios(): Promise<Formulario[]> {
   try {
     const admin = getSupabaseAdminClient();
-    const { data, error } = await admin
-      .from('formularios')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const { data, error } = await retry(() =>
+      admin
+        .from('formularios')
+        .select('*')
+        .order('created_at', { ascending: false })
+    );
 
     if (error) throw new Error(error.message);
     return (data ?? []) as Formulario[];
@@ -25,11 +29,13 @@ export async function listFormularios(): Promise<Formulario[]> {
 export async function fetchFormById(id: string): Promise<Formulario | null> {
   try {
     const admin = getSupabaseAdminClient();
-    const { data, error } = await admin
-      .from('formularios')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
+    const { data, error } = await retry(() =>
+      admin
+        .from('formularios')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle()
+    );
 
     if (error) throw new Error(error.message);
     return (data as Formulario) ?? null;
@@ -46,12 +52,14 @@ export async function listRespuestas(
 ): Promise<FormularioRespuesta[]> {
   try {
     const admin = getSupabaseAdminClient();
-    const { data, error } = await admin
-      .from('respuestas_formulario')
-      .select('*')
-      .eq('formulario_id', formularioId)
-      .order('submitted_at', { ascending: false })
-      .limit(limit);
+    const { data, error } = await retry(() =>
+      admin
+        .from('respuestas_formulario')
+        .select('*')
+        .eq('formulario_id', formularioId)
+        .order('submitted_at', { ascending: false })
+        .limit(limit)
+    );
 
     if (error) throw new Error(error.message);
     return (data ?? []) as FormularioRespuesta[];
