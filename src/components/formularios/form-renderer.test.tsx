@@ -89,6 +89,34 @@ describe('FormRenderer', () => {
     expect(screen.queryByRole('button', { name: /Enviar/ })).not.toBeInTheDocument();
   });
 
+  it('disables every control and hides the submit button in readOnly mode', () => {
+    const onSubmit = vi.fn();
+    render(
+      <FormRenderer
+        definicion={makeDef()}
+        titulo="T"
+        initialAnswers={{ nombre: 'Ana' }}
+        onSubmit={onSubmit}
+        readOnly
+      />
+    );
+
+    expect(screen.getByDisplayValue('Ana')).toBeDisabled();
+    expect(screen.getByLabelText(/Provincia/)).toBeDisabled();
+    expect(screen.getByLabelText(/Detalle/)).toBeDisabled();
+    expect(screen.getByRole('radio', { name: 'Femenino' })).toBeDisabled();
+    expect(screen.getByRole('checkbox', { name: 'Deportes' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '3' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: /Enviar/ })).not.toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('renders no h1 header when the title is empty', () => {
+    render(<FormRenderer definicion={makeDef()} titulo="" />);
+    expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument();
+    expect(screen.getByText('Nombre')).toBeInTheDocument();
+  });
+
   it('shows "Campo obligatorio" for an empty required field on submit and skips onSubmit', async () => {
     const onSubmit = vi.fn();
     render(<FormRenderer definicion={makeDef()} titulo="T" onSubmit={onSubmit} />);

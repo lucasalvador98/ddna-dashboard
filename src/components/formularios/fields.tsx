@@ -11,6 +11,8 @@ export interface FieldInputProps {
   value: unknown;
   onChange: (value: unknown) => void;
   error?: string;
+  /** Disables every rendered control (read-only/response detail mode). */
+  disabled?: boolean;
 }
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -65,11 +67,11 @@ export function fieldError(field: CampoFormulario, value: unknown): string | nul
 
 const inputClass = (error?: string) =>
   clsx(
-    'w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[var(--ddna-blue)] focus:border-transparent',
+    'w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[var(--ddna-blue)] focus:border-transparent disabled:bg-slate-50 disabled:text-slate-700 disabled:cursor-default',
     error ? 'border-red-400' : 'border-slate-300'
   );
 
-export function FieldInput({ field, value, onChange, error }: FieldInputProps) {
+export function FieldInput({ field, value, onChange, error, disabled }: FieldInputProps) {
   if (field.type === 'heading') {
     return <h3 className="text-lg font-semibold text-[var(--ddna-navy)] mt-2">{field.label}</h3>;
   }
@@ -86,6 +88,7 @@ export function FieldInput({ field, value, onChange, error }: FieldInputProps) {
           value={(value as string) ?? ''}
           placeholder={field.placeholder}
           onChange={(e) => onChange(e.target.value)}
+          disabled={disabled}
           className={inputClass(error)}
         />
       );
@@ -97,6 +100,7 @@ export function FieldInput({ field, value, onChange, error }: FieldInputProps) {
           placeholder={field.placeholder}
           rows={4}
           onChange={(e) => onChange(e.target.value)}
+          disabled={disabled}
           className={inputClass(error)}
         />
       );
@@ -108,6 +112,7 @@ export function FieldInput({ field, value, onChange, error }: FieldInputProps) {
           value={value === undefined || value === null ? '' : String(value)}
           placeholder={field.placeholder}
           onChange={(e) => onChange(e.target.value === '' ? undefined : Number(e.target.value))}
+          disabled={disabled}
           className={inputClass(error)}
         />
       );
@@ -117,6 +122,7 @@ export function FieldInput({ field, value, onChange, error }: FieldInputProps) {
           id={field.id}
           value={(value as string) ?? ''}
           onChange={(e) => onChange(e.target.value || undefined)}
+          disabled={disabled}
           className={inputClass(error)}
         >
           <option value="">{field.placeholder ?? 'Seleccioná una opción'}</option>
@@ -131,13 +137,20 @@ export function FieldInput({ field, value, onChange, error }: FieldInputProps) {
       return (
         <div className="space-y-2">
           {field.options.map((opt) => (
-            <label key={opt} className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+            <label
+              key={opt}
+              className={clsx(
+                'flex items-center gap-2 text-sm text-slate-700',
+                disabled ? 'cursor-default opacity-70' : 'cursor-pointer'
+              )}
+            >
               <input
                 type="radio"
                 name={field.id}
                 value={opt}
                 checked={value === opt}
                 onChange={() => onChange(opt)}
+                disabled={disabled}
                 className="accent-[var(--ddna-blue)]"
               />
               {opt}
@@ -151,11 +164,18 @@ export function FieldInput({ field, value, onChange, error }: FieldInputProps) {
           {field.options.map((opt) => {
             const checked = Array.isArray(value) && value.includes(opt);
             return (
-              <label key={opt} className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+              <label
+                key={opt}
+                className={clsx(
+                  'flex items-center gap-2 text-sm text-slate-700',
+                  disabled ? 'cursor-default opacity-70' : 'cursor-pointer'
+                )}
+              >
                 <input
                   type="checkbox"
                   value={opt}
                   checked={checked}
+                  disabled={disabled}
                   onChange={(e) => {
                     const current = Array.isArray(value) ? [...value] : [];
                     const next = e.target.checked
@@ -179,12 +199,17 @@ export function FieldInput({ field, value, onChange, error }: FieldInputProps) {
               <button
                 key={n}
                 type="button"
+                disabled={disabled}
                 onClick={() => onChange(value === n ? undefined : n)}
                 className={clsx(
                   'w-10 h-10 rounded-lg border text-sm font-medium transition-colors',
                   value === n
                     ? 'bg-[var(--ddna-blue)] text-white border-[var(--ddna-blue)]'
-                    : 'bg-white text-slate-700 border-slate-300 hover:border-[var(--ddna-blue)]'
+                    : clsx(
+                        'bg-white text-slate-700 border-slate-300',
+                        !disabled && 'hover:border-[var(--ddna-blue)]'
+                      ),
+                  disabled && 'cursor-default opacity-70'
                 )}
               >
                 {n}

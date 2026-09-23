@@ -24,6 +24,8 @@ interface FormRendererProps {
   submitLabel?: string;
   /** Preview mode (builder): no submit button and no required/format errors. */
   preview?: boolean;
+  /** Read-only mode (response detail): disables every control, no submit, no errors. */
+  readOnly?: boolean;
 }
 
 function hasBlocks(def: DefinicionFormulario): boolean {
@@ -35,7 +37,8 @@ function renderField(
   visible: Set<string>,
   answers: Record<string, unknown>,
   errors: Record<string, string>,
-  preview: boolean,
+  suppressErrors: boolean,
+  disabled: boolean,
   handleChange: (fieldId: string, value: unknown) => void
 ) {
   if (!visible.has(field.id)) return null;
@@ -53,9 +56,10 @@ function renderField(
         value={answers[field.id]}
         onChange={(v) => handleChange(field.id, v)}
         error={errors[field.id]}
+        disabled={disabled}
       />
       {field.helpText && <p className="text-xs text-slate-400 mt-1">{field.helpText}</p>}
-      {errors[field.id] && !preview && (
+      {errors[field.id] && !suppressErrors && (
         <p className="text-xs text-red-500 mt-1">{errors[field.id]}</p>
       )}
     </div>
@@ -70,10 +74,13 @@ export function FormRenderer({
   onSubmit,
   submitLabel = 'Enviar',
   preview = false,
+  readOnly = false,
 }: FormRendererProps) {
   const [answers, setAnswers] = useState<Record<string, unknown>>(initialAnswers ?? {});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+
+  const suppressErrors = preview || readOnly;
 
   const visible = evaluateLogic(definicion, answers);
 
@@ -143,10 +150,12 @@ export function FormRenderer({
       }}
       className="space-y-6"
     >
-      <header>
-        <h1 className="font-display text-2xl text-[var(--ddna-navy)]">{titulo}</h1>
-        {descripcion && <p className="text-sm text-slate-500 mt-1">{descripcion}</p>}
-      </header>
+      {titulo && (
+        <header>
+          <h1 className="font-display text-2xl text-[var(--ddna-navy)]">{titulo}</h1>
+          {descripcion && <p className="text-sm text-slate-500 mt-1">{descripcion}</p>}
+        </header>
+      )}
 
       {hasBlocks(definicion) ? (
         <>
@@ -162,7 +171,7 @@ export function FormRenderer({
                   )}
                 </div>
                 {visibleFields.map((field) =>
-                  renderField(field, visible, answers, errors, preview, handleChange)
+                  renderField(field, visible, answers, errors, suppressErrors, readOnly, handleChange)
                 )}
               </section>
             );
@@ -173,7 +182,7 @@ export function FormRenderer({
               {orphanFields
                 .filter((f) => visible.has(f.id))
                 .map((field) =>
-                  renderField(field, visible, answers, errors, preview, handleChange)
+                  renderField(field, visible, answers, errors, suppressErrors, readOnly, handleChange)
                 )}
             </section>
           )}
@@ -182,11 +191,11 @@ export function FormRenderer({
         definicion.fields
           .filter((field) => visible.has(field.id))
           .map((field) =>
-            renderField(field, visible, answers, errors, preview, handleChange)
+            renderField(field, visible, answers, errors, suppressErrors, readOnly, handleChange)
           )
       )}
 
-      {!preview && onSubmit && (
+      {!preview && !readOnly && onSubmit && (
         <button
           type="submit"
           disabled={submitting}

@@ -5,6 +5,7 @@
 
 import { Eye, Trash2, Loader2 } from 'lucide-react';
 import type { DefinicionFormulario, FormularioRespuesta } from '@/lib/formularios/types';
+import { getAllFields } from '@/lib/formularios/defaults';
 
 interface ResponsesTableProps {
   respuestas: FormularioRespuesta[];
@@ -26,9 +27,21 @@ function formatSubmittedAt(iso: string): string {
   });
 }
 
+/** Render a scalar for display. Objects are not displayable, so they map to ''. */
+function formatScalar(value: unknown): string {
+  if (value === undefined || value === null) return '';
+  if (typeof value === 'object') return '';
+  return String(value);
+}
+
+/** Render an answer for a table cell. Never emits `[object Object]`. */
 function formatValue(value: unknown): string {
   if (value === undefined || value === null) return '—';
-  if (Array.isArray(value)) return value.join(', ') || '—';
+  if (Array.isArray(value)) {
+    const parts = value.map(formatScalar).filter((part) => part !== '');
+    return parts.length > 0 ? parts.join(', ') : '—';
+  }
+  if (typeof value === 'object') return '—';
   return String(value);
 }
 
@@ -39,7 +52,7 @@ export function ResponsesTable({
   onView,
   onDelete,
 }: ResponsesTableProps) {
-  const previewFields = definicion.fields
+  const previewFields = getAllFields(definicion)
     .filter((field) => field.type !== 'heading')
     .slice(0, PREVIEW_FIELDS);
 
