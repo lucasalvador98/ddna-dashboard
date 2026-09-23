@@ -18,8 +18,13 @@ export async function assertAdminAuth(): Promise<void> {
         getAll() {
           return cookieStore.getAll();
         },
-        setAll() {
-          // No-op in server actions
+        setAll(cookiesToSet) {
+          // Persist rotated tokens. getUser()/refresh can rotate the session
+          // server-side; dropping the new cookies leaves the browser with a
+          // revoked refresh token and the user stuck in a 401 loop.
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options)
+          );
         },
       },
     }
