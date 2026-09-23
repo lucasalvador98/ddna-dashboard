@@ -1,17 +1,18 @@
 'use client';
 
-// Admin responses orchestrator: header band, export CSV button, table of
-// responses, JSON detail drawer and delete-with-confirm. UI strings Spanish;
-// identifiers/comments in English.
+// Admin responses orchestrator: header band, export XLSX button, form preview
+// modal, table of responses, read-only filled-in form drawer and
+// delete-with-confirm. UI strings Spanish; identifiers/comments in English.
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Download, Loader2, Inbox, CheckCircle, XCircle } from 'lucide-react';
+import { ArrowLeft, Download, Loader2, Inbox, CheckCircle, XCircle, Eye } from 'lucide-react';
 import clsx from 'clsx';
 import type { Formulario, FormularioRespuesta } from '@/lib/formularios/types';
 import { deleteRespuesta, exportRespuestasXlsx } from '@/lib/actions/formularios';
 import { ResponsesTable } from '@/components/formularios/admin/responses-table';
 import { ResponseDetail } from '@/components/formularios/admin/response-detail';
+import { FormPreviewModal } from '@/components/formularios/form-preview-modal';
 
 interface RespuestasClientProps {
   form: Formulario | null;
@@ -60,6 +61,7 @@ export function RespuestasClient({ form, respuestas }: RespuestasClientProps) {
   const [selected, setSelected] = useState<FormularioRespuesta | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
 
   async function handleDelete(respuesta: FormularioRespuesta) {
@@ -126,19 +128,29 @@ export function RespuestasClient({ form, respuestas }: RespuestasClientProps) {
             Respuestas — {items.length} {items.length === 1 ? 'respuesta' : 'respuestas'}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={handleExport}
-          disabled={empty || exporting}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white/10 text-white hover:bg-white/20 border border-white/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          {exporting ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Download className="w-4 h-4" />
-          )}
-          Exportar XLSX
-        </button>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            type="button"
+            onClick={() => setPreviewOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white/10 text-white hover:bg-white/20 border border-white/20 transition-colors"
+          >
+            <Eye className="w-4 h-4" />
+            Vista previa
+          </button>
+          <button
+            type="button"
+            onClick={handleExport}
+            disabled={empty || exporting}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white/10 text-white hover:bg-white/20 border border-white/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {exporting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
+            Exportar XLSX
+          </button>
+        </div>
       </div>
 
       {empty ? (
@@ -161,10 +173,15 @@ export function RespuestasClient({ form, respuestas }: RespuestasClientProps) {
 
       <ResponseDetail
         respuesta={selected}
+        definicion={form.definicion}
         busyId={busyId}
         onClose={() => setSelected(null)}
         onDelete={handleDelete}
       />
+
+      {previewOpen && (
+        <FormPreviewModal form={form} onClose={() => setPreviewOpen(false)} />
+      )}
 
       {toast && <Toast toast={toast} />}
     </div>

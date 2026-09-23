@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { RespuestasClient } from './respuestas-client';
 import { deleteRespuesta, exportRespuestasXlsx } from '@/lib/actions/formularios';
 import type { Formulario, FormularioRespuesta } from '@/lib/formularios/types';
@@ -66,6 +66,8 @@ describe('RespuestasClient', () => {
 
     expect(screen.getByText('Todavía no hay respuestas para este formulario.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Exportar XLSX' })).toBeDisabled();
+    // Preview must work even with zero responses
+    expect(screen.getByRole('button', { name: 'Vista previa' })).toBeEnabled();
   });
 
   it('shows the not-found state when the form is missing', () => {
@@ -74,13 +76,27 @@ describe('RespuestasClient', () => {
     expect(screen.getByText('Formulario no encontrado.')).toBeInTheDocument();
   });
 
-  it('opens the detail drawer with the pretty JSON on "Ver detalle"', () => {
+  it('opens the detail drawer with the filled-in, read-only form on "Ver detalle"', () => {
     render(<RespuestasClient form={FORM} respuestas={RESPUESTAS} />);
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Ver detalle' })[0]);
 
-    expect(screen.getByRole('dialog', { name: 'Detalle de la respuesta' })).toBeInTheDocument();
-    expect(screen.getByText(/\"nombre\": \"Ana\"/)).toBeInTheDocument();
+    const dialog = screen.getByRole('dialog', { name: 'Detalle de la respuesta' });
+    expect(dialog).toBeInTheDocument();
+    // Field label "Nombre" and value "Ana" rendered as a disabled input
+    expect(within(dialog).getByText('Nombre')).toBeInTheDocument();
+    const input = within(dialog).getByDisplayValue('Ana');
+    expect(input).toBeDisabled();
+  });
+
+  it('opens the preview dialog from the "Vista previa" button', () => {
+    render(<RespuestasClient form={FORM} respuestas={RESPUESTAS} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Vista previa' }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Vista previa del formulario' });
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByText('Encuesta 2026')).toBeInTheDocument();
   });
 
   it('deletes a response after confirmation and removes the row', async () => {

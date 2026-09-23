@@ -1,14 +1,16 @@
 'use client';
 
 // Response detail drawer (repo-file-drawer pattern): submitted_at, id and the
-// pretty-printed JSON answers, with a delete action in the footer.
+// filled-in form rendered read-only with the respondent's answers loaded.
 
 import { useRef, useEffect, useCallback } from 'react';
 import { X, Trash2, Loader2 } from 'lucide-react';
-import type { FormularioRespuesta } from '@/lib/formularios/types';
+import type { FormularioRespuesta, DefinicionFormulario } from '@/lib/formularios/types';
+import { FormRenderer } from '@/components/formularios/form-renderer';
 
 interface ResponseDetailProps {
   respuesta: FormularioRespuesta | null;
+  definicion?: DefinicionFormulario;
   busyId: string | null;
   onClose: () => void;
   onDelete: (respuesta: FormularioRespuesta) => void;
@@ -24,7 +26,7 @@ function formatSubmittedAt(iso: string): string {
   });
 }
 
-export function ResponseDetail({ respuesta, busyId, onClose, onDelete }: ResponseDetailProps) {
+export function ResponseDetail({ respuesta, definicion, busyId, onClose, onDelete }: ResponseDetailProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -80,7 +82,7 @@ export function ResponseDetail({ respuesta, busyId, onClose, onDelete }: Respons
         aria-label="Detalle de la respuesta"
         tabIndex={-1}
         ref={dialogRef}
-        className="fixed top-0 right-0 bottom-0 w-full max-w-md bg-white shadow-2xl z-50 flex flex-col"
+        className="fixed top-0 right-0 bottom-0 w-full max-w-2xl bg-white shadow-2xl z-50 flex flex-col"
         style={{ animation: 'drawer-in 200ms ease-out' }}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
@@ -112,12 +114,22 @@ export function ResponseDetail({ respuesta, busyId, onClose, onDelete }: Respons
           </div>
 
           <div>
-            <label className="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-1.5 block">
+            <label className="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-2 block">
               Respuestas
             </label>
-            <pre className="text-xs bg-slate-50 border border-slate-200 rounded-lg p-3 overflow-x-auto whitespace-pre-wrap break-words text-slate-700 font-mono">
-              {JSON.stringify(respuesta.respuestas, null, 2)}
-            </pre>
+            {definicion ? (
+              <FormRenderer
+                definicion={definicion}
+                titulo=""
+                initialAnswers={respuesta.respuestas}
+                readOnly
+              />
+            ) : (
+              <div className="space-y-1">
+                <p className="text-sm text-gray-400 italic">Sin respuestas registradas.</p>
+                <p className="text-sm text-gray-400 italic">Definición no disponible.</p>
+              </div>
+            )}
           </div>
         </div>
 
