@@ -20,6 +20,7 @@ import clsx from 'clsx';
 import type { Formulario } from '@/lib/formularios/types';
 import { deleteForm, toggleForm } from '@/lib/actions/formularios';
 import { Toggle } from '@/components/monitoreo/toggle';
+import { FormPreviewModal } from '@/components/formularios/form-preview-modal';
 
 /** Public URL for a form — shared by the copy button and the QR modal. */
 function publicFormUrl(slug: string): string {
@@ -226,12 +227,14 @@ function FormRow({
   onToggle,
   onDelete,
   onShare,
+  onPreview,
 }: {
   form: Formulario;
   busyId: string | null;
   onToggle: (id: string) => void;
   onDelete: (form: Formulario) => void;
   onShare: (form: Formulario) => void;
+  onPreview: (form: Formulario) => void;
 }) {
   const isBusy = busyId === form.id;
 
@@ -270,6 +273,14 @@ function FormRow({
           <Share2 className="w-3.5 h-3.5" />
           Compartir
         </button>
+        <button
+          type="button"
+          onClick={() => onPreview(form)}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
+        >
+          <Eye className="w-3.5 h-3.5" />
+          Vista previa
+        </button>
         <Link
           href={`/formularios/respuestas/${form.id}`}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
@@ -296,9 +307,12 @@ export function FormulariosClient({ formularios }: FormulariosClientProps) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
   const [qrFormId, setQrFormId] = useState<string | null>(null);
+  const [previewFormId, setPreviewFormId] = useState<string | null>(null);
 
   const qrForm = items.find((f) => f.id === qrFormId) ?? null;
   const closeQr = useCallback(() => setQrFormId(null), []);
+  const previewForm = items.find((f) => f.id === previewFormId) ?? null;
+  const closePreview = useCallback(() => setPreviewFormId(null), []);
 
   async function handleToggle(id: string) {
     if (busyId) return;
@@ -387,6 +401,7 @@ export function FormulariosClient({ formularios }: FormulariosClientProps) {
               onToggle={handleToggle}
               onDelete={handleDelete}
               onShare={(f: Formulario) => setQrFormId(f.id)}
+              onPreview={(f: Formulario) => setPreviewFormId(f.id)}
             />
           ))}
         </div>
@@ -399,6 +414,8 @@ export function FormulariosClient({ formularios }: FormulariosClientProps) {
           onCopy={handleCopy}
         />
       )}
+
+      <FormPreviewModal form={previewForm} onClose={closePreview} />
 
       {toast && <Toast toast={toast} />}
     </div>

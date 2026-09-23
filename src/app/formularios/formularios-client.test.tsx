@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { FormulariosClient } from './formularios-client';
 import type { Formulario } from '@/lib/formularios/types';
 
@@ -52,8 +52,21 @@ describe('FormulariosClient', () => {
     expect(screen.getByText('Encuesta 2026')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Editar' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Compartir' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Vista previa' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Respuestas' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Borrar' })).toBeInTheDocument();
+  });
+
+  it('opens the preview dialog from "Vista previa" and closes it with Escape', () => {
+    render(<FormulariosClient formularios={FORMS} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Vista previa' }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Vista previa del formulario' });
+    expect(within(dialog).getByText('Encuesta 2026')).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('copies the public form link to the clipboard via the share modal', async () => {
