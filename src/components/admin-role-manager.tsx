@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Shield, Plus, Trash2, CheckCircle, Loader2, Eye, Edit3 } from 'lucide-react';
 import clsx from 'clsx';
 import { APP_ROUTES } from '@/lib/rbac-types';
+import { dashboardPath } from '@/lib/app-path';
 import type { Role, RolePermission } from '@/lib/rbac-types';
 
 // ── Constants ───────────────────────────────────────────────────────
@@ -75,7 +76,7 @@ export function RoleManager({ onFlash }: RoleManagerProps) {
 
   const loadRoles = useCallback(async () => {
     try {
-      const res = await fetch('/api/auth/roles');
+      const res = await fetch(dashboardPath('/api/auth/roles'));
       if (res.ok) {
         const data = await res.json();
         setRoles(data);
@@ -131,7 +132,7 @@ export function RoleManager({ onFlash }: RoleManagerProps) {
           can_edit: p.can_edit,
         })),
       };
-      const res = await fetch(`/api/auth/roles/${selectedRoleId}/permissions`, {
+      const res = await fetch(dashboardPath(`/api/auth/roles/${selectedRoleId}/permissions`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -154,7 +155,7 @@ export function RoleManager({ onFlash }: RoleManagerProps) {
     if (!newName.trim()) return;
     setCreating(true);
     try {
-      const res = await fetch('/api/auth/roles', {
+      const res = await fetch(dashboardPath('/api/auth/roles'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newName.trim(), description: newDesc.trim() || undefined }),
@@ -178,7 +179,7 @@ export function RoleManager({ onFlash }: RoleManagerProps) {
     if (!confirm('¿Eliminar este rol? Se quitarán los permisos de los usuarios asignados.')) return;
     setDeleting(id);
     try {
-      const res = await fetch(`/api/auth/roles/${id}`, { method: 'DELETE' });
+      const res = await fetch(dashboardPath(`/api/auth/roles/${id}`), { method: 'DELETE' });
       if (res.ok) {
         if (selectedRoleId === id) setSelectedRoleId(null);
         await loadRoles();

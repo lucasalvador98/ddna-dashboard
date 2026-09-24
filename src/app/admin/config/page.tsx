@@ -14,6 +14,7 @@ import {
 import clsx from 'clsx';
 import { getAuthConfig } from '@/lib/actions/auth-config';
 import { APP_ROUTES } from '@/lib/rbac-types';
+import { dashboardPath } from '@/lib/app-path';
 
 type HealthStatus = 'healthy' | 'degraded' | 'starting' | 'error';
 
@@ -50,7 +51,7 @@ export default function ConfigPage() {
   const loadHealth = useCallback(async () => {
     setHealthLoading(true);
     try {
-      const res = await fetch('/api/health');
+      const res = await fetch(dashboardPath('/api/health'));
       const data = await res.json();
       setHealth(data);
     } catch {
@@ -69,7 +70,7 @@ export default function ConfigPage() {
   const handleToggle = async () => {
     setToggling(true);
     try {
-      const r = await fetch('/api/auth/toggle', {
+      const r = await fetch(dashboardPath('/api/auth/toggle'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled: !enabled }),
@@ -96,7 +97,7 @@ export default function ConfigPage() {
     setProtectedRoutes(next);
 
     try {
-      const r = await fetch('/api/auth/toggle', {
+      const r = await fetch(dashboardPath('/api/auth/toggle'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ protected_routes: next }),

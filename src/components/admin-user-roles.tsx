@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { getUsers } from '@/lib/actions/auth-users';
+import { dashboardPath } from '@/lib/app-path';
 import {
   Users,
   Mail,
@@ -138,7 +139,7 @@ export function UserRoleManager({ onFlash }: UserRoleManagerProps) {
     try {
       const [users, rolesRes] = await Promise.all([
         getUsers(),
-        fetch('/api/auth/roles'),
+        fetch(dashboardPath('/api/auth/roles')),
       ]);
 
       const seen = new Set<string>();
@@ -174,7 +175,7 @@ export function UserRoleManager({ onFlash }: UserRoleManagerProps) {
   const handleRoleChange = async (userId: string, roleId: number | null) => {
     setSavingUserId(userId);
     try {
-      const res = await fetch(`/api/auth/users/${userId}/role`, {
+      const res = await fetch(dashboardPath(`/api/auth/users/${userId}/role`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role_id: roleId ?? undefined }),
@@ -196,7 +197,7 @@ export function UserRoleManager({ onFlash }: UserRoleManagerProps) {
     if (!newEmail || !newPassword) return;
     setAdding(true);
     try {
-      const res = await fetch('/api/auth/admins', {
+      const res = await fetch(dashboardPath('/api/auth/admins'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: newEmail, password: newPassword }),

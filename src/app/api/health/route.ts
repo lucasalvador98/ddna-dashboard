@@ -10,10 +10,11 @@ export async function GET() {
   };
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  if (!supabaseUrl) {
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !supabaseAnonKey) {
     return NextResponse.json({
       status: "degraded",
-      message: "Supabase not configured. Using placeholder data.",
+      message: "Supabase public client is not configured.",
       checks,
     });
   }

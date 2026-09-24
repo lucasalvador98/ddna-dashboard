@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
-import { getBrowserClient } from '@/lib/supabase';
+import { getBrowserClient, isSupabaseConfigured } from '@/lib/supabase';
 import type { Session, User } from '@supabase/supabase-js';
 
 interface AuthContextValue {
@@ -37,9 +37,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   // Use shared browser client singleton — no new instance created
-  const [supabase] = useState(() => getBrowserClient());
+  const [supabase] = useState(() => (isSupabaseConfigured() ? getBrowserClient() : null));
 
   useEffect(() => {
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
+
     let mounted = true;
 
     // Hydrate initial session from cookies (SSR middleware may have set them)
@@ -101,7 +106,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [supabase]);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
   }, [supabase]);
 
   return (

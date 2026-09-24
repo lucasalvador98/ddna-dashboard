@@ -7,7 +7,8 @@ export async function GET(request: Request) {
   const categoria = searchParams.get("categoria") as CategoriaIndicador | null;
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  if (!supabaseUrl) {
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !supabaseAnonKey) {
     return NextResponse.json(
       { error: "Supabase not configured" },
       { status: 503 }
@@ -17,24 +18,8 @@ export async function GET(request: Request) {
   try {
     let query = supabase
       .from("indicadores")
-      .select(
-        `
-        id,
-        categoria,
-        nombre,
-        descripcion,
-        unidad,
-        frecuencia_actualizacion,
-        datos_indicadores (
-          valor,
-          periodo,
-          region,
-          desglose
-        )
-      `
-      )
-      .eq("activo", true)
-      .order("orden", { ascending: true });
+      .select("id, indicador_nombre, categoria, valor, unidad, periodo, region, desglose, fuente")
+      .order("periodo", { ascending: false });
 
     if (categoria) {
       query = query.eq("categoria", categoria);

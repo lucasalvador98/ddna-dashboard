@@ -15,6 +15,7 @@ import { ChartCard } from '@/components/charts/chart-card';
 import { PageError } from '@/components/page-error';
 import { PageLoading } from '@/components/page-loading';
 import type { FuenteDato, CategoriaIndicador } from '@/lib/supabase';
+import { dashboardPath } from '@/lib/app-path';
 
 // ── Types ───────────────────────────────────────────────────
 
@@ -257,7 +258,7 @@ export function FuentesClient({
     }
 
     try {
-      const res = await fetch(`/api/external?${params}`);
+      const res = await fetch(dashboardPath(`/api/external?${params}`));
       if (!res.ok) {
         throw new Error(`Error HTTP: ${res.status}`);
       }
@@ -545,7 +546,7 @@ export function FuentesClient({
                             </td>
                             <td className="px-4 py-3">
                               <a
-                                href={`/api/external?source=${activeSource === 'datosgob' ? 'datosgob' : activeSource}&action=show&id=${name}`}
+                                href={dashboardPath(`/api/external?source=${activeSource === 'datosgob' ? 'datosgob' : activeSource}&action=show&id=${name}`)}
                                 target="_blank"
                                 className="text-xs text-blue-600 hover:underline"
                               >
@@ -713,7 +714,7 @@ export function FuentesClient({
                             </td>
                             <td className="px-4 py-3">
                               <a
-                                href={`/api/external?source=${activeSource === 'datosgob' ? 'datosgob' : activeSource}&action=show&id=${name}`}
+                                href={dashboardPath(`/api/external?source=${activeSource === 'datosgob' ? 'datosgob' : activeSource}&action=show&id=${name}`)}
                                 target="_blank"
                                 className="text-xs text-blue-600 hover:underline"
                               >

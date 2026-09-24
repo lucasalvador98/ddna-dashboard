@@ -6,6 +6,8 @@ import { PageLoading } from '@/components/page-loading';
 import { parseDesglose } from '@/lib/parse-desglose';
 import { InversionCharts } from './inversion-charts';
 import type { InversionRow } from './inversion-charts';
+import { hasPublicSupabaseConfig } from '@/lib/runtime-config';
+import { SupabaseUnavailable } from '@/components/supabase-unavailable';
 
 const AREA_ORDER = ['Educación', 'Salud', 'Desarrollo Social', 'Niñez y Adolescencia', 'Otros'];
 
@@ -63,6 +65,10 @@ async function fetchInversionData(): Promise<InversionRow[]> {
 }
 
 async function InversionContent() {
+  if (!hasPublicSupabaseConfig()) {
+    return <SupabaseUnavailable />;
+  }
+
   const inversionData = await fetchInversionData();
 
   const periods = [...new Set(inversionData.map(d => d.periodo))].sort((a, b) => {

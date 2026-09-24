@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { ExternalLink, Search, Database, FileText, Building2, Users, Heart } from 'lucide-react';
+import { dashboardPath } from '@/lib/app-path';
 
 interface Dataset {
   name: string;
@@ -47,7 +48,7 @@ export function ApisClient({ initialData }: ApisClientProps) {
     }
 
     try {
-      const res = await fetch(`/api/external?${params}`);
+      const res = await fetch(dashboardPath(`/api/external?${params}`));
       if (!res.ok) {
         throw new Error(`Error HTTP: ${res.status}`);
       }
@@ -209,7 +210,7 @@ export function ApisClient({ initialData }: ApisClientProps) {
                         </td>
                         <td className="px-4 py-3">
                           <a
-                            href={`/api/external?source=${activeSource === 'datosgob' ? 'datosgob' : activeSource}&action=show&id=${name}`}
+                            href={dashboardPath(`/api/external?source=${activeSource === 'datosgob' ? 'datosgob' : activeSource}&action=show&id=${name}`)}
                             target="_blank"
                             className="text-xs text-blue-600 hover:underline"
                           >

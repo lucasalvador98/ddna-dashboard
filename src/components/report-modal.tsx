@@ -14,6 +14,7 @@ import { X, Loader2, FileText, Printer, AlertCircle, Check } from 'lucide-react'
 import clsx from 'clsx';
 import { ReportContent } from './report-content';
 import { PresentacionForm } from './presentacion-form';
+import { dashboardPath } from '@/lib/app-path';
 import { SlideViewer } from './slide-viewer';
 import { DownloadPptxButton } from './download-pptx-button';
 
@@ -159,7 +160,7 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
     setReportState({ phase: 'loading' });
 
     try {
-      const response = await fetch('/api/repositorio/informe-ejecutivo', {
+      const response = await fetch(dashboardPath('/api/repositorio/informe-ejecutivo'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ axes }),
@@ -189,7 +190,7 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
     setPresentacionState({ phase: 'loading' });
 
     try {
-      const response = await fetch('/api/repositorio/presentacion', {
+      const response = await fetch(dashboardPath('/api/repositorio/presentacion'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -8,12 +8,15 @@ import { createClient } from '@supabase/supabase-js';
 import type { Formulario } from '@/lib/formularios/types';
 import { FormularioNoDisponible } from '@/components/formularios/unavailable';
 import { PublicFormClient } from './public-form-client';
+import { hasPublicSupabaseConfig } from '@/lib/runtime-config';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 // Dedupes the fetch between generateMetadata and the page within one request.
 const fetchActiveFormBySlug = cache(async (slug: string): Promise<Formulario | null> => {
+  if (!hasPublicSupabaseConfig()) return null;
+
   const anon = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const { data, error } = await anon.from('formularios').select('*').eq('slug', slug).maybeSingle();
   if (error) return null;

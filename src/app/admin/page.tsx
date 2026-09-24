@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import { PageLoading } from '@/components/page-loading';
 import { AdminUpdateButton } from './admin-update-button';
+import { hasAdminSupabaseConfig } from '@/lib/runtime-config';
+import { SupabaseUnavailable } from '@/components/supabase-unavailable';
 
 interface SystemStats {
   counts: {
@@ -83,6 +85,10 @@ export default function AdminPage() {
 }
 
 async function AdminContent() {
+  if (!hasAdminSupabaseConfig()) {
+    return <SupabaseUnavailable />;
+  }
+
   const stats = await fetchStats();
   return <AdminDashboard stats={stats} />;
 }

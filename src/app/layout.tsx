@@ -4,6 +4,11 @@ import './globals.css';
 import { AuthProvider } from '@/components/auth-provider';
 import { AppShell } from '@/components/app-shell';
 
+// Supabase and the authorization settings are resolved at runtime. This keeps
+// production builds from prerendering administrative routes with missing local
+// credentials, while preserving the existing SSR/API architecture.
+export const dynamic = 'force-dynamic';
+
 const epilogue = Epilogue({
   variable: '--font-epilogue',
   subsets: ['latin'],

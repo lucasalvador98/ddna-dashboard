@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { SectionCard } from '@/components/section-card';
 import { motion } from 'motion/react';
 import { Card, CardContent } from '@/components/ui/card';
+import { dashboardPath } from '@/lib/app-path';
 
 const tools = [
   {
@@ -40,7 +41,7 @@ export default function HomePage() {
       <div className="bg-white">
         <div className="max-w-4xl mx-auto px-6 py-10 lg:py-14 text-center">
           <img
-            src="/logos/LOGO DDNA_HORIZONTAL_COLOR.png"
+            src={dashboardPath('/logos/LOGO DDNA_HORIZONTAL_COLOR.png')}
             alt="DDNA"
             className="h-13 lg:h-15 mx-auto mb-5 object-contain"
           />
@@ -143,14 +144,14 @@ export default function HomePage() {
           <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <img
-                src="/logos/Cba.png"
+                src={dashboardPath('/logos/Cba.png')}
                 alt="Gobierno de Córdoba"
                 width={32}
                 height={32}
                 className="rounded"
               />
               <img
-                src="/logos/LOGO DDNA_HORIZONTAL_COLOR.png"
+                src={dashboardPath('/logos/LOGO DDNA_HORIZONTAL_COLOR.png')}
                 alt="DDNA"
                 width={120}
                 height={32}

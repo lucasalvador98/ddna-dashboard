@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Lock, ShieldX, Loader2 } from 'lucide-react';
 import { useAuth } from '@/components/auth-provider';
 import { supabase } from '@/lib/supabase';
+import { dashboardPath } from '@/lib/app-path';
 import type { RolePermission } from '@/lib/rbac-types';
 
 interface AuthConfig {
@@ -124,7 +125,7 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
       setPermsLoaded(false);
       try {
         // 1. Obtener el rol del usuario — with status check to avoid "No apikey" 200 masquerading as success
-        const roleRes = await fetch(`/api/auth/users/${userId}/role`);
+        const roleRes = await fetch(dashboardPath(`/api/auth/users/${userId}/role`));
         let roleData: Record<string, unknown> | null = null;
         try {
           roleData = (await roleRes.json()) as Record<string, unknown>;
@@ -153,7 +154,7 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
         setRoleName(roleData['role_name'] as string);
 
         // 2. Obtener todos los roles con permisos y filtrar por el nuestro
-        const rolesRes = await fetch('/api/auth/roles');
+        const rolesRes = await fetch(dashboardPath('/api/auth/roles'));
         let roles: unknown = null;
         try {
           roles = await rolesRes.json();

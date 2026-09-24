@@ -5,6 +5,7 @@ import { Loader2, AlertCircle, CheckCircle, RefreshCw, FolderOpen } from 'lucide
 import { supabase } from '@/lib/supabase';
 import { LoginGate } from '@/components/login-gate';
 import { SectionHeader } from '@/components/section-header';
+import { dashboardPath } from '@/lib/app-path';
 import {
   RepoHero,
   RepoStats,
@@ -76,7 +77,7 @@ export default function RepositorioClient({ initialFiles }: Props) {
       );
 
       try {
-        const res = await fetch('/api/repositorio/process', {
+        const res = await fetch(dashboardPath('/api/repositorio/process'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ fileId: file.id }),
@@ -135,7 +136,7 @@ export default function RepositorioClient({ initialFiles }: Props) {
       }
 
       if (action.type === 'reprocess') {
-        const res = await fetch('/api/repositorio/process', {
+        const res = await fetch(dashboardPath('/api/repositorio/process'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ fileId: action.file.id }),
@@ -151,7 +152,7 @@ export default function RepositorioClient({ initialFiles }: Props) {
       }
 
       if (action.type === 'delete') {
-        const res = await fetch(`/api/repositorio/file/${action.file.id}`, { method: 'DELETE' });
+        const res = await fetch(dashboardPath(`/api/repositorio/file/${action.file.id}`), { method: 'DELETE' });
         const data = await res.json();
         if (!res.ok || data.error) {
           setDrawerFlash({ type: 'err', text: data.error || 'Error al eliminar' });
@@ -165,7 +166,7 @@ export default function RepositorioClient({ initialFiles }: Props) {
       }
 
       if (action.type === 'save-metadata') {
-        const res = await fetch(`/api/repositorio/file/${action.file.id}`, {
+        const res = await fetch(dashboardPath(`/api/repositorio/file/${action.file.id}`), {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

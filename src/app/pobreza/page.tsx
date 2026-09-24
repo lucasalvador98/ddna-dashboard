@@ -7,6 +7,8 @@ import { INDICATOR_NAMES } from '@/lib/indicator-names';
 import { FilterBar } from '@/components/filter-bar';
 import PobrezaCharts from './pobreza-charts';
 import { PobrezaPilot } from './pobreza-pilot';
+import { hasPublicSupabaseConfig } from '@/lib/runtime-config';
+import { SupabaseUnavailable } from '@/components/supabase-unavailable';
 
 // ─── Types ──────────────────────────────────────────────────────
 type IndicadorRow = {
@@ -134,6 +136,10 @@ async function fetchAllData(): Promise<{ indecData: IndicadorRow[]; ucaData: Ind
 
 // ─── Page Component (Server Component) ──────────────────────────
 export default async function PobrezaPage() {
+  if (!hasPublicSupabaseConfig()) {
+    return <SupabaseUnavailable />;
+  }
+
   const { indecData, ucaData } = await fetchAllData();
 
   // ─── Empty state ──────────────────────────────────────────────

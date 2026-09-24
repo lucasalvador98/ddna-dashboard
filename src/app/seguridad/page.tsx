@@ -7,6 +7,8 @@ import { SectionHeader } from '@/components/section-header';
 import { KpiCard } from '@/components/kpi-card';
 import { INDICATOR_NAMES } from '@/lib/indicator-names';
 import { SeguridadCharts } from './seguridad-charts';
+import { hasPublicSupabaseConfig } from '@/lib/runtime-config';
+import { SupabaseUnavailable } from '@/components/supabase-unavailable';
 
 type IndicadorRow = {
   id: string;
@@ -85,6 +87,10 @@ export default function SeguridadPage() {
 }
 
 async function SeguridadContent() {
+  if (!hasPublicSupabaseConfig()) {
+    return <SupabaseUnavailable />;
+  }
+
   const data = await fetchSeguridadData();
 
   const distribucionData = getDistribucion(data);

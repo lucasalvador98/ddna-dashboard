@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { FormRenderer } from '@/components/formularios/form-renderer';
 import { FormConfirmation } from '@/components/formularios/form-confirmation';
 import type { DefinicionFormulario } from '@/lib/formularios/types';
+import { dashboardPath } from '@/lib/app-path';
 
 interface PublicFormClientProps {
   slug: string;
@@ -25,7 +26,7 @@ export function PublicFormClient({ slug, titulo, descripcion, definicion }: Publ
   async function handleSubmit(answers: Record<string, unknown>) {
     setGlobalError(null);
     try {
-      const response = await fetch('/api/formularios/submit', {
+      const response = await fetch(dashboardPath('/api/formularios/submit'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ slug, respuestas: answers }),

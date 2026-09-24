@@ -19,6 +19,8 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { Suspense } from 'react';
+import { hasPublicSupabaseConfig } from '@/lib/runtime-config';
+import { SupabaseUnavailable } from '@/components/supabase-unavailable';
 import {
   Users,
   Home,
@@ -138,6 +140,10 @@ export default function InfanciasPage() {
 // ─── Content: fetched data + TabInfancia ────────────────────────
 
 async function InfanciasContent() {
+  if (!hasPublicSupabaseConfig()) {
+    return <SupabaseUnavailable />;
+  }
+
   const ucaData = await fetchInfanciasData();
 
   const insegTotal = findLatest(ucaData, 'inseguridad alimentaria total (nnya)');

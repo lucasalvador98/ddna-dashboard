@@ -3,8 +3,14 @@ import { Suspense } from 'react';
 import { PageLoading } from '@/components/page-loading';
 import RepositorioClient from './repositorio-client';
 import type { RepoFile } from '@/lib/repositorio';
+import { hasPublicSupabaseConfig } from '@/lib/runtime-config';
+import { SupabaseUnavailable } from '@/components/supabase-unavailable';
 
 async function RepositorioContent() {
+  if (!hasPublicSupabaseConfig()) {
+    return <SupabaseUnavailable />;
+  }
+
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

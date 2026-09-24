@@ -6,6 +6,8 @@ import { SectionHeader } from '@/components/section-header';
 import { EmptyState } from '@/components/empty-state';
 import { KpiCard } from '@/components/kpi-card';
 import { EncuestasCharts } from './encuestas-charts';
+import { hasPublicSupabaseConfig } from '@/lib/runtime-config';
+import { SupabaseUnavailable } from '@/components/supabase-unavailable';
 
 // ─── Colores DDNA ─────────────────────────────────
 const COLORS = {
@@ -123,6 +125,10 @@ export default function EncuestasPage() {
 }
 
 async function EncuestasContent() {
+  if (!hasPublicSupabaseConfig()) {
+    return <SupabaseUnavailable />;
+  }
+
   const data = await fetchEncuestasData();
 
   if (data.length === 0) {

@@ -11,6 +11,8 @@ import {
   FecundidadBarChart,
   ComparacionChart,
 } from './salud-adolescente-charts';
+import { hasPublicSupabaseConfig } from '@/lib/runtime-config';
+import { SupabaseUnavailable } from '@/components/supabase-unavailable';
 
 const COLORS = {
   magenta: '#BF1363',
@@ -102,6 +104,10 @@ export default function SaludAdolescentePage() {
 }
 
 async function SaludAdolescenteContent() {
+  if (!hasPublicSupabaseConfig()) {
+    return <SupabaseUnavailable />;
+  }
+
   const data = await fetchSaludAdolescenteData();
 
   const nacimientos = getNacimientos(data);

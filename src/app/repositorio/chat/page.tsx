@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { Send, Bot, User, FileText, Loader2, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import { dashboardPath } from '@/lib/app-path';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -51,7 +52,7 @@ export default function ChatPage() {
     setToolProgress([]);
 
     try {
-      const response = await fetch('/api/repositorio/chat', {
+      const response = await fetch(dashboardPath('/api/repositorio/chat'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

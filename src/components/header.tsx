@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Menu, X, ChevronRight, LogOut } from 'lucide-react';
 import clsx from 'clsx';
 import { routeTitles } from '@/lib/navigation';
+import { dashboardPath } from '@/lib/app-path';
 import { useSidebar } from '@/components/sidebar-context';
 import { useAuth } from '@/components/auth-provider';
 import { MobileNav } from '@/components/mobile-nav';
@@ -85,7 +86,7 @@ export function Header() {
         {/* DDNA Logo */}
         <Link href="/" className="flex-shrink-0">
           <Image
-            src="/logos/LOGO DDNA_HORIZONTAL_COLOR.png"
+            src={dashboardPath('/logos/LOGO DDNA_HORIZONTAL_COLOR.png')}
             alt="DDNA"
             width={150}
             height={40}
@@ -128,7 +129,7 @@ export function Header() {
       <div className="md:hidden flex items-center justify-between px-6 py-3">
         <div className="flex items-center gap-2">
           <Image
-            src="/logos/Cba.png"
+            src={dashboardPath('/logos/Cba.png')}
             alt="Córdoba"
             width={28}
             height={28}
@@ -136,7 +137,7 @@ export function Header() {
             className="rounded-sm"
           />
           <Image
-            src="/logos/LOGO DDNA_HORIZONTAL_COLOR.png"
+            src={dashboardPath('/logos/LOGO DDNA_HORIZONTAL_COLOR.png')}
             alt="DDNA"
             width={100}
             height={24}

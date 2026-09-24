@@ -9,8 +9,14 @@ import { SaludCharts } from './salud-charts';
 import type { SaludChartsProps } from './salud-charts';
 import { SaludInteractive } from './salud-interactive';
 import type { Indicador as DashboardIndicador } from '@/lib/use-dashboard-data';
+import { hasPublicSupabaseConfig } from '@/lib/runtime-config';
+import { SupabaseUnavailable } from '@/components/supabase-unavailable';
 
 export default async function SaludPage() {
+  if (!hasPublicSupabaseConfig()) {
+    return <SupabaseUnavailable />;
+  }
+
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!

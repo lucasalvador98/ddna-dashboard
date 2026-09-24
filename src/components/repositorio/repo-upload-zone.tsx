@@ -4,6 +4,7 @@ import { useState, useRef, useCallback } from 'react';
 import { Upload, X, CheckCircle, AlertCircle, FileText, Loader2 } from 'lucide-react';
 import clsx from 'clsx';
 import { CATEGORIES, formatBytes, getFileType, FILE_TYPE_COLORS } from '@/lib/repositorio';
+import { dashboardPath } from '@/lib/app-path';
 
 interface Props {
   onUploaded?: () => void;
@@ -76,7 +77,7 @@ export function RepoUploadZone({ onUploaded }: Props) {
     formData.append('notas', notas);
 
     try {
-      const res = await fetch('/api/repositorio/upload', { method: 'POST', body: formData });
+      const res = await fetch(dashboardPath('/api/repositorio/upload'), { method: 'POST', body: formData });
       const data = await res.json();
       if (!res.ok || data.error) {
         setError(data.error || 'Error al subir');

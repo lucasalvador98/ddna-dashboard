@@ -7,6 +7,8 @@ import { parseDesglose } from '@/lib/parse-desglose';
 import type { Indicador } from '@/lib/use-dashboard-data';
 import type { AprenderRow } from '@/lib/aprender-transform';
 import EducacionClient from './educacion-charts';
+import { hasPublicSupabaseConfig } from '@/lib/runtime-config';
+import { SupabaseUnavailable } from '@/components/supabase-unavailable';
 
 // ─── Helpers ────────────────────────────────────────────────────
 
@@ -104,6 +106,10 @@ function getNivelEducativoData(data: Indicador[]) {
 // ─── Page ───────────────────────────────────────────────────────
 
 export default async function EducacionPage() {
+  if (!hasPublicSupabaseConfig()) {
+    return <SupabaseUnavailable />;
+  }
+
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!

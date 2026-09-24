@@ -11,6 +11,8 @@ import {
   computeEvolutionData,
 } from '@/lib/compute-presupuesto';
 import type { InversionRow } from '@/lib/compute-presupuesto';
+import { hasPublicSupabaseConfig } from '@/lib/runtime-config';
+import { SupabaseUnavailable } from '@/components/supabase-unavailable';
 
 async function fetchInversionData(): Promise<InversionRow[]> {
   const supabase = createClient(
@@ -30,6 +32,10 @@ async function fetchInversionData(): Promise<InversionRow[]> {
 }
 
 async function PresupuestoNnyaContent() {
+  if (!hasPublicSupabaseConfig()) {
+    return <SupabaseUnavailable />;
+  }
+
   const inversionData = await fetchInversionData();
   const periods = computePeriods(inversionData);
   const evolutionData = computeEvolutionData(inversionData, periods);
