@@ -30,10 +30,13 @@ SUPABASE_ANON=$(grep NEXT_PUBLIC_SUPABASE_ANON_KEY .env.production | cut -d= -f2
 
 if [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_ANON" ]; then
   for i in 1 2 3 4 5; do
+    # Probe a real table row, not the PostgREST root: the root endpoint requires
+    # schema introspection and returns 403 for the anon role even when healthy,
+    # which used to make every deploy print a false "not ready" warning.
     HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
       -H "apikey: $SUPABASE_ANON" \
       -H "Authorization: Bearer $SUPABASE_ANON" \
-      "$SUPABASE_URL/rest/v1/?select=1" 2>/dev/null || echo "000")
+      "$SUPABASE_URL/rest/v1/indicadores?select=id&limit=1" 2>/dev/null || echo "000")
     if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "204" ]; then
       echo "   ✅ PostgREST ready (attempt $i)"
       break
