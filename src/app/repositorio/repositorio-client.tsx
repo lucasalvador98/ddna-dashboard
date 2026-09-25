@@ -128,9 +128,7 @@ export default function RepositorioClient({ initialFiles }: Props) {
     try {
       if (action.type === 'download') {
         if (!action.file.url_storage) return;
-        const path = action.file.url_storage.split('/storage/v1/object/public/ddna-repositorio/')[1];
-        if (!path) return;
-        const url = `https://ppyyqrvirjqmfpqaqnxy.supabase.co/storage/v1/object/public/ddna-repositorio/${encodeURIComponent(path)}`;
+        const url = action.file.url_storage;
         window.open(url, '_blank');
         return;
       }

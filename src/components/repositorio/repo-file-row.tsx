@@ -37,9 +37,7 @@ export function RepoFileRow({ file, onClick }: Props) {
   const handleDownload = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!file.url_storage) return;
-    const path = file.url_storage.split('/storage/v1/object/public/ddna-repositorio/')[1];
-    if (!path) return;
-    const url = `https://ppyyqrvirjqmfpqaqnxy.supabase.co/storage/v1/object/public/ddna-repositorio/${encodeURIComponent(path)}`;
+    const url = file.url_storage;
     window.open(url, '_blank');
   };
 

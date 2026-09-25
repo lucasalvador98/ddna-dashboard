@@ -314,7 +314,7 @@ function buildSources(chunks: ChunkResult[]) {
     categoria: chunk.categoria || undefined,
     chunkIndex: chunk.chunk_index,
     similarity: chunk.similarity ?? 0,
-    downloadUrl: `https://ppyyqrvirjqmfpqaqnxy.supabase.co/storage/v1/object/public/ddna-repositorio/${encodeURIComponent(chunk.nombre_archivo || '')}`,
+    downloadUrl: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/ddna-repositorio/${encodeURIComponent(chunk.nombre_archivo || '')}`,
   }));
 }
 
