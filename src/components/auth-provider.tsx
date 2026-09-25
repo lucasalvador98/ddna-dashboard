@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
 import { getBrowserClient, isSupabaseConfigured } from '@/lib/supabase';
 import type { Session, User } from '@supabase/supabase-js';
 
@@ -35,6 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   // Use shared browser client singleton — no new instance created
   const [supabase] = useState(() => (isSupabaseConfigured() ? getBrowserClient() : null));
@@ -62,25 +64,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } = supabase.auth.onAuthStateChange((event, newSession) => {
       if (!mounted) return;
 
-      // If token refresh failed (null session after a previous valid session),
-      // try to recover: keep the previous session state briefly instead of
-      // immediately clearing user — the next refresh attempt may succeed.
-      if (event === 'SIGNED_OUT' && !newSession) {
-        // Only clear if we were previously loaded (not initial state)
-        setSession((prev) => {
-          if (prev) {
-            // Token refresh failed — don't immediately clear, give it one cycle
-            // The next onAuthStateChange with a valid session will restore
-            return prev;
-          }
-          return null;
-        });
-        setUser((prev) => {
-          // Keep user visible briefly so the UI doesn't flash to login gate
-          // The signOut() call will properly clear everything
-          if (prev) return prev;
-          return null;
-        });
+      // Real sign-out (supabase.auth.signOut()) fires SIGNED_OUT with no new
+      // session. A stale session must never survive it: clear state immediately
+      // instead of preserving a previous session. A transient SIGNED_OUT may
+      // briefly re-render toward the login state — acceptable, a stale session
+      // is worse than a brief flash.
+      if (event === 'SIGNED_OUT') {
+        setSession(null);
+        setUser(null);
         setLoading(false);
         return;
       }
@@ -107,9 +98,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     if (supabase) {
-      await supabase.auth.signOut();
+      try {
+        await supabase.auth.signOut();
+      } catch (error) {
+        // A failed server-side sign-out must still clear local state so the UI
+        // never keeps a stale session; surface the failure for debugging.
+        console.error('signOut failed:', error);
+      }
     }
-  }, [supabase]);
+
+    // Clear local state explicitly so the UI reflects the result immediately,
+    // even if the SIGNED_OUT event is missed — then always land on /login.
+    setSession(null);
+    setUser(null);
+    setLoading(false);
+    router.replace('/login');
+    router.refresh();
+  }, [supabase, router]);
 
   return (
     <AuthContext.Provider value={{ session, user, loading, signOut }}>
