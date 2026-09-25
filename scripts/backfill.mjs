@@ -3,12 +3,24 @@
  * Ejecutar: node --max-old-space-size=4096 scripts/backfill.mjs
  */
 import { createClient } from '@supabase/supabase-js';
+import { config } from 'dotenv';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+config({ path: resolve(__dirname, '..', '.env.local') });
+
 const require = createRequire(import.meta.url);
 const { PDFParse } = require('pdf-parse');
 
-const SUPABASE_URL = 'https://ppyyqrvirjqmfpqaqnxy.supabase.co';
-const SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBweXlxcnZpcmpxbWZwcWFxbnh5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjE5MDMwNSwiZXhwIjoyMDkxNzY2MzA1fQ.g3NSsIO2Y6qGTtfvBQciTfTWyQIW0ev2tuUjY5QcYLM';
+const SUPABASE_URL = process.env.CLOUD_SUPABASE_URL;
+const SERVICE_KEY = process.env.CLOUD_SUPABASE_SERVICE_ROLE_KEY;
+
+if (!SUPABASE_URL || !SERVICE_KEY) {
+  console.error('❌ CLOUD_SUPABASE_URL and CLOUD_SUPABASE_SERVICE_ROLE_KEY must be set in .env.local');
+  process.exit(1);
+}
 
 const supabase = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
 

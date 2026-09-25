@@ -15,10 +15,15 @@
 import { supabase } from './config.mjs';
 import XLSX from 'xlsx';
 
-// ─── Excel Path ────────────────────────────────────────────────────────────────
+// ─── Excel Path (from CLI arg or env var) ──────────────────────────────────────
 
-const EXCEL_PATH =
-  'E:/Backup Luca/DDNA/Inversion/Datos Abiertos - Ejecución Presupuestaria Marzo 2025/Gastos Administración Central - Acumulado Marzo 2025.xlsx';
+const EXCEL_PATH = process.argv[2] || process.env.EXCEL_PATH;
+
+if (!EXCEL_PATH) {
+  console.error('❌ Usage: node scripts/load-budget-march-2025.mjs <excel-path>');
+  console.error('   Or set EXCEL_PATH env variable');
+  process.exit(1);
+}
 
 // ─── NNyA Weighting Methodology ──────────────────────────────────────────────
 

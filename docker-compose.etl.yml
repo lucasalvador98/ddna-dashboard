@@ -1,12 +1,12 @@
 services:
   etl:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: node:20-alpine
     env_file: .env.production
     volumes:
       - ./scripts:/app/scripts
+      - ./package.json:/app/package.json
+      - ./package-lock.json:/app/package-lock.json
       - ./.senaf-cache:/app/.senaf-cache
     working_dir: /app
-    command: node scripts/update-indec-indicators.mjs
+    command: sh -c "npm ci --ignore-scripts && node scripts/update-indec-indicators.mjs"
     profiles: ["etl"]

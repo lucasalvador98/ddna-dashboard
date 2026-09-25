@@ -6,6 +6,16 @@
 import { supabase } from './config.mjs';
 import XLSX from 'xlsx';
 
+// ─── Excel Path (from CLI arg or env var) ─────────────────────────────────────
+
+const EXCEL_PATH = process.argv[2] || process.env.EXCEL_PATH;
+
+if (!EXCEL_PATH) {
+  console.error('❌ Usage: node scripts/migrate-inversion.mjs <excel-path>');
+  console.error('   Or set EXCEL_PATH env variable');
+  process.exit(1);
+}
+
 // ─── Category Mapping ─────────────────────────────────────────────────────────
 
 /**

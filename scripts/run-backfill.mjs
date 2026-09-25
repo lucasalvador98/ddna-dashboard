@@ -4,12 +4,24 @@
  */
 import { createClient } from '@supabase/supabase-js';
 import { spawn } from 'child_process';
+import { config } from 'dotenv';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
-const supabase = createClient(
-  'https://ppyyqrvirjqmfpqaqnxy.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBweXlxcnZpcmpxbWZwcWFxbnh5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjE5MDMwNSwiZXhwIjoyMDkxNzY2MzA1fQ.g3NSsIO2Y6qGTtfvBQciTfTWyQIW0ev2tuUjY5QcYLM',
-  { auth: { autoRefreshToken: false, persistSession: false } }
-);
+const __dirname = dirname(fileURLToPath(import.meta.url));
+config({ path: resolve(__dirname, '..', '.env.local') });
+
+const SUPABASE_URL = process.env.CLOUD_SUPABASE_URL;
+const SERVICE_KEY = process.env.CLOUD_SUPABASE_SERVICE_ROLE_KEY;
+
+if (!SUPABASE_URL || !SERVICE_KEY) {
+  console.error('❌ CLOUD_SUPABASE_URL and CLOUD_SUPABASE_SERVICE_ROLE_KEY must be set in .env.local');
+  process.exit(1);
+}
+
+const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
+  auth: { autoRefreshToken: false, persistSession: false },
+});
 
 const { data: files } = await supabase.from('repositorio')
   .select('id, nombre_archivo').eq('processed', false).eq('tipo_documento', 'pdf');
