@@ -24,6 +24,7 @@ import type { ListAvailableResult } from '@/lib/agent/indicator-tools';
 import { searchWeb } from '@/lib/agent/web-search';
 import { scrapeUrl } from '@/lib/agent/scrape-url';
 import { withRateLimit } from '@/lib/agent/rate-limit';
+import { checkAdminAuth } from '@/lib/auth-guard';
 import { trackLLMUsage } from '@/lib/usage-tracker';
 
 // ---------------------------------------------------------------------------
@@ -1020,6 +1021,10 @@ function createSSEWriter(controller: ReadableStreamDefaultController, encoder: T
 // ---------------------------------------------------------------------------
 
 async function handleChatPOST(request: Request) {
+  // ── Auth: admin only ──────────────────────────────────────────────────────
+  const guard = await checkAdminAuth();
+  if (!guard.authorized) return guard.response!;
+
   let question: string;
   let conversationHistory: Array<{ role: string; content: string }> | undefined;
 

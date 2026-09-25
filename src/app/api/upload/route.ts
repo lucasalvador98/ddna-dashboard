@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import { getSupabaseClient } from "@/lib/supabase";
 import { checkRateLimit } from "@/lib/agent/rate-limit";
+import { checkAdminAuth } from "@/lib/auth-guard";
 
 const MAX_UPLOAD_BODY_BYTES = 5 * 1024 * 1024; // 5 MB max for JSON upload body
 
 export async function POST(request: Request) {
+  // ── Auth: admin only ──────────────────────────────────────────────────────
+  const guard = await checkAdminAuth();
+  if (!guard.authorized) return guard.response!;
+
   // ── Rate limiting: 10 req/min per IP ──────────────────────────────────────
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||

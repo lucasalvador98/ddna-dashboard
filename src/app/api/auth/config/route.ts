@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/lib/supabase';
+import { checkAdminAuth } from '@/lib/auth-guard';
 
 /**
  * GET /api/auth/config
@@ -8,6 +9,10 @@ import { getSupabaseClient } from '@/lib/supabase';
  * Uses the service_role key — safe because this is a server-side API route.
  */
 export async function GET() {
+  // ── Auth: admin only ──────────────────────────────────────────────────────
+  const guard = await checkAdminAuth();
+  if (!guard.authorized) return guard.response!;
+
   try {
     const adminClient = getSupabaseClient();
     const { data, error } = await adminClient
