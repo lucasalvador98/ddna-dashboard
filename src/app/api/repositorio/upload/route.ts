@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { processDocument } from '@/lib/rag/process-document';
+import { checkAdminAuth } from '@/lib/auth-guard';
 
 // Initialize admin client with service role (for internal API only)
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -16,13 +17,9 @@ function getAdminClient() {
 }
 
 export async function POST(request: Request) {
-  // Check for admin secret
-  const authHeader = request.headers.get('authorization');
-  const expectedSecret = process.env.INTERNAL_API_SECRET;
-
-  if (expectedSecret && authHeader !== `Bearer ${expectedSecret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  // Require an authenticated admin session (browser UI calls this route)
+  const guard = await checkAdminAuth();
+  if (!guard.authorized) return guard.response!;
 
   const formData = await request.formData();
   const file = formData.get('file') as File;
