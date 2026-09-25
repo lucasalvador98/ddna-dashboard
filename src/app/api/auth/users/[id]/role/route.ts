@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/lib/supabase';
 import type { UserRole } from '@/lib/rbac-types';
-import { checkAdminAuth } from '@/lib/auth-guard';
+import { checkAuth, checkAdminAuth } from '@/lib/auth-guard';
 
 /**
  * GET /api/auth/users/[id]/role — Get a specific user's role
@@ -13,13 +13,22 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const guard = await checkAdminAuth();
+    // Any authenticated user may read their own role. Reading another user's
+    // role stays admin-only (checked below).
+    const guard = await checkAuth();
     if (!guard.authorized) return guard.response!;
+    const userId = guard.user!.id; // Non-null: user is always set when authorized
 
     const { id } = await params;
 
     if (!id || typeof id !== 'string') {
       return NextResponse.json({ error: 'ID de usuario inválido' }, { status: 400 });
+    }
+
+    // Reading someone else's role requires admin privileges.
+    if (id !== userId) {
+      const adminGuard = await checkAdminAuth();
+      if (!adminGuard.authorized) return adminGuard.response!;
     }
 
     const adminClient = getSupabaseClient();

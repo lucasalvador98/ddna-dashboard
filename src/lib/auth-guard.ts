@@ -14,6 +14,77 @@ interface GuardResult {
   response?: NextResponse;
 }
 
+/** Build a Supabase server client from the request session cookies. */
+async function createSessionClient() {
+  const cookieStore = await cookies();
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          // Persist rotated tokens. getUser()/refresh can rotate the session
+          // server-side; dropping the new cookies leaves the browser with a
+          // revoked refresh token and the user stuck in a 401 loop.
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options)
+          );
+        },
+      },
+    }
+  );
+}
+
+/**
+ * Verify the request is from an authenticated user (any role).
+ * Reads session from cookies using createServerClient (@supabase/ssr).
+ * Does NOT require any role — role checks are the caller's responsibility.
+ *
+ * Returns:
+ *   { authorized: true, user } when authenticated
+ *   { authorized: false, response } with 401/500 when not
+ */
+export async function checkAuth(): Promise<GuardResult> {
+  try {
+    const supabase = await createSessionClient();
+
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
+
+    if (error || !user) {
+      return {
+        authorized: false,
+        response: NextResponse.json(
+          { error: 'No autenticado. Inicie sesión para continuar.' },
+          { status: 401 }
+        ),
+      };
+    }
+
+    return {
+      authorized: true,
+      user: {
+        id: user.id,
+        email: user.email ?? '',
+      },
+    };
+  } catch (err) {
+    return {
+      authorized: false,
+      response: NextResponse.json(
+        { error: 'Error interno al verificar autenticación.' },
+        { status: 500 }
+      ),
+    };
+  }
+}
+
 /**
  * Verify the request is from an authenticated admin user.
  * Reads session from cookies using createServerClient (@supabase/ssr).
@@ -25,27 +96,7 @@ interface GuardResult {
  */
 export async function checkAdminAuth(): Promise<GuardResult> {
   try {
-    const cookieStore = await cookies();
-
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            // Persist rotated tokens. getUser()/refresh can rotate the session
-            // server-side; dropping the new cookies leaves the browser with a
-            // revoked refresh token and the user stuck in a 401 loop.
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          },
-        },
-      }
-    );
+    const supabase = await createSessionClient();
 
     const {
       data: { user },
