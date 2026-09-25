@@ -45,7 +45,11 @@ function LoginForm() {
         return;
       }
 
-      // redirect() from next/navigation already handles client-side navigation safely
+      // Success — refresh server components so they pick up the new session
+      // cookie, then navigate. Reset the button state first so it can never stay
+      // frozen even if navigation stalls or bounces off the auth proxy.
+      router.refresh();
+      setLoading(false);
       router.push(redirect);
     } catch {
       setError('Error de conexión. Intentá de nuevo.');

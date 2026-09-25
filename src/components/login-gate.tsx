@@ -14,6 +14,21 @@ interface AuthConfig {
   protected_routes: string[];
 }
 
+/**
+ * Fetch with a hard timeout. If the request does not settle within `ms`, the
+ * AbortController aborts it and the promise rejects — so a cold-starting server
+ * chain can never leave a loading flag hanging forever.
+ */
+async function fetchWithTimeout(url: string, ms = 8000): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // Rutas que nunca requieren permiso
 const PUBLIC_ROUTES = ['/login', '/api/'];
 
@@ -70,22 +85,27 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
           .eq('key', 'auth')
           .single();
 
-        if (!cancelled) {
-          if (error || !data?.value) {
-            // PostgREST cold start or transient error — retry with backoff
-            if (retryCount < MAX_RETRIES) {
-              retryCount++;
-              setTimeout(() => {
-                if (!cancelled) loadConfig();
-              }, RETRY_DELAY * retryCount);
-              return;
-            }
-            // After retries exhausted — default to ENABLED so auth isn't bypassed
-            setConfig({ enabled: true, protected_routes: [] });
-          } else {
-            setConfig(data.value as AuthConfig);
+        if (cancelled) return;
+
+        if (error || !data?.value) {
+          // PostgREST cold start or transient error — retry with backoff.
+          // While a retry is scheduled, keep configLoading true so children
+          // stay protected and never briefly render unprotected (audit D8).
+          if (retryCount < MAX_RETRIES) {
+            retryCount++;
+            setTimeout(() => {
+              if (!cancelled) loadConfig();
+            }, RETRY_DELAY * retryCount);
+            return;
           }
+          // After retries exhausted — default to ENABLED so auth isn't bypassed
+          setConfig({ enabled: true, protected_routes: [] });
+          setConfigLoading(false);
+          return;
         }
+
+        setConfig(data.value as AuthConfig);
+        setConfigLoading(false);
       } catch {
         // Network error — retry
         if (!cancelled && retryCount < MAX_RETRIES) {
@@ -96,9 +116,10 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
           return;
         }
         // Default to ENABLED after retries exhausted
-        if (!cancelled) setConfig({ enabled: true, protected_routes: [] });
-      } finally {
-        if (!cancelled) setConfigLoading(false);
+        if (!cancelled) {
+          setConfig({ enabled: true, protected_routes: [] });
+          setConfigLoading(false);
+        }
       }
     }
 
@@ -125,7 +146,7 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
       setPermsLoaded(false);
       try {
         // 1. Obtener el rol del usuario — with status check to avoid "No apikey" 200 masquerading as success
-        const roleRes = await fetch(dashboardPath(`/api/auth/users/${userId}/role`));
+        const roleRes = await fetchWithTimeout(dashboardPath(`/api/auth/users/${userId}/role`));
         let roleData: Record<string, unknown> | null = null;
         try {
           roleData = (await roleRes.json()) as Record<string, unknown>;
@@ -154,7 +175,7 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
         setRoleName(roleData['role_name'] as string);
 
         // 2. Obtener todos los roles con permisos y filtrar por el nuestro
-        const rolesRes = await fetch(dashboardPath('/api/auth/roles'));
+        const rolesRes = await fetchWithTimeout(dashboardPath('/api/auth/roles'));
         let roles: unknown = null;
         try {
           roles = await rolesRes.json();
