@@ -1,64 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { sanitizeRedirectUrl } from '@/lib/redirect';
-
-// ─── Settings cache (in-memory, per-middleware-instance) ──────────────────────
-
-interface AuthSettings {
-  enabled: boolean;
-  protectedRoutes: string[];
-}
-
-let cachedSettings: AuthSettings | null = null;
-let cacheTimestamp = 0;
-const CACHE_TTL = 5_000;
-
-async function getAuthSettings(): Promise<AuthSettings> {
-  const now = Date.now();
-  if (cachedSettings && now - cacheTimestamp < CACHE_TTL) {
-    return cachedSettings;
-  }
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !serviceRoleKey) {
-    cachedSettings = { enabled: false, protectedRoutes: [] };
-    cacheTimestamp = now;
-    return cachedSettings;
-  }
-
-  try {
-    const res = await fetch(`${supabaseUrl}/rest/v1/settings?key=eq.auth&select=value`, {
-      headers: {
-        apikey: serviceRoleKey,
-        Authorization: `Bearer ${serviceRoleKey}`,
-      },
-      cache: 'no-store',
-    });
-
-    if (!res.ok) {
-      // PostgREST cold start — default to ENABLED so auth isn't bypassed
-      cachedSettings = { enabled: true, protectedRoutes: [] };
-      cacheTimestamp = now;
-      return cachedSettings;
-    }
-
-    const rows = (await res.json()) as Array<{ value: Record<string, unknown> }>;
-    const value = rows?.[0]?.value as { enabled?: boolean; protected_routes?: string[] } | null;
-
-    cachedSettings = {
-      enabled: value?.enabled ?? false,
-      protectedRoutes: value?.protected_routes ?? [],
-    };
-  } catch {
-    // Network error — default to ENABLED so auth isn't bypassed
-    cachedSettings = { enabled: true, protectedRoutes: [] };
-  }
-
-  cacheTimestamp = now;
-  return cachedSettings;
-}
+import { getAuthSettings } from '@/lib/auth-settings';
 
 // ─── Auth Proxy ───────────────────────────────────────────────────────────────
 
@@ -79,7 +22,7 @@ export async function authProxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const isProtected = settings.protectedRoutes.some(
+  const isProtected = settings.protected_routes.some(
     (route) => pathname === route || pathname.startsWith(route + '/')
   );
 

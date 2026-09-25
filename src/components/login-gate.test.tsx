@@ -15,21 +15,6 @@ vi.mock('next/navigation', () => ({
   usePathname: vi.fn(() => '/'),
 }));
 
-// Mock supabase for settings query
-const mockSupabaseSingle = vi.fn();
-
-vi.mock('@/lib/supabase', () => ({
-  supabase: {
-    from: vi.fn(() => ({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          single: mockSupabaseSingle,
-        })),
-      })),
-    })),
-  },
-}));
-
 import { useAuth } from '@/components/auth-provider';
 import { usePathname } from 'next/navigation';
 
@@ -61,10 +46,23 @@ function mockLoading() {
   });
 }
 
+// Mock the config endpoint fetch — LoginGate reads auth config via
+// /api/auth/config, never directly from the settings table.
 function resolveConfig(enabled: boolean) {
-  mockSupabaseSingle.mockResolvedValue({
-    data: { value: { enabled, protected_routes: ['/admin', '/monitoreo', '/repositorio'] } },
-    error: null,
+  vi.spyOn(globalThis, 'fetch').mockImplementation((url: string | URL | Request) => {
+    const urlStr = typeof url === 'string' ? url : url instanceof URL ? url.href : url.url;
+    if (urlStr.includes('/api/auth/config')) {
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            enabled,
+            protected_routes: ['/admin', '/monitoreo', '/repositorio'],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      );
+    }
+    return Promise.resolve(new Response(JSON.stringify({}), { status: 404 }));
   });
 }
 

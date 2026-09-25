@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Lock, ShieldX, Loader2 } from 'lucide-react';
 import { useAuth } from '@/components/auth-provider';
-import { supabase } from '@/lib/supabase';
 import { dashboardPath } from '@/lib/app-path';
 import type { RolePermission } from '@/lib/rbac-types';
 
@@ -73,53 +72,40 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    let retryCount = 0;
-    const MAX_RETRIES = 3;
-    const RETRY_DELAY = 1500;
 
     async function loadConfig() {
       try {
-        const { data, error } = await supabase
-          .from('settings')
-          .select('value')
-          .eq('key', 'auth')
-          .single();
+        const res = await fetchWithTimeout(dashboardPath('/api/auth/config'));
 
         if (cancelled) return;
 
-        if (error || !data?.value) {
-          // PostgREST cold start or transient error — retry with backoff.
-          // While a retry is scheduled, keep configLoading true so children
-          // stay protected and never briefly render unprotected (audit D8).
-          if (retryCount < MAX_RETRIES) {
-            retryCount++;
-            setTimeout(() => {
-              if (!cancelled) loadConfig();
-            }, RETRY_DELAY * retryCount);
-            return;
-          }
-          // After retries exhausted — default to ENABLED so auth isn't bypassed
+        if (!res.ok) {
+          // Non-ok (e.g. anonymous 401) — fail-closed: keep auth ENABLED
           setConfig({ enabled: true, protected_routes: [] });
-          setConfigLoading(false);
           return;
         }
 
-        setConfig(data.value as AuthConfig);
-        setConfigLoading(false);
-      } catch {
-        // Network error — retry
-        if (!cancelled && retryCount < MAX_RETRIES) {
-          retryCount++;
-          setTimeout(() => {
-            if (!cancelled) loadConfig();
-          }, RETRY_DELAY * retryCount);
+        const data = (await res.json()) as Partial<AuthConfig>;
+        if (cancelled) return;
+
+        if (typeof data.enabled !== 'boolean') {
+          // Invalid shape — fail-closed
+          setConfig({ enabled: true, protected_routes: [] });
           return;
         }
-        // Default to ENABLED after retries exhausted
+
+        setConfig({
+          enabled: data.enabled,
+          protected_routes: data.protected_routes ?? [],
+        });
+      } catch {
+        // Invalid JSON / timeout / abort — fail-closed: keep auth ENABLED
         if (!cancelled) {
           setConfig({ enabled: true, protected_routes: [] });
-          setConfigLoading(false);
         }
+      } finally {
+        // Single attempt — no retry window where children render unprotected
+        if (!cancelled) setConfigLoading(false);
       }
     }
 
