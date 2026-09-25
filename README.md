@@ -1,9 +1,10 @@
 # DDNA Dashboard
 
-> **Live**: https://ddna-dashboard.vercel.app/  
+> **Producción**: http://179.199.132.207/ — VPS Hostinger (Docker)
+> **Legacy**: https://ddna-dashboard.vercel.app/ — Vercel, aún alimentado por Supabase Cloud
 > Tablero General de Monitoreo de la **Defensoría de los Derechos de Niñas, Niños y Adolescentes** — Provincia de Córdoba
 
-Sistema de monitoreo y visualización de indicadores de infancia y adolescencia que reemplaza la dependencia de Power BI por una solución web moderna, de código abierto y mantenible. **Deployado en Vercel**.
+Sistema de monitoreo y visualización de indicadores de infancia y adolescencia que reemplaza la dependencia de Power BI por una solución web moderna, de código abierto y mantenible. **Deployado en Docker sobre una VPS de Hostinger**, con Supabase self-hosted en la misma VPS.
 
 ---
 
@@ -35,9 +36,9 @@ Este proyecto moderniza ese flujo con una **arquitectura abierta**: Next.js + Su
 
 | Componente           | Tecnología                          | Justificación                                             |
 | -------------------- | ----------------------------------- | --------------------------------------------------------- |
-| Framework Web        | Next.js 16 (App Router, TypeScript) | SSR/SSG, API Routes integradas, deploy en Vercel          |
+| Framework Web        | Next.js 16 (App Router, TypeScript) | SSR/SSG, API Routes integradas, deploy Docker en VPS      |
 | Visualización        | Recharts + Plotly.js                | Recharts para KPIs/líneas, Plotly para mapas interactivos |
-| Backend / BD         | Supabase (PostgreSQL)               | Auth, storage, real-time, API REST autogenerada           |
+| Backend / BD         | Supabase (PostgreSQL) self-hosted   | Auth, storage, real-time, API REST autogenerada (VPS)     |
 | ETL                  | Node.js (scripts/)                  | Scripts de ingesta y transformación desde APIs/CSV        |
 | Control de versiones | Git + GitHub                        | CI/CD, LFS para datos grandes                             |
 
@@ -71,8 +72,9 @@ El dashboard funciona con **datos placeholder** sin Supabase. Al configurar las 
 
 ## Configuración de Supabase
 
-1. Crear proyecto en [supabase.com](https://supabase.com) (región: us-west-2 o sa-east-1)
-2. Copiar `.env.local.example` a `.env.local` y pegar credenciales:
+> **Este repo corre contra un Supabase self-hosted en la VPS** (ver `DEPLOY.md` y el skill `supabase-selfhosted-mcp`). El proyecto histórico de Supabase Cloud (`ppyyqrvirjqmfpqaqnxy`) sigue vivo: alimenta al deploy legacy de Vercel y lo consumen los scripts de migración en `scripts/` vía las variables `CLOUD_*` de `.env.local`.
+
+1. Copiar `.env.local.example` a `.env.local` y pegar credenciales del Supabase self-hosted:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
@@ -175,7 +177,8 @@ src/
 - [x] Scripts ETL para datos Excel/CSV (Node.js en `scripts/`)
 - [x] ETL completo: salud (145), educacion (1056), pobreza (48), seguridad (7), demografia (411)
 - [x] Carga de datos reales desde Excel a Supabase (21,149 registros en 15 categorías)
-- [x] Deploy en Vercel — **https://ddna-dashboard.vercel.app/**
+- [x] Deploy principal en Docker sobre VPS Hostinger — **http://179.199.132.207/** (ver `DEPLOY.md`)
+- [x] Deploy legacy aún en Vercel — **https://ddna-dashboard.vercel.app/** (con Supabase Cloud; decisión de retiro pendiente)
 
 ---
 

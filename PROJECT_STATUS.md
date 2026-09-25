@@ -1,9 +1,10 @@
 # DDNA Dashboard — Estado del Proyecto
 
-> **Última actualización**: Agosto 2026
-> **Live**: https://ddna-dashboard.vercel.app/
+> **Última actualización**: Septiembre 2026
+> **Producción**: http://179.199.132.207/ — VPS Hostinger, deploy Docker (`DEPLOY.md`)
+> **Legacy**: https://ddna-dashboard.vercel.app/ — Vercel, aún alimentado por Supabase Cloud
 > **Repo**: https://github.com/lucasalvador98/ddna-dashboard
-> **Supabase**: `ddna-dashboard` (ppyyqrvirjqmfpqaqnxy)
+> **Supabase**: self-hosted en la VPS (API: http://179.199.132.207:8000). Cloud histórico `ppyyqrvirjqmfpqaqnxy` solo para el legacy y los scripts de migración (`CLOUD_*`)
 
 ---
 
@@ -78,9 +79,14 @@
 - `scripts/load-budget-*.mjs` — Presupuesto
 - `scripts/config.mjs` — Config compartida (conexión Supabase)
 
-### 8. Deploy en Vercel
-- **Live**: https://ddna-dashboard.vercel.app/
-- Conectado a repo GitHub, build automático en push a main
+### 8. Deploy principal — VPS Hostinger (Docker)
+- **Producción**: http://179.199.132.207/
+- Docker Compose (`docker-compose.prod.yml`); `deploy.sh` en la VPS hace `git pull origin main` + build + up (ver `DEPLOY.md`)
+- Supabase **self-hosted** en la misma VPS
+
+### 9. Deploy legacy — Vercel (decisión de retiro pendiente)
+- **Legacy**: https://ddna-dashboard.vercel.app/ — todavía alimentado por Supabase Cloud (`ppyyqrvirjqmfpqaqnxy`)
+- Build automático en push a main
 - Variables de entorno configuradas: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY`
 
 ---
@@ -92,11 +98,11 @@
 | Framework | Next.js 16 (App Router) |
 | Lenguaje | TypeScript strict |
 | Estilos | Tailwind CSS v4 |
-| Base de datos | Supabase (PostgreSQL + pgvector) |
+| Base de datos | Supabase self-hosted (PostgreSQL + pgvector) en la VPS |
 | Embeddings | OpenAI `text-embedding-3-small` |
 | LLM | Groq (`llama-3.1-8b-instant`) |
 | Charts | Recharts |
-| Deploy | Vercel |
+| Deploy | VPS Hostinger (Docker) + legacy Vercel |
 
 ---
 
@@ -143,9 +149,10 @@
 
 | Recurso | URL |
 |---------|-----|
-| Dashboard | https://ddna-dashboard.vercel.app/ |
+| Dashboard (prod) | http://179.199.132.207/ |
+| Dashboard (legacy) | https://ddna-dashboard.vercel.app/ |
 | GitHub | https://github.com/lucasalvador98/ddna-dashboard |
-| Supabase | https://supabase.com/dashboard/project/ppyyqrvirjqmfpqaqnxy |
+| Supabase (Cloud legacy) | https://supabase.com/dashboard/project/ppyyqrvirjqmfpqaqnxy |
 
 ---
 
@@ -163,12 +170,16 @@ npm run dev
 ### Variables de entorno requeridas
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://ppyyqrvirjqmfpqaqnxy.supabase.co
+# Self-hosted — producción (ver DEPLOY.md)
+NEXT_PUBLIC_SUPABASE_URL=http://179.199.132.207:8000
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 SUPABASE_SERVICE_ROLE_KEY=eyJ...
 OPENAI_API_KEY=sk-...
 GROQ_API_KEY=gsk_...
 INTERNAL_API_SECRET=...       # para /api/admin/backfill
+# Supabase Cloud — solo legacy Vercel y scripts de migración (scripts/*.mjs)
+CLOUD_SUPABASE_URL=https://ppyyqrvirjqmfpqaqnxy.supabase.co
+CLOUD_SUPABASE_SERVICE_ROLE_KEY=eyJ...
 ```
 
 ---
