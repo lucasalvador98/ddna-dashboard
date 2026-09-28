@@ -6,6 +6,22 @@
 
 ---
 
+## ⚠️ Deploy & Infra — LEER PRIMERO
+
+La VPS es **multi-sitio** y hay un **DevOps** que maneja el edge/infra. Nosotros
+solo somos dueños del **Tablero**.
+
+**Antes de cualquier deploy, cambio de puerto o despliegue, LEER
+[`DEPLOY_TOPOLOGY.md`](./DEPLOY_TOPOLOGY.md).** Puntos no negociables:
+
+- El tablero vive en **`http://179.199.132.207/observatorio/`** (la raíz es WordPress).
+- **Cada deploy del tablero requiere avisar al DevOps primero** — nunca directo.
+- **No** arrancar el `ddna-dashboard-app-1` viejo, **no** usar `deploy.sh` (congelado/obsoleto),
+  **no** tocar puertos/DNS/443/certs/`compose.production.yml` sin instrucción del DevOps.
+- No asumir la topología de ayer: **verificar en vivo** antes de actuar sobre rutas/puertos.
+
+---
+
 ## Code Standards
 
 ### General
