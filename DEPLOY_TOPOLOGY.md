@@ -45,6 +45,10 @@
 
 - Es un **PREVIEW por IP, sin HTTPS** (`Caddyfile.preview`, puerto 80, `auto_https off`).
 - La **imagen HTTPS está preparada pero NO es la activa**. No activar HTTPS sin nueva instrucción del DevOps.
+- **El Tablero se sirve desde la imagen `ddna-dashboard:observatorio-candidate`**
+  (contenedor `ddna-observatorio-candidate`, red `ddna_frontend`), construida con
+  `NEXT_PUBLIC_BASE_PATH=/observatorio` — por eso el subpath y los redirects de
+  login funcionan correctamente.
 - **CI/CD está preparado pero sin primer deploy** (ver `/home/deploy/ddna-cicd-staging/README-GITHUB-CICD.md`).
 - Docker: `ddna-edge` (Caddy) tiene el **puerto 80**; el tablero corre en la red `ddna_frontend`.
 
