@@ -1,0 +1,94 @@
+{
+  "_meta": {
+    "source": "OECD, PISA 2025 Results (Volume I): Future-Ready Students — Argentina Country Note",
+    "source_url": "https://www.oecd.org/content/dam/oecd/en/publications/reports/2026/09/pisa-2025-results-volume-i-country-notes_88d1164e/argentina_cd5223b6/e2019444-en.pdf",
+    "doi": "10.1787/e2019444-en",
+    "release_date": "2026-09-08",
+    "cycle": "PISA 2025",
+    "country": "Argentina",
+    "captured": "2026-09-28",
+    "note": "PISA 2025 focused on science; math & reading are minor domains. Computational problem solving in digital world also measured.",
+    "mean_scores_note": "Overall mean scores (math/reading/science) are in Figure 3 of the country note (chart image, not text-extractable); they were sourced from the Argentine official reporting (Infobae/ElDoce) which also breaks out Córdoba (Región Adjudicada). Sub-national: only CABA, Córdoba, Mendoza participated with their own samples — province-level available for Córdoba, NOT for municipalities/localities."
+  },
+  "participacion": {
+    "estudiantes_argentina": 11093,
+    "escuelas_argentina": 412,
+    "quincenarios_15anios_representados": 609100,
+    "cobertura_poblacion_pct": 87,
+    "estudiantes_total_mundial": 760000,
+    "paises_participantes": 91,
+    "quincenarios_15anios_mundial": 33000000
+  },
+  "niveles_proficiencia_pct": {
+    "ciencia_nivel2_mas": { "argentina": 41, "oecd_promedio": 74 },
+    "lectura_nivel2_mas": { "argentina": 40, "oecd_promedio": 69 },
+    "matematica_nivel2_mas": { "argentina": 24, "oecd_promedio": 65 },
+    "ciencia_ambiental_nivel2_mas": { "argentina": 43, "oecd_promedio": 74 },
+    "ciencia_top_performer_nivel5_6": { "argentina": 1, "oecd_promedio": 7 },
+    "lectura_nivel5_mas": { "argentina": 1, "oecd_promedio": 6 },
+    "matematica_nivel5_6": { "argentina": "casi 0", "oecd_promedio": 8 }
+  },
+  "puntajes_promedio": {
+    "_nota": "Media scores escala 0-500. Fuente: reporte oficial argentino filtrado por jurisdicción (Córdoba como 'Región Adjudicada', muestra propia). Nacional: Infobae/ElDoce. Values verified from those reports.",
+    "nacional": { "ciencia": 393, "lectura": 389, "matematica": 367, "aprendizaje_mundo_digital": 403 },
+    "cordoba": { "ciencia": 434, "lectura": 417, "matematica": 393, "aprendizaje_mundo_digital": 441 }
+  },
+  "cordoba_region_adjudicada": {
+    "_nota": "Córdoba participó como Región Adjudicada con muestra propia. Fuente: ElDoce 2026-09-09.",
+    "estudiantes": 2242,
+    "escuelas": 79,
+    "puntajes": { "ciencia": 434, "lectura": 417, "matematica": 393, "aprendizaje_mundo_digital": 441 },
+    "diferencia_vs_nacional": { "ciencia": 41, "lectura": 28, "matematica": 26, "aprendizaje_mundo_digital": 38 },
+    "nivel2_mas_pct": { "ciencia": 59, "lectura": 54, "matematica": 36, "aprendizaje_mundo_digital": 56 }
+  },
+  "brechas_socioeconomicas_ciencia": {
+    "puntaje_2do_cuartil_socioeconomico": 379,
+    "brecha_avanzados_vs_desventajados": 82,
+    "brecha_promedio_oecd": 85,
+    "desventajados_en_cuarto_superior_pct": { "argentina": 14, "oecd_promedio": 12 },
+    "socioeconomico_explica_variacion_pct": { "argentina": 12, "oecd_promedio": 12 }
+  },
+  "actitudes": {
+    "mentalidad_de_crecimiento_pct": { "argentina": 59, "oecd_promedio": 69 },
+    "efecto_mentalidad_crecimiento_puntos_ciencia": { "argentina": 27, "oecd_promedio": 28 },
+    "curiosos_sobre_muchas_cosas_pct": { "argentina": 59, "oecd_promedio": 73 },
+    "esfuerzo_cuando_desafiante_pct": { "argentina": 58, "oecd_promedio": 60 },
+    "escuela_perdida_tiempo_pct": { "argentina": 18, "oecd_promedio": 24, "cambio_vs_2022_pp": -6.2 },
+    "planifica_estudiar_pct": { "argentina": 41, "oecd_promedio": 37 },
+    "pregunta_para_comprobar_comprension_pct": { "argentina": 53, "oecd_promedio": 49 },
+    "pide_ayuda_docentes_pct": { "argentina": 80, "oecd_promedio": 77 },
+    "pide_ayuda_companeros_pct": { "argentina": 80, "oecd_promedio": 82 }
+  },
+  "ausentismo_puntualidad_pct": {
+    "falto_un_dia_o_mas": { "argentina": 20, "oecd_promedio": 22, "pais_2022": 15, "pais_2018": 45 },
+    "falto_una_clase_o_mas": { "argentina": 20, "oecd_promedio": 24, "pais_2022": 17, "pais_2018": 56 },
+    "llego_tarde": { "argentina": 66, "oecd_promedio": 50, "pais_2022": 60, "pais_2018": 53 }
+  },
+  "recursos_y_clima": {
+    "falta_docentes_pct": { "argentina": 44, "oecd_promedio": 39 },
+    "falta_asistentes_pct": { "argentina": 42, "oecd_promedio": 39 },
+    "falta_material_educativo_pct": { "argentina": 54, "oecd_promedio": null, "pais_2022": 46 },
+    "falta_infraestructura_pct": { "argentina": 50, "oecd_promedio": null, "pais_2022": 45 },
+    "docente_muestra_interes_pct": { "argentina": 78, "oecd_promedio": 69 },
+    "docente_insiste_hasta_comprender_pct": { "argentina": 73, "oecd_promedio": 66 },
+    "docente_da_ayuda_extra_pct": { "argentina": 79, "oecd_promedio": 73 },
+    "no_puede_trabajar_bien_pct": { "argentina": 29, "oecd_promedio": 19 },
+    "ruido_desorden_pct": { "argentina": 58, "oecd_promedio": 31 },
+    "companeros_no_escuchan_pct": { "argentina": 47, "oecd_promedio": 29 }
+  },
+  "digital_y_ia": {
+    "dispositivos_aprendizaje_horas_dia": { "argentina": 1.7, "oecd_promedio": 1.7 },
+    "dispositivos_ocio_horas_dia": { "argentina": 1.6, "oecd_promedio": 1.1 },
+    "companeros_distraidos_digital_pct": { "argentina": 55, "oecd_promedio": 28 },
+    "escuelas_con_prohibicion_celular_pct": { "argentina": 37, "oecd_promedio": 49 },
+    "usa_chatbot_ia_semanal_pct": { "argentina": 52, "oecd_promedio": 46 },
+    "solo_10pct_nunca_usa_ia": { "argentina": 10, "oecd_promedio": 14 }
+  },
+  "convivencia": {
+    "victimas_bullying_pct": { "argentina": 20, "oecd_promedio": 20 },
+    "victimas_ciberbullying_pct": { "argentina": 4, "oecd_promedio": 3 },
+    "ciberbullying_puntos_menos_ciencia": 46,
+    "padres_preguntan_semanal_pct": { "argentina": 62, "pais_2022": 67 },
+    "charlas_problemas_semanal_pct": { "argentina": 44, "pais_2022": 52 }
+  }
+}
