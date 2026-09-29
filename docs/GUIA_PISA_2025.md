@@ -96,7 +96,7 @@ Cada fila trae `desglose = { ciclo, seccion, clave }` para agrupar programática
 ## 6. Qué NO está cargado (para que no lo busques)
 
 - **Promedios OCDE en puntos** (solo hay el % proficientes OCDE). Requiere Figura 3 / SDMX.
-- **CABA y Mendoza** (las otras dos Regiones Adjudicadas) — no hay datos públicos desagregados, solo Córdoba se载 por nota de prensa con números completos.
+- **CABA y Mendoza** (las otras dos Regiones Adjudicadas) — no hay datos públicos desagregados, solo Córdoba se reporta con números completos.
 - **Nivel municipal / localidad** — no existe; PISA no llega a ese granularidad. Lo más fino es la región adjudicada = provincia.
 - **Comparativos PISA 2018/2022** (omitidos a propósito: son de otro período, no 2025).
 
@@ -120,7 +120,7 @@ node scripts/load-pisa-2025.mjs --apply    # escribe
 ## 8. Fuentes / provenance (para citar en la UI)
 
 - **Country note (OECD)**: Argentina PISA 2025, Volume I, DOI `10.1787/e2019444-en`, release 8 sept 2026. `fuente` en DB = `OECD / PISA 2025`.
-- **Desglose por jurisdicción (Córdoba)**: reporte oficial argentino,“不过是通过 nota de prensa (ElDoce 2026-09-09, Infobae 2026-09-08). `fuente` en DB = `+ Córdoba (Región Adjudicada)`.
+- **Desglose por jurisdicción (Córdoba)**: reporte oficial argentino, difundido a través de notas de prensa (ElDoce 2026-09-09, Infobae 2026-09-08). `fuente` en DB = `+ Córdoba (Región Adjudicada)`.
 
 ---
 
