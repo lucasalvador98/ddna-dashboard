@@ -41,4 +41,4 @@
 > **No ocultar el dato oficial, pero nunca mostrarlo solo.** Cada pantalla con dato oficial lleva un `Contexto crítico` chiquito: “Dato oficial 2024 (fuente). Para una lectura no estática, cruzar con X e Y. Ver metodología.” Y el técnico tiene el `Descargar CSV crudo` para hacer su propio cruce y “darle luz a la oscuridad”.
 
 ## Próximo paso
-- Taller de 45 min para priorizar: ¿qué 5 tarjetas de `educación` y `salud` te hacen más ruido? Definimos qué va junto, qué se fusiona y qué se oculta, y lo reflejamos en el piloto `dato → click → gráfico`.
+- Taller de 45 min para priorizar: ¿qué 5 tarjetas de `educación` y `salud` te hacen más ruido? Definimos qué va junto, qué se fusiona y qué se oculta.
