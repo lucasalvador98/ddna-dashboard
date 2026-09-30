@@ -6,7 +6,6 @@ import { parseDesglose } from '@/lib/parse-desglose';
 import { INDICATOR_NAMES } from '@/lib/indicator-names';
 import { FilterBar } from '@/components/filter-bar';
 import PobrezaCharts from './pobreza-charts';
-import { PobrezaPilot } from './pobreza-pilot';
 import { hasPublicSupabaseConfig } from '@/lib/runtime-config';
 import { SupabaseUnavailable } from '@/components/supabase-unavailable';
 
@@ -392,11 +391,6 @@ export default async function PobrezaPage() {
         description="Indicadores de condiciones socioeconómicas — Córdoba (EPH-INDEC & UCA-ODSA). Medición por ingresos y enfoque multidimensional de derechos."
         color="magenta"
       />
-      <div className="flex items-center justify-end">
-        <a href="#pilot" className="text-sm text-[var(--ddna-blue)] hover:underline">
-          Probar piloto: dato → click → gráfico ↓
-        </a>
-      </div>
       <FilterBar />
       <PobrezaCharts
         indecData={indecData}
@@ -416,10 +410,6 @@ export default async function PobrezaPage() {
         ucInseguridad={ucInseguridad}
         ucMultidimensional={ucMultidimensional}
       />
-      <div id="pilot" className="pt-8 border-t border-slate-200">
-        <h3 className="font-semibold text-slate-800 mb-4">Piloto — dato → click → gráfico (sin pared de gráficos)</h3>
-        <PobrezaPilot indecData={indecData} />
-      </div>
     </div>
   );
 }

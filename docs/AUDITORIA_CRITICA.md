@@ -14,7 +14,7 @@
 ### Pobreza (P0) — Bien, pero con hilo flojo
 - **Qué hay:** INDEC (pobreza/indigencia 2016-2024) + UCA (multidimensional 2004-2024). Última carga 2024, stale 81d.
 - **¿Oficialista?** No, porque el duelo INDEC vs UCA desenmascara. Es el modelo a replicar.
-- **Qué falta:** El hilo hoy son dos pestañas separadas (`Ingresos` vs `Multidimensional`) que no se hablan. Propuesta: **duelo en la misma línea de tiempo** (dos líneas, mismo X) y una fila por indicador con `Ver el juego →` (piloto ya en `pobreza/pobreza-pilot.tsx`).
+- **Qué falta:** El hilo hoy son dos pestañas separadas (`Ingresos` vs `Multidimensional`) que no se hablan. Propuesta: **duelo en la misma línea de tiempo** (dos líneas, mismo X) y una fila por indicador con `Ver el juego →`.
 - **Recomendación:** Mantener todo, pero ordenar como **dato → click → gráfico** y no como pared de 8 gráficos.
 
 ### Salud (P1) — Oficialista si va solo
