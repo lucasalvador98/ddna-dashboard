@@ -32,8 +32,9 @@ Education section.
       score comparison, proficiency, and context indicators. `tsc --noEmit` and
       `src/app/educacion/page.test.tsx` pass; live anon query returns 104 rows;
       all tab match needles resolve uniquely.
-- [ ] T4 — Commit/push the UI work unit. **Deployment is a separate gate:** notify
-      the DevOps first per `DEPLOY_TOPOLOGY.md`; do not deploy directly.
+- [x] T4 — Commit/push UI work unit: `1de5420`. **Deployment is a separate
+      gate and remains pending:** notify the DevOps first per
+      `DEPLOY_TOPOLOGY.md`; do not deploy directly.
 
 ## Acceptance criteria
 
