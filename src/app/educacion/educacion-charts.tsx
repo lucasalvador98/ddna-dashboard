@@ -17,6 +17,8 @@ import { ChartWithTable } from '@/components/charts/chart-with-table';
 import { EmptyState } from '@/components/empty-state';
 import { computeAprenderByQuintil } from '@/lib/aprender-transform';
 import type { AprenderRow } from '@/lib/aprender-transform';
+import PisaTab from '@/components/educacion/pisa-tab';
+import type { Indicador } from '@/lib/use-dashboard-data';
 
 // ─── Colors ─────────────────────────────────────────────────────
 
@@ -49,6 +51,7 @@ interface EducacionClientProps {
   nivelEducativoData: { name: string; valor: number }[];
   aprenderData: AprenderRow[];
   aprenderError: string | null;
+  pisaData: Indicador[];
   tieneDatos: boolean;
 }
 
@@ -72,9 +75,11 @@ export default function EducacionClient(props: EducacionClientProps) {
     nivelEducativoData,
     aprenderData,
     aprenderError,
+    pisaData,
     tieneDatos,
   } = props;
 
+  const [activeSection, setActiveSection] = useState<'indicadores' | 'pisa'>('indicadores');
   const [sector, setSector] = useState<'combinado' | 'estatal' | 'privado'>('combinado');
   const [aprenderSubject, setAprenderSubject] = useState<'lengua' | 'matematica'>('lengua');
 
@@ -94,8 +99,36 @@ export default function EducacionClient(props: EducacionClientProps) {
 
   return (
     <>
-      {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* Top-level tab switch: Indicadores | Pruebas PISA 2025 */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex rounded-lg overflow-hidden border border-gray-200">
+          <button
+            onClick={() => setActiveSection('indicadores')}
+            className={`px-5 py-2 text-sm font-semibold transition-colors ${
+              activeSection === 'indicadores'
+                ? 'bg-navy text-white'
+                : 'bg-white text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            Indicadores
+          </button>
+          <button
+            onClick={() => setActiveSection('pisa')}
+            className={`px-5 py-2 text-sm font-semibold transition-colors ${
+              activeSection === 'pisa'
+                ? 'bg-navy text-white'
+                : 'bg-white text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            Pruebas PISA 2025
+          </button>
+        </div>
+      </div>
+
+      {activeSection === 'indicadores' ? (
+        <>
+          {/* KPIs */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <KpiCard
           title="Matrícula Total"
           value={totalMatricula > 0 ? totalMatricula.toLocaleString('es-AR') : '—'}
@@ -471,8 +504,12 @@ export default function EducacionClient(props: EducacionClientProps) {
         </div>
       )}
 
-      {!tieneDatos && (
-        <EmptyState title="No hay datos de educación disponibles" />
+          {!tieneDatos && (
+            <EmptyState title="No hay datos de educación disponibles" />
+          )}
+        </>
+      ) : (
+        <PisaTab pisaData={pisaData} />
       )}
     </>
   );

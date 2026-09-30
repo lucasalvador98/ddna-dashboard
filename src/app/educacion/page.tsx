@@ -115,7 +115,7 @@ export default async function EducacionPage() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  const [educacionResult, aprenderResult] = await Promise.all([
+  const [educacionResult, aprenderResult, pisaResult] = await Promise.all([
     supabase
       .from('indicadores')
       .select('id, indicador_nombre, valor, unidad, periodo, region, desglose')
@@ -126,6 +126,12 @@ export default async function EducacionPage() {
       .select('id, indicador_nombre, valor, unidad, periodo, region, desglose')
       .eq('categoria', 'aprender')
       .order('periodo', { ascending: true }),
+    supabase
+      .from('indicadores')
+      .select('id, indicador_nombre, valor, unidad, periodo, region, desglose')
+      .eq('categoria', 'educacion')
+      .eq('periodo', 2025)
+      .like('fuente', '%PISA%'),
   ]);
 
   if (educacionResult.error) throw educacionResult.error;
@@ -141,6 +147,11 @@ export default async function EducacionPage() {
     ...d,
     desglose: parseDesglose(d.desglose),
   })) as AprenderRow[];
+
+  const pisaData = (pisaResult.data || []).map(d => ({
+    ...d,
+    desglose: parseDesglose(d.desglose),
+  })) as Indicador[];
 
   // ── KPI data ──────────────────────────────────────────────
   const totalMatricula = getIndicatorTotal(data, 'Matrícula - General');
@@ -197,6 +208,7 @@ export default async function EducacionPage() {
           nivelEducativoData={nivelEducativoData}
           aprenderData={aprenderData}
           aprenderError={aprenderError}
+          pisaData={pisaData}
           tieneDatos={tieneDatos}
         />
       </Suspense>

@@ -121,6 +121,7 @@ function buildEducacionProps(aprenderData: AprenderRow[]) {
     ],
     aprenderData,
     aprenderError: null,
+    pisaData: [],
     tieneDatos: true,
   };
 }
