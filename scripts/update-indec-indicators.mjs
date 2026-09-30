@@ -7,11 +7,18 @@
  * - Asalariados registrados Córdoba
  * - IPC Nacional (para deflactar)
  *
- * Ejecutar: node scripts/update-indec-indicators.mjs
+ * Ejecutar: node scripts/update-indec-indicators.mjs        (dry-run, no escribe)
+ *           node scripts/update-indec-indicators.mjs --apply (escribe)
  * Requiere: SUPABASE_SERVICE_ROLE_KEY en .env.local
+ *
+ * Idempotencia: sin índice único en la DB, el upsert por onConflict falla y
+ * re-insertar a ciegas duplica filas. Este script usa insert-if-missing:
+ * pre-check por scope (categoria+periodo+region+fuente) contra lo ya existente
+ * y filtrado por clave natural completa (indicador_nombre|periodo|region|
+ * fuente|mes|fuente_api), insertando solo lo que falta.
  */
 import { supabase } from './config.mjs';
-import { fetchWithRetry, validateRows, upsertRows } from './etl-runner.mjs';
+import { fetchWithRetry, validateRows, insertIfMissing } from './etl-runner.mjs';
 
 const BASE_URL = 'https://apis.datos.gob.ar/series/api/series/';
 
@@ -191,11 +198,18 @@ function parseDate(dateStr) {
   };
 }
 
+// Por defecto es dry-run: no escribe nada. --apply habilita la escritura
+// (mismo patrón que load-pisa-2025.mjs).
+const APPLY = process.argv.includes('--apply');
+
 async function main() {
   console.log('═══════════════════════════════════════════════════');
-  console.log('  ACTUALIZACIÓN DE INDICADORES INDEC');
+  console.log(`  ACTUALIZACIÓN DE INDICADORES INDEC ${APPLY ? '' : '(DRY-RUN — pasá --apply para escribir)'}`);
   console.log('═══════════════════════════════════════════════════\n');
 
+  let totalValid = 0;
+  let totalExisting = 0;
+  let totalPlanned = 0;
   let totalInserted = 0;
   let totalErrors = 0;
 
@@ -228,7 +242,7 @@ async function main() {
         };
       });
 
-      // Validar y upsert (sin delete previo, idempotente)
+      // Validar (sin delete previo, idempotente)
       const { valid, warnings } = validateRows(rawRows);
       if (warnings.length > 0) {
         warnings.forEach((w) => console.warn(`  ⚠️  ${w}`));
@@ -238,11 +252,21 @@ async function main() {
         continue;
       }
 
-      const { inserted, error } = await upsertRows(valid);
+      // Pre-check + insert-if-missing: filtra los validados por clave natural
+      // completa (nombre|periodo|region|fuente|mes|fuente_api) contra lo ya
+      // existente en la DB. Con dry-run solo planifica (no escribe).
+      const { missing, existing, inserted, error } = await insertIfMissing(valid, { apply: APPLY });
       if (error) throw error;
 
-      totalInserted += inserted;
-      console.log(`✅ ${inserted} rows validados (${valid[0].periodo} → ${valid[valid.length - 1].periodo}) ${warnings.length ? `+${warnings.length} warnings` : ''}`);
+      totalValid += valid.length;
+      totalExisting += existing;
+      if (APPLY) {
+        totalInserted += inserted;
+        console.log(`✅ ${valid.length} validados · ${existing} ya existentes · ${inserted} insertados (${valid[0].periodo} → ${valid[valid.length - 1].periodo})${warnings.length ? ` +${warnings.length} warnings` : ''}`);
+      } else {
+        totalPlanned += missing.length;
+        console.log(`✅ ${valid.length} validados · ${existing} ya existentes · ${missing.length} a insertar (${valid[0].periodo} → ${valid[valid.length - 1].periodo})${warnings.length ? ` +${warnings.length} warnings` : ''}`);
+      }
     } catch (err) {
       totalErrors++;
       console.log(`❌ ${err.message}`);
@@ -250,7 +274,11 @@ async function main() {
   }
 
   console.log('\n═══════════════════════════════════════════════════');
-  console.log(`  RESUMEN: ${totalInserted} registros insertados, ${totalErrors} errores`);
+  if (APPLY) {
+    console.log(`  RESUMEN: ${totalValid} validados · ${totalExisting} ya existentes (skip) · ${totalInserted} insertados · ${totalErrors} errores`);
+  } else {
+    console.log(`  RESUMEN: ${totalValid} validados · ${totalExisting} ya existentes (skip) · ${totalPlanned} a insertar (dry-run) · ${totalErrors} errores`);
+  }
   console.log('═══════════════════════════════════════════════════');
 }
 
