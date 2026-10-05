@@ -69,7 +69,7 @@ function MorphSlot({ id, expanded, onExpand, children }: { id: SerieKey; expande
 }
 
 /**
- * Piloto de cross-filtering en /salud:
+ * Cross-filtering en /salud:
  * el chart principal de TMI emite el año clickeado y las 5 tarjetas KPI
  * muestran el valor correspondiente a ese año (o "—" si no hay dato).
  */
@@ -153,7 +153,7 @@ export function SaludInteractive({
           </motion.div>
         ) : (
           <p className="text-xs text-text-primary/50 font-body">
-            Piloto: hacé click en un punto del gráfico para filtrar por año, o en una tarjeta para
+            Hacé click en un punto del gráfico para filtrar por año, o en una tarjeta para
             ver su serie completa.
           </p>
         )}

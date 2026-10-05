@@ -198,7 +198,7 @@ export default async function SaludPage() {
         color="terracotta"
       />
 
-      {/* KPI Cards + Mortality charts — piloto de cross-filtering */}
+      {/* KPI Cards + Mortality charts — cross-filtering */}
       <SaludInteractive
         mortalidadData={mortalidadData}
         rmmData={rmmData}

@@ -16,7 +16,7 @@
 - KPIs con cambio respecto al período anterior
 - Fallback automático a placeholders si Supabase no responde
 - Bugs visuales corregidos (warnings de Image, data collision en charts, filtros duplicados)
-- Identidad visual DDNA completa: paleta institucional, fuente Epilogue, logos oficiales
+- Identidad visual DDNA completa: paleta institucional, tipografía del portal, logos oficiales
 
 ### 2. RAG Agent — Chat con datos de indicadores
 - **Endpoint**: `/api/repositorio/chat` — agente conversacional con tools
@@ -188,7 +188,7 @@ CLOUD_SUPABASE_SERVICE_ROLE_KEY=eyJ...
 
 | Decisión | Elección | Razón |
 |----------|----------|-------|
-| Framework | Next.js 16 (App Router) | SSR/SSG, API routes, deploy Vercel |
+| Framework | Next.js 16 (App Router) | SSR/SSG, API routes, deploy Docker en VPS |
 | Visualización | Recharts | Ligero, React-native, suficiente para KPIs |
 | Base de datos | Supabase (PostgreSQL) | Auth, storage, API REST, pgvector |
 | Vector DB | pgvector (Supabase) | Sin infraestructura extra, misma DB |

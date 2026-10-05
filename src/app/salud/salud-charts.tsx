@@ -39,7 +39,7 @@ export interface SaludChartsProps {
   dptEscolarCba: DashboardIndicador | undefined;
   latestDpt4Valor: number | null;
   latestSrp2Valor: number | null;
-  /** Año seleccionado por cross-filtering (piloto). null = sin filtro */
+  /** Año seleccionado por cross-filtering. null = sin filtro */
   selectedYear?: string | null;
   /** Emite el año clickeado desde el chart principal de TMI (serie Córdoba) */
   onSelectYear?: (periodo: string) => void;

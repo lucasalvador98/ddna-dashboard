@@ -11,7 +11,7 @@
 - [x] 11 secciones conectadas a Supabase con datos reales (salud, salud adolescente, educación, pobreza, encuestas, infancias, seguridad, inversión, presupuesto NNyA, monitoreo, fuentes)
 - [x] KPI cards con cambio interanual
 - [x] Charts Recharts con fuente y fecha de actualización
-- [x] Identidad visual DDNA (paleta institucional, fuente Epilogue, logos oficiales)
+- [x] Identidad visual DDNA (paleta institucional, tipografía del portal, logos oficiales)
 - [x] Mapas interactivos con Leaflet (`/geo`)
 - [x] Informe Ejecutivo (`/ejecutivo`) con generación de presentaciones
 - [x] Deploy en Vercel con build automático

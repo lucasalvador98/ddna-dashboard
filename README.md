@@ -92,7 +92,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGci...
 ```
 src/
   app/
-    layout.tsx               ← Layout raíz con sidebar + header + Epilogue font
+    layout.tsx               ← Layout raíz con sidebar + header + tipografía del portal
     page.tsx                 ← Home con KPIs conectados a Supabase
     salud/page.tsx           ← Mortalidad infantil, cobertura vacunal
     educacion/page.tsx       ← Escolarización, resultados Aprender
