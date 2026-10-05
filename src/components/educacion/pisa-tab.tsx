@@ -10,7 +10,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
-import { Trophy, GraduationCap, Target, Users } from 'lucide-react';
+import { Trophy, GraduationCap, Target, Users, Info } from 'lucide-react';
 import type { Indicador } from '@/lib/use-dashboard-data';
 import { EmptyState } from '@/components/empty-state';
 
@@ -280,6 +280,37 @@ export default function PisaTab({ pisaData }: PisaTabProps) {
 
   return (
     <div className="space-y-8">
+      {/* 0) Nota metodológica: cómo se lee la comparación */}
+      <section>
+        <SectionTitle
+          icon={Info}
+          title="Cómo leer estos resultados"
+          subtitle="Una aclaración metodológica antes de comparar"
+        />
+        <div className="bg-white rounded-xl border border-border p-6 space-y-4">
+          <p className="text-sm text-text-primary">
+            Las Pruebas PISA 2025 <strong>no cuentan con un desglose oficial de puntajes para
+            todas las provincias</strong>: la evaluación internacional mide al país en su conjunto.
+            Solo tres jurisdicciones ampliaron su muestra de manera voluntaria para obtener
+            resultados representativos propios: <strong>Ciudad de Buenos Aires (CABA), Córdoba y
+            Mendoza</strong>.
+          </p>
+          <p className="text-sm text-text-primary">
+            Córdoba participó como <strong>Región Adjudicada</strong>: la OCDE evalúa y reconoce
+            formalmente esa muestra como un sistema educativo participante propio, sujeto a sus
+            estándares de calidad, de modo que sus resultados son comparables internacionalmente
+            por sí mismos.
+          </p>
+          <p className="text-sm text-text-primary bg-outspace/50 rounded-lg p-4">
+            <strong>Por qué la comparación no es estrictamente equivalente:</strong> el resultado
+            nacional surge de una muestra representativa de todo el país, mientras que el de
+            Córdoba surge de una muestra provincial propia. Parte de la diferencia observada puede
+            reflejar esa diferencia de metodología y de composición de la muestra, además de
+            diferencias reales de desempeño.
+          </p>
+        </div>
+      </section>
+
       {/* 1) Headline: puntaje promedio */}
       <section>
         <SectionTitle

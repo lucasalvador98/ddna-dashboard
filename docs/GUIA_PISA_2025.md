@@ -102,6 +102,30 @@ Cada fila trae `desglose = { ciclo, seccion, clave }` para agrupar programática
 
 ---
 
+## 6.b Aclaración metodológica: Región Adjudicada
+
+> Texto que se muestra en el tablero, sección "Cómo leer estos resultados".
+
+Las Pruebas PISA 2025 **no cuentan con un desglose oficial de puntajes para todas las
+provincias**: la evaluación internacional mide al país en su conjunto. Solo tres
+jurisdicciones ampliaron su muestra de manera voluntaria para obtener resultados
+representativos propios: **Ciudad de Buenos Aires (CABA), Córdoba y Mendoza**.
+
+Córdoba participó como **Región Adjudicada**: la OCDE evalúa y reconoce formalmente esa
+muestra como un sistema educativo participante propio, sujeto a sus estándares de calidad,
+de modo que sus resultados son comparables internacionalmente por sí mismos.
+
+**Por qué la comparación no es estrictamente equivalente (manzana con manzana):**
+
+- El resultado **nacional** surge de una **muestra representativa de todo el país**.
+- El resultado de **Córdoba** surge de una **muestra provincial propia**.
+- Por lo tanto, **parte de la diferencia observada puede reflejar esa diferencia de
+  metodología y de composición de la muestra**, además de diferencias reales de desempeño.
+
+Esto es clave para interpretar la disparidad entre Córdoba y el promedio nacional: no es una
+comparación entre dos mediciones idénticas, sino entre una muestra provincial adjudicada y una
+muestra nacional.
+
 ## 7. Reconstruir / recargar (si hiciera falta)
 
 ```bash
