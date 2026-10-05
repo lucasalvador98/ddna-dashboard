@@ -62,6 +62,12 @@ export const navigation: NavGroup[] = [
     ],
   },
   {
+    label: 'Población',
+    icon: Users,
+    color: '#165DFF',
+    items: [{ label: 'Población y Demografía', href: '/poblacion', icon: Users }],
+  },
+  {
     label: 'Seguridad',
     icon: Shield,
     color: '#165DFF',
@@ -120,6 +126,7 @@ export const routeTitles: Record<string, string> = {
   '/encuestas': 'Encuestas 2024',
   '/pobreza': 'Indicadores de Pobreza',
   '/infancias': 'Infancias — Barómetro UCA',
+  '/poblacion': 'Población y Demografía',
   '/seguridad': 'Indicadores de Seguridad',
   '/inversion': 'Inversión Social',
   '/geo': 'Mapas',

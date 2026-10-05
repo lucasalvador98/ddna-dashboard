@@ -35,6 +35,7 @@ export const APP_ROUTES = [
   { route: '/salud', label: 'Salud' },
   { route: '/educacion', label: 'Educación' },
   { route: '/pobreza', label: 'Pobreza' },
+  { route: '/poblacion', label: 'Población y Demografía' },
   { route: '/seguridad', label: 'Seguridad' },
   { route: '/inversion', label: 'Inversión Social' },
 ] as const;
