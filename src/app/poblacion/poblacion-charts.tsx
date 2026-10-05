@@ -38,6 +38,14 @@ export interface PoblacionScope {
   hasta14: number | null;
   de15a64: number | null;
   de65mas: number | null;
+  /**
+   * Población por año simple de edad (`PERSONA_EDAD`): 0..109 como edades
+   * exactas y 110 como grupo abierto ("110 y más"), siempre ascendente. Sólo
+   * trae las edades con registro: los departamentos chicos no censan todas las
+   * edades altas, así que el largo de la serie varía por jurisdicción y no se
+   * rellena con ceros.
+   */
+  edades: { edad: number; valor: number }[];
 }
 
 interface PoblacionChartsProps {
@@ -133,6 +141,11 @@ export default function PoblacionCharts({
       { grupo: '15 a 64 años', valor: selected.de15a64, fill: COLORS.blue },
       { grupo: '65 años y más', valor: selected.de65mas, fill: COLORS.magenta },
     ];
+  }, [selected]);
+
+  const edadesData = useMemo(() => {
+    if (!selected) return [];
+    return [...selected.edades].sort((a, b) => a.edad - b.edad);
   }, [selected]);
 
   const tableRows = useMemo(() => {
@@ -303,6 +316,47 @@ export default function PoblacionCharts({
           </ResponsiveContainer>
         </ChartCard>
       </div>
+
+      {/* ─── Estructura por edad simple ───────────────────────────── */}
+      {/* Las edades con registro se grafican tal cual llegan (sin rellenar con
+          ceros): un departamento chico no censa todas las edades altas, así que
+          mostrar un 0 inventaría población que el censo no reporta. */}
+      {edadesData.length > 0 && (
+        <ChartCard
+          title="Estructura por edad"
+          subtitle={`${selected.region} — ${baseCenso}: población por año simple de edad (0 a 110) · ${edadesData.length} edades con registro`}
+          color="navy"
+          fuente={fuente}
+        >
+          <ResponsiveContainer width="100%" height={320}>
+            <BarChart
+              data={edadesData}
+              margin={{ top: 10, right: 20, left: 0, bottom: 5 }}
+              barCategoryGap={2}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" vertical={false} />
+              <XAxis
+                dataKey="edad"
+                interval={4}
+                allowDecimals={false}
+                tick={{ fill: '#050506', fontSize: 11 }}
+                tickLine={{ stroke: '#D8D5D3' }}
+              />
+              <YAxis
+                tick={{ fill: '#050506', fontSize: 12 }}
+                tickLine={{ stroke: '#D8D5D3' }}
+                tickFormatter={(value: number) => value.toLocaleString('es-AR')}
+              />
+              <Tooltip
+                contentStyle={TOOLTIP_STYLE}
+                labelFormatter={label => `Edad ${String(label)}`}
+                formatter={value => [`${Number(value).toLocaleString('es-AR')} personas`, '']}
+              />
+              <Bar dataKey="valor" name="Personas" fill={COLORS.blue} radius={[2, 2, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartCard>
+      )}
 
       {/* ─── Tabla por departamento ───────────────────────────────── */}
       <div className="bg-white rounded-xl border-2 border-border overflow-hidden">
