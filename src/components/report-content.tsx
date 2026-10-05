@@ -63,7 +63,7 @@ const AXIS_COLORS: Record<string, { border: string; text: string; bg: string; ba
     border: 'border-amber',
     text: 'text-amber',
     bg: 'bg-amber/5',
-    bar: '#FF8C00',
+    bar: '#C2410C',
   },
   inversion: {
     border: 'border-blue',

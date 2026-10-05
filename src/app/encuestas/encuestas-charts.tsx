@@ -19,11 +19,11 @@ const CHART_COLORS = [
   '#165DFF',
   '#2F6F4F',
   '#C2410C',
-  '#FF8C00',
+  '#C2410C',
   '#050506',
   '#A7C4FF',
-  '#2F6F4F',
-  '#C2410C',
+  '#6B4A9C',
+  '#0F3FA8',
 ];
 
 interface EncuestasChartsProps {

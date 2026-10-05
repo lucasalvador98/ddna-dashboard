@@ -35,7 +35,7 @@ const colorStyles = {
     light: '#FBF0EC',
   },
   amber: {
-    primary: '#FF8C00',
+    primary: '#C2410C',
     secondary: '#9A6A2F',
     light: '#FAF3E0',
   },

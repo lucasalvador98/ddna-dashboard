@@ -45,7 +45,7 @@ const TABS: { id: TabId; label: string }[] = [
 const COLORS = {
   magenta: '#8A4B4B',
   terracotta: '#C2410C',
-  amber: '#FF8C00',
+  amber: '#C2410C',
   orange: '#B3541E',
   blue: '#165DFF',
   green: '#2F6F4F',

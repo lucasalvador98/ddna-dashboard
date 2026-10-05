@@ -17,7 +17,7 @@ import {
 } from 'recharts';
 import { ChartWithTable } from '@/components/charts/chart-with-table';
 
-const COLORS = ['#165DFF', '#8A4B4B', '#FF8C00', '#C2410C', '#356B6B', '#6B4A9C'];
+const COLORS = ['#165DFF', '#8A4B4B', '#C2410C', '#C2410C', '#356B6B', '#6B4A9C'];
 
 interface DistribucionItem {
   name: string;

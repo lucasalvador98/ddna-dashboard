@@ -61,7 +61,13 @@ institucional (misión, visión, estructura). **Todo el texto está convertido a
 curvas** y el archivo no expone fuentes ni colores de forma legible. Se puede
 usar como referencia de contenido y tono, **no como fuente de tokens**.
 
-## Advertencia de accesibilidad
+## Advertencia de accesibilidad (aplicada)
 
-`#ff8c00` sobre `#ffffff` **no alcanza contraste AA** para texto pequeño. Usar
-el naranja como relleno, borde o acento; texto sobre naranja en `#050506`.
+`#ff8c00` da **2.33:1** sobre blanco y **1.89:1** sobre `#e9e7e7`: no alcanza
+el 3:1 de WCAG 1.4.11 para relleno de gráficos ni el 4.5:1 para texto pequeño.
+
+Regla que quedó aplicada en el tablero:
+- **Identidad** (barra superior, acentos, bordes, íconos): `#ff8c00`, siempre
+  con texto `#050506` encima (8.73:1) o como borde.
+- **Series de gráfico** (lo que codifica información): `#c2410c` (5.18:1),
+  el naranja institucional quemado.

@@ -21,7 +21,7 @@ const COLORS = {
   terracotta: '#C2410C',
   blue: '#165DFF',
   magenta: '#8A4B4B',
-  amber: '#FF8C00',
+  amber: '#C2410C',
 };
 
 export interface SaludChartsProps {

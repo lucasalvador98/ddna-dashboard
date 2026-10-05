@@ -97,7 +97,7 @@ export default function PresupuestoNnyaCharts({
         <div className="flex items-center gap-4">
           <button
             onClick={() => setShowMethodology(!showMethodology)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-accent text-navy bg-[#F5F0EC] rounded-lg hover:bg-border transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-accent text-navy bg-[#F5F0EC] rounded-lg hover:bg-[#E6E3E1] transition-colors"
           >
             <Info className="w-4 h-4" />
             {showMethodology ? 'Ocultar Metodología' : 'Ver Metodología'}

@@ -23,13 +23,15 @@ import type { Indicador } from '@/lib/use-dashboard-data';
 // ─── Colors ─────────────────────────────────────────────────────
 
 const COLORS = {
-  amber: '#FF8C00',
+  amber: '#C2410C',
   blue: '#165DFF',
   magenta: '#8A4B4B',
   terracotta: '#C2410C',
   green: '#2F6F4F',
   red: '#A11F1F',
-  avanzado: '#2F6F4F',
+  // debe ser DISTINTO de green: ambos son barras separadas del mismo
+  // stack en el grafico de Aprender (arribas 487-488)
+  avanzado: '#1F4A32',
 };
 
 // ─── Props ──────────────────────────────────────────────────────

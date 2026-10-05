@@ -16,7 +16,7 @@ interface ChartCardProps {
 
 const colorClasses: Record<ChartCardColor, string> = {
   terracotta: '#C2410C',
-  amber: '#FF8C00',
+  amber: '#C2410C',
   magenta: '#8A4B4B',
   blue: '#165DFF',
   navy: '#050506',

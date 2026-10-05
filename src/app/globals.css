@@ -9,7 +9,10 @@
   /* Brand Colors (portal ddna-theme) */
   --ddna-amber: #ff8c00;
   --ddna-magenta: #9a3412;
-  --ddna-orange: #ff8c00;
+  /* naranja institucional quemado: debe ser DISTINTO de amber, porque
+     KpiCard / SectionHeader los usan como categorias separadas
+     (p.ej. salud/page.tsx color="amber" junto a color="orange") */
+  --ddna-orange: #c2410c;
   --ddna-cream: #f5f0ec;
 
   /* Accent Colors */

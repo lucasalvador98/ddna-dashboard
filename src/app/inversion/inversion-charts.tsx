@@ -45,7 +45,7 @@ export interface InversionRow {
 
 const COLORS = {
   terracotta: '#C2410C',
-  amber: '#FF8C00',
+  amber: '#C2410C',
   blue: '#165DFF',
   magenta: '#8A4B4B',
   green: '#2F6F4F',
