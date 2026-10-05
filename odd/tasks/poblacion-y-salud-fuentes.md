@@ -23,6 +23,35 @@ Publica series **por jurisdicción** (DEIS). Patrón: `<ind>_arg` nacional,
 **Lo que el series API NO tiene**: fecundidad general, nacidos vivos absolutos,
 cobertura vacunal provincial.
 
+### Cobertura vacunal — SÍ hay datos, y son los más actuales (2025)
+
+> Corrección: antes dije que estaba "bloqueada". Estaba mal. Existe, pero como **PDF**,
+> no como API.
+
+- `https://www.argentina.gob.ar/salud/inmunoprevenibles/coberturas-de-vacunacion`
+  publica el **Calendario Nacional de Vacunación 2024 y 2025**:
+  - `nacion_-_cnv_2024_-_publicacion_final_02_09_2026.pdf`
+  - `nacion_-_cnv_2025_-_publicacion_final_02_09_2026.pdf`
+- **Traen el corte por jurisdicción**. Estructura de cada fila:
+  `Jurisdicción | población objetivo | dosis aplicadas | cobertura %`.
+  Córdoba aparece 44 veces (una por vacuna); hay 23 jurisdicciones.
+- **Ojo con el encoding**: `pdftotext` rompe los acentos ("C�rdoba"), así que hay que
+  parsear buscando `rdoba` o normalizar primero.
+- También hay `coberturas-de-vacunacion-por-jurisdiccion-cnv-2009-2020.pdf` (serie
+  histórica por jurisdicción) y las publicaciones 2021/2022/2023.
+
+### Otras fuentes de salud relevadas
+
+- **DEIS (`argentina.gob.ar/salud/deis`)**: "Estadísticas vitales - Año **2024**" con
+  natalidad y mortalidad **por provincia**; e "Indicadores seleccionados de salud para
+  la población de 10 a 19 años - Año 2024".
+- **`datos.salud.gob.ar`** (CKAN de Salud): es pobre, solo 3 datasets de vacunación
+  (Triple Viral SRP hasta 2019, dosis COVID).
+- **`datosgestionabierta.cba.gov.ar`** (CKAN provincial): **no expone API** (devuelve
+  HTML). Tiene "Centros de vacunación de Córdoba", pero eso son centros, no cobertura.
+- **Mapa de Coberturas y Distribución de Vacunas** (`argentina.gob.ar/salud/cobertura-y-distribucion-de-vacunas/cobertura`):
+  interactivo (Leaflet), hasta 2025 por jurisdicción, pero sin endpoint de datos visible.
+
 ### Catálogo CKAN `datos.gob.ar`
 - **"Nacidos Vivos Registrados por Jurisdicción de Residencia de la Madre"** —
   XLS/CSV/XLSX, **incluye 2023** → nacimientos totales por jurisdicción.
@@ -49,10 +78,11 @@ cobertura vacunal provincial.
 **Salud (lo que falta)**
 - S1 — Nacimientos totales por jurisdicción (CKAN "Nacidos Vivos Registrados",
   hasta 2023) → Córdoba vs Nación.
-- S2 — Tasa de natalidad vs fecundidad: natalidad ya está; fecundidad general no
-  existe en el series API → se puede derivar del Censo (P35) o dejar solo natalidad.
-- S3 — Cobertura vacunal Córdoba vs Nación: **bloqueada** — no se encontró fuente
-  automática. Requiere fuente provincial/DEIS manual.
+- S2 — Tasa de natalidad vs fecundidad: natalidad ya está (2000-2024); fecundidad
+  general no existe en el series API → se puede derivar del Censo (P35).
+- S3 — **Cobertura vacunal Córdoba vs Nación: HACIBLE**. Fuente = PDFs del CNV
+  2024/2025 con corte por jurisdicción. Requiere parser de PDF (pdftotext +
+  normalización de acentos). Da datos **más nuevos que todo lo demás** (2025).
 
 **Población / demografía (pantalla nueva)**
 - P1 — ETL del Censo 2022: descargar el ZIP de Córdoba (y Nación), parsear
@@ -78,5 +108,6 @@ cobertura vacunal provincial.
 - [ ] T2 — ETL de "Nacidos Vivos Registrados por Jurisdicción" (CKAN, hasta 2023).
 - [ ] T3 — ETL del Censo 2022 (sexo + edad) → categoría `poblacion`.
 - [ ] T4 — UI de la pantalla de Población / Demografía.
-- [ ] T5 — Cobertura vacunal Córdoba vs Nación (bloqueada: falta fuente).
+- [ ] T5 — Cobertura vacunal Córdoba vs Nación: parser de los PDFs del CNV
+      2024/2025 (corte por jurisdicción). Da los datos más actuales del tablero.
 - [ ] T6 — Deploy coordinado (va último).
