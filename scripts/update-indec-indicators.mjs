@@ -167,6 +167,52 @@ const SERIES = [
     region: 'Nacional',
   },
 
+  // --- NATALIDAD (DEIS, por jurisdicción, 2000-2024) ---
+  {
+    id: 'tn_14',
+    nombre: 'Tasa de natalidad (Córdoba)',
+    categoria: 'salud',
+    unidad: '‰',
+    fuente: 'DEIS / datos.gob.ar',
+    region: 'Córdoba',
+  },
+  {
+    id: 'tn_arg',
+    nombre: 'Tasa de natalidad (Nacional)',
+    categoria: 'salud',
+    unidad: '‰',
+    fuente: 'DEIS / datos.gob.ar',
+    region: 'Nacional',
+  },
+
+  // --- MORTALIDAD FETAL (DEIS, Córdoba) ---
+  {
+    id: 'tmf_14',
+    nombre: 'Mortalidad fetal (Córdoba)',
+    categoria: 'salud',
+    unidad: '‰',
+    fuente: 'DEIS / datos.gob.ar',
+    region: 'Córdoba',
+  },
+
+  // --- DEFUNCIONES HISTÓRICAS (DEIS) ---
+  {
+    id: 'hdef_14',
+    nombre: 'Defunciones (histórico Córdoba)',
+    categoria: 'salud',
+    unidad: 'defunciones',
+    fuente: 'DEIS / datos.gob.ar',
+    region: 'Córdoba',
+  },
+  {
+    id: 'hdef_arg',
+    nombre: 'Defunciones (histórico Nacional)',
+    categoria: 'salud',
+    unidad: 'defunciones',
+    fuente: 'DEIS / datos.gob.ar',
+    region: 'Nacional',
+  },
+
   // --- DESEMELO NACIONAL ---
   {
     id: '42.1_EPDT_0_A_30',
