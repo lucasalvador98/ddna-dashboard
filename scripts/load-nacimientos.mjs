@@ -5,10 +5,26 @@
  * Fuentes (CSV públicos, datos abiertos del Ministerio de Salud):
  *   1. Serie 2005-2022 (delimitador ",", 65 MB / ~547k filas)
  *   2. Año 2023       (delimitador ";", ~23k filas, header con BOM UTF-8)
+ *   3. Año 2024       (delimitador ";", ~22k filas) — formato DISTINTO: 8 columnas
+ *                     `PROVRES;TIPPARTO;SEXO;IMEDAD;ITIEMGEST;IMINSTRUC;IPESONAC;CUENTA`,
+ *                     SIN columna de año (el archivo es de un solo año → 2024 fijo)
+ *                     y SIN nombre de jurisdicción (solo el código PROVRES).
  *
- * Ambos traen las MISMAS 12 columnas y vienen DESAGREGADOS: una fila por
- * combinación de edad de madre × instrucción × tipo de parto × semana de
- * gestación × peso al nacer × sexo. Este script AGREGA en 3 grupos:
+ * Las fuentes 1 y 2 traen las MISMAS 12 columnas y vienen DESAGREGADAS: una fila
+ * por combinación de edad de madre × instrucción × tipo de parto × semana de
+ * gestación × peso al nacer × sexo.
+ *
+ * La fuente 3 trae menos columnas y ningún nombre de jurisdicción:
+ *   · `PROVRES` se resuelve con el mapa id→nombre que se DERIVA de las fuentes 1
+ *     y 2 durante esta misma corrida (no se duplica la lista de provincias).
+ *   · `SEXO` viene como código numérico; se traduce a la etiqueta textual DEIS
+ *     (masculino/femenino/indeterminado/desconocido) y luego pasa por
+ *     normalizarSexo, así las series quedan idénticas a las de 2005-2023.
+ *   · `IMEDAD` trae el mismo prefijo numérico que las otras fuentes → misma
+ *     normalización (limpiarPrefijoGrupo).
+ *   · `CUENTA` es el conteo (equivale a `nacimientos_cantidad`).
+ *
+ * Este script AGREGA las 3 fuentes en 3 grupos:
  *
  *   - Totales          : Nacimientos totales                (SUM por anio+jurisdicción)
  *   - Por sexo         : Nacimientos — <sexo>
@@ -45,16 +61,27 @@ const UNIDAD = 'nacimientos';
 const BASE_DATASET =
   'http://datos.salud.gob.ar/dataset/d1350588-d8bb-4892-b21c-48738311e218/resource';
 
+// Año de la fuente 3 (el CSV no trae columna de año).
+const ANIO_2024 = 2024;
+
 const FUENTES = [
   {
     etiqueta: '2005-2022 (delimitador ",")',
     archivo: 'nacidos-vivos-2005-2022.csv',
     url: `${BASE_DATASET}/5a68ea36-03fe-4b38-b590-d7cf2a13b821/download/nacidos-vivos-registrados-en-la-republica-argentina-entre-los-anos-2005-2022.csv`,
+    formato: 'deis-desagregado',
   },
   {
     etiqueta: '2023 (delimitador ";")',
     archivo: 'nacimientos-2023.csv',
     url: `${BASE_DATASET}/40e722b8-72eb-49a0-89dc-5ee174bf63b4/download/nacimientos2023.csv`,
+    formato: 'deis-desagregado',
+  },
+  {
+    etiqueta: `2024 (delimitador ";", PROVRES, ${ANIO_2024} fijo)`,
+    archivo: 'nacimientos-2024.csv',
+    url: 'https://www.argentina.gob.ar/sites/default/files/2021/03/datos_sobre_nacidos_vivos_2024.csv',
+    formato: 'provres-2024',
   },
 ];
 
@@ -68,6 +95,35 @@ const COL = {
   sexo: 'Sexo',
   cantidad: 'nacimientos_cantidad',
 };
+
+// Columnas del archivo 2024: sin año, sin nombre de jurisdicción y con el sexo
+// codificado. `TIPPARTO`/`ITIEMGEST`/`IMINSTRUC`/`IPESONAC` no se agregan (el
+// desglose cargado es total / por sexo / por edad de la madre), igual que en las
+// otras dos fuentes, donde tampoco se usan esas cuatro columnas.
+const COL_2024 = {
+  provres: 'PROVRES',
+  edad: 'IMEDAD',
+  sexo: 'SEXO',
+  cantidad: 'CUENTA',
+};
+
+// Códigos de `SEXO` del archivo 2024 → etiqueta textual del DEIS. Verificado
+// contra el CSV 2023 (columna sexo_id | Sexo): 1=masculino, 2=femenino,
+// 3=indeterminado, 9=desconocido. Además, el total de masculino supera al de
+// femenino (razón de masculinidad > 1) tanto en 2023 como en 2024, lo que
+// confirma que 1/2 NO están invertidos.
+const SEXO_POR_CODIGO = new Map([
+  [1, 'masculino'],
+  [2, 'femenino'],
+  [3, 'indeterminado'],
+  [9, 'desconocido'],
+]);
+
+// Mapa id→nombre de jurisdicción DERIVADO de las fuentes DEIS (1 y 2), que sí
+// traen el nombre. Lo consume la fuente 2024, que solo trae el código PROVRES:
+// así la lista de provincias no se duplica a mano. Se puebla mientras se parsean
+// las fuentes anteriores, por eso el orden de FUENTES importa.
+const regionPorJurisId = new Map();
 
 // Ids del DEIS que NO son jurisdicciones provinciales (se cargan igual y se
 // reportan como anomalía; si se descartaran, los totales no cerrarían).
@@ -123,9 +179,9 @@ function partirLinea(linea, delim) {
   return campos;
 }
 
-function mapearColumnas(header) {
+function mapearColumnas(header, spec) {
   const idx = {};
-  for (const [clave, nombre] of Object.entries(COL)) {
+  for (const [clave, nombre] of Object.entries(spec)) {
     const i = header.indexOf(nombre);
     if (i === -1) {
       throw new Error(
@@ -236,14 +292,37 @@ async function descargar(url, destino) {
 
 // ── Parseo en streaming + agregación ────────────────────────────────
 
-async function agregarCsv(path) {
+/**
+ * Parsea y agrega una fuente en streaming (nunca retiene las filas crudas).
+ *
+ * `formato`:
+ *   · 'deis-desagregado' — 12 columnas, trae año y nombre de jurisdicción.
+ *   · 'provres-2024'     — 8 columnas, sin año (2024 fijo) y sin nombre de
+ *     jurisdicción: el nombre se resuelve con `regionPorJurisId`, que ya
+ *     poblaron las fuentes DEIS (por eso esas dos se parsean antes).
+ */
+async function agregarCsv(path, formato = 'deis-desagregado') {
+  const es2024 = formato === 'provres-2024';
+  const spec = es2024 ? COL_2024 : COL;
+  const columnasEsperadas = es2024 ? 8 : 12;
+  const etiquetaCantidad = es2024 ? 'CUENTA' : 'nacimientos_cantidad';
+
+  // La fuente 2024 no trae nombre de jurisdicción: sin el mapa derivado se
+  // descartarían TODAS sus filas en silencio. Mejor fallar explícitamente.
+  if (es2024 && regionPorJurisId.size === 0) {
+    throw new Error(
+      'la fuente 2024 solo trae el código PROVRES y el mapa id→nombre está vacío: ' +
+        'las fuentes DEIS (2005-2022 y 2023) deben parsearse antes.'
+    );
+  }
+
   const rl = createInterface({
     input: createReadStream(path, { encoding: 'utf8' }),
     crlfDelay: Infinity,
   });
 
   let idx = null;
-  let delim = ',';
+  let delim = es2024 ? ';' : ',';
   let lineaNro = 0;
   let filasFuente = 0;
 
@@ -252,50 +331,76 @@ async function agregarCsv(path) {
     if (lineaNro === 1) {
       const header = linea.replace(/^\uFEFF/, '');
       delim = detectarDelimitador(header);
-      idx = mapearColumnas(partirLinea(header, delim));
+      idx = mapearColumnas(partirLinea(header, delim), spec);
       continue;
     }
     if (!linea.trim()) continue;
 
     const campos = partirLinea(linea, delim);
-    if (campos.length !== 12) {
-      descartar(`se esperaban 12 columnas y vinieron ${campos.length}`, lineaNro, linea);
-      continue;
-    }
-
-    const anio = Number(campos[idx.anio]);
-    if (!Number.isInteger(anio) || anio < 2000 || anio > 2100) {
-      descartar(`anio inválido "${campos[idx.anio]}"`, lineaNro, linea);
-      continue;
-    }
-
-    const region = String(campos[idx.jurisNombre] ?? '').trim();
-    if (!region) {
-      descartar('jurisdicción vacía', lineaNro, linea);
+    if (campos.length !== columnasEsperadas) {
+      descartar(`se esperaban ${columnasEsperadas} columnas y vinieron ${campos.length}`, lineaNro, linea);
       continue;
     }
 
     const cantidad = parseCantidad(campos[idx.cantidad]);
     if (cantidad === null) {
-      descartar(`nacimientos_cantidad no numérico "${campos[idx.cantidad]}"`, lineaNro, linea);
+      descartar(`${etiquetaCantidad} no numérico "${campos[idx.cantidad]}"`, lineaNro, linea);
       continue;
     }
 
-    const sexo = normalizarSexo(campos[idx.sexo]);
     const grupoRaw = String(campos[idx.edad] ?? '').trim();
     const grupo = limpiarPrefijoGrupo(grupoRaw);
-    const jurisIdRaw = String(campos[idx.jurisId] ?? '').trim();
-    const jurisId = idNormalizado(jurisIdRaw);
+
+    let anio;
+    let jurisId;
+    let region;
+    let sexo;
+
+    if (es2024) {
+      anio = ANIO_2024;
+      const provresRaw = String(campos[idx.provres] ?? '').trim();
+      jurisId = idNormalizado(provresRaw);
+      region = regionPorJurisId.get(jurisId);
+      if (!region) {
+        descartar(
+          `PROVRES "${provresRaw}" sin nombre de jurisdicción en el mapa derivado de las fuentes DEIS`,
+          lineaNro,
+          linea
+        );
+        continue;
+      }
+      // SEXO viene codificado: código → etiqueta DEIS → normalizarSexo, para
+      // generar exactamente las mismas series que las fuentes 2005-2023.
+      const codSexo = Number(String(campos[idx.sexo] ?? '').trim());
+      sexo = normalizarSexo(SEXO_POR_CODIGO.get(codSexo) ?? campos[idx.sexo]);
+    } else {
+      anio = Number(campos[idx.anio]);
+      if (!Number.isInteger(anio) || anio < 2000 || anio > 2100) {
+        descartar(`anio inválido "${campos[idx.anio]}"`, lineaNro, linea);
+        continue;
+      }
+
+      jurisId = idNormalizado(String(campos[idx.jurisId] ?? '').trim());
+      region = String(campos[idx.jurisNombre] ?? '').trim();
+      if (!region) {
+        descartar('jurisdicción vacía', lineaNro, linea);
+        continue;
+      }
+      sexo = normalizarSexo(campos[idx.sexo]);
+
+      // Alimenta el mapa id→nombre que consume la fuente 2024 (gana el primero).
+      if (!regionPorJurisId.has(jurisId)) regionPorJurisId.set(jurisId, region);
+    }
 
     // ── Totales ──
-    const kt = `${anio}|${jurisIdRaw}`;
+    const kt = `${anio}|${jurisId}`;
     const t = accTotales.get(kt) ?? { anio, jurisId, region, valor: 0 };
     t.valor += cantidad;
     accTotales.set(kt, t);
 
     // ── Por sexo ──
     if (sexo) {
-      const ks = `${anio}|${jurisIdRaw}|${sexo}`;
+      const ks = `${anio}|${jurisId}|${sexo}`;
       const s = accSexo.get(ks) ?? { anio, jurisId, region, sexo, valor: 0 };
       s.valor += cantidad;
       accSexo.set(ks, s);
@@ -305,7 +410,7 @@ async function agregarCsv(path) {
 
     // ── Por edad de la madre ──
     if (grupo) {
-      const ke = `${anio}|${jurisIdRaw}|${grupoRaw}`;
+      const ke = `${anio}|${jurisId}|${grupoRaw}`;
       const e = accEdad.get(ke) ?? { anio, jurisId, region, grupo: grupoRaw, grupoEtiqueta: grupo, valor: 0 };
       e.valor += cantidad;
       accEdad.set(ke, e);
@@ -406,7 +511,7 @@ async function main() {
     const destino = join(tmp, fuente.archivo);
     process.stdout.write(`📥 ${fuente.etiqueta} — bajando… `);
     await descargar(fuente.url, destino);
-    const { filasFuente, delimitador } = await agregarCsv(destino);
+    const { filasFuente, delimitador } = await agregarCsv(destino, fuente.formato);
     console.log(`ok — ${filasFuente} filas parseadas (delim "${delimitador}")`);
   }
 
@@ -466,6 +571,66 @@ async function main() {
     for (const m of stats.muestrasDescartadas) console.log(`   ${m}`);
   } else {
     console.log(`\n✅ Filas descartadas: 0`);
+  }
+
+  // ── Validación cruzada de la fuente 2024 (no trae nombre de jurisdicción) ──
+  // Compara el año más reciente contra el anterior por jurisdicción: si el
+  // código PROVRES mapeara a otra provincia (o el SEXO estuviera invertido),
+  // saltaría acá. También imprime la razón de masculinidad por año.
+  const aniosConTotales = [...new Set([...accTotales.values()].map((t) => t.anio))].sort((a, b) => a - b);
+  const anioUlt = aniosConTotales[aniosConTotales.length - 1];
+  const anioPrev = aniosConTotales[aniosConTotales.length - 2];
+  if (anioUlt === ANIO_2024 && anioPrev !== undefined) {
+    const totalesPorAnioId = new Map(); // `${anio}|${jurisId}` -> valor
+    for (const t of accTotales.values()) totalesPorAnioId.set(`${t.anio}|${t.jurisId}`, t.valor);
+
+    const idsUlt = [...accTotales.values()]
+      .filter((t) => t.anio === anioUlt)
+      .map((t) => t.jurisId)
+      .sort((a, b) => Number(a) - Number(b));
+
+    console.log(`\n🔁 Validación cruzada ${anioPrev} vs ${anioUlt} (mapa PROVRES→jurisdicción y códigos SEXO):`);
+    console.log(`   ${'id'.padStart(3)}  ${'jurisdicción'.padEnd(46)} ${String(anioPrev).padStart(8)} ${String(anioUlt).padStart(8)}     Δ%`);
+    let sumaPrev = 0;
+    let sumaUlt = 0;
+    for (const id of idsUlt) {
+      const vPrev = totalesPorAnioId.get(`${anioPrev}|${id}`);
+      const vUlt = totalesPorAnioId.get(`${anioUlt}|${id}`);
+      const region = accTotales.get(`${anioUlt}|${id}`)?.region ?? '?';
+      if (typeof vPrev !== 'number') {
+        console.log(`   ${String(id).padStart(3)}  ${region.padEnd(46)} ${'—'.padStart(8)} ${String(vUlt).padStart(8)}   ⚠️ sin dato en ${anioPrev}`);
+        continue;
+      }
+      if (typeof vUlt !== 'number') continue;
+      sumaPrev += vPrev;
+      sumaUlt += vUlt;
+      const delta = ((vUlt - vPrev) / vPrev) * 100;
+      const marca = Math.abs(delta) > 35 ? '  ⚠️ orden inesperado' : '';
+      console.log(
+        `   ${String(id).padStart(3)}  ${region.padEnd(46)} ${String(vPrev).padStart(8)} ${String(vUlt).padStart(8)}   ${delta >= 0 ? '+' : ''}${delta.toFixed(1)}%${marca}`
+      );
+    }
+    const deltaTotal = ((sumaUlt - sumaPrev) / sumaPrev) * 100;
+    console.log(
+      `   ${'TOTAL'.padStart(3)}  ${'(solo jurisdicciones comparables)'.padEnd(46)} ${String(sumaPrev).padStart(8)} ${String(sumaUlt).padStart(8)}   ${deltaTotal >= 0 ? '+' : ''}${deltaTotal.toFixed(1)}%`
+    );
+
+    const sexoPorAnio = new Map(); // anio -> { masculino, femenino }
+    for (const s of accSexo.values()) {
+      if (!sexoPorAnio.has(s.anio)) sexoPorAnio.set(s.anio, {});
+      sexoPorAnio.get(s.anio)[s.sexo] = (sexoPorAnio.get(s.anio)[s.sexo] ?? 0) + s.valor;
+    }
+    const razon = (a) => {
+      const m = sexoPorAnio.get(a)?.masculino;
+      const f = sexoPorAnio.get(a)?.femenino;
+      return m && f ? (m / f).toFixed(3) : '—';
+    };
+    const rPrev = Number(razon(anioPrev));
+    const rUlt = Number(razon(anioUlt));
+    console.log(
+      `   Razón de masculinidad (masc/fem): ${anioPrev}=${razon(anioPrev)} · ${anioUlt}=${razon(anioUlt)}` +
+        ` → ${rPrev > 1 && rUlt > 1 ? '✅ mismo orden en ambos años: el mapeo SEXO NO está invertido' : '⚠️ revisar el mapeo SEXO'}`
+    );
   }
 
   // ── Consistencia: los desgloses deben cerrar con el total ──
