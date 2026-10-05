@@ -19,4 +19,4 @@ Revisión de fuentes y metodologia de ponderación para los 15 tableros. Objetiv
 - [ ] Verificar si SENAF tiene nuevo portal 2024-2026 y actualizar URLs en `load-senaf-data.mjs` si existe
 - [ ] Validar ponderadores DNPPE/UNICEF con equipo (¿0.66 para BEG sigue vigente en 2026?)
 - [ ] Definir umbral de staleness por categoría y alertar en `/api/health` (ya hecho en Slice 1)
-- [ ] Archivar scripts one-off (`backfill.mjs`, `reprocess-all.ts`) que no son parte del pipeline regular
+- [x] Archivar scripts one-off (`backfill.mjs`, `reprocess-all.ts`) que no son parte del pipeline regular — **hecho** (borrados en la limpieza de fase 1)
