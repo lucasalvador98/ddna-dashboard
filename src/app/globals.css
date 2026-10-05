@@ -107,6 +107,164 @@
   --sidebar-ring: var(--ddna-blue);
 }
 
+/* ────────────────────────────────────────────────────────────────
+   Override de la paleta default de Tailwind -> escala institucional DDNA.
+   El tablero usaba ~1.100 clases de la paleta default (gray-*, slate-*,
+   red-*, amber-*, blue-*) repartidas en 80 archivos. Redefinirlas acá las
+   retunea todas de una, sin tocar un solo componente.
+   Ver docs/TOKENS_DDNA.md
+   ──────────────────────────────────────────────────────────────── */
+@theme {
+  /* gray */
+  --color-gray-50: #faf9f8;
+  --color-gray-55: #f7f6f5;
+  --color-gray-100: #f2f0ee;
+  --color-gray-150: #ecebe9;
+  --color-gray-200: #e6e3e1;
+  --color-gray-205: #e2dfdd;
+  --color-gray-300: #d8d5d3;
+  --color-gray-400: #b5b0ac;
+  --color-gray-500: #5b5755;
+  --color-gray-600: #4a4644;
+  --color-gray-700: #3a3634;
+  --color-gray-800: #262322;
+  --color-gray-900: #050506;
+  --color-gray-950: #050506;
+
+  /* slate */
+  --color-slate-50: #faf9f8;
+  --color-slate-55: #f7f6f5;
+  --color-slate-100: #f2f0ee;
+  --color-slate-150: #ecebe9;
+  --color-slate-200: #e6e3e1;
+  --color-slate-205: #e2dfdd;
+  --color-slate-300: #d8d5d3;
+  --color-slate-400: #b5b0ac;
+  --color-slate-500: #5b5755;
+  --color-slate-600: #4a4644;
+  --color-slate-700: #3a3634;
+  --color-slate-800: #262322;
+  --color-slate-900: #050506;
+  --color-slate-950: #050506;
+
+  /* amber */
+  --color-amber-50: #fdf6ec;
+  --color-amber-100: #fbead3;
+  --color-amber-200: #f7d9ae;
+  --color-amber-300: #f3c98a;
+  --color-amber-400: #f0b45e;
+  --color-amber-500: #ff8c00;
+  --color-amber-600: #b3541e;
+  --color-amber-700: #9a3412;
+  --color-amber-800: #7c2d12;
+  --color-amber-900: #5c1f0c;
+  --color-amber-950: #3d1408;
+
+  /* orange */
+  --color-orange-50: #fdf3ec;
+  --color-orange-100: #fbe4d3;
+  --color-orange-200: #f6c9ae;
+  --color-orange-300: #f0a878;
+  --color-orange-400: #e8834a;
+  --color-orange-500: #d95f1f;
+  --color-orange-600: #c2410c;
+  --color-orange-700: #9a3412;
+  --color-orange-800: #7c2d12;
+  --color-orange-900: #5c1f0c;
+  --color-orange-950: #3d1408;
+
+  /* yellow */
+  --color-yellow-50: #fdf8ec;
+  --color-yellow-100: #fbf0d3;
+  --color-yellow-200: #f7e3a8;
+  --color-yellow-300: #f0d47c;
+  --color-yellow-400: #e8c05a;
+  --color-yellow-500: #d4a72c;
+  --color-yellow-600: #a67c14;
+  --color-yellow-700: #7d5a12;
+  --color-yellow-800: #5c420e;
+  --color-yellow-900: #3d2c0a;
+  --color-yellow-950: #2b1f07;
+
+  /* red */
+  --color-red-50: #fbf0ee;
+  --color-red-100: #f7e0dc;
+  --color-red-200: #eec4bd;
+  --color-red-300: #e3a49a;
+  --color-red-400: #d16b5c;
+  --color-red-500: #b83a2a;
+  --color-red-600: #a11f1f;
+  --color-red-700: #8a1a1a;
+  --color-red-800: #701616;
+  --color-red-900: #5c1212;
+  --color-red-950: #3d0c0c;
+
+  /* blue */
+  --color-blue-50: #eef2ff;
+  --color-blue-100: #dfe7ff;
+  --color-blue-200: #c2d2ff;
+  --color-blue-300: #9db8ff;
+  --color-blue-400: #6b93ff;
+  --color-blue-500: #2f6bff;
+  --color-blue-600: #165dff;
+  --color-blue-700: #0f3fa8;
+  --color-blue-800: #0c3286;
+  --color-blue-900: #0a2868;
+  --color-blue-950: #061a45;
+
+  /* emerald */
+  --color-emerald-50: #eef4f0;
+  --color-emerald-100: #dcebe1;
+  --color-emerald-200: #bcd8c6;
+  --color-emerald-300: #97c2a8;
+  --color-emerald-400: #6aa585;
+  --color-emerald-500: #3d8a63;
+  --color-emerald-600: #2f6f4f;
+  --color-emerald-700: #245840;
+  --color-emerald-800: #1d4733;
+  --color-emerald-900: #163828;
+  --color-emerald-950: #0d2318;
+
+  /* green */
+  --color-green-50: #eef4f0;
+  --color-green-100: #dcebe1;
+  --color-green-200: #bcd8c6;
+  --color-green-300: #97c2a8;
+  --color-green-400: #6aa585;
+  --color-green-500: #3d8a63;
+  --color-green-600: #2f6f4f;
+  --color-green-700: #245840;
+  --color-green-800: #1d4733;
+  --color-green-900: #163828;
+  --color-green-950: #0d2318;
+
+  /* purple */
+  --color-purple-50: #f3f0f7;
+  --color-purple-100: #e6dff0;
+  --color-purple-200: #cdbfe0;
+  --color-purple-300: #b09ccb;
+  --color-purple-400: #8f76b4;
+  --color-purple-500: #7a5aa3;
+  --color-purple-600: #6b4a9c;
+  --color-purple-700: #563a7d;
+  --color-purple-800: #452f64;
+  --color-purple-900: #35244c;
+  --color-purple-950: #20162e;
+
+  /* violet */
+  --color-violet-50: #f3f0f7;
+  --color-violet-100: #e6dff0;
+  --color-violet-200: #cdbfe0;
+  --color-violet-300: #b09ccb;
+  --color-violet-400: #8f76b4;
+  --color-violet-500: #7a5aa3;
+  --color-violet-600: #6b4a9c;
+  --color-violet-700: #563a7d;
+  --color-violet-800: #452f64;
+  --color-violet-900: #35244c;
+  --color-violet-950: #20162e;
+}
+
 @theme inline {
   /* Primary palette */
   --color-amber: var(--ddna-amber);
