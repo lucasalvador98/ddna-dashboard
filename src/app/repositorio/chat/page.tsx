@@ -358,7 +358,7 @@ export default function ChatPage() {
             <button
               type="submit"
               disabled={loading || !input.trim()}
-              className="px-6 py-3 bg-navy text-white rounded-lg font-accent text-sm hover:bg-[#00063E] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              className="px-6 py-3 bg-navy text-white rounded-lg font-accent text-sm hover:bg-[#050506] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
             >
               {loading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

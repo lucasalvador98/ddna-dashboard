@@ -54,13 +54,13 @@ type IndicadorRow = {
 // ─── Colors ─────────────────────────────────────────────────────
 
 const COLORS = {
-  magenta: '#BF1363',
-  orange: '#FF7F11',
-  terracotta: '#E07A5F',
-  amber: '#F3A712',
-  blue: '#3777FF',
-  navy: '#1E3A5F',
-  green: '#10B981',
+  magenta: '#8A4B4B',
+  orange: '#B3541E',
+  terracotta: '#C2410C',
+  amber: '#FF8C00',
+  blue: '#165DFF',
+  navy: '#050506',
+  green: '#2F6F4F',
 };
 
 // ─── Helpers ────────────────────────────────────────────────────

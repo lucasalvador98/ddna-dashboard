@@ -278,12 +278,12 @@ export default async function PobrezaPage() {
   };
 
   const DIMENSION_FILLS: Record<string, string> = {
-    alimentacion: '#BF1363',
-    crianza: '#E07A5F',
-    informacion: '#3777FF',
-    empleo: '#F3A712',
-    habitat: '#FF7F11',
-    multidimensional: '#10B981',
+    alimentacion: '#8A4B4B',
+    crianza: '#C2410C',
+    informacion: '#165DFF',
+    empleo: '#FF8C00',
+    habitat: '#B3541E',
+    multidimensional: '#2F6F4F',
   };
 
   const PRIORITY_INDICATORS: Record<string, string[]> = {
@@ -345,7 +345,7 @@ export default async function PobrezaPage() {
     .map(dim => ({
       dimension: DIMENSION_LABELS[dim] || dim,
       valor: Number(getDimensionValue(dim)?.valor) || 0,
-      fill: DIMENSION_FILLS[dim] || '#3777FF',
+      fill: DIMENSION_FILLS[dim] || '#165DFF',
       indicator: getDimensionValue(dim)?.indicador_nombre || '',
       periodo: getDimensionValue(dim)?.periodo || 0,
     }))

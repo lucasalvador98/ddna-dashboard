@@ -18,10 +18,10 @@ import type { DotItemDotProps, MouseHandlerDataParam } from 'recharts';
 import type { Indicador as DashboardIndicador } from '@/lib/use-dashboard-data';
 
 const COLORS = {
-  terracotta: '#E07A5F',
-  blue: '#3777FF',
-  magenta: '#BF1363',
-  amber: '#F3A712',
+  terracotta: '#C2410C',
+  blue: '#165DFF',
+  magenta: '#8A4B4B',
+  amber: '#FF8C00',
 };
 
 export interface SaludChartsProps {
@@ -114,17 +114,17 @@ export function SaludCharts({
                 onClick={onSelectYear ? handleChartClick : undefined}
                 style={onSelectYear ? { cursor: 'pointer' } : undefined}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
-                <XAxis dataKey="periodo" tick={{ fill: '#4D4D4D', fontSize: 12 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" />
+                <XAxis dataKey="periodo" tick={{ fill: '#050506', fontSize: 12 }} />
                 <YAxis
-                  tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                  tick={{ fill: '#050506', fontSize: 12 }}
                   domain={[0, 'auto']}
                   tickFormatter={v => `${Number(v).toFixed(1)}‰`}
                 />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: '#FFF',
-                    border: '1px solid #E0E0E0',
+                    border: '1px solid #D8D5D3',
                     borderRadius: '8px',
                   }}
                   formatter={(value, name) => [`${value ?? 0}‰`, name]}
@@ -214,17 +214,17 @@ export function SaludCharts({
                   onClick={onSelectYear ? handleChartClick : undefined}
                   style={onSelectYear ? { cursor: 'pointer' } : undefined}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
-                  <XAxis dataKey="periodo" tick={{ fill: '#4D4D4D', fontSize: 12 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" />
+                  <XAxis dataKey="periodo" tick={{ fill: '#050506', fontSize: 12 }} />
                   <YAxis
-                    tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                    tick={{ fill: '#050506', fontSize: 12 }}
                     domain={[0, 'auto']}
                     tickFormatter={v => `${Number(v).toFixed(1)}‰`}
                   />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: '#FFF',
-                      border: '1px solid #E0E0E0',
+                      border: '1px solid #D8D5D3',
                       borderRadius: '8px',
                     }}
                     formatter={(value, name) => [`${value ?? 0}‰`, name]}
@@ -266,7 +266,7 @@ export function SaludCharts({
             const series = [
               { key: 'TMI Cba', data: mortalidadData, color: COLORS.terracotta },
               { key: 'RMM Cba', data: rmmData, color: COLORS.blue },
-              { key: 'TMNEO Cba', data: tmneoData, color: '#FF7F11' },
+              { key: 'TMNEO Cba', data: tmneoData, color: '#B3541E' },
               { key: 'TMPOS Cba', data: tmposData, color: COLORS.amber },
             ].filter(s => s.data.length > 0);
 
@@ -303,20 +303,20 @@ export function SaludCharts({
                       onClick={onSelectYear ? handleChartClick : undefined}
                       style={onSelectYear ? { cursor: 'pointer' } : undefined}
                     >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" />
                       <XAxis
                         dataKey="periodo"
-                        tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                        tick={{ fill: '#050506', fontSize: 12 }}
                       />
                       <YAxis
-                        tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                        tick={{ fill: '#050506', fontSize: 12 }}
                         domain={[0, 'auto']}
                         tickFormatter={v => `${Number(v).toFixed(1)}‰`}
                       />
                       <Tooltip
                         contentStyle={{
                           backgroundColor: '#FFF',
-                          border: '1px solid #E0E0E0',
+                          border: '1px solid #D8D5D3',
                           borderRadius: '8px',
                         }}
                         formatter={(value, name) => [
@@ -373,17 +373,17 @@ export function SaludCharts({
               data={vaccinationChartData}
               margin={{ top: 10, right: 30, left: 10, bottom: 10 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
-              <XAxis dataKey="periodo" tick={{ fill: '#4D4D4D', fontSize: 12 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" />
+              <XAxis dataKey="periodo" tick={{ fill: '#050506', fontSize: 12 }} />
               <YAxis
-                tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                tick={{ fill: '#050506', fontSize: 12 }}
                 domain={[40, 100]}
                 tickFormatter={v => `${v}%`}
               />
               <Tooltip
                 contentStyle={{
                   backgroundColor: '#FFF',
-                  border: '1px solid #E0E0E0',
+                  border: '1px solid #D8D5D3',
                   borderRadius: '8px',
                 }}
                 formatter={(value, name) => [value !== null ? `${value}%` : '—', name]}
@@ -392,7 +392,7 @@ export function SaludCharts({
               <Line
                 type="monotone"
                 dataKey={() => 95}
-                stroke="#94A3B8"
+                stroke="#5B5755"
                 strokeWidth={1.5}
                 strokeDasharray="8 4"
                 dot={false}
@@ -438,9 +438,9 @@ export function SaludCharts({
               <Line
                 type="monotone"
                 dataKey="PCV13"
-                stroke="#FF7F11"
+                stroke="#B3541E"
                 strokeWidth={2}
-                dot={{ fill: '#FF7F11', r: 3 }}
+                dot={{ fill: '#B3541E', r: 3 }}
                 name="PCV13 Neumococo"
                 connectNulls
               />
@@ -466,20 +466,20 @@ export function SaludCharts({
                 data={quintilChartData}
                 margin={{ top: 10, right: 30, left: 10, bottom: 10 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" />
                 <XAxis
                   dataKey="periodo"
-                  tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                  tick={{ fill: '#050506', fontSize: 12 }}
                 />
                 <YAxis
-                  tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                  tick={{ fill: '#050506', fontSize: 12 }}
                   domain={[0, 100]}
                   tickFormatter={v => `${v}%`}
                 />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: '#FFF',
-                    border: '1px solid #E0E0E0',
+                    border: '1px solid #D8D5D3',
                     borderRadius: '8px',
                   }}
                   formatter={(value, name) => [
@@ -559,20 +559,20 @@ export function SaludCharts({
                 }
                 margin={{ top: 10, right: 30, left: 10, bottom: 10 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" />
                 <XAxis
                   dataKey="indicador"
-                  tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                  tick={{ fill: '#050506', fontSize: 12 }}
                 />
                 <YAxis
-                  tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                  tick={{ fill: '#050506', fontSize: 12 }}
                   domain={[0, 100]}
                   tickFormatter={v => `${v}%`}
                 />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: '#FFF',
-                    border: '1px solid #E0E0E0',
+                    border: '1px solid #D8D5D3',
                     borderRadius: '8px',
                   }}
                   formatter={(value, name) => [

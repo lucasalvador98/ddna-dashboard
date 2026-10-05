@@ -101,7 +101,7 @@ function LoginForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full py-3 bg-navy hover:bg-[#0F172A] text-white font-accent font-semibold rounded-xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+        className="w-full py-3 bg-navy hover:bg-[#050506] text-white font-accent font-semibold rounded-xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
       >
         {loading ? (
           <>
@@ -139,7 +139,7 @@ function LoginSkeleton() {
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F5F5F5] px-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#F5F0EC] px-4">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
           {/* Brand header */}

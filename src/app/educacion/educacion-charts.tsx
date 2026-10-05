@@ -23,13 +23,13 @@ import type { Indicador } from '@/lib/use-dashboard-data';
 // ─── Colors ─────────────────────────────────────────────────────
 
 const COLORS = {
-  amber: '#F3A712',
-  blue: '#3777FF',
-  magenta: '#BF1363',
-  terracotta: '#E07A5F',
-  green: '#10B981',
-  red: '#EF4444',
-  avanzado: '#059669',
+  amber: '#FF8C00',
+  blue: '#165DFF',
+  magenta: '#8A4B4B',
+  terracotta: '#C2410C',
+  green: '#2F6F4F',
+  red: '#A11F1F',
+  avanzado: '#2F6F4F',
 };
 
 // ─── Props ──────────────────────────────────────────────────────
@@ -173,16 +173,16 @@ export default function EducacionClient(props: EducacionClientProps) {
           <div className="h-72">
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={matriculaDeptoData} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
-                <XAxis dataKey="name" tick={{ fill: '#4D4D4D', fontSize: 11 }} angle={-45} textAnchor="end" height={60} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" />
+                <XAxis dataKey="name" tick={{ fill: '#050506', fontSize: 11 }} angle={-45} textAnchor="end" height={60} />
                 <YAxis
-                  tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                  tick={{ fill: '#050506', fontSize: 12 }}
                   tickFormatter={v => v.toLocaleString()}
                 />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: '#FFF',
-                    border: '1px solid #E0E0E0',
+                    border: '1px solid #D8D5D3',
                     borderRadius: '8px',
                   }}
                   formatter={value => [Number(value).toLocaleString('es-AR'), 'Alumnos']}
@@ -208,16 +208,16 @@ export default function EducacionClient(props: EducacionClientProps) {
           <div className="h-72">
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={docentesDeptoData} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
-                <XAxis dataKey="name" tick={{ fill: '#4D4D4D', fontSize: 11 }} angle={-45} textAnchor="end" height={60} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" />
+                <XAxis dataKey="name" tick={{ fill: '#050506', fontSize: 11 }} angle={-45} textAnchor="end" height={60} />
                 <YAxis
-                  tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                  tick={{ fill: '#050506', fontSize: 12 }}
                   tickFormatter={v => v.toLocaleString()}
                 />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: '#FFF',
-                    border: '1px solid #E0E0E0',
+                    border: '1px solid #D8D5D3',
                     borderRadius: '8px',
                   }}
                   formatter={value => [Number(value).toLocaleString('es-AR'), 'Docentes']}
@@ -243,16 +243,16 @@ export default function EducacionClient(props: EducacionClientProps) {
           <div className="h-72">
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={unidadesDeptoData} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
-                <XAxis dataKey="name" tick={{ fill: '#4D4D4D', fontSize: 11 }} angle={-45} textAnchor="end" height={60} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" />
+                <XAxis dataKey="name" tick={{ fill: '#050506', fontSize: 11 }} angle={-45} textAnchor="end" height={60} />
                 <YAxis
-                  tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                  tick={{ fill: '#050506', fontSize: 12 }}
                   tickFormatter={v => v.toLocaleString()}
                 />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: '#FFF',
-                    border: '1px solid #E0E0E0',
+                    border: '1px solid #D8D5D3',
                     borderRadius: '8px',
                   }}
                   formatter={value => [Number(value).toLocaleString('es-AR'), 'Unidades Educativas']}
@@ -278,17 +278,17 @@ export default function EducacionClient(props: EducacionClientProps) {
           <div className="h-72">
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={asistenciaData} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
-                <XAxis dataKey="label" tick={{ fill: '#4D4D4D', fontSize: 10 }} interval={2} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" />
+                <XAxis dataKey="label" tick={{ fill: '#050506', fontSize: 10 }} interval={2} />
                 <YAxis
-                  tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                  tick={{ fill: '#050506', fontSize: 12 }}
                   domain={[0, 100]}
                   tickFormatter={v => `${v}%`}
                 />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: '#FFF',
-                    border: '1px solid #E0E0E0',
+                    border: '1px solid #D8D5D3',
                     borderRadius: '8px',
                   }}
                   formatter={value => [`${value}%`, 'Tasa de Asistencia']}
@@ -314,16 +314,16 @@ export default function EducacionClient(props: EducacionClientProps) {
           <div className="h-72">
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={escolarizacionData} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
-                <XAxis dataKey="edad" tick={{ fill: '#4D4D4D', fontSize: 10 }} interval={2} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" />
+                <XAxis dataKey="edad" tick={{ fill: '#050506', fontSize: 10 }} interval={2} />
                 <YAxis
-                  tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                  tick={{ fill: '#050506', fontSize: 12 }}
                   tickFormatter={v => v.toLocaleString()}
                 />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: '#FFF',
-                    border: '1px solid #E0E0E0',
+                    border: '1px solid #D8D5D3',
                     borderRadius: '8px',
                   }}
                   formatter={(value, name) => [
@@ -359,22 +359,22 @@ export default function EducacionClient(props: EducacionClientProps) {
                 layout="vertical"
                 margin={{ top: 10, right: 30, left: 120, bottom: 10 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" />
                 <XAxis
                   type="number"
-                  tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                  tick={{ fill: '#050506', fontSize: 12 }}
                   tickFormatter={v => v.toLocaleString()}
                 />
                 <YAxis
                   type="category"
                   dataKey="name"
-                  tick={{ fill: '#4D4D4D', fontSize: 11 }}
+                  tick={{ fill: '#050506', fontSize: 11 }}
                   width={140}
                 />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: '#FFF',
-                    border: '1px solid #E0E0E0',
+                    border: '1px solid #D8D5D3',
                     borderRadius: '8px',
                   }}
                   formatter={value => [Number(value).toLocaleString('es-AR'), 'Población']}
@@ -465,17 +465,17 @@ export default function EducacionClient(props: EducacionClientProps) {
                     data={aprenderSubject === 'lengua' ? aprenderLengua : aprenderMatematica}
                     margin={{ top: 10, right: 30, left: 10, bottom: 10 }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
-                    <XAxis dataKey="quintil" tick={{ fill: '#4D4D4D', fontSize: 12 }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" />
+                    <XAxis dataKey="quintil" tick={{ fill: '#050506', fontSize: 12 }} />
                     <YAxis
-                      tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                      tick={{ fill: '#050506', fontSize: 12 }}
                       domain={[0, 100]}
                       tickFormatter={v => `${v}%`}
                     />
                     <Tooltip
                       contentStyle={{
                         backgroundColor: '#FFF',
-                        border: '1px solid #E0E0E0',
+                        border: '1px solid #D8D5D3',
                         borderRadius: '8px',
                       }}
                       formatter={(value, name) => [

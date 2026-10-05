@@ -174,9 +174,9 @@ function HorizontalBarChart({ data }: { data: { label: string; count: number }[]
 // ── Donut chart: Víctima vs Victimario ──────────────────────────
 
 const VICTIMA_COLORS: Record<string, string> = {
-  Ninguno: '#10B981', // green
-  Victimario: '#EF4444', // red
-  Víctima: '#3B82F6', // blue
+  Ninguno: '#2F6F4F', // green
+  Victimario: '#A11F1F', // red
+  Víctima: '#165DFF', // blue
 };
 
 function VictimaDonutChart({ data }: { data: { label: string; count: number }[] }) {
@@ -217,10 +217,10 @@ function VictimaDonutChart({ data }: { data: { label: string; count: number }[] 
 // ── Stacked horizontal bar: Uso de Fuentes por Medio ────────────
 
 const FUENTES_COLORS: Record<string, string> = {
-  'No usa fuentes': '#9CA3AF', // gray-400
-  'Usa 1 fuente': '#93C5FD', // blue-300
-  'Usa 2 fuentes': '#3B82F6', // blue-500
-  'Usa 3 o más fuentes': '#1E40AF', // blue-800
+  'No usa fuentes': '#5B5755', // gray-400
+  'Usa 1 fuente': '#A7C4FF', // blue-300
+  'Usa 2 fuentes': '#165DFF', // blue-500
+  'Usa 3 o más fuentes': '#0F3FA8', // blue-800
 };
 
 const FUENTES_KEYS = [
@@ -291,10 +291,10 @@ function IdentificabilidadBarChart({ data }: { data: IdentificabilidadRow[] }) {
         <YAxis type="category" dataKey="rol" width={180} tick={{ fontSize: 11 }} />
         <Tooltip content={<CustomTooltip />} />
         <Legend wrapperStyle={{ fontSize: '12px' }} />
-        <Bar dataKey="total" fill="#10B981" name="Total actores" radius={[0, 4, 4, 0]} />
+        <Bar dataKey="total" fill="#2F6F4F" name="Total actores" radius={[0, 4, 4, 0]} />
         <Bar
           dataKey="incorrectos"
-          fill="#EF4444"
+          fill="#A11F1F"
           name="Identificados incorrectamente"
           radius={[0, 4, 4, 0]}
         />
@@ -320,7 +320,7 @@ function MonthlyAreaChart({ data }: { data: { month: string; count: number }[] }
             <stop offset="95%" stopColor={CHART_COLORS_HEX[2]} stopOpacity={0.05} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+        <CartesianGrid strokeDasharray="3 3" stroke="#d8d5d3" />
         <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
         <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
         <Tooltip content={<CustomTooltip />} />

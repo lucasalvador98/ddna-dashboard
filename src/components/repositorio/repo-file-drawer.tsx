@@ -251,7 +251,7 @@ export function RepoFileDrawer({ file, onClose, onAction, actionInProgress }: Pr
               <button
                 onClick={handleSaveMetadata}
                 disabled={!hasMetadataChanges || actionInProgress}
-                className="flex items-center gap-1.5 px-4 py-1.5 bg-navy text-white rounded-lg text-sm font-medium hover:bg-[#0F172A] disabled:opacity-50"
+                className="flex items-center gap-1.5 px-4 py-1.5 bg-navy text-white rounded-lg text-sm font-medium hover:bg-[#050506] disabled:opacity-50"
                 type="button"
               >
                 <Save className="w-3.5 h-3.5" /> Guardar
@@ -288,7 +288,7 @@ export function RepoFileDrawer({ file, onClose, onAction, actionInProgress }: Pr
                 <button
                   onClick={handleDownload}
                   disabled={!file.url_storage}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-navy text-white rounded-lg text-sm font-medium hover:bg-[#0F172A] disabled:opacity-50"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-navy text-white rounded-lg text-sm font-medium hover:bg-[#050506] disabled:opacity-50"
                   type="button"
                 >
                   <Download className="w-3.5 h-3.5" /> Descargar

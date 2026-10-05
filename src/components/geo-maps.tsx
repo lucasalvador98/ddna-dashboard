@@ -282,8 +282,8 @@ function ErrorBanner({
 // ===========================================================================
 // TAB 1: MAPA EDUCATIVO
 // ===========================================================================
-const SCHOOL_BLUE = '#3777FF';
-const SCHOOL_ORANGE = '#FF7F11';
+const SCHOOL_BLUE = '#165DFF';
+const SCHOOL_ORANGE = '#B3541E';
 
 function EducativoMap() {
   const [schools, setSchools] = useState<GeoJSONCollection | null>(null);
@@ -660,14 +660,14 @@ function NacimientosChoropleth({
 
       layer.bindPopup(`
         <div style="font-size:12px;min-width:180px">
-          <strong style="color:#334155">${nombre}</strong>
+          <strong style="color:#050506">${nombre}</strong>
           <hr style="margin:4px 0" />
           ${[2020, 2021, 2022, 2023]
             .map((y) => {
               const d = yd?.[y];
               const t = d?.total ?? 0;
               const isSel = y === selectedYear;
-              return `<p style="margin:2px 0;${isSel ? 'font-weight:bold;color:#BF1363' : ''}">
+              return `<p style="margin:2px 0;${isSel ? 'font-weight:bold;color:#8A4B4B' : ''}">
                 ${y}: ${t.toLocaleString('es-AR')} nacimientos
                 ${d ? ` (♀${d.fem.toLocaleString('es-AR')} ♂${d.masc.toLocaleString('es-AR')})` : ''}
               </p>`;
@@ -682,7 +682,7 @@ function NacimientosChoropleth({
   const style = useCallback(
     (feature: GeoJSON.Feature | undefined) => {
       const color =
-        (feature?.properties as Record<string, unknown>)?._color ?? '#cccccc';
+        (feature?.properties as Record<string, unknown>)?._color ?? '#d8d5d3';
       return {
         fillColor: String(color),
         weight: 1,
@@ -878,7 +878,7 @@ function NBIChoropleth({
       ...f,
       properties: {
         ...f.properties,
-        _nbiColor: f._nbi != null ? choroplethColor(f._nbi, nbiMin, nbiMax) : '#cccccc',
+        _nbiColor: f._nbi != null ? choroplethColor(f._nbi, nbiMin, nbiMax) : '#d8d5d3',
         _nbi: f._nbi,
       },
     }));
@@ -897,7 +897,7 @@ function NBIChoropleth({
 
       layer.bindPopup(`
         <div style="font-size:12px;min-width:160px">
-          <strong style="color:#334155">${nombre}</strong>
+          <strong style="color:#050506">${nombre}</strong>
           <p style="margin:4px 0">NBI: <strong>${nbi != null ? nbi.toFixed(1) + '%' : 'Sin dato'}</strong></p>
           <p style="font-size:10px;color:#999">Fuente: Censo 2010 INDEC</p>
         </div>
@@ -909,7 +909,7 @@ function NBIChoropleth({
   const style = useCallback(
     (feature: GeoJSON.Feature | undefined) => {
       const color =
-        (feature?.properties as Record<string, unknown>)?._nbiColor ?? '#cccccc';
+        (feature?.properties as Record<string, unknown>)?._nbiColor ?? '#d8d5d3';
       return {
         fillColor: String(color),
         weight: 1,
@@ -1027,7 +1027,7 @@ function SaludMap() {
       {/* Legend */}
       <Legend
         title="Centros de Salud"
-        items={[{ color: '#E07A5F', label: 'Centro de salud' }]}
+        items={[{ color: '#C2410C', label: 'Centro de salud' }]}
       />
     </div>
   );
@@ -1066,8 +1066,8 @@ function SaludLayer({ features }: { features: GeoJSONFeature[] }) {
             center={[lat, lng]}
             radius={5}
             pathOptions={{
-              color: '#E07A5F',
-              fillColor: '#E07A5F',
+              color: '#C2410C',
+              fillColor: '#C2410C',
               fillOpacity: 0.7,
               weight: 1.5,
             }}
@@ -1094,10 +1094,10 @@ function SaludLayer({ features }: { features: GeoJSONFeature[] }) {
 // MAIN GEO PAGE
 // ===========================================================================
 const TABS: { id: TabId; label: string; desc: string; icon: React.ComponentType<{ className?: string }>; color: string }[] = [
-  { id: 'educativo', label: 'Establecimientos Educativos', desc: '5.471 escuelas en Córdoba', icon: GraduationCap, color: '#3777FF' },
-  { id: 'nacimientos', label: 'Nacimientos por Departamento', desc: 'Datos 2020-2023 por género', icon: Baby, color: '#BF1363' },
-  { id: 'nbi', label: 'Necesidades Básicas Insatisfechas', desc: 'NBI por departamento (Censo 2010)', icon: AlertTriangle, color: '#FF7F11' },
-  { id: 'salud', label: 'Centros de Salud', desc: '~300 establecimientos sanitarios', icon: HeartPulse, color: '#E07A5F' },
+  { id: 'educativo', label: 'Establecimientos Educativos', desc: '5.471 escuelas en Córdoba', icon: GraduationCap, color: '#165DFF' },
+  { id: 'nacimientos', label: 'Nacimientos por Departamento', desc: 'Datos 2020-2023 por género', icon: Baby, color: '#8A4B4B' },
+  { id: 'nbi', label: 'Necesidades Básicas Insatisfechas', desc: 'NBI por departamento (Censo 2010)', icon: AlertTriangle, color: '#B3541E' },
+  { id: 'salud', label: 'Centros de Salud', desc: '~300 establecimientos sanitarios', icon: HeartPulse, color: '#C2410C' },
 ];
 
 export default function GeoPage() {

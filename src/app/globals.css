@@ -4,64 +4,70 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* DDNA Design Tokens - Primary Theme */
+/* DDNA Design Tokens - Primary Theme (identidad institucional ddna-theme) */
 :root {
-  /* Primary Colors */
-  --ddna-amber: #f3a712;
-  --ddna-magenta: #bf1363;
-  --ddna-orange: #ff7f11;
-  --ddna-cream: #ffe2bf;
+  /* Brand Colors (portal ddna-theme) */
+  --ddna-amber: #ff8c00;
+  --ddna-magenta: #9a3412;
+  --ddna-orange: #ff8c00;
+  --ddna-cream: #f5f0ec;
 
   /* Accent Colors */
-  --ddna-blue: #3777ff;
-  --ddna-navy: #334155;
-  --ddna-mauve: #a66999;
+  --ddna-blue: #165dff;
+  --ddna-navy: #050506;
+  --ddna-mauve: #6b4a9c;
 
   /* Background Colors */
-  --ddna-background: #fff0de;
-  --ddna-outspace: #ffe8cd;
+  --ddna-background: #e9e7e7;
+  --ddna-outspace: #d8d5d3;
 
   /* Text */
-  --ddna-text: #4d4d4d;
+  --ddna-text: #050506;
   --ddna-text-dark: #000000;
+  --ddna-muted: #5b5755;
 
   /* Secondary Theme Colors */
-  --ddna-sky-blue: #1e9ad8;
-  --ddna-light-blue: #a7dbf9;
-  --ddna-terracotta: #e07a5f;
-  --ddna-light-orange: #ffb347;
-  --ddna-secondary-bg: #fdf3e7;
+  --ddna-sky-blue: #165dff;
+  --ddna-light-blue: #a7c4ff;
+  --ddna-terracotta: #c2410c;
+  --ddna-light-orange: #ffb86b;
+  --ddna-secondary-bg: #ffffff;
 
   /* Borders */
-  --ddna-border: #e0e0e0;
+  --ddna-border: #050506;
 
-  /* Semantic Colors */
-  --ddna-success: #22c55e;
-  --ddna-warning: #f59e0b;
-  --ddna-error: #ef4444;
-  --ddna-info: #f3a712;
+  /* Semantic Colors — accesibles sobre #e9e7e7 / #ffffff */
+  --ddna-success: #2f6f4f;
+  --ddna-warning: #b3541e;
+  --ddna-error: #a11f1f;
+  --ddna-info: #165dff;
 
-  /* Extended Data Colors from Tema.json */
-  --ddna-data-1: #f3a712; /* Amber */
-  --ddna-data-2: #bf1363; /* Magenta */
-  --ddna-data-3: #ff7f11; /* Orange */
-  --ddna-data-4: #ffe2bf; /* Cream */
-  --ddna-data-5: #3777ff; /* Blue */
-  --ddna-data-6: #00074e; /* Navy */
-  --ddna-data-7: #a66999; /* Mauve */
-  --ddna-data-8: #3599b8; /* Teal */
-  --ddna-data-9: #dfbfbf; /* Light Gray */
-  --ddna-data-10: #4ac5bb; /* Cyan */
-  --ddna-data-11: #5f6b6d; /* Gray */
-  --ddna-data-12: #fb8281; /* Salmon */
-  --ddna-data-13: #f4d25a; /* Yellow */
-  --ddna-data-14: #7f898a; /* Gray */
-  --ddna-data-15: #a4ddee; /* Light Cyan */
-  --ddna-data-16: #fdab89; /* Peach */
-  --ddna-data-17: #b687ac; /* Purple */
-  --ddna-data-18: #28738a; /* Dark Teal */
-  --ddna-data-19: #a78f8f; /* Brown Gray */
-  --ddna-data-20: #168980; /* Green */
+  /* Typography — stacks del portal (Forma DJR no licenciada/alojada: usar fallbacks) */
+  --font-body: "Avenir Next", Avenir, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Arial Black", system-ui, sans-serif;
+  --font-accent: "Avenir Next", Avenir, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Extended Data Colors — escala categórica editorial, legible sobre #e9e7e7/#ffffff */
+  --ddna-data-1: #ff8c00; /* Brand Orange */
+  --ddna-data-2: #050506; /* Black */
+  --ddna-data-3: #165dff; /* Blue */
+  --ddna-data-4: #5b5755; /* Gray */
+  --ddna-data-5: #b3541e; /* Burnt Orange */
+  --ddna-data-6: #7a4a2f; /* Brown */
+  --ddna-data-7: #2f6f4f; /* Green */
+  --ddna-data-8: #6b4a9c; /* Violet */
+  --ddna-data-9: #a8641a; /* Amber-Brown */
+  --ddna-data-10: #3d5a80; /* Steel Blue */
+  --ddna-data-11: #8a4b4b; /* Brick */
+  --ddna-data-12: #4a6b52; /* Sage */
+  --ddna-data-13: #9a6a2f; /* Ochre */
+  --ddna-data-14: #2f4858; /* Slate */
+  --ddna-data-15: #6b3f5c; /* Plum */
+  --ddna-data-16: #a0522d; /* Sienna */
+  --ddna-data-17: #44546a; /* Graphite */
+  --ddna-data-18: #7d6608; /* Olive */
+  --ddna-data-19: #8a5a2b; /* Cognac */
+  --ddna-data-20: #356b6b; /* Teal */
 
   /* shadcn/ui semantic tokens — mapeados a la paleta DDNA */
   --background: var(--ddna-background);
@@ -71,23 +77,23 @@
   --popover: #ffffff;
   --popover-foreground: var(--ddna-text);
   --primary: var(--ddna-amber);
-  --primary-foreground: #221a00;
+  --primary-foreground: #050506;
   --secondary: var(--ddna-secondary-bg);
   --secondary-foreground: var(--ddna-text-dark);
   --muted: var(--ddna-outspace);
-  --muted-foreground: #7a6a5f;
+  --muted-foreground: var(--ddna-muted);
   --accent: var(--ddna-light-orange);
-  --accent-foreground: #221a00;
+  --accent-foreground: #050506;
   --destructive: var(--ddna-error);
   --border: var(--ddna-border);
   --input: var(--ddna-border);
-  --ring: var(--ddna-amber);
+  --ring: var(--ddna-blue);
   --chart-1: var(--ddna-data-1);
   --chart-2: var(--ddna-data-2);
   --chart-3: var(--ddna-data-5);
   --chart-4: var(--ddna-data-10);
   --chart-5: var(--ddna-data-3);
-  --radius: 0.625rem;
+  --radius: 1rem;
   --sidebar: var(--ddna-secondary-bg);
   --sidebar-foreground: var(--ddna-text);
   --sidebar-primary: var(--ddna-amber);
@@ -95,7 +101,7 @@
   --sidebar-accent: var(--ddna-outspace);
   --sidebar-accent-foreground: var(--ddna-text);
   --sidebar-border: var(--ddna-border);
-  --sidebar-ring: var(--ddna-amber);
+  --sidebar-ring: var(--ddna-blue);
 }
 
 @theme inline {
@@ -154,8 +160,8 @@
   --color-data-19: var(--ddna-data-19);
   --color-data-20: var(--ddna-data-20);
 
-  /* Font families — set by next/font/google in layout.tsx */
-  --font-sans: var(--font-epilogue);
+  /* Font families — fallbacks del portal (Forma DJR no licenciada/alojada) */
+  --font-sans: "Avenir Next", Avenir, system-ui, -apple-system, "Segoe UI", sans-serif;
 
   /* Typography scale */
   --font-size-display: 3rem;
@@ -211,9 +217,9 @@ html {
 }
 
 body {
-  background: linear-gradient(135deg, #fff8f2 0%, #fff0e6 50%, #ffe8cc 100%);
+  background-color: var(--ddna-background);
   color: var(--ddna-text);
-  font-family: var(--font-epilogue), system-ui, sans-serif;
+  font-family: var(--font-body), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
@@ -221,25 +227,25 @@ body {
 
 /* Font utility classes */
 .font-display {
-  font-family: var(--font-display), Georgia, serif;
+  font-family: var(--font-display);
 }
 
 .font-accent {
-  font-family: var(--font-accent), system-ui, sans-serif;
+  font-family: var(--font-accent);
 }
 
 .font-body {
-  font-family: var(--font-epilogue), system-ui, sans-serif;
+  font-family: var(--font-body);
 }
 
 /* Typography helpers */
 .text-display {
-  font-family: var(--font-display), Georgia, serif;
+  font-family: var(--font-display);
   font-weight: 400;
 }
 
 .text-accent-label {
-  font-family: var(--font-accent), system-ui, sans-serif;
+  font-family: var(--font-accent);
   font-weight: 400;
 }
 

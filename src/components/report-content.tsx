@@ -51,43 +51,43 @@ const AXIS_COLORS: Record<string, { border: string; text: string; bg: string; ba
     border: 'border-magenta',
     text: 'text-magenta',
     bg: 'bg-magenta/5',
-    bar: '#BF1363',
+    bar: '#8A4B4B',
   },
   salud: {
-    border: 'border-[#10B981]',
-    text: 'text-[#10B981]',
-    bg: 'bg-[#10B981]/5',
-    bar: '#10B981',
+    border: 'border-[#2F6F4F]',
+    text: 'text-[#2F6F4F]',
+    bg: 'bg-[#2F6F4F]/5',
+    bar: '#2F6F4F',
   },
   educacion: {
     border: 'border-amber',
     text: 'text-amber',
     bg: 'bg-amber/5',
-    bar: '#F3A712',
+    bar: '#FF8C00',
   },
   inversion: {
     border: 'border-blue',
     text: 'text-blue',
     bg: 'bg-blue/5',
-    bar: '#3777FF',
+    bar: '#165DFF',
   },
   seguridad_justicia: {
-    border: 'border-[#7C3AED]',
-    text: 'text-[#7C3AED]',
-    bg: 'bg-[#7C3AED]/5',
-    bar: '#7C3AED',
+    border: 'border-[#6B4A9C]',
+    text: 'text-[#6B4A9C]',
+    bg: 'bg-[#6B4A9C]/5',
+    bar: '#6B4A9C',
   },
   seguridad: {
-    border: 'border-[#7C3AED]',
-    text: 'text-[#7C3AED]',
-    bg: 'bg-[#7C3AED]/5',
-    bar: '#7C3AED',
+    border: 'border-[#6B4A9C]',
+    text: 'text-[#6B4A9C]',
+    bg: 'bg-[#6B4A9C]/5',
+    bar: '#6B4A9C',
   },
   demografia: {
-    border: 'border-[#6B7280]',
-    text: 'text-[#6B7280]',
-    bg: 'bg-[#6B7280]/5',
-    bar: '#6B7280',
+    border: 'border-[#5B5755]',
+    text: 'text-[#5B5755]',
+    bg: 'bg-[#5B5755]/5',
+    bar: '#5B5755',
   },
 };
 
@@ -181,13 +181,13 @@ function KpiCard({ kpi }: { kpi: ReportKPI }) {
       {/* Bar chart (SVG) */}
       {!isNaN(numericValue) && (
         <svg width="100%" height="6" className="rounded-full overflow-hidden">
-          <rect x="0" y="0" width="100%" height="6" fill="#F3F4F6" />
+          <rect x="0" y="0" width="100%" height="6" fill="#F5F0EC" />
           <rect
             x="0"
             y="0"
             width={`${barPct}%`}
             height="6"
-            fill={kpi.alert ? '#EF4444' : axisColor(kpi.axis).bar}
+            fill={kpi.alert ? '#A11F1F' : axisColor(kpi.axis).bar}
             rx="3"
           />
         </svg>
@@ -235,7 +235,7 @@ function HighlightBars({ highlights }: { highlights: Array<{ type: string; text:
       {parsed.map((h, i) => {
         const pct = Math.round((h.numericVal! / max) * 100);
         const barColor =
-          h.type === 'negative' ? '#EF4444' : h.type === 'positive' ? '#10B981' : '#9CA3AF';
+          h.type === 'negative' ? '#A11F1F' : h.type === 'positive' ? '#2F6F4F' : '#5B5755';
         return (
           <div key={i} className="flex items-center gap-2 text-xs font-body">
             <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: barColor }} />
@@ -328,7 +328,7 @@ export function ReportContent({ report, generatedAt }: ReportContentProps) {
       )}
 
       {/* ── Overview ────────────────────────────────────────── */}
-      <section className="bg-[#FFF8F2] border border-cream rounded-lg p-4 print:bg-white print:border-gray-200">
+      <section className="bg-[#F5F0EC] border border-cream rounded-lg p-4 print:bg-white print:border-gray-200">
         <h2 className="font-accent text-sm uppercase tracking-wider text-orange mb-2">
           Resumen Ejecutivo
         </h2>

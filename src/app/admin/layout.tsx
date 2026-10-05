@@ -19,7 +19,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <LoginGate>
       <div className="min-h-screen">
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#334155] to-[#475569]">
+        <div className="bg-gradient-to-r from-[#050506] to-[#5B5755]">
           <div className="max-w-7xl mx-auto px-6 py-6">
             <h1 className="font-display text-2xl text-white">Panel de Administración</h1>
             <p className="text-sm text-white/60 mt-1">

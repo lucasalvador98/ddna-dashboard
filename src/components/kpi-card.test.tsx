@@ -80,6 +80,6 @@ describe('KpiCard', () => {
     expect(screen.getByTestId('mock-icon').getAttribute('class')).toContain('text-amber');
 
     rerender(<KpiCard title="Test" value="1" subtitle="Desc" icon={MockIcon} color="green" />);
-    expect(screen.getByTestId('mock-icon').getAttribute('class')).toContain('text-[#10B981]');
+    expect(screen.getByTestId('mock-icon').getAttribute('class')).toContain('text-[#2f6f4f]');
   });
 });

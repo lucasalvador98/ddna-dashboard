@@ -11,13 +11,13 @@ import { SupabaseUnavailable } from '@/components/supabase-unavailable';
 
 // ─── Colores DDNA ─────────────────────────────────
 const COLORS = {
-  magenta: '#BF1363',
-  orange: '#FF7F11',
-  blue: '#3777FF',
-  green: '#10B981',
-  terracotta: '#E07A5F',
-  amber: '#F3A712',
-  navy: '#334155',
+  magenta: '#8A4B4B',
+  orange: '#B3541E',
+  blue: '#165DFF',
+  green: '#2F6F4F',
+  terracotta: '#C2410C',
+  amber: '#FF8C00',
+  navy: '#050506',
 };
 
 // ─── Tipos ─────────────────────────────────────────
@@ -165,7 +165,7 @@ async function EncuestasContent() {
   return (
     <div className="space-y-6">
       {/* Banner informativo */}
-      <div className="bg-gradient-to-r from-[#BF1363]/5 to-[#FF7F11]/5 border border-magenta/20 rounded-lg p-4">
+      <div className="bg-gradient-to-r from-[#8A4B4B]/5 to-[#B3541E]/5 border border-magenta/20 rounded-lg p-4">
         <div className="flex items-start gap-3">
           <ClipboardList className="w-5 h-5 text-magenta mt-0.5 shrink-0" />
           <div>

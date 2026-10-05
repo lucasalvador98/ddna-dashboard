@@ -379,7 +379,7 @@ export function FormulariosClient({ formularios }: FormulariosClientProps) {
         </p>
         <Link
           href="/formularios/nuevo"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-navy hover:bg-[#475569] transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-navy hover:bg-[#5B5755] transition-colors"
         >
           <Plus className="w-4 h-4" />
           Nuevo formulario

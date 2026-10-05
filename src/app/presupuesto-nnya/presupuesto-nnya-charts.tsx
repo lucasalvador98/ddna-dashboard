@@ -97,7 +97,7 @@ export default function PresupuestoNnyaCharts({
         <div className="flex items-center gap-4">
           <button
             onClick={() => setShowMethodology(!showMethodology)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-accent text-navy bg-[#F5F5F5] rounded-lg hover:bg-border transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-accent text-navy bg-[#F5F0EC] rounded-lg hover:bg-border transition-colors"
           >
             <Info className="w-4 h-4" />
             {showMethodology ? 'Ocultar Metodología' : 'Ver Metodología'}
@@ -106,7 +106,7 @@ export default function PresupuestoNnyaCharts({
 
         {/* Methodology Panel */}
         {showMethodology && (
-          <div className="bg-[#F5F5F5] rounded-xl p-6 border border-gray-200">
+          <div className="bg-[#F5F0EC] rounded-xl p-6 border border-gray-200">
             <h3 className="font-display text-lg text-navy mb-4">Metodología de Ponderación</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -282,7 +282,7 @@ export default function PresupuestoNnyaCharts({
                       labelLine={false}
                       label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
                       outerRadius={120}
-                      fill="#8884d8"
+                      fill="#6B4A9C"
                       dataKey="value"
                     >
                       {pieData.map((_, index) => (
@@ -311,25 +311,25 @@ export default function PresupuestoNnyaCharts({
                     layout="vertical"
                     margin={{ top: 10, right: 30, left: 110, bottom: 10 }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" horizontal={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" horizontal={false} />
                     <XAxis
                       type="number"
-                      tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                      tick={{ fill: '#050506', fontSize: 12 }}
                       tickFormatter={formatBillionsLabel}
                     />
                     <YAxis
                       type="category"
                       dataKey="name"
-                      tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                      tick={{ fill: '#050506', fontSize: 12 }}
                       width={100}
                     />
                     <Tooltip
-                      contentStyle={{ backgroundColor: '#FFF', border: '1px solid #E0E0E0', borderRadius: '8px' }}
+                      contentStyle={{ backgroundColor: '#FFF', border: '1px solid #D8D5D3', borderRadius: '8px' }}
                       formatter={tooltipBillions}
                     />
                     <Bar dataKey="value" radius={[0, 4, 4, 0]}>
                       {inversionArea.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={AREA_COLORS[entry.name] ?? '#E07A5F'} />
+                        <Cell key={`cell-${index}`} fill={AREA_COLORS[entry.name] ?? '#C2410C'} />
                       ))}
                     </Bar>
                   </BarChart>
@@ -361,24 +361,24 @@ export default function PresupuestoNnyaCharts({
                   layout="vertical"
                   margin={{ top: 10, right: 30, left: 200, bottom: 10 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" horizontal={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" horizontal={false} />
                   <XAxis
                     type="number"
-                    tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                    tick={{ fill: '#050506', fontSize: 12 }}
                     tickFormatter={formatBillionsLabel}
                   />
                   <YAxis
                     type="category"
                     dataKey="name"
-                    tick={{ fill: '#4D4D4D', fontSize: 10 }}
+                    tick={{ fill: '#050506', fontSize: 10 }}
                     width={190}
                   />
                   <Tooltip
-                    contentStyle={{ backgroundColor: '#FFF', border: '1px solid #E0E0E0', borderRadius: '8px' }}
+                    contentStyle={{ backgroundColor: '#FFF', border: '1px solid #D8D5D3', borderRadius: '8px' }}
                   />
                   <Bar dataKey="value" radius={[0, 4, 4, 0]}>
                     {inversionPrograma.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={AREA_COLORS[entry.area] ?? '#E07A5F'} />
+                      <Cell key={`cell-${index}`} fill={AREA_COLORS[entry.area] ?? '#C2410C'} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -406,15 +406,15 @@ export default function PresupuestoNnyaCharts({
             <div className="h-80 px-4 pb-2">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={evolutionData} margin={{ top: 10, right: 20, left: 20, bottom: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
-                  <XAxis dataKey="periodo" tick={{ fill: '#4D4D4D', fontSize: 13 }} tickLine={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" />
+                  <XAxis dataKey="periodo" tick={{ fill: '#050506', fontSize: 13 }} tickLine={false} />
                   <YAxis
-                    tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                    tick={{ fill: '#050506', fontSize: 12 }}
                     tickFormatter={formatBillionsLabel}
                     width={60}
                   />
                   <Tooltip
-                    contentStyle={{ backgroundColor: '#FFF', border: '1px solid #E0E0E0', borderRadius: '8px', fontSize: 13 }}
+                    contentStyle={{ backgroundColor: '#FFF', border: '1px solid #D8D5D3', borderRadius: '8px', fontSize: 13 }}
                     formatter={tooltipBillions}
                   />
                   <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />

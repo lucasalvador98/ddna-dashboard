@@ -30,29 +30,29 @@ interface ChartWithTableProps {
 
 const colorStyles = {
   terracotta: {
-    primary: '#E07A5F',
-    secondary: '#F4A261',
-    light: '#FDE8E4',
+    primary: '#C2410C',
+    secondary: '#C2410C',
+    light: '#FBF0EC',
   },
   amber: {
-    primary: '#F3A712',
-    secondary: '#F5C842',
-    light: '#FFF3CD',
+    primary: '#FF8C00',
+    secondary: '#9A6A2F',
+    light: '#FAF3E0',
   },
   magenta: {
-    primary: '#BF1363',
-    secondary: '#D94B8A',
-    light: '#FDE8F0',
+    primary: '#8A4B4B',
+    secondary: '#8A4B4B',
+    light: '#FAF0EE',
   },
   blue: {
-    primary: '#3777FF',
-    secondary: '#6B9AFF',
-    light: '#E6F0FF',
+    primary: '#165DFF',
+    secondary: '#A7C4FF',
+    light: '#F2F4FF',
   },
   green: {
-    primary: '#3599B8',
-    secondary: '#5CB8CC',
-    light: '#E6F5F8',
+    primary: '#356B6B',
+    secondary: '#356B6B',
+    light: '#F0F4F4',
   },
 };
 
@@ -170,7 +170,7 @@ interface TimeSeriesChartProps {
   title?: string;
 }
 
-export function SimpleLineChart({ data, color = '#E07A5F', unit = '' }: TimeSeriesChartProps) {
+export function SimpleLineChart({ data, color = '#C2410C', unit = '' }: TimeSeriesChartProps) {
   if (!data || data.length === 0) {
     return (
       <div className="h-64 flex items-center justify-center text-gray-400">
@@ -182,21 +182,21 @@ export function SimpleLineChart({ data, color = '#E07A5F', unit = '' }: TimeSeri
   return (
     <ResponsiveContainer width="100%" height={280}>
       <LineChart data={data} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
+        <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" />
         <XAxis
           dataKey="periodo"
-          tick={{ fill: '#4D4D4D', fontSize: 12 }}
-          tickLine={{ stroke: '#E0E0E0' }}
+          tick={{ fill: '#050506', fontSize: 12 }}
+          tickLine={{ stroke: '#D8D5D3' }}
         />
         <YAxis
-          tick={{ fill: '#4D4D4D', fontSize: 12 }}
-          tickLine={{ stroke: '#E0E0E0' }}
+          tick={{ fill: '#050506', fontSize: 12 }}
+          tickLine={{ stroke: '#D8D5D3' }}
           tickFormatter={(v: number | string) => `${v ?? 0}${unit}`}
         />
         <Tooltip
           contentStyle={{
             backgroundColor: '#FFF',
-            border: '1px solid #E0E0E0',
+            border: '1px solid #D8D5D3',
             borderRadius: '8px',
           }}
           formatter={(value) => [`${value ?? 0}${unit}`, 'Valor']}
@@ -224,7 +224,7 @@ interface BarChartData {
 
 export function SimpleBarChart({
   data,
-  color = '#E07A5F',
+  color = '#C2410C',
   unit = '',
 }: {
   data: BarChartData[];
@@ -242,21 +242,21 @@ export function SimpleBarChart({
   return (
     <ResponsiveContainer width="100%" height={280}>
       <BarChart data={data} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
+        <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" />
         <XAxis
           dataKey="name"
-          tick={{ fill: '#4D4D4D', fontSize: 11 }}
-          tickLine={{ stroke: '#E0E0E0' }}
+          tick={{ fill: '#050506', fontSize: 11 }}
+          tickLine={{ stroke: '#D8D5D3' }}
         />
         <YAxis
-          tick={{ fill: '#4D4D4D', fontSize: 12 }}
-          tickLine={{ stroke: '#E0E0E0' }}
+          tick={{ fill: '#050506', fontSize: 12 }}
+          tickLine={{ stroke: '#D8D5D3' }}
           tickFormatter={(v: number | string) => `${v ?? 0}${unit}`}
         />
         <Tooltip
           contentStyle={{
             backgroundColor: '#FFF',
-            border: '1px solid #E0E0E0',
+            border: '1px solid #D8D5D3',
             borderRadius: '8px',
           }}
           formatter={(value) => [`${value ?? 0}${unit}`, 'Valor']}

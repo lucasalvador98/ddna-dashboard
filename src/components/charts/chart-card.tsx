@@ -15,12 +15,12 @@ interface ChartCardProps {
 }
 
 const colorClasses: Record<ChartCardColor, string> = {
-  terracotta: '#E07A5F',
-  amber: '#F3A712',
-  magenta: '#BF1363',
-  blue: '#3777FF',
-  navy: '#334155',
-  orange: '#FF7F11',
+  terracotta: '#C2410C',
+  amber: '#FF8C00',
+  magenta: '#8A4B4B',
+  blue: '#165DFF',
+  navy: '#050506',
+  orange: '#B3541E',
 };
 
 function formatDate(dateString: string): string {
@@ -52,15 +52,15 @@ export function ChartCard({
 
   return (
     <section
-      className={clsx('bg-white rounded-xl border border-border overflow-hidden', className)}
+      className={clsx('bg-white rounded-2xl border-2 border-border overflow-hidden', className)}
     >
       {/* Header */}
-      <div className="p-6 border-b border-border">
+      <div className="p-6 border-b-2 border-border">
         <div className="flex items-center gap-3">
           <div className="w-1 h-6 rounded-full" style={{ backgroundColor: accentColor }} />
           <div>
             <h3 className="font-display text-lg text-navy tracking-tight">{title}</h3>
-            {subtitle && <p className="font-body text-sm text-text-primary mt-1">{subtitle}</p>}
+            {subtitle && <p className="font-body text-sm text-muted-foreground mt-1">{subtitle}</p>}
           </div>
         </div>
       </div>
@@ -70,7 +70,7 @@ export function ChartCard({
 
       {/* Footer con fuente y fecha */}
       {(fuente || ultimaActualizacion) && (
-        <div className="px-6 pb-4 pt-0 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-text-primary/70">
+        <div className="px-6 pb-4 pt-0 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
           {fuente && (
             <span className="flex items-center gap-1">
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">

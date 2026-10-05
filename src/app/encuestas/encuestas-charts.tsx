@@ -14,16 +14,16 @@ import { ChartWithTable } from '@/components/charts/chart-with-table';
 import type { ChartTopic } from './page';
 
 const CHART_COLORS = [
-  '#BF1363',
-  '#FF7F11',
-  '#3777FF',
-  '#10B981',
-  '#E07A5F',
-  '#F3A712',
-  '#334155',
-  '#6B9AFF',
-  '#22C55E',
-  '#F97316',
+  '#8A4B4B',
+  '#B3541E',
+  '#165DFF',
+  '#2F6F4F',
+  '#C2410C',
+  '#FF8C00',
+  '#050506',
+  '#A7C4FF',
+  '#2F6F4F',
+  '#C2410C',
 ];
 
 interface EncuestasChartsProps {
@@ -56,23 +56,23 @@ export function EncuestasCharts({ priorityCharts, showOtherCharts }: EncuestasCh
                     layout="vertical"
                     margin={{ top: 10, right: 30, left: 100, bottom: 10 }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" horizontal={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" horizontal={false} />
                     <XAxis
                       type="number"
                       domain={[0, 100]}
-                      tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                      tick={{ fill: '#050506', fontSize: 12 }}
                       tickFormatter={(v: number) => `${v}%`}
                     />
                     <YAxis
                       type="category"
                       dataKey="name"
-                      tick={{ fill: '#4D4D4D', fontSize: 11 }}
+                      tick={{ fill: '#050506', fontSize: 11 }}
                       width={chartData.reduce((max, d) => Math.max(max, d.name.length), 0) * 8 + 10}
                     />
                     <Tooltip
                       contentStyle={{
                         backgroundColor: '#FFF',
-                        border: '1px solid #E0E0E0',
+                        border: '1px solid #D8D5D3',
                         borderRadius: '8px',
                       }}
                       formatter={value => [`${Number(value).toFixed(1)}%`, 'Respuestas']}
@@ -114,23 +114,23 @@ export function EncuestasCharts({ priorityCharts, showOtherCharts }: EncuestasCh
                         layout="vertical"
                         margin={{ top: 10, right: 30, left: 100, bottom: 10 }}
                       >
-                        <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" horizontal={false} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" horizontal={false} />
                         <XAxis
                           type="number"
                           domain={[0, 100]}
-                          tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                          tick={{ fill: '#050506', fontSize: 12 }}
                           tickFormatter={(v: number) => `${v}%`}
                         />
                         <YAxis
                           type="category"
                           dataKey="name"
-                          tick={{ fill: '#4D4D4D', fontSize: 11 }}
+                          tick={{ fill: '#050506', fontSize: 11 }}
                           width={120}
                         />
                         <Tooltip
                           contentStyle={{
                             backgroundColor: '#FFF',
-                            border: '1px solid #E0E0E0',
+                            border: '1px solid #D8D5D3',
                             borderRadius: '8px',
                           }}
                           formatter={value => [

@@ -512,7 +512,7 @@ export function SlideViewer({ presentation }: SlideViewerProps) {
           {currentSlide.tipo !== 'cover' && currentSlide.tipo !== 'cierre' && (
             <div
               className="h-1 flex-shrink-0"
-              style={{ backgroundColor: currentSlide.color_acento || '#334155' }}
+              style={{ backgroundColor: currentSlide.color_acento || '#050506' }}
             />
           )}
 
@@ -608,7 +608,7 @@ export function SlideViewer({ presentation }: SlideViewerProps) {
                 {slide.tipo !== 'cover' && slide.tipo !== 'cierre' && (
                   <div
                     className="h-1.5 w-full flex-shrink-0"
-                    style={{ backgroundColor: slide.color_acento || '#334155' }}
+                    style={{ backgroundColor: slide.color_acento || '#050506' }}
                   />
                 )}
                 <div className="flex-1 relative">

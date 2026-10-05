@@ -12,7 +12,7 @@ export function RepoHero() {
 
         <Link
           href="/repositorio/chat"
-          className="mt-6 flex items-center justify-between w-full max-w-2xl px-6 py-4 bg-gradient-to-r from-[#3777FF] to-[#334155] text-white rounded-2xl font-accent text-lg hover:shadow-xl hover:scale-[1.01] transition-all group"
+          className="mt-6 flex items-center justify-between w-full max-w-2xl px-6 py-4 bg-gradient-to-r from-[#165DFF] to-[#050506] text-white rounded-2xl font-accent text-lg hover:shadow-xl hover:scale-[1.01] transition-all group"
         >
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center group-hover:rotate-12 transition-transform">

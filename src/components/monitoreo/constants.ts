@@ -353,15 +353,15 @@ export const EMPTY_ACTOR: ActorFormData = {
 // ═══════════════════════════════════════════════════════════════════
 
 export const CHART_COLORS_HEX = [
-  '#f3a712', // --ddna-data-1 (Amber)
-  '#bf1363', // --ddna-data-2 (Magenta)
-  '#3777ff', // --ddna-data-5 (Blue)
-  '#ff7f11', // --ddna-data-3 (Orange)
-  '#a66999', // --ddna-data-7 (Mauve)
-  '#3599b8', // --ddna-data-8 (Teal)
-  '#4ac5bb', // --ddna-data-10 (Cyan)
-  '#10B981', // extra green
-  '#f4d25a', // --ddna-data-13
+  '#ff8c00', // --ddna-data-1 (naranja de marca)
+  '#8a4b4b', // --ddna-data-11 (ladrillo)
+  '#165dff', // --ddna-data-3 (azul)
+  '#b3541e', // --ddna-data-5 (naranja quemado)
+  '#6b4a9c', // --ddna-data-8 (violeta)
+  '#356b6b', // --ddna-data-20 (teal)
+  '#4a6b52', // --ddna-data-12 (salvia)
+  '#2f6f4f', // --ddna-data-7 (verde)
+  '#9a6a2f', // --ddna-data-13 (ocre)
 ] as const;
 
 // ═══════════════════════════════════════════════════════════════════

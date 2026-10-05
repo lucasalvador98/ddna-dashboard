@@ -17,9 +17,9 @@ import { EmptyState } from '@/components/empty-state';
 // ─── Palette (misma familia que educacion-charts) ───────────────
 
 const COLORS = {
-  amber: '#F3A712',
-  blue: '#3777FF',
-  oecd: '#3599B8',
+  amber: '#FF8C00',
+  blue: '#165DFF',
+  oecd: '#356B6B',
 };
 
 // ─── Types ───────────────────────────────────────────────────────
@@ -274,7 +274,7 @@ export default function PisaTab({ pisaData }: PisaTabProps) {
   // ── Tooltip base ──────────────────────────────────────────────
   const tooltipStyle = {
     backgroundColor: '#FFF',
-    border: '1px solid #E0E0E0',
+    border: '1px solid #D8D5D3',
     borderRadius: '8px',
   };
 
@@ -303,17 +303,17 @@ export default function PisaTab({ pisaData }: PisaTabProps) {
                   margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
                   barGap={6}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" />
                   <XAxis
                     dataKey="area"
-                    tick={{ fill: '#4D4D4D', fontSize: 11 }}
+                    tick={{ fill: '#050506', fontSize: 11 }}
                     angle={-18}
                     textAnchor="end"
                     height={72}
                     interval={0}
                   />
                   <YAxis
-                    tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                    tick={{ fill: '#050506', fontSize: 12 }}
                     domain={[0, 500]}
                     tickFormatter={v => `${v}`}
                   />

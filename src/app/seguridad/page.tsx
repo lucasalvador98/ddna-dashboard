@@ -24,10 +24,10 @@ type IndicadorRow = {
 const isCasosIndicator = (name: string) => name.toLowerCase().startsWith('casos de');
 
 const crimeIndicators = [
-  { name: INDICATOR_NAMES.TENTATIVAS_HURTO, label: 'Tentativas de hurto', color: '#3777FF' },
-  { name: INDICATOR_NAMES.TASA_TENTATIVAS_HURTO, label: 'Tasa tentativas hurto (x100K)', color: '#BF1363' },
-  { name: INDICATOR_NAMES.CONTRAVENCIONES, label: 'Contravenciones', color: '#F3A712' },
-  { name: INDICATOR_NAMES.ROBOS_TENTATIVA_ROBO, label: 'Robos y tentativa', color: '#E07A5F' },
+  { name: INDICATOR_NAMES.TENTATIVAS_HURTO, label: 'Tentativas de hurto', color: '#165DFF' },
+  { name: INDICATOR_NAMES.TASA_TENTATIVAS_HURTO, label: 'Tasa tentativas hurto (x100K)', color: '#8A4B4B' },
+  { name: INDICATOR_NAMES.CONTRAVENCIONES, label: 'Contravenciones', color: '#FF8C00' },
+  { name: INDICATOR_NAMES.ROBOS_TENTATIVA_ROBO, label: 'Robos y tentativa', color: '#C2410C' },
 ];
 
 function getDistribucion(data: IndicadorRow[]) {

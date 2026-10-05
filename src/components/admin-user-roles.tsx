@@ -278,7 +278,7 @@ export function UserRoleManager({ onFlash }: UserRoleManagerProps) {
           <button
             onClick={handleAddUser}
             disabled={adding || !newEmail || !newPassword}
-            className="flex items-center gap-1.5 px-4 py-2.5 bg-navy text-white rounded-lg text-sm font-medium hover:bg-[#0F172A] disabled:opacity-50 transition-colors whitespace-nowrap"
+            className="flex items-center gap-1.5 px-4 py-2.5 bg-navy text-white rounded-lg text-sm font-medium hover:bg-[#050506] disabled:opacity-50 transition-colors whitespace-nowrap"
           >
             {adding ? (
               <Loader2 className="w-4 h-4 animate-spin" />

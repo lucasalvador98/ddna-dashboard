@@ -51,7 +51,7 @@ export default function HomePage() {
           <p className="font-body text-sm lg:text-base text-slate-500 mt-2 max-w-xl mx-auto">
             Defensoría de los Derechos de Niñas, Niños y Adolescentes — Provincia de Córdoba
           </p>
-          <div className="mt-5 mx-auto w-20 h-1 bg-gradient-to-r from-[#FF7F11] to-[#F3A712] rounded-full" />
+          <div className="mt-5 mx-auto w-20 h-1 bg-gradient-to-r from-[#B3541E] to-[#FF8C00] rounded-full" />
         </div>
       </div>
 

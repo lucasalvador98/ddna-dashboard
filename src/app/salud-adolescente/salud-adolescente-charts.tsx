@@ -14,9 +14,9 @@ import {
 } from 'recharts';
 
 const COLORS = {
-  magenta: '#BF1363',
-  terracotta: '#E07A5F',
-  blue: '#3777FF',
+  magenta: '#8A4B4B',
+  terracotta: '#C2410C',
+  blue: '#165DFF',
 };
 
 interface ChartDataItem {
@@ -29,16 +29,16 @@ export function NacimientosLineChart({ data }: { data: ChartDataItem[] }) {
     <div className="h-72">
       <ResponsiveContainer width="100%" height={280}>
         <LineChart data={data} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
-          <XAxis dataKey="periodo" tick={{ fill: '#4D4D4D', fontSize: 12 }} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" />
+          <XAxis dataKey="periodo" tick={{ fill: '#050506', fontSize: 12 }} />
           <YAxis
-            tick={{ fill: '#4D4D4D', fontSize: 12 }}
+            tick={{ fill: '#050506', fontSize: 12 }}
             tickFormatter={(v) => v.toLocaleString()}
           />
           <Tooltip
             contentStyle={{
               backgroundColor: '#FFF',
-              border: '1px solid #E0E0E0',
+              border: '1px solid #D8D5D3',
               borderRadius: '8px',
             }}
             formatter={(value) => [Number(value).toLocaleString('es-AR'), 'Nacimientos']}
@@ -62,16 +62,16 @@ export function FecundidadBarChart({ data }: { data: ChartDataItem[] }) {
     <div className="h-72">
       <ResponsiveContainer width="100%" height={280}>
         <BarChart data={data} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
-          <XAxis dataKey="periodo" tick={{ fill: '#4D4D4D', fontSize: 12 }} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" />
+          <XAxis dataKey="periodo" tick={{ fill: '#050506', fontSize: 12 }} />
           <YAxis
-            tick={{ fill: '#4D4D4D', fontSize: 12 }}
+            tick={{ fill: '#050506', fontSize: 12 }}
             tickFormatter={(v) => `${v}‰`}
           />
           <Tooltip
             contentStyle={{
               backgroundColor: '#FFF',
-              border: '1px solid #E0E0E0',
+              border: '1px solid #D8D5D3',
               borderRadius: '8px',
             }}
             formatter={(value) => [`${value}‰`, 'Tasa de Fecundidad']}
@@ -100,14 +100,14 @@ export function ComparacionChart({
     <div className="h-72">
       <ResponsiveContainer width="100%" height={280}>
         <LineChart data={combined} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
-          <XAxis dataKey="periodo" tick={{ fill: '#4D4D4D', fontSize: 12 }} />
-          <YAxis yAxisId="left" tick={{ fill: '#4D4D4D', fontSize: 12 }} />
-          <YAxis yAxisId="right" orientation="right" tick={{ fill: '#4D4D4D', fontSize: 12 }} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" />
+          <XAxis dataKey="periodo" tick={{ fill: '#050506', fontSize: 12 }} />
+          <YAxis yAxisId="left" tick={{ fill: '#050506', fontSize: 12 }} />
+          <YAxis yAxisId="right" orientation="right" tick={{ fill: '#050506', fontSize: 12 }} />
           <Tooltip
             contentStyle={{
               backgroundColor: '#FFF',
-              border: '1px solid #E0E0E0',
+              border: '1px solid #D8D5D3',
               borderRadius: '8px',
             }}
           />

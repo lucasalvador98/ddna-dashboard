@@ -17,7 +17,7 @@ import {
 } from 'recharts';
 import { ChartWithTable } from '@/components/charts/chart-with-table';
 
-const COLORS = ['#3777FF', '#BF1363', '#F3A712', '#E07A5F', '#3599B8', '#A66999'];
+const COLORS = ['#165DFF', '#8A4B4B', '#FF8C00', '#C2410C', '#356B6B', '#6B4A9C'];
 
 interface DistribucionItem {
   name: string;
@@ -62,23 +62,23 @@ export function SeguridadCharts({
               layout="vertical"
               margin={{ top: 10, right: 30, left: 100, bottom: 10 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" horizontal={false} />
-              <XAxis type="number" tick={{ fill: '#4D4D4D', fontSize: 12 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" horizontal={false} />
+              <XAxis type="number" tick={{ fill: '#050506', fontSize: 12 }} />
               <YAxis
                 type="category"
                 dataKey="name"
-                tick={{ fill: '#4D4D4D', fontSize: 11 }}
+                tick={{ fill: '#050506', fontSize: 11 }}
                 width={90}
               />
               <Tooltip
                 contentStyle={{
                   backgroundColor: '#FFF',
-                  border: '1px solid #E0E0E0',
+                  border: '1px solid #D8D5D3',
                   borderRadius: '8px',
                 }}
                 formatter={v => [v?.toLocaleString('es-AR') ?? 0, 'Casos']}
               />
-              <Bar dataKey="value" fill="#3777FF" radius={[0, 4, 4, 0]} />
+              <Bar dataKey="value" fill="#165DFF" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -137,17 +137,17 @@ export function SeguridadCharts({
                 data={crimeChartData}
                 margin={{ top: 10, right: 30, left: 10, bottom: 10 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" />
                 <XAxis
                   dataKey="periodo"
-                  tick={{ fill: '#4D4D4D', fontSize: 11 }}
+                  tick={{ fill: '#050506', fontSize: 11 }}
                   interval="preserveStartEnd"
                 />
-                <YAxis tick={{ fill: '#4D4D4D', fontSize: 12 }} domain={[0, 'auto']} />
+                <YAxis tick={{ fill: '#050506', fontSize: 12 }} domain={[0, 'auto']} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: '#FFF',
-                    border: '1px solid #E0E0E0',
+                    border: '1px solid #D8D5D3',
                     borderRadius: '8px',
                   }}
                   formatter={(value, name) => [

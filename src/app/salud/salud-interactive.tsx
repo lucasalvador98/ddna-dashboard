@@ -37,11 +37,11 @@ const getCambio = (series: SeriePoint[], index: number): Cambio | null => {
 };
 
 const SERIES_META = {
-  tmi: { title: 'Mortalidad infantil Córdoba', unit: '‰', color: '#E07A5F' },
-  rmm: { title: 'RMM Córdoba', unit: '‰', color: '#3777FF' },
-  nac: { title: 'Nacimientos adolescentes', unit: '', color: '#BF1363' },
-  tmneo: { title: 'Mortalidad Neonatal Córdoba', unit: '‰', color: '#FF7F11' },
-  tmpos: { title: 'Mortalidad Post-Neonatal Córdoba', unit: '‰', color: '#F3A712' },
+  tmi: { title: 'Mortalidad infantil Córdoba', unit: '‰', color: '#C2410C' },
+  rmm: { title: 'RMM Córdoba', unit: '‰', color: '#165DFF' },
+  nac: { title: 'Nacimientos adolescentes', unit: '', color: '#8A4B4B' },
+  tmneo: { title: 'Mortalidad Neonatal Córdoba', unit: '‰', color: '#B3541E' },
+  tmpos: { title: 'Mortalidad Post-Neonatal Córdoba', unit: '‰', color: '#FF8C00' },
 } as const;
 
 type SerieKey = keyof typeof SERIES_META;
@@ -292,7 +292,7 @@ export function SaludInteractive({
                     <div className="mt-4 h-44">
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={serie} margin={{ top: 8, right: 12, bottom: 0, left: -10 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
+                          <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" />
                           <XAxis dataKey="periodo" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
                           <YAxis tick={{ fontSize: 10 }} domain={['auto', 'auto']} />
                           <Tooltip />

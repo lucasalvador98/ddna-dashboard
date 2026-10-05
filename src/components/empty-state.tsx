@@ -33,18 +33,18 @@ export function EmptyState({
 
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-      <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
-        <Icon className="w-8 h-8 text-gray-400" />
+      <div className="w-16 h-16 rounded-2xl bg-secondary-bg border-2 border-border flex items-center justify-center mb-4">
+        <Icon className="w-8 h-8 text-muted-foreground" />
       </div>
       <h3 className="text-base font-semibold text-navy mb-1">{title}</h3>
       {description && (
-        <p className="text-sm text-gray-500 max-w-sm mb-5">{description}</p>
+        <p className="text-sm text-muted-foreground max-w-sm mb-5">{description}</p>
       )}
 
       {action && action.copyValue ? (
         <button
           onClick={() => handleCopy(action.copyValue!)}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-colors shadow-sm"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-white border-2 border-border rounded-lg text-sm font-medium text-navy hover:bg-outspace/40 transition-colors shadow-sm"
         >
           {copied ? (
             <>
@@ -61,7 +61,7 @@ export function EmptyState({
       ) : action?.href ? (
         <a
           href={action.href}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-navy text-white rounded-lg text-sm font-medium hover:bg-[#0F172A] transition-colors shadow-sm"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-navy text-white rounded-lg text-sm font-medium hover:opacity-90 transition-colors shadow-sm"
         >
           <Plus className="w-4 h-4" />
           {action.label}
@@ -69,7 +69,7 @@ export function EmptyState({
       ) : action?.onClick ? (
         <button
           onClick={action.onClick}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-navy text-white rounded-lg text-sm font-medium hover:bg-[#0F172A] transition-colors shadow-sm"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-navy text-white rounded-lg text-sm font-medium hover:opacity-90 transition-colors shadow-sm"
         >
           <Plus className="w-4 h-4" />
           {action.label}

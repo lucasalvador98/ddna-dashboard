@@ -88,10 +88,10 @@ const crimeChartData = [
 ];
 
 const crimeSeries = [
-  { label: 'Tentativas de hurto', color: '#3777FF' },
-  { label: 'Tasa tentativas hurto (x100K)', color: '#BF1363' },
-  { label: 'Contravenciones', color: '#F3A712' },
-  { label: 'Robos y tentativa', color: '#E07A5F' },
+  { label: 'Tentativas de hurto', color: '#165DFF' },
+  { label: 'Tasa tentativas hurto (x100K)', color: '#8A4B4B' },
+  { label: 'Contravenciones', color: '#FF8C00' },
+  { label: 'Robos y tentativa', color: '#C2410C' },
 ];
 
 describe('SeguridadCharts', () => {

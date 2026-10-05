@@ -45,9 +45,9 @@ const colorClasses: Record<KpiColor, { border: string; iconBg: string; iconText:
     iconText: 'text-orange',
   },
   green: {
-    border: 'border-l-[#10B981]',
-    iconBg: 'bg-[#10B981]/10',
-    iconText: 'text-[#10B981]',
+    border: 'border-l-[#2f6f4f]',
+    iconBg: 'bg-[#2f6f4f]/10',
+    iconText: 'text-[#2f6f4f]',
   },
 };
 
@@ -65,7 +65,7 @@ export function KpiCard({
   return (
     <article
       className={clsx(
-        'bg-white rounded-xl border border-border border-l-4 p-5',
+        'bg-white rounded-2xl border-2 border-border border-l-4 p-6',
         'transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:shadow-lg',
         colors.border
       )}
@@ -102,7 +102,7 @@ export function KpiCard({
       <div className="mt-4">
         <h3 className="font-accent text-sm text-text-primary tracking-wide">{title}</h3>
         <p className="font-display text-4xl text-navy mt-1">{value}</p>
-        <p className="font-body text-sm text-text-primary/70 mt-2 leading-relaxed">{subtitle}</p>
+        <p className="font-body text-sm text-muted-foreground mt-2 leading-relaxed">{subtitle}</p>
       </div>
     </article>
   );

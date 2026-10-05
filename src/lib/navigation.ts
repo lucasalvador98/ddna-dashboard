@@ -33,13 +33,13 @@ export const navigation: NavGroup[] = [
   {
     label: 'Inicio',
     icon: Home,
-    color: '#F3A712',
+    color: '#FF8C00',
     items: [{ label: 'Tablero General', href: '/', icon: Home }],
   },
   {
     label: 'Salud',
     icon: Heart,
-    color: '#E07A5F',
+    color: '#C2410C',
     items: [
       { label: 'Indicadores', href: '/salud', icon: Heart },
       { label: 'Adolescente', href: '/salud-adolescente', icon: HeartPulse },
@@ -48,13 +48,13 @@ export const navigation: NavGroup[] = [
   {
     label: 'Educación',
     icon: BookOpen,
-    color: '#F3A712',
+    color: '#FF8C00',
     items: [{ label: 'Educación', href: '/educacion', icon: BookOpen }],
   },
   {
     label: 'Condiciones Sociales',
     icon: Users,
-    color: '#BF1363',
+    color: '#8A4B4B',
     items: [
       { label: 'Pobreza e Indigencia', href: '/pobreza', icon: Users },
       { label: 'Encuestas 2024', href: '/encuestas', icon: ClipboardList },
@@ -64,25 +64,25 @@ export const navigation: NavGroup[] = [
   {
     label: 'Seguridad',
     icon: Shield,
-    color: '#3777FF',
+    color: '#165DFF',
     items: [{ label: 'Justicia', href: '/seguridad', icon: Shield }],
   },
   {
     label: 'Inversión Social',
     icon: Coins,
-    color: '#E07A5F',
+    color: '#C2410C',
     items: [{ label: 'Presupuesto NNyA', href: '/inversion', icon: Coins }],
   },
   {
     label: 'Monitoreo',
     icon: Newspaper,
-    color: '#8B5CF6',
+    color: '#6B4A9C',
     items: [{ label: 'Monitoreo de Medios', href: '/monitoreo', icon: Newspaper }],
   },
   {
     label: 'Documentos',
     icon: FolderOpen,
-    color: '#3599B8',
+    color: '#356B6B',
     items: [
       { label: 'Repositorio', href: '/repositorio', icon: FolderOpen },
       { label: 'Informe Ejecutivo', href: '/ejecutivo', icon: FileText },
@@ -91,7 +91,7 @@ export const navigation: NavGroup[] = [
   {
     label: 'Datos',
     icon: Database,
-    color: '#3599B8',
+    color: '#356B6B',
     items: [
       { label: 'Mapas', href: '/geo', icon: Map },
       { label: 'Fuentes de Datos', href: '/fuentes', icon: Database },
@@ -100,13 +100,13 @@ export const navigation: NavGroup[] = [
   {
     label: 'Formularios',
     icon: ClipboardList,
-    color: '#F3A712',
+    color: '#FF8C00',
     items: [{ label: 'Formularios', href: '/formularios', icon: ClipboardList }],
   },
   {
     label: 'Admin',
     icon: Settings,
-    color: '#5F6B6D',
+    color: '#5B5755',
     items: [{ label: 'Configuración', href: '/admin', icon: Settings }],
   },
 ];

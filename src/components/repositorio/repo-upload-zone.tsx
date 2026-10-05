@@ -215,7 +215,7 @@ export function RepoUploadZone({ onUploaded }: Props) {
               type="button"
               onClick={handleUpload}
               disabled={uploading}
-              className="flex items-center gap-2 px-5 py-2 bg-navy text-white rounded-lg text-sm font-medium hover:bg-[#0F172A] disabled:opacity-50 transition-colors"
+              className="flex items-center gap-2 px-5 py-2 bg-navy text-white rounded-lg text-sm font-medium hover:bg-[#050506] disabled:opacity-50 transition-colors"
             >
               {uploading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

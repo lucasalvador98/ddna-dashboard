@@ -44,12 +44,12 @@ export interface InversionRow {
 // ─── Color Palette ──────────────────────────────────────────────
 
 const COLORS = {
-  terracotta: '#E07A5F',
-  amber: '#F3A712',
-  blue: '#3777FF',
-  magenta: '#BF1363',
-  green: '#10B981',
-  navy: '#334155',
+  terracotta: '#C2410C',
+  amber: '#FF8C00',
+  blue: '#165DFF',
+  magenta: '#8A4B4B',
+  green: '#2F6F4F',
+  navy: '#050506',
 };
 
 const AREA_COLORS: Record<string, string> = {
@@ -250,21 +250,21 @@ export function InversionCharts({ inversionData, periods, evolutionData }: Inver
           <div className="h-80 px-4 pb-2">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={evolutionData} margin={{ top: 10, right: 20, left: 20, bottom: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" />
                 <XAxis
                   dataKey="periodo"
-                  tick={{ fill: '#4D4D4D', fontSize: 13 }}
+                  tick={{ fill: '#050506', fontSize: 13 }}
                   tickLine={false}
                 />
                 <YAxis
-                  tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                  tick={{ fill: '#050506', fontSize: 12 }}
                   tickFormatter={formatBillionsLabel}
                   width={60}
                 />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: '#FFF',
-                    border: '1px solid #E0E0E0',
+                    border: '1px solid #D8D5D3',
                     borderRadius: '8px',
                     fontSize: 13,
                   }}
@@ -309,22 +309,22 @@ export function InversionCharts({ inversionData, periods, evolutionData }: Inver
               layout="vertical"
               margin={{ top: 10, right: 30, left: 110, bottom: 10 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" horizontal={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" horizontal={false} />
               <XAxis
                 type="number"
-                tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                tick={{ fill: '#050506', fontSize: 12 }}
                 tickFormatter={formatBillionsLabel}
               />
               <YAxis
                 type="category"
                 dataKey="name"
-                tick={{ fill: '#4D4D4D', fontSize: 12 }}
+                tick={{ fill: '#050506', fontSize: 12 }}
                 width={100}
               />
               <Tooltip
                 contentStyle={{
                   backgroundColor: '#FFF',
-                  border: '1px solid #E0E0E0',
+                  border: '1px solid #D8D5D3',
                   borderRadius: '8px',
                 }}
                 formatter={tooltipBillions}
@@ -340,7 +340,7 @@ export function InversionCharts({ inversionData, periods, evolutionData }: Inver
       </ChartWithTable>
 
       {/* Methodology note */}
-      <div className="bg-[#F5F5F5] rounded-xl p-5 border border-gray-200">
+      <div className="bg-[#F5F0EC] rounded-xl p-5 border border-gray-200">
         <h3 className="font-display text-sm text-navy mb-2">Metodología de Ponderación</h3>
         <p className="font-body text-sm text-gray-600 leading-relaxed">
           Los valores mostrados corresponden al <strong>DEVENGADO PONDERADO</strong> calculado por

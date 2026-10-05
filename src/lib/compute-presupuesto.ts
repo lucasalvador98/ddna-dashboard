@@ -25,11 +25,11 @@ export const AREA_ORDER = ['Educación', 'Salud', 'Desarrollo Social', 'Niñez y
 export type FilterArea = (typeof AREA_ORDER)[number] | 'all';
 
 export const AREA_COLORS: Record<string, string> = {
-  Educación: '#3777FF',
-  Salud: '#E07A5F',
-  'Desarrollo Social': '#F3A712',
-  'Niñez y Adolescencia': '#BF1363',
-  Otros: '#10B981',
+  Educación: '#165DFF',
+  Salud: '#C2410C',
+  'Desarrollo Social': '#FF8C00',
+  'Niñez y Adolescencia': '#8A4B4B',
+  Otros: '#2F6F4F',
 };
 
 export function computePeriods(data: InversionRow[]): string[] {
@@ -94,7 +94,7 @@ export function computePieData(inversionArea: { name: string; value: number }[])
   return inversionArea.map(d => ({
     name: d.name,
     value: d.value,
-    fill: AREA_COLORS[d.name] ?? '#E07A5F',
+    fill: AREA_COLORS[d.name] ?? '#C2410C',
   }));
 }
 

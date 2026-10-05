@@ -256,7 +256,7 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
           </p>
           <Link
             href={`/login?redirect=${encodeURIComponent(pathname)}`}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-navy text-white font-accent font-semibold rounded-xl hover:bg-[#0F172A] transition-colors"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-navy text-white font-accent font-semibold rounded-xl hover:bg-[#050506] transition-colors"
           >
             Iniciar sesión
           </Link>
@@ -294,7 +294,7 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
           </p>
           <Link
             href="/"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-navy text-white font-accent font-semibold rounded-xl hover:bg-[#0F172A] transition-colors"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-navy text-white font-accent font-semibold rounded-xl hover:bg-[#050506] transition-colors"
           >
             Volver al inicio
           </Link>

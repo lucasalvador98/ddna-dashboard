@@ -15,12 +15,12 @@ import { hasPublicSupabaseConfig } from '@/lib/runtime-config';
 import { SupabaseUnavailable } from '@/components/supabase-unavailable';
 
 const COLORS = {
-  magenta: '#BF1363',
-  terracotta: '#E07A5F',
-  blue: '#3777FF',
-  green: '#10B981',
-  red: '#EF4444',
-  amber: '#F3A712',
+  magenta: '#8A4B4B',
+  terracotta: '#C2410C',
+  blue: '#165DFF',
+  green: '#2F6F4F',
+  red: '#A11F1F',
+  amber: '#FF8C00',
 };
 
 type DataRow = {

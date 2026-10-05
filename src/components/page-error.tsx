@@ -20,7 +20,7 @@ export function PageError({ message, onRetry }: PageErrorProps) {
       {onRetry && (
         <button
           onClick={onRetry}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-magenta text-white rounded-lg text-sm font-medium hover:bg-[#a01052] transition-colors"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-magenta text-white rounded-lg text-sm font-medium hover:bg-[#A11F1F] transition-colors"
         >
           <RefreshCw className="w-4 h-4" />
           Reintentar

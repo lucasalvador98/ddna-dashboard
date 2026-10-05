@@ -15,7 +15,7 @@ const colorClasses: Record<string, string> = {
   terracotta: 'bg-terracotta',
   navy: 'bg-navy',
   orange: 'bg-orange',
-  green: 'bg-[#10B981]',
+  green: 'bg-[#2F6F4F]',
 };
 
 export function SectionHeader({
@@ -26,10 +26,10 @@ export function SectionHeader({
   as: Heading = 'h1',
 }: SectionHeaderProps) {
   return (
-    <div className="flex items-start gap-4 mb-6">
+    <div className="flex items-start gap-4 mb-8">
       <div
         className={clsx(
-          'w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 text-white',
+          'w-14 h-14 rounded-2xl border-2 border-border flex items-center justify-center flex-shrink-0 text-white',
           colorClasses[color]
         )}
       >
@@ -37,7 +37,7 @@ export function SectionHeader({
       </div>
       <div>
         <Heading className="font-display text-2xl text-navy tracking-tight">{title}</Heading>
-        <p className="font-body text-sm text-text-primary mt-1">{description}</p>
+        <p className="font-body text-sm text-muted-foreground mt-1">{description}</p>
       </div>
     </div>
   );

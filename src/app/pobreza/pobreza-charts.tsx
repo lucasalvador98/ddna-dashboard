@@ -43,13 +43,13 @@ const TABS: { id: TabId; label: string }[] = [
 ];
 
 const COLORS = {
-  magenta: '#BF1363',
-  terracotta: '#E07A5F',
-  amber: '#F3A712',
-  orange: '#FF7F11',
-  blue: '#3777FF',
-  green: '#10B981',
-  purple: '#8B5CF6',
+  magenta: '#8A4B4B',
+  terracotta: '#C2410C',
+  amber: '#FF8C00',
+  orange: '#B3541E',
+  blue: '#165DFF',
+  green: '#2F6F4F',
+  purple: '#6B4A9C',
 };
 
 const INDEC_FUENTE = 'EPH-INDEC / datos.gob.ar';
@@ -264,21 +264,21 @@ function TabIngresos({
         ) : (
           <ResponsiveContainer width="100%" height={340}>
             <BarChart data={evoChartData} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" />
               <XAxis
                 dataKey="label"
-                tick={{ fill: '#4D4D4D', fontSize: 12 }}
-                tickLine={{ stroke: '#E5E7EB' }}
+                tick={{ fill: '#050506', fontSize: 12 }}
+                tickLine={{ stroke: '#D8D5D3' }}
               />
               <YAxis
-                tick={{ fill: '#4D4D4D', fontSize: 12 }}
-                tickLine={{ stroke: '#E5E7EB' }}
+                tick={{ fill: '#050506', fontSize: 12 }}
+                tickLine={{ stroke: '#D8D5D3' }}
                 tickFormatter={(v: number) => `${v}%`}
               />
               <Tooltip
                 contentStyle={{
                   backgroundColor: '#FFF',
-                  border: '1px solid #E0E0E0',
+                  border: '1px solid #D8D5D3',
                   borderRadius: '8px',
                   fontSize: '13px',
                 }}
@@ -442,24 +442,24 @@ function TabMultidimensional({
             data={dimensionChartData}
             margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" horizontal={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" horizontal={false} />
             <XAxis
               type="number"
-              tick={{ fill: '#4D4D4D', fontSize: 12 }}
-              tickLine={{ stroke: '#E5E7EB' }}
+              tick={{ fill: '#050506', fontSize: 12 }}
+              tickLine={{ stroke: '#D8D5D3' }}
               tickFormatter={(v: number) => `${v}%`}
             />
             <YAxis
               dataKey="dimension"
               type="category"
-              tick={{ fill: '#4D4D4D', fontSize: 12 }}
+              tick={{ fill: '#050506', fontSize: 12 }}
               tickLine={false}
               width={120}
             />
             <Tooltip
               contentStyle={{
                 backgroundColor: '#FFF',
-                border: '1px solid #E0E0E0',
+                border: '1px solid #D8D5D3',
                 borderRadius: '8px',
                 fontSize: '13px',
               }}
@@ -490,21 +490,21 @@ function TabMultidimensional({
           <div className="h-80">
             <ResponsiveContainer width="100%" height={320}>
               <LineChart data={historicData} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" />
                 <XAxis
                   dataKey="periodo"
-                  tick={{ fill: '#4D4D4D', fontSize: 12 }}
-                  tickLine={{ stroke: '#E5E7EB' }}
+                  tick={{ fill: '#050506', fontSize: 12 }}
+                  tickLine={{ stroke: '#D8D5D3' }}
                 />
                 <YAxis
-                  tick={{ fill: '#4D4D4D', fontSize: 12 }}
-                  tickLine={{ stroke: '#E5E7EB' }}
+                  tick={{ fill: '#050506', fontSize: 12 }}
+                  tickLine={{ stroke: '#D8D5D3' }}
                   tickFormatter={(v: number) => `${v}%`}
                 />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: '#FFF',
-                    border: '1px solid #E0E0E0',
+                    border: '1px solid #D8D5D3',
                     borderRadius: '8px',
                     fontSize: '13px',
                   }}
