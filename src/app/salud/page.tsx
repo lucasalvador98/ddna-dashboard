@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Heart, Syringe, AlertCircle, Info } from 'lucide-react';
+import { Heart, Syringe, AlertCircle, Info, Baby } from 'lucide-react';
 import { parseDesglose } from '@/lib/parse-desglose';
 import { INDICATOR_NAMES } from '@/lib/indicator-names';
 import { SectionHeader } from '@/components/section-header';
@@ -7,10 +7,66 @@ import { EmptyState } from '@/components/empty-state';
 import { KpiCard } from '@/components/kpi-card';
 import { SaludCharts } from './salud-charts';
 import type { SaludChartsProps } from './salud-charts';
-import { SaludInteractive } from './salud-interactive';
+import { SaludInteractive, NatalidadFecundidad } from './salud-interactive';
 import type { Indicador as DashboardIndicador } from '@/lib/use-dashboard-data';
 import { hasPublicSupabaseConfig } from '@/lib/runtime-config';
 import { SupabaseUnavailable } from '@/components/supabase-unavailable';
+
+// ─── Natalidad y fecundidad ──────────────────────────────────────
+// Estas series viven en `categoria = 'salud'`, pero NO se pueden leer del fetch
+// general: esa categoría tiene ~8.270 filas y PostgREST corta en 1.000 por
+// request, así que el fetch sin `.range()` dejaba la natalidad recortada a 8 de
+// sus 25 años y ninguna fila de fecundidad por edad. Se piden aparte, filtradas
+// por nombre y paginadas.
+// La serie oficial `Tasa fecundidad adolescente` vive en `salud_adolescente` y
+// ya viene completa en `data` (esa categoría tiene 32 filas).
+const NATALIDAD_CORDOBA = 'Tasa de natalidad (Córdoba)';
+const NATALIDAD_NACIONAL = 'Tasa de natalidad (Nacional)';
+const FECUNDIDAD_EDAD_PREFIX = 'Tasa de fecundidad — ';
+const FECUNDIDAD_GRUPOS = [
+  'Menor de 15',
+  '15 a 19',
+  '20 a 24',
+  '25 a 29',
+  '30 a 34',
+  '35 a 39',
+  '40 a 44',
+  'De 45 y más',
+] as const;
+
+/** Orden canónico de los grupos de edad (de menor a mayor) para las barras. */
+const RANK_FECUNDIDAD = new Map<string, number>(
+  FECUNDIDAD_GRUPOS.map((grupo, index): [string, number] => [grupo, index])
+);
+
+const NOMBRES_NATALIDAD_FECUNDIDAD: readonly string[] = [
+  NATALIDAD_CORDOBA,
+  NATALIDAD_NACIONAL,
+  ...FECUNDIDAD_GRUPOS.map((grupo) => `${FECUNDIDAD_EDAD_PREFIX}${grupo}`),
+];
+
+const PAGE_SIZE = 1000;
+
+/** Fila cruda de `indicadores` tal como la devuelve el select de la pantalla. */
+type RawIndicadorRow = {
+  id: number | string;
+  indicador_nombre: string | null;
+  valor: number | null;
+  unidad: string | null;
+  periodo: string | number | null;
+  region: string | null;
+  desglose: unknown;
+  fuente: string | null;
+};
+
+type NatalidadFecundidadRow = {
+  indicador_nombre: string | null;
+  valor: number | null;
+  unidad: string | null;
+  periodo: string | number | null;
+  region: string | null;
+  fuente: string | null;
+};
 
 export default async function SaludPage() {
   if (!hasPublicSupabaseConfig()) {
@@ -22,23 +78,65 @@ export default async function SaludPage() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  const [saludRes, adolesRes] = await Promise.all([
-    supabase
-      .from('indicadores')
-      .select('id, indicador_nombre, valor, unidad, periodo, region, desglose, fuente')
-      .eq('categoria', 'salud')
-      .order('periodo', { ascending: true }),
-    supabase
-      .from('indicadores')
-      .select('id, indicador_nombre, valor, unidad, periodo, region, desglose, fuente')
-      .eq('categoria', 'salud_adolescente')
-      .order('periodo', { ascending: true }),
+  // Paginado propio para las series de natalidad y fecundidad por edad: el
+  // filtro por nombre deja 58 filas (1 página), pero se sigue paginando hasta
+  // recibir una página incompleta para que agregar años no las corte en silencio.
+  const fetchNatalidadFecundidad = async (): Promise<NatalidadFecundidadRow[]> => {
+    const rows: NatalidadFecundidadRow[] = [];
+    for (let offset = 0; ; offset += PAGE_SIZE) {
+      const { data: page, error } = await supabase
+        .from('indicadores')
+        .select('indicador_nombre, valor, unidad, periodo, region, fuente')
+        .eq('categoria', 'salud')
+        .in('indicador_nombre', NOMBRES_NATALIDAD_FECUNDIDAD)
+        .order('periodo', { ascending: true })
+        .range(offset, offset + PAGE_SIZE - 1);
+
+      if (error) throw new Error(error.message);
+
+      const filas = (page ?? []) as NatalidadFecundidadRow[];
+      rows.push(...filas);
+
+      if (filas.length < PAGE_SIZE) break;
+    }
+    return rows;
+  };
+
+  // ⚠️ Paginado obligatorio: `categoria = 'salud'` tiene ~8.270 filas y PostgREST
+  // corta en 1.000 por request. Sin `.range()`, la pantalla recibía sólo las 1.000
+  // de período más viejo (ordena ascendente), así que TODO lo reciente quedaba
+  // afuera: la vacunación 2024-2025 entera y buena parte de mortalidad y
+  // nacimientos. El desempate por `id` no es decorativo: ordenar sólo por
+  // `periodo` deja el orden indefinido entre filas del mismo período, y entre
+  // páginas eso duplica o pierde filas.
+  const fetchCategoria = async (categoria: string): Promise<RawIndicadorRow[]> => {
+    const rows: RawIndicadorRow[] = [];
+    for (let offset = 0; ; offset += PAGE_SIZE) {
+      const { data: page, error } = await supabase
+        .from('indicadores')
+        .select('id, indicador_nombre, valor, unidad, periodo, region, desglose, fuente')
+        .eq('categoria', categoria)
+        .order('periodo', { ascending: true })
+        .order('id', { ascending: true })
+        .range(offset, offset + PAGE_SIZE - 1);
+
+      if (error) throw new Error(error.message);
+
+      const filas = (page ?? []) as unknown as RawIndicadorRow[];
+      rows.push(...filas);
+
+      if (filas.length < PAGE_SIZE) break;
+    }
+    return rows;
+  };
+
+  const [saludRows, adolesRows, natalidadFecundidadRows] = await Promise.all([
+    fetchCategoria('salud'),
+    fetchCategoria('salud_adolescente'),
+    fetchNatalidadFecundidad(),
   ]);
 
-  if (saludRes.error) throw new Error(saludRes.error.message);
-  if (adolesRes.error) throw new Error(adolesRes.error.message);
-
-  const allRaw = [...(saludRes.data || []), ...(adolesRes.data || [])];
+  const allRaw = [...saludRows, ...adolesRows];
   const data = allRaw.map((d) => ({
     ...d,
     desglose: parseDesglose(d.desglose),
@@ -173,6 +271,73 @@ export default async function SaludPage() {
   const vaccinationChartData = buildVaccinationChart();
   const quintilChartData = buildQuintilChart();
 
+  // ─── Natalidad (‰, 2000-2024, Córdoba vs Nación) ──────────────
+  const natalidadRows = natalidadFecundidadRows.filter(
+    (row) => row.indicador_nombre === NATALIDAD_CORDOBA || row.indicador_nombre === NATALIDAD_NACIONAL
+  );
+
+  const valorNatalidad = (nombre: string, periodo: string): number | null => {
+    const row = natalidadRows.find(
+      (r) => r.indicador_nombre === nombre && String(r.periodo) === periodo
+    );
+    return row && row.valor !== null ? Number(row.valor) : null;
+  };
+
+  // La grilla sale de la unión de años de las dos series: si una fuente se atrasa,
+  // el año se grafica igual con el otro valor y la línea puentea el hueco.
+  const natalidadChartData: Record<string, unknown>[] = [
+    ...new Set(natalidadRows.map((row) => String(row.periodo))),
+  ]
+    .sort((a, b) => Number(a) - Number(b))
+    .map((periodo) => ({
+      periodo,
+      'Córdoba': valorNatalidad(NATALIDAD_CORDOBA, periodo),
+      'Nacional': valorNatalidad(NATALIDAD_NACIONAL, periodo),
+    }));
+
+  // ─── Fecundidad por edad de la madre (‰, Córdoba) ─────────────
+  const fecundidadPorEdadRows = natalidadFecundidadRows.filter(
+    (row) =>
+      String(row.indicador_nombre ?? '').startsWith(FECUNDIDAD_EDAD_PREFIX) &&
+      row.region === 'Córdoba'
+  );
+
+  // La serie es de un solo año (2022): se grafica el último cargado y no se
+  // mezclan años distintos en las mismas barras.
+  const periodosFecundidad = fecundidadPorEdadRows
+    .map((row) => Number(row.periodo))
+    .filter((periodo) => Number.isFinite(periodo));
+  const fecundidadAnio =
+    periodosFecundidad.length > 0 ? String(Math.max(...periodosFecundidad)) : null;
+
+  // Map por grupo: una fila repetida (o un año viejo) no infla las barras.
+  const fecundidadPorGrupo = new Map<string, number>();
+  for (const row of fecundidadPorEdadRows) {
+    if (fecundidadAnio === null || String(row.periodo) !== fecundidadAnio) continue;
+    fecundidadPorGrupo.set(
+      String(row.indicador_nombre ?? '').slice(FECUNDIDAD_EDAD_PREFIX.length),
+      Number(row.valor)
+    );
+  }
+
+  // Barras de menor a mayor edad: manda el orden canónico del grupo; un grupo
+  // que no esté en esa lista va al final (no se descarta) ordenado por nombre.
+  const fecundidadEdadData = [...fecundidadPorGrupo.entries()]
+    .map(([grupo, tasa]) => ({ grupo, tasa }))
+    .sort(
+      (a, b) =>
+        (RANK_FECUNDIDAD.get(a.grupo) ?? FECUNDIDAD_GRUPOS.length) -
+          (RANK_FECUNDIDAD.get(b.grupo) ?? FECUNDIDAD_GRUPOS.length) ||
+        a.grupo.localeCompare(b.grupo, 'es')
+    );
+
+  // Serie oficial del DEIS: es la única comparable (misma convención de
+  // denominador) y la nota metodológica la usa como referencia del mismo año.
+  const fecundidadOficialData = data
+    .filter((d) => d.indicador_nombre === INDICATOR_NAMES.TASA_FECUNDIDAD_ADOLESCENTE)
+    .map((d) => ({ periodo: String(d.periodo), valor: Number(d.valor) }))
+    .sort((a, b) => Number(a.periodo) - Number(b.periodo));
+
   const chartProps: Omit<SaludChartsProps, 'variant'> = {
     mortalidadComparativaData,
     rmmData,
@@ -207,6 +372,24 @@ export default async function SaludPage() {
         nacimientosData={nacimientosData}
         chartProps={chartProps}
       />
+
+      {/* Natalidad y fecundidad Section */}
+      <div className="space-y-4">
+        <SectionHeader
+          icon={Baby}
+          title="Natalidad y fecundidad"
+          description="Tasa de natalidad en Córdoba y Nación (2000-2024) y tasa de fecundidad por edad de la madre (Córdoba)"
+          color="terracotta"
+          as="h2"
+        />
+
+        <NatalidadFecundidad
+          natalidadData={natalidadChartData}
+          fecundidadEdadData={fecundidadEdadData}
+          fecundidadAnio={fecundidadAnio}
+          fecundidadOficialData={fecundidadOficialData}
+        />
+      </div>
 
       {/* Vacunación Section */}
       <div className="space-y-4">

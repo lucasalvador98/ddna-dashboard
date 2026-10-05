@@ -2,14 +2,278 @@
 
 import { useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Baby, Heart, Syringe, X } from 'lucide-react';
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Baby, Heart, Info, Syringe, X } from 'lucide-react';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import { KpiCard } from '@/components/kpi-card';
+import { ChartWithTable } from '@/components/charts/chart-with-table';
 import { Badge } from '@/components/ui/badge';
 import { SaludCharts } from './salud-charts';
 import type { SaludChartsProps } from './salud-charts';
 
 type SeriePoint = { periodo: string; valor: number };
+
+// ─── Natalidad y fecundidad ──────────────────────────────────────
+// Paleta: los mismos hex que SERIES_META y salud-charts (terracotta/azul/magenta)
+// para no introducir colores nuevos en la pantalla.
+const NATALIDAD_COLORS = {
+  cordoba: '#C2410C',
+  nacional: '#165DFF',
+  adolescente: '#8A4B4B',
+} as const;
+
+/** Grupo resaltado en las barras: es el indicador de embarazo adolescente. */
+const GRUPO_ADOLESCENTE = '15 a 19';
+
+const TOOLTIP_STYLE = {
+  backgroundColor: '#FFF',
+  border: '1px solid #D8D5D3',
+  borderRadius: '8px',
+} as const;
+
+/** Número con coma decimal para la prosa de la nota (12,8 en vez de 12.8). */
+const decimal = (valor: number, digitos: number) => valor.toFixed(digitos).replace('.', ',');
+
+export interface NatalidadFecundidadProps {
+  /** Serie de natalidad (‰): filas { periodo, Córdoba, Nacional }. [] si no hay datos. */
+  natalidadData: Record<string, unknown>[];
+  /** Tasa de fecundidad (‰) por grupo de edad de la madre, ya ordenada por edad. */
+  fecundidadEdadData: { grupo: string; tasa: number }[];
+  /** Año de la serie de fecundidad por edad (hoy 2022), o null si no hay datos. */
+  fecundidadAnio: string | null;
+  /** Serie oficial del DEIS `Tasa fecundidad adolescente` (‰, 2015-2022). */
+  fecundidadOficialData: { periodo: string; valor: number }[];
+}
+
+/**
+ * Sección "Natalidad y fecundidad" de /salud:
+ *
+ * A) tasa de natalidad (‰) 2000-2024, Córdoba vs Nación;
+ * B) tasa de fecundidad (‰) por edad de la madre, Córdoba (hoy 2022).
+ *
+ * La nota metodológica del final es parte del contenido, no un adorno: la tasa
+ * por edad NO divide por las mujeres del grupo sino por la población total (ver
+ * el comentario del denominador en scripts/load-fecundidad.mjs).
+ */
+export function NatalidadFecundidad({
+  natalidadData,
+  fecundidadEdadData,
+  fecundidadAnio,
+  fecundidadOficialData,
+}: NatalidadFecundidadProps) {
+  const primerAnio = natalidadData.length > 0 ? String(natalidadData[0].periodo) : null;
+  const ultimoAnio =
+    natalidadData.length > 0 ? String(natalidadData[natalidadData.length - 1].periodo) : null;
+
+  // Una serie ausente no se dibuja (queda en null): no se rellena con ceros.
+  const tieneCordoba = natalidadData.some(
+    (row) => row['Córdoba'] !== null && row['Córdoba'] !== undefined
+  );
+  const tieneNacional = natalidadData.some(
+    (row) => row['Nacional'] !== null && row['Nacional'] !== undefined
+  );
+
+  const tieneAdolescente = fecundidadEdadData.some((grupo) => grupo.grupo === GRUPO_ADOLESCENTE);
+
+  // Dos claves en vez de un <Cell> por barra: el grupo 15 a 19 queda en su propia
+  // serie para poder pintarlo distinto y, de paso, aparece en la leyenda.
+  const fecundidadChartData = fecundidadEdadData.map((grupo) => ({
+    grupo: grupo.grupo,
+    tasa: grupo.grupo === GRUPO_ADOLESCENTE ? null : grupo.tasa,
+    tasaAdolescente: grupo.grupo === GRUPO_ADOLESCENTE ? grupo.tasa : null,
+  }));
+
+  // Referencia oficial del mismo año que la serie calculada: mezclar años daría
+  // una comparación que no corresponde a ningún período real.
+  const calculadaAdolescente =
+    fecundidadEdadData.find((grupo) => grupo.grupo === GRUPO_ADOLESCENTE) ?? null;
+  const oficialMismoAnio =
+    fecundidadAnio !== null
+      ? fecundidadOficialData.find((punto) => punto.periodo === fecundidadAnio) ?? null
+      : null;
+  const rangoOficial =
+    fecundidadOficialData.length > 0
+      ? `${fecundidadOficialData[0].periodo}-${
+          fecundidadOficialData[fecundidadOficialData.length - 1].periodo
+        }`
+      : null;
+  const desvioOficial =
+    oficialMismoAnio && calculadaAdolescente && oficialMismoAnio.valor > 0
+      ? Math.round(
+          (Math.abs(oficialMismoAnio.valor - calculadaAdolescente.tasa) / oficialMismoAnio.valor) *
+            100
+        )
+      : null;
+
+  return (
+    <div className="space-y-6">
+      {/* Gráfico A — Tasa de natalidad (‰), 2000-2024 */}
+      {natalidadData.length > 0 && (tieneCordoba || tieneNacional) && (
+        <ChartWithTable
+          title="Tasa de natalidad (‰) — Córdoba vs Nación"
+          subtitle={`Evolución ${primerAnio}-${ultimoAnio}: nacimientos por cada mil habitantes`}
+          color="terracotta"
+          fuente="DEIS / datos.gob.ar"
+          data={natalidadData}
+          dataKey="Córdoba"
+          xAxisKey="periodo"
+        >
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart
+                data={natalidadData}
+                margin={{ top: 10, right: 30, left: 10, bottom: 10 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" />
+                <XAxis dataKey="periodo" tick={{ fill: '#050506', fontSize: 12 }} />
+                <YAxis
+                  tick={{ fill: '#050506', fontSize: 12 }}
+                  domain={[0, 'auto']}
+                  tickFormatter={(v) => `${Number(v).toFixed(1)}‰`}
+                />
+                <Tooltip
+                  contentStyle={TOOLTIP_STYLE}
+                  formatter={(value, name) => [`${value ?? 0}‰`, name]}
+                />
+                <Legend />
+                {tieneCordoba && (
+                  <Line
+                    type="monotone"
+                    dataKey="Córdoba"
+                    stroke={NATALIDAD_COLORS.cordoba}
+                    strokeWidth={2}
+                    dot={{ fill: NATALIDAD_COLORS.cordoba, r: 3 }}
+                    name="Córdoba"
+                    connectNulls
+                  />
+                )}
+                {tieneNacional && (
+                  <Line
+                    type="monotone"
+                    dataKey="Nacional"
+                    stroke={NATALIDAD_COLORS.nacional}
+                    strokeWidth={2}
+                    dot={{ fill: NATALIDAD_COLORS.nacional, r: 3 }}
+                    name="Nacional"
+                    strokeDasharray="5 5"
+                    connectNulls
+                  />
+                )}
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartWithTable>
+      )}
+
+      {/* Gráfico B — Tasa de fecundidad por edad de la madre */}
+      {fecundidadEdadData.length > 0 && (
+        <ChartWithTable
+          title="Tasa de fecundidad por edad de la madre (‰)"
+          subtitle={`Córdoba ${fecundidadAnio ?? ''} — nacimientos por cada mil personas del grupo de edad (no por mujeres: ver nota metodológica)`}
+          color="magenta"
+          fuente="DEIS + Censo 2022 (elaboración propia)"
+          data={fecundidadEdadData}
+          dataKey="tasa"
+          xAxisKey="grupo"
+        >
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart
+                data={fecundidadChartData}
+                margin={{ top: 10, right: 30, left: 10, bottom: 10 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" />
+                <XAxis dataKey="grupo" tick={{ fill: '#050506', fontSize: 11 }} interval={0} />
+                <YAxis
+                  tick={{ fill: '#050506', fontSize: 12 }}
+                  domain={[0, 'auto']}
+                  tickFormatter={(v) => `${Number(v).toFixed(1)}‰`}
+                />
+                <Tooltip
+                  contentStyle={TOOLTIP_STYLE}
+                  formatter={(value, name) => [
+                    value === null || value === undefined ? '—' : `${Number(value).toFixed(2)}‰`,
+                    name,
+                  ]}
+                />
+                <Legend />
+                <Bar
+                  dataKey="tasa"
+                  name="Tasa de fecundidad"
+                  fill={NATALIDAD_COLORS.cordoba}
+                  radius={[4, 4, 0, 0]}
+                />
+                {tieneAdolescente && (
+                  <Bar
+                    dataKey="tasaAdolescente"
+                    name={`${GRUPO_ADOLESCENTE} — embarazo adolescente`}
+                    fill={NATALIDAD_COLORS.adolescente}
+                    radius={[4, 4, 0, 0]}
+                  />
+                )}
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartWithTable>
+      )}
+
+      {/* Nota metodológica — el denominador no es el de una tasa específica */}
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-5">
+        <h3 className="font-accent text-sm text-navy font-medium mb-2 flex items-center gap-2">
+          <Info className="w-4 h-4 text-magenta" />
+          Nota metodológica
+        </h3>
+        <div className="font-body text-sm text-text-primary leading-relaxed space-y-3">
+          <p>
+            La <strong>tasa de fecundidad por edad de la madre</strong> de este gráfico{' '}
+            <strong>
+              no divide por las mujeres de esa edad, sino por la población total del grupo
+            </strong>{' '}
+            (ambos sexos). El Censo 2022 no publica edad × sexo cruzado y la serie oficial del DEIS
+            usa esa misma convención, así que el denominador es el conteo censal del grupo completo
+            y no hay ninguna estimación.
+          </p>
+          <p>
+            <strong>
+              Por eso esta serie NO es comparable con una tasa específica de fecundidad
+            </strong>{' '}
+            calculada sobre mujeres. La referencia comparable es la serie oficial{' '}
+            <em>Tasa fecundidad adolescente</em> del DEIS
+            {rangoOficial ? ` (${rangoOficial})` : ''}, que usa el mismo denominador
+            {oficialMismoAnio && calculadaAdolescente && desvioOficial !== null ? (
+              <>
+                : para {oficialMismoAnio.periodo} la oficial es{' '}
+                <strong>{decimal(oficialMismoAnio.valor, 1)}‰</strong> contra{' '}
+                <strong>{decimal(calculadaAdolescente.tasa, 2)}‰</strong> calculada para 15 a 19
+                (≈{desvioOficial}% de diferencia, porque el DEIS usa proyecciones poblacionales y no
+                el conteo censal del Censo 2022).
+              </>
+            ) : (
+              '.'
+            )}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Con denominador de mujeres, la tasa de 15 a 19 en Córdoba daría ≈22,5‰, casi el doble
+            del valor de este gráfico: por eso la comparación válida es contra la serie oficial del
+            DEIS y no contra indicadores internacionales de fecundidad adolescente. La tasa de
+            natalidad del gráfico de líneas es aparte (nacimientos sobre población total del año) y
+            sí es comparable con las series del DEIS.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export interface SaludInteractiveProps {
   mortalidadData: SeriePoint[];
