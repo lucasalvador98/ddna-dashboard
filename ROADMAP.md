@@ -30,7 +30,7 @@
 - [x] Página `/repositorio` con rediseño UX completo: 9 componentes modulares, drawer de detalle, drag & drop upload, grupos colapsables
 
 ### Chat con Bibliografía
-- [x] `/api/agent/chat` — agente de investigación general con OpenAI
+- [x] `/api/repositorio/chat` — agente conversacional con tools (indicadores + investigación)
 - [x] Tools: búsqueda en docs, búsqueda web (DuckDuckGo), scraping de URLs, descarga de archivos, listado de bucket
 
 ### Autenticación y RBAC
@@ -71,12 +71,9 @@
 - [x] `/api/repositorio/upload` — POST subida de archivos al repositorio
 - [x] `/api/repositorio/process` — POST procesamiento de documentos (chunking + embeddings)
 - [x] `/api/repositorio/chat` — POST agente de indicadores
-- [x] `/api/agent/chat` — POST agente de investigación general
-- [x] `/api/agent/search-docs` — POST búsqueda vectorial
-- [x] `/api/agent/web-search` — POST búsqueda web
-- [x] `/api/agent/scrape-url` — POST scraping de URL
-- [x] `/api/agent/download-file` — POST descarga de archivos públicos
-- [x] `/api/agent/list-bucket` — GET listado de archivos en bucket
+- [x] `/api/repositorio/chat` — agente con function-calling. Sus herramientas
+      (`search_knowledge_base`, `listAllDocuments`, `search_web`, `scrape_url`) son
+      internas al endpoint, no rutas propias. Libs en `src/lib/agent/`.
 - [x] `/api/admin/backfill` — POST backfill de PDFs pendientes
 - [x] `/api/extract-pdf` — POST extracción de texto de PDF
 

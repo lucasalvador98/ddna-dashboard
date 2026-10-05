@@ -11,7 +11,7 @@
 Dos agentes conversacionales independientes que permiten consultar los datos de la Defensoría:
 
 1. **Agente de Indicadores** (`/api/repositorio/chat`) — consulta datos estructurados de la DB + documentos
-2. **Agente de Investigación** (`/api/agent/chat`) — búsqueda en documentos + web + scraping
+2. **Agente de Investigación** — búsqueda en documentos + web + scraping, como tools del mismo `/api/repositorio/chat`
 
 Ambos usan OpenAI (gpt-4o-mini) como LLM y OpenAI para embeddings.
 
@@ -31,7 +31,7 @@ Ambos usan OpenAI (gpt-4o-mini) como LLM y OpenAI para embeddings.
    │  AGENTE DE  │              │  AGENTE DE      │
    │ INDICADORES │              │  INVESTIGACIÓN  │
    │             │              │                 │
-   │ /repositorio│              │ /api/agent/chat │
+   │ /repositorio│              │/api/repositorio/chat│
    │ /chat       │              │                 │
    └──────┬──────┘              └──────┬──────────┘
           │                            │
@@ -101,9 +101,9 @@ Máximo 3 rondas de tools, 5 tool calls totales.
 
 ---
 
-## Agente 2: Investigación (`/api/agent/chat`)
+## Agente 2: Investigación (tools de `/api/repositorio/chat`)
 
-**Archivo**: `src/app/api/agent/chat/route.ts`
+**Archivo**: `src/app/api/repositorio/chat/route.ts` (tools internas: `src/lib/agent/`)
 
 ### Flow
 
@@ -123,11 +123,10 @@ Máximo 5 tool calls totales.
 
 | Tool | Endpoint | Descripción |
 |------|----------|-------------|
-| `search-docs` | `/api/agent/search-docs` | Búsqueda vectorial en `doc_chunks` |
-| `web-search` | `/api/agent/web-search` | Búsqueda web via DuckDuckGo |
-| `scrape-url` | `/api/agent/scrape-url` | Extrae texto de una URL específica |
-| `download-file` | `/api/agent/download-file` | Descarga archivos desde URLs públicas |
-| `list-bucket` | `/api/agent/list-bucket` | Lista archivos en Supabase Storage |
+| `search_knowledge_base` | Tool del chat | Búsqueda vectorial en `doc_chunks` |
+| `listAllDocuments` | Tool del chat | Lista archivos del repositorio |
+| `search_web` | Tool (`src/lib/agent/web-search.ts`) | Búsqueda web via DuckDuckGo |
+| `scrape_url` | Tool (`src/lib/agent/scrape-url.ts`) | Extrae texto de una URL específica |
 
 ---
 

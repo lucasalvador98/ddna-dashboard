@@ -41,7 +41,7 @@
 - Página `/repositorio` para explorar y subir archivos
 
 ### 4. Chat con Bibliografía
-- **Endpoint**: `/api/agent/chat` — agente de investigación general
+- **Endpoint**: `/api/repositorio/chat` — agente conversacional (mismo endpoint que el de indicadores)
 - Tools: `search-docs`, `web-search`, `scrape-url`, `download-file`, `list-bucket`
 - Búsqueda web via DuckDuckGo
 - Scraping de URLs específicas
@@ -62,12 +62,10 @@
 - `/api/repositorio/upload` — POST subida de archivos al repositorio
 - `/api/repositorio/process` — POST procesamiento de documentos (chunking + embeddings)
 - `/api/repositorio/chat` — POST agente de indicadores
-- `/api/agent/chat` — POST agente de investigación general
-- `/api/agent/search-docs` — POST búsqueda vectorial
-- `/api/agent/web-search` — POST búsqueda web
-- `/api/agent/scrape-url` — POST scraping de URL
-- `/api/agent/download-file` — POST descarga de archivos públicos
-- `/api/agent/list-bucket` — GET listado de archivos en bucket
+> El agente expone sus herramientas **dentro** de `/api/repositorio/chat`
+> (function-calling): `search_knowledge_base`, `listAllDocuments`, `search_web`,
+> `scrape_url`. No son endpoints HTTP separados; `web-search` y `scrape-url`
+> viven como libs en `src/lib/agent/`.
 - `/api/admin/backfill` — POST backfill de PDFs pendientes
 - `/api/extract-pdf` — POST extracción de texto de PDF
 
