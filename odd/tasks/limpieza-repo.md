@@ -57,11 +57,22 @@ convención del framework.
 
 ## Tareas
 
-- [x] T1 — Borrar los 12 archivos confirmados.
+- [x] T1 — Borrar los 12 archivos confirmados. `4efb2b3`
 - [x] T2 — Verificar: `tsc --noEmit` 0, `npm run build` 0, tests con los mismos
       9 fallos preexistentes (salud/page, repositorio/chat/route,
       docker-infrastructure — confirmados en un worktree limpio del HEAD).
-- [ ] T3 — Resolver assets con el usuario.
-- [ ] T4 — Resolver los 2 scripts con refs en docs.
-- [ ] T5 — Fase 2: rutas API, piloto de Salud, drift de docs.
-- [ ] T6 — Deploy coordinado (el deploy va ULTIMO, con todo adentro).
+- [x] T3 — Assets: borrados los 31 no referenciados (~4.5MB): fuentes viejas,
+      theme JSON, `public/identidad`, 14 de 16 logos, capturas de la raíz. `c0b4aea`
+- [x] T4 — Los 2 scripts one-off que `METODOLOGIA_AUDIT` ya marcaba para archivar. `a252c0f`
+- [x] T5 — Fase 2: piloto de Salud (era un feature real, solo se le sacó la
+      palabra "Piloto"), 3 rutas API huérfanas, y el drift de `/api/agent/*`. `e2583b1`, `b165e47`
+- [ ] T6 — **Deploy coordinado con DevOps** (va último, con todo adentro).
+
+## Resultado
+
+- 12 archivos de código muerto + 31 assets + 2 scripts + 3 rutas API.
+- Cero cambios de comportamiento; todo verificado con tsc, build y tests.
+- El `deploy.sh` no se usó: el deploy lo hace el DevOps (ver `DEPLOY_TOPOLOGY.md`).
+- No se pudo deployar ni verificar en producción: cada deploy requiere aviso previo
+  al DevOps por el contrato de la VPS multi-sitio.
+- `git status` limpio; todo en `origin/main`.
