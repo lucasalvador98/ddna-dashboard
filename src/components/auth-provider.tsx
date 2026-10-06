@@ -35,17 +35,14 @@ export function useAuth(): AuthContextValue {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(isSupabaseConfigured);
   const router = useRouter();
 
   // Use shared browser client singleton — no new instance created
   const [supabase] = useState(() => (isSupabaseConfigured() ? getBrowserClient() : null));
 
   useEffect(() => {
-    if (!supabase) {
-      setLoading(false);
-      return;
-    }
+    if (!supabase) return;
 
     let mounted = true;
 

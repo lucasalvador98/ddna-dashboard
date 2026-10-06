@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { sanitizeRedirectUrl } from '@/lib/redirect';
 import { getAuthSettings } from '@/lib/auth-settings';
+import { dashboardPath } from '@/lib/app-path';
 
 // ─── Auth Proxy ───────────────────────────────────────────────────────────────
 
@@ -60,7 +61,7 @@ export async function authProxy(request: NextRequest) {
   const { data } = await supabase.auth.getUser();
 
   if (!data.user) {
-    const loginUrl = new URL('/login', request.url);
+    const loginUrl = new URL(dashboardPath('/login'), request.url);
     const originalPath = pathname + (searchParams.size > 0 ? `?${searchParams}` : '');
     loginUrl.searchParams.set('redirect', sanitizeRedirectUrl(originalPath, '/'));
     return NextResponse.redirect(loginUrl);

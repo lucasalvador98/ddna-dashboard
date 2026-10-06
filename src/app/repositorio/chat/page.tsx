@@ -376,7 +376,7 @@ export default function ChatPage() {
         <p className="text-xs text-gray-500 font-body">
           Este asistente usa Agent con Tools — busca en tus documentos y complementa con búsqueda
           web cuando es necesario.
-          <a href="/repositorio" className="text-blue hover:underline ml-1">
+          <a href={dashboardPath('/repositorio')} className="text-blue hover:underline ml-1">
             Ver documentos disponibles →
           </a>
         </p>
