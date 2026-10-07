@@ -196,11 +196,17 @@ export function FuentesClient({
   const [lastFetch, setLastFetch] = useState<Date | null>(new Date(initialLastFetch));
   const [fuentesError, setFuentesError] = useState<string | null>(initialError);
 
-  const [loading, setLoading] = useState(true);
   const [activeSource, setActiveSource] = useState<string>('datosgob');
   const [searchQuery, setSearchQuery] = useState('');
   const [data, setData] = useState<EndpointData | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [loadedApiKey, setLoadedApiKey] = useState<string | null>(null);
+
+  // The APIs tab is "loading" until the request for the current source (or the
+  // latest manual retry) has settled — derived instead of set from the effect.
+  const apiQueryKey = activeTab === 'apis' ? `${activeSource}|${reloadKey}` : null;
+  const loading = apiQueryKey !== null && loadedApiKey !== apiQueryKey;
 
   const fetchFuentes = useCallback(async () => {
     setIsLoading(true);
@@ -240,9 +246,7 @@ export function FuentesClient({
     }
   }, []);
 
-  const fetchApiData = async () => {
-    setLoading(true);
-    setApiError(null);
+  const fetchApiData = () => {
     const params = new URLSearchParams();
     params.set('source', activeSource);
     if (activeSource === 'datosgob' || activeSource === 'cba') {
@@ -257,26 +261,33 @@ export function FuentesClient({
       params.set('action', 'list');
     }
 
-    try {
-      const res = await fetch(dashboardPath(`/api/external?${params}`));
-      if (!res.ok) {
-        throw new Error(`Error HTTP: ${res.status}`);
-      }
-      const json = await res.json();
-      setData(json);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error al cargar los datos de APIs';
-      setApiError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
+    return fetch(dashboardPath(`/api/external?${params}`))
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Error HTTP: ${res.status}`);
+        }
+        return res.json();
+      })
+      .then((json) => {
+        setData(json);
+        setApiError(null);
+      })
+      .catch((err) => {
+        const errorMessage = err instanceof Error ? err.message : 'Error al cargar los datos de APIs';
+        setApiError(errorMessage);
+      });
   };
 
   useEffect(() => {
-    if (activeTab === 'apis') {
-      fetchApiData();
-    }
-  }, [activeTab, activeSource]);
+    if (apiQueryKey === null) return;
+    let cancelled = false;
+    fetchApiData().finally(() => {
+      if (!cancelled) setLoadedApiKey(apiQueryKey);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [apiQueryKey, activeSource]);
 
   const filteredResults = data?.datasets
     ? data.datasets.filter(d => d.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -447,7 +458,7 @@ export function FuentesClient({
 
       {activeTab === 'apis' && (
         <div className="space-y-4">
-          {apiError && <PageError message={apiError} onRetry={() => fetchApiData()} />}
+          {apiError && <PageError message={apiError} onRetry={() => { setApiError(null); setReloadKey((k) => k + 1); }} />}
           {apiError ? null : (
             <div className="flex flex-wrap gap-2 mb-6">
               {sources.map(s => (

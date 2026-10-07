@@ -118,11 +118,10 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
   // ── Cargar rol + permisos cuando el usuario está autenticado ──────────────
 
   useEffect(() => {
-    if (!user) {
-      setPermissions([]);
-      setRoleName(null);
-      return;
-    }
+    // Nothing to load while signed out. `permsLoaded`/`permsLoading` only drive
+    // render branches that require `user`, and `hasPermission` below treats a
+    // missing user as "no permission", so there is no stale value to clear.
+    if (!user) return;
 
     const userId = user.id; // capture for TS strict
     let cancelled = false;
@@ -203,9 +202,10 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
   // ── Verificar si la ruta actual tiene permiso ─────────────────────────────
 
   const hasPermission = useMemo(() => {
+    if (!user) return false;
     if (isPublicRoute(pathname)) return true;
     return permissions.some((p) => p.can_view && routeMatches(p.route, pathname));
-  }, [pathname, permissions]);
+  }, [user, pathname, permissions]);
 
   // ── Determinar estado final ───────────────────────────────────────────────
 

@@ -33,52 +33,6 @@ export default function ChatPage() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, streamingContent, toolProgress]);
 
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || loading) return;
-
-    const userMessage: ChatMessage = {
-      role: 'user',
-      content: input,
-      timestamp: new Date(),
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    setInput('');
-    setLoading(true);
-    setError('');
-    setHasContext(null);
-    setStreamingContent('');
-    setToolProgress([]);
-
-    try {
-      const response = await fetch(dashboardPath('/api/repositorio/chat'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          question: input,
-          conversationHistory: messages.slice(-6).map(m => ({
-            role: m.role,
-            content: m.content,
-          })),
-        }),
-      });
-
-      const contentType = response.headers.get('Content-Type') || '';
-
-      if (contentType.includes('text/event-stream')) {
-        await handleSSEResponse(response);
-      } else {
-        await handleJSONResponse(response);
-      }
-    } catch (err) {
-      setError(String(err));
-    } finally {
-      setLoading(false);
-      setToolProgress([]);
-    }
-  }, [input, loading, messages]);
-
   async function handleSSEResponse(response: Response) {
     const reader = response.body!.getReader();
     const decoder = new TextDecoder();
@@ -162,6 +116,52 @@ export default function ChatPage() {
     setMessages(prev => [...prev, assistantMessage]);
     setHasContext(data.sources && data.sources.length > 0);
   }
+
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || loading) return;
+
+    const userMessage: ChatMessage = {
+      role: 'user',
+      content: input,
+      timestamp: new Date(),
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
+    setLoading(true);
+    setError('');
+    setHasContext(null);
+    setStreamingContent('');
+    setToolProgress([]);
+
+    try {
+      const response = await fetch(dashboardPath('/api/repositorio/chat'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: input,
+          conversationHistory: messages.slice(-6).map(m => ({
+            role: m.role,
+            content: m.content,
+          })),
+        }),
+      });
+
+      const contentType = response.headers.get('Content-Type') || '';
+
+      if (contentType.includes('text/event-stream')) {
+        await handleSSEResponse(response);
+      } else {
+        await handleJSONResponse(response);
+      }
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setLoading(false);
+      setToolProgress([]);
+    }
+  }, [input, loading, messages]);
 
   const handleExampleClick = (question: string) => {
     setInput(question);

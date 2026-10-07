@@ -23,7 +23,7 @@ describe('useMonitoreoDraft', () => {
     );
 
     // Change watch to trigger debounce save
-    rerender({ watch: { medio: 'Test', titulo: 'Hola' } as any });
+    rerender({ watch: { medio: 'Test', titulo: 'Hola' } });
     await act(async () => {
       await new Promise((r) => setTimeout(r, 600));
     });
@@ -77,7 +77,7 @@ describe('useMonitoreoDraft', () => {
         useMonitoreoDraft({
           userId: 'user-1',
           formId: 'new',
-          watch: { medio: 'x' } as any,
+          watch: { medio: 'x' },
           enabled: true,
         })
       );

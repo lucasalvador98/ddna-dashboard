@@ -156,6 +156,13 @@ export function MonitoreoForm({ editingId, onSave, onCancel }: FormViewProps) {
   // Draft persistence — only for new records (editingId === null) to avoid clashing with DB data
   const draftFormId = editingId ? `edit-${editingId}` : 'new';
   const hasRestoredRef = useRef(false);
+  // The restore callback below compares the draft timestamp against the current
+  // time. Reading the clock is a data-source access, so capture it in an effect
+  // (which runs before the draft restore effect below) instead of during render.
+  const mountedAtRef = useRef<number | null>(null);
+  useEffect(() => {
+    mountedAtRef.current = Date.now();
+  }, []);
   const { clearDraft, getDraft } = useMonitoreoDraft({
     userId: user?.id ?? null,
     formId: draftFormId,
@@ -170,7 +177,8 @@ export function MonitoreoForm({ editingId, onSave, onCancel }: FormViewProps) {
         formData.medio === '' && formData.titulo === '' && formData.fecha_noticia === '' && actors.length === 1 && !actors[0].actor_descripcion;
       if (isEmpty && data && Object.keys(data).length > 0) {
         const draft = getDraft();
-        const age = draft ? Date.now() - draft.timestamp : 0;
+        const mountedAt = mountedAtRef.current;
+        const age = draft && mountedAt !== null ? mountedAt - draft.timestamp : 0;
         // Only show banner if draft is older than 30s and form is empty — indicates a real reload/close, not just a quick tab switch
         // If draft is very recent (<30s) and form is empty, it's likely a remount from visibilitychange -> silently restore
         if (age > 30 * 1000 && age < 24 * 60 * 60 * 1000) {

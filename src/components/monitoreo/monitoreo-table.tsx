@@ -112,10 +112,11 @@ function SortableHeader({
 
 export function MonitoreoTable({ onEditRegistro }: TableViewProps) {
   const [registros, setRegistros] = useState<RegistroConActores[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(0);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [loadedQueryKey, setLoadedQueryKey] = useState<string | null>(null);
 
   // Filters
   const [search, setSearch] = useState('');
@@ -134,6 +135,41 @@ export function MonitoreoTable({ onEditRegistro }: TableViewProps) {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const totalPages = Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE));
 
+  // Everything that changes which rows the table asks for: filters, page, sort
+  // and an explicit reload. `loading` is derived from it — the table is loading
+  // until the fetch for the current key has settled.
+  const queryKey = [
+    debouncedSearch,
+    filterMedio,
+    filterTopico,
+    filterSeccion,
+    filterEstado,
+    fechaDesde,
+    fechaHasta,
+    page,
+    sortColumn,
+    sortDirection,
+    reloadKey,
+  ].join('|');
+  const loading = loadedQueryKey !== queryKey;
+
+  // Changing a filter invalidates the current page. Adjusting during render keeps
+  // the table from firing a request for the new filters on the stale page.
+  const filtersKey = [
+    debouncedSearch,
+    filterMedio,
+    filterTopico,
+    filterSeccion,
+    filterEstado,
+    fechaDesde,
+    fechaHasta,
+  ].join('|');
+  const [prevFiltersKey, setPrevFiltersKey] = useState(filtersKey);
+  if (prevFiltersKey !== filtersKey) {
+    setPrevFiltersKey(filtersKey);
+    setPage(0);
+  }
+
   // Debounce search input
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -145,43 +181,38 @@ export function MonitoreoTable({ onEditRegistro }: TableViewProps) {
     };
   }, [search]);
 
-  const fetchRegistros = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      let query = supabase
-        .from('monitoreo_registros')
-        .select('*, monitoreo_actores(id)', { count: 'exact' });
+  const fetchRegistros = useCallback(() => {
+    let query = supabase
+      .from('monitoreo_registros')
+      .select('*, monitoreo_actores(id)', { count: 'exact' });
 
-      // Full-text search: OR on titulo and medio
-      if (debouncedSearch) {
-        query = query.or(`titulo.ilike.%${debouncedSearch}%,medio.ilike.%${debouncedSearch}%`);
-      }
-      if (filterMedio) query = query.eq('medio', filterMedio);
-      if (filterTopico) query = query.eq('topico_principal', filterTopico);
-      if (filterSeccion) query = query.eq('seccion', filterSeccion);
-      if (filterEstado) query = query.eq('estado', filterEstado);
-      if (fechaDesde) query = query.gte('fecha_noticia', fechaDesde);
-      if (fechaHasta) query = query.lte('fecha_noticia', fechaHasta);
-
-      const from = page * ITEMS_PER_PAGE;
-      const to = from + ITEMS_PER_PAGE - 1;
-
-      const {
-        data,
-        count,
-        error: fetchError,
-      } = await query.order(sortColumn, { ascending: sortDirection === 'asc' }).range(from, to);
-
-      if (fetchError) throw fetchError;
-
-      setRegistros((data ?? []) as RegistroConActores[]);
-      setTotalCount(count ?? 0);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al cargar registros');
-    } finally {
-      setLoading(false);
+    // Full-text search: OR on titulo and medio
+    if (debouncedSearch) {
+      query = query.or(`titulo.ilike.%${debouncedSearch}%,medio.ilike.%${debouncedSearch}%`);
     }
+    if (filterMedio) query = query.eq('medio', filterMedio);
+    if (filterTopico) query = query.eq('topico_principal', filterTopico);
+    if (filterSeccion) query = query.eq('seccion', filterSeccion);
+    if (filterEstado) query = query.eq('estado', filterEstado);
+    if (fechaDesde) query = query.gte('fecha_noticia', fechaDesde);
+    if (fechaHasta) query = query.lte('fecha_noticia', fechaHasta);
+
+    const from = page * ITEMS_PER_PAGE;
+    const to = from + ITEMS_PER_PAGE - 1;
+
+    // Promise.resolve adopts the Postgrest builder (a thenable, not a real
+    // Promise) so the chain below can also handle rejections.
+    return Promise.resolve(
+      query.order(sortColumn, { ascending: sortDirection === 'asc' }).range(from, to)
+    )
+      .then(({ data, count, error: fetchError }) => {
+        if (fetchError) throw fetchError;
+
+        setRegistros((data ?? []) as RegistroConActores[]);
+        setTotalCount(count ?? 0);
+        setError(null);
+      })
+      .catch((err) => setError(err instanceof Error ? err.message : 'Error al cargar registros'));
   }, [
     debouncedSearch,
     filterMedio,
@@ -205,21 +236,14 @@ export function MonitoreoTable({ onEditRegistro }: TableViewProps) {
   };
 
   useEffect(() => {
-    fetchRegistros();
-  }, [fetchRegistros]);
-
-  // Reset page when filters change (debouncedSearch included)
-  useEffect(() => {
-    setPage(0);
-  }, [
-    debouncedSearch,
-    filterMedio,
-    filterTopico,
-    filterSeccion,
-    filterEstado,
-    fechaDesde,
-    fechaHasta,
-  ]);
+    let cancelled = false;
+    fetchRegistros().finally(() => {
+      if (!cancelled) setLoadedQueryKey(queryKey);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchRegistros, queryKey]);
 
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: number; titulo: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -232,7 +256,7 @@ export function MonitoreoTable({ onEditRegistro }: TableViewProps) {
       const { error } = await supabase.from('monitoreo_registros').delete().eq('id', deleteConfirm.id);
       if (error) throw error;
       setDeleteConfirm(null);
-      fetchRegistros();
+      setReloadKey((k) => k + 1);
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Error al eliminar');
     } finally {
@@ -401,20 +425,20 @@ export function MonitoreoTable({ onEditRegistro }: TableViewProps) {
       </div>
 
       {/* Table */}
-      {error ? (
+      {loading ? (
+        <div className="flex items-center justify-center py-16 bg-white rounded-xl border border-slate-200">
+          <Loader2 className="w-8 h-8 text-[var(--ddna-blue)] animate-spin" />
+        </div>
+      ) : error ? (
         <div className="flex flex-col items-center justify-center py-12 gap-3 bg-white rounded-xl border border-slate-200">
           <AlertCircle className="w-8 h-8 text-red-400" />
           <p className="text-slate-600 text-sm">{error}</p>
           <button
-            onClick={fetchRegistros}
+            onClick={() => { setError(null); setReloadKey((k) => k + 1); }}
             className="px-4 py-2 bg-[var(--ddna-blue)] text-white rounded-lg text-sm hover:opacity-90"
           >
             Reintentar
           </button>
-        </div>
-      ) : loading ? (
-        <div className="flex items-center justify-center py-16 bg-white rounded-xl border border-slate-200">
-          <Loader2 className="w-8 h-8 text-[var(--ddna-blue)] animate-spin" />
         </div>
       ) : registros.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 bg-white rounded-xl border border-slate-200 gap-3">

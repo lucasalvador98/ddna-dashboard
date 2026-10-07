@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   X,
   Download,
@@ -45,15 +45,17 @@ export function RepoFileDrawer({ file, onClose, onAction, actionInProgress }: Pr
   const [editing, setEditing] = useState(false);
   const [descripcion, setDescripcion] = useState('');
   const [notas, setNotas] = useState('');
+  const [loadedFileId, setLoadedFileId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (file) {
-      setDescripcion(file.descripcion ?? '');
-      setNotas(file.notas ?? '');
-      setEditing(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [file?.id]);
+  // Reload the editable fields whenever the drawer switches file. Adjusting
+  // during render avoids an extra commit showing the previous file's metadata.
+  const fileId = file?.id ?? null;
+  if (fileId !== loadedFileId) {
+    setLoadedFileId(fileId);
+    setDescripcion(file?.descripcion ?? '');
+    setNotas(file?.notas ?? '');
+    setEditing(false);
+  }
 
   if (!file) return null;
 

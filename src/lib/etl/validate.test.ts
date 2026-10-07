@@ -21,8 +21,8 @@ describe('validateRows', () => {
 
   it('rejects NaN and empty valor', () => {
     const { valid, warnings } = validateRows([
-      { indicador_nombre: 'X', categoria: 'pobreza', valor: null, unidad: '%', periodo: 2024, region: 'Córdoba', fuente: 'INDEC' } as any,
-      { indicador_nombre: 'Y', categoria: 'pobreza', valor: 'not-a-number', unidad: '%', periodo: 2024, region: 'Córdoba', fuente: 'INDEC' } as any,
+      { indicador_nombre: 'X', categoria: 'pobreza', valor: null, unidad: '%', periodo: 2024, region: 'Córdoba', fuente: 'INDEC' },
+      { indicador_nombre: 'Y', categoria: 'pobreza', valor: 'not-a-number', unidad: '%', periodo: 2024, region: 'Córdoba', fuente: 'INDEC' },
     ]);
     expect(valid).toHaveLength(0);
     expect(warnings).toHaveLength(2);
@@ -38,7 +38,7 @@ describe('validateRows', () => {
 
   it('handles string valor and periodo', () => {
     const { valid } = validateRows([
-      { indicador_nombre: 'X', categoria: 'pobreza', valor: '42.5', unidad: '%', periodo: '2024', region: 'Córdoba', fuente: 'INDEC' } as any,
+      { indicador_nombre: 'X', categoria: 'pobreza', valor: '42.5', unidad: '%', periodo: '2024', region: 'Córdoba', fuente: 'INDEC' },
     ]);
     expect(valid).toHaveLength(1);
     expect(valid[0].valor).toBe(42.5);

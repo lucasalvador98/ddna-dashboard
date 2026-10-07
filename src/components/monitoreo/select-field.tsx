@@ -25,19 +25,23 @@ export function SelectField({
   onBlur,
 }: AutocompleteFieldProps) {
   const [inputValue, setInputValue] = useState(value);
+  const [syncedValue, setSyncedValue] = useState(value);
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
+  // Sync external value changes (e.g., when loading existing record).
+  // Adjusting during render keeps the input in step with the prop without an
+  // extra commit where the stale value is shown.
+  if (value !== syncedValue) {
+    setSyncedValue(value);
+    setInputValue(value);
+  }
+
   const filteredOptions = options.filter(opt =>
     opt.toLowerCase().includes(inputValue.toLowerCase())
   );
-
-  // Sync external value changes (e.g., when loading existing record)
-  useEffect(() => {
-    setInputValue(value);
-  }, [value]);
 
   // Scroll highlighted option into view
   useEffect(() => {
