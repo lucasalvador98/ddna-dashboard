@@ -4,6 +4,7 @@
  * Requiere: SUPABASE_SERVICE_ROLE_KEY en .env.local
  */
 import { supabase } from './config.mjs';
+import { readFileSync } from 'node:fs';
 import XLSX from 'xlsx';
 
 // ─── Excel Path (from CLI arg or env var) ─────────────────────────────────────
@@ -72,7 +73,8 @@ function formatBillions(n) {
 console.log('\n═══ INVERSION DATA MIGRATION ═══\n');
 console.log(`Reading: ${EXCEL_PATH}`);
 
-const workbook = XLSX.readFile(EXCEL_PATH);
+// The ESM build of xlsx >= 0.20 has no fs helpers, so readFile is unavailable.
+const workbook = XLSX.read(readFileSync(EXCEL_PATH), { type: 'buffer' });
 const sheetName = 'Base de datos en valores';
 const ws = workbook.Sheets[sheetName];
 

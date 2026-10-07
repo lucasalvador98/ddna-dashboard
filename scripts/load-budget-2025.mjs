@@ -12,6 +12,7 @@
  * - Excel file in scripts/data/Gastos Administración Central - Acumulado Marzo 2025.xlsx
  */
 import { supabase } from './config.mjs';
+import { readFileSync } from 'node:fs';
 import XLSX from 'xlsx';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -117,7 +118,8 @@ function formatBillions(n) {
 console.log('\n═══ BUDGET 2025 LOAD - NNyA WEIGHTED ═══\n');
 console.log(`Reading: ${EXCEL_PATH}`);
 
-const workbook = XLSX.readFile(EXCEL_PATH);
+// The ESM build of xlsx >= 0.20 has no fs helpers, so readFile is unavailable.
+const workbook = XLSX.read(readFileSync(EXCEL_PATH), { type: 'buffer' });
 const ws = workbook.Sheets['Gastos AC'];
 
 if (!ws) {

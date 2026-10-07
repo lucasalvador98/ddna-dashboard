@@ -13,6 +13,7 @@
  */
 
 import { supabase } from './config.mjs';
+import { readFileSync } from 'node:fs';
 import XLSX from 'xlsx';
 
 // ─── Excel Path (from CLI arg or env var) ──────────────────────────────────────
@@ -107,7 +108,8 @@ console.log(`Excel: ${EXCEL_PATH}`);
 
 // ── 1. Read Excel ───────────────────────────────────────────────────────────
 
-const workbook = XLSX.readFile(EXCEL_PATH);
+// The ESM build of xlsx >= 0.20 has no fs helpers, so readFile is unavailable.
+const workbook = XLSX.read(readFileSync(EXCEL_PATH), { type: 'buffer' });
 const ws = workbook.Sheets['Gastos AC'];
 
 if (!ws) {
