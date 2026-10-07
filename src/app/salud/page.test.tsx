@@ -2,41 +2,53 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 
 // ─── Deferred promises for controlling Supabase responses ─────────
+// Las consultas ya no se distinguen por ORDEN: la página tiene 3 fetches
+// (salud filtrada con .in(), adolescencia, y natalidad/fecundidad también con
+// .in()). Se identifican por su `categoria` y por ser la primera de 'salud'
+// con .in(); las auxiliares se resuelven vacías para no ensuciar los tests.
 let resolveSalud: (value: unknown) => void;
 let resolveAdolescente: (value: unknown) => void;
 let rejectQuery: (reason: unknown) => void;
 
 let queryCount = 0;
+let saludPrincipalUsada = false;
 
-function createDeferred() {
-  let resolver: (value: unknown) => void;
-  let rejecter: (reason: unknown) => void;
-  const promise = new Promise((resolve, reject) => {
-    resolver = resolve;
-    rejecter = reject;
+type Defer = { resolve: (v: unknown) => void; reject: (r: unknown) => void };
+
+function deferredPara(categoria: string, conIn: boolean): Promise<unknown> {
+  return new Promise((resolve: (v: unknown) => void, reject: (r: unknown) => void) => {
+    if (categoria === 'salud_adolescente') {
+      resolveAdolescente = resolve;
+      rejectQuery = reject;
+    } else if (conIn && saludPrincipalUsada) {
+      // segunda consulta de 'salud' con .in (natalidad y fecundidad): vacía
+      resolve({ data: [], error: null });
+      return;
+    } else {
+      saludPrincipalUsada = true;
+      resolveSalud = resolve;
+      rejectQuery = reject;
+    }
   });
-  if (queryCount === 0) {
-    resolveSalud = resolver!;
-    rejectQuery = rejecter!;
-  } else {
-    resolveAdolescente = resolver!;
-  }
-  queryCount++;
-  return promise;
 }
 
 function createMockSupabaseChain() {
-  let natalidad = false;
+  let categoria = 'salud';
+  let conIn = false;
+  queryCount++;
   return {
     select: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockImplementation(function (this: unknown, col: string, val: string) {
+      if (col === 'categoria') categoria = String(val);
+      return this;
+    }),
     order: vi.fn().mockReturnThis(),
     in: vi.fn().mockImplementation(function (this: unknown) {
-      natalidad = true;
+      conIn = true;
       return this;
     }),
     range: vi.fn().mockImplementation((offset: number) =>
-      natalidad || offset > 0 ? Promise.resolve({ data: [], error: null }) : createDeferred()
+      offset > 0 ? Promise.resolve({ data: [], error: null }) : deferredPara(categoria, conIn)
     ),
   };
 }
@@ -118,6 +130,7 @@ describe('SaludPage — Nacimientos KPI', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     queryCount = 0;
+    saludPrincipalUsada = false;
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://test.supabase.co');
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', 'test-key');
   });

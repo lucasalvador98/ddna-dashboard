@@ -585,3 +585,382 @@ export function SaludInteractive({
     </div>
   );
 }
+
+// ══════════════════════════════════════════════════════════════════
+// Secciones del ciclo 2024 (supervivencia infantil · causas de muerte ·
+// mortalidad materna). Comparten el sistema visual de la pantalla:
+// SectionHeader (en page.tsx) + ChartWithTable + la paleta institucional.
+// ══════════════════════════════════════════════════════════════════
+
+/** Serie Córdoba vs Nación ya armada en page.tsx: { periodo, Córdoba, Nacional }. */
+type ComparativaRow = Record<string, unknown>;
+
+/** Rango de años de una serie, para los subtítulos ("2001-2024"). */
+function rangoDe(serie: ComparativaRow[]): string {
+  if (serie.length === 0) return '';
+  return `${String(serie[0].periodo)}-${String(serie[serie.length - 1].periodo)}`;
+}
+
+/** ¿Hay al menos un punto dibujable en esa columna? (null = sin dato). */
+function tieneDatos(serie: ComparativaRow[], key: string): boolean {
+  return serie.some((row) => row[key] !== null && row[key] !== undefined);
+}
+
+export interface SupervivenciaInfantilProps {
+  /** TMM5 (menores de 5 años) 2001-2024: { periodo, Córdoba, Nacional }. */
+  tmm5Data: ComparativaRow[];
+  /** TMI por jurisdicción 2001-2024 (familia nueva, NO la legacy). */
+  tmiData: ComparativaRow[];
+}
+
+/**
+ * Sección "Supervivencia infantil" (DEIS, boletín 174).
+ *
+ * Dos series largas (2001-2024) comparadas contra el total país. Las celdas sin
+ * dato llegan como `null` y NO se dibujan (ni se rellenan con 0): en el boletín
+ * 174 estas dos series vienen completas, pero el criterio es el mismo que en el
+ * gráfico de mortalidad materna, donde sí hay huecos.
+ */
+export function SupervivenciaInfantil({ tmm5Data, tmiData }: SupervivenciaInfantilProps) {
+  const FUENTE = 'DEIS — Boletín 174 (mortalidad de menores de 5 años)';
+
+  const renderLineas = (serie: ComparativaRow[]) => (
+    <div className="h-72">
+      <ResponsiveContainer width="100%" height={280}>
+        <LineChart data={serie} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" />
+          <XAxis dataKey="periodo" tick={{ fill: '#050506', fontSize: 12 }} />
+          <YAxis
+            tick={{ fill: '#050506', fontSize: 12 }}
+            domain={[0, 'auto']}
+            tickFormatter={(v) => `${Number(v).toFixed(1)}‰`}
+          />
+          <Tooltip
+            contentStyle={TOOLTIP_STYLE}
+            formatter={(value, name) => [
+              value === null || value === undefined ? '—' : `${Number(value).toFixed(1)}‰`,
+              name,
+            ]}
+          />
+          <Legend />
+          {tieneDatos(serie, 'Córdoba') && (
+            <Line
+              type="monotone"
+              dataKey="Córdoba"
+              stroke={NATALIDAD_COLORS.cordoba}
+              strokeWidth={2}
+              dot={{ fill: NATALIDAD_COLORS.cordoba, r: 3 }}
+              name="Córdoba"
+              connectNulls={false}
+            />
+          )}
+          {tieneDatos(serie, 'Nacional') && (
+            <Line
+              type="monotone"
+              dataKey="Nacional"
+              stroke={NATALIDAD_COLORS.nacional}
+              strokeWidth={2}
+              dot={{ fill: NATALIDAD_COLORS.nacional, r: 3 }}
+              name="Nación"
+              strokeDasharray="5 5"
+              connectNulls={false}
+            />
+          )}
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      {tmm5Data.length > 0 && (
+        <ChartWithTable
+          title="Mortalidad de menores de 5 años (TMM5)"
+          subtitle={`Evolución ${rangoDe(tmm5Data)} — tasa de mortalidad de menores de 5 años por 1.000 nacidos vivos (Córdoba vs Nación)`}
+          color="blue"
+          fuente={FUENTE}
+          data={tmm5Data}
+          dataKey="Córdoba"
+          xAxisKey="periodo"
+        >
+          {renderLineas(tmm5Data)}
+        </ChartWithTable>
+      )}
+
+      {tmiData.length > 0 && (
+        <ChartWithTable
+          title="Tasa de mortalidad infantil (TMI) por jurisdicción"
+          subtitle={`Evolución ${rangoDe(tmiData)} — tasa de mortalidad infantil por 1.000 nacidos vivos (Córdoba vs Nación)`}
+          color="blue"
+          fuente={FUENTE}
+          data={tmiData}
+          dataKey="Córdoba"
+          xAxisKey="periodo"
+        >
+          {renderLineas(tmiData)}
+        </ChartWithTable>
+      )}
+    </div>
+  );
+}
+
+export interface CapituloBarra {
+  /** Etiqueta del capítulo (ej: "IX Sistema circulatorio"). */
+  capitulo: string;
+  /** Muertes de Córdoba 2024 en ese capítulo (ambos sexos). */
+  muertes: number;
+  /** Cuota del capítulo sobre el total del país (%), o null si no hay dato. */
+  'Cuota nacional (%)': number | null;
+}
+
+export interface CausasDeMuerteProps {
+  /** TOP-10 capítulos CIE-10 de Córdoba 2024, ya ordenados y recortados. */
+  capitulosData: CapituloBarra[];
+  /** Muertes de Córdoba 2024 por los 6 grupos de edad, en orden canónico. */
+  gruposEdadData: { grupo: string; muertes: number }[];
+}
+
+/**
+ * Tooltip del gráfico de capítulos: la cuota nacional del capítulo es un valor
+ * COMPARABLE que se muestra junto a las muertes de Córdoba, en lugar de una
+ * segunda serie. Dos series con unidades distintas (muertes vs %) obligarían a
+ * un doble eje y sugerirían comparar magnitudes que no son comparables.
+ */
+function TooltipCapitulos({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: ReadonlyArray<{ payload?: unknown }>;
+}) {
+  if (!active || !payload || payload.length === 0) return null;
+  const row = payload[0]?.payload as CapituloBarra | undefined;
+  if (!row) return null;
+  return (
+    <div className="rounded-lg border border-[#D8D5D3] bg-white px-3 py-2 font-body text-xs">
+      <p className="font-medium text-navy">{row.capitulo}</p>
+      <p className="text-text-primary">
+        Córdoba 2024: <strong>{row.muertes.toLocaleString('es-AR')}</strong> muertes
+      </p>
+      <p className="text-text-primary">
+        Cuota nacional del capítulo:{' '}
+        <strong>
+          {row['Cuota nacional (%)'] === null ? '—' : `${decimal(row['Cuota nacional (%)'], 1)}%`}
+        </strong>
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Sección "Causas de muerte" (DEIS, defunciones 2024 del CSV).
+ *
+ * A) TOP-10 capítulos CIE-10 de Córdoba en barras horizontales + la cuota
+ *    nacional como valor comparable (tooltip y tabla de datos);
+ * B) muertes por grupo de edad, Córdoba 2024.
+ *
+ * La nota metodológica va DENTRO de la tarjeta del gráfico de capítulos: explica
+ * por qué se muestra el capítulo y no el ranking de causas específicas. El
+ * artefacto de codificación (I47 como "arritmias") no se corrige ni se filtra:
+ * se documenta.
+ */
+export function CausasDeMuerte({ capitulosData, gruposEdadData }: CausasDeMuerteProps) {
+  const FUENTE = 'DEIS — Defunciones 2024 (datos abiertos)';
+
+  return (
+    <div className="space-y-6">
+      {capitulosData.length > 0 && (
+        <ChartWithTable
+          title="Defunciones por capítulo CIE-10 — Córdoba"
+          subtitle="Córdoba 2024 — muertes por capítulo CIE-10 (ambos sexos)"
+          color="terracotta"
+          fuente={FUENTE}
+          data={capitulosData}
+          dataKey="muertes"
+          xAxisKey="capitulo"
+        >
+          <div className="h-[420px]">
+            <ResponsiveContainer width="100%" height={400}>
+              <BarChart
+                data={capitulosData}
+                layout="vertical"
+                margin={{ top: 10, right: 40, left: 10, bottom: 10 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" horizontal={false} />
+                <XAxis
+                  type="number"
+                  tick={{ fill: '#050506', fontSize: 12 }}
+                  tickFormatter={(v) => Number(v).toLocaleString('es-AR')}
+                />
+                {/* `reversed`: con layout vertical el mayor queda arriba (los datos
+                    llegan ordenados de mayor a menor). */}
+                <YAxis
+                  type="category"
+                  dataKey="capitulo"
+                  width={230}
+                  reversed
+                  interval={0}
+                  tick={{ fill: '#050506', fontSize: 11 }}
+                />
+                <Tooltip content={<TooltipCapitulos />} />
+                <Bar
+                  dataKey="muertes"
+                  name="Córdoba 2024"
+                  fill={NATALIDAD_COLORS.cordoba}
+                  radius={[0, 4, 4, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Nota metodológica — el ranking de causas específicas NO es robusto */}
+          <div className="mx-6 mb-6 rounded-lg border border-gray-200 bg-gray-50 p-5">
+            <h3 className="font-accent text-sm text-navy font-medium mb-2 flex items-center gap-2">
+              <Info className="w-4 h-4 text-magenta" />
+              Nota metodológica
+            </h3>
+            <div className="font-body text-sm text-text-primary leading-relaxed space-y-3">
+              <p>
+                El registro provincial codifica como <strong>arritmias</strong> una parte muy alta
+                de las muertes cardíacas: en el archivo 2024 del DEIS,{' '}
+                <strong>I47 (taquicardia paroxística)</strong> concentra 3.798 muertes, es decir{' '}
+                <strong>11,3% de todas las defunciones de Córdoba</strong>, contra{' '}
+                <strong>1,8% en el total del país</strong> (6.760 muertes). Es un artefacto de
+                codificación del registro provincial, no un patrón epidemiológico. Por eso el
+                gráfico muestra la <strong>agregación por capítulo CIE-10</strong> (acá, IX Sistema
+                circulatorio) y no el ranking de causas específicas, que quedaría dominado por ese
+                código.
+              </p>
+              <p>
+                El <strong>capítulo XVIII (síntomas y signos mal definidos, R00-R99) se incluye a
+                propósito</strong>: que una provincia concentre muertes mal definidas es un hecho
+                conocido y válido del registro, no un dato a corregir. Ninguna causa se filtra ni se
+                reasigna.
+              </p>
+            </div>
+          </div>
+        </ChartWithTable>
+      )}
+
+      {gruposEdadData.length > 0 && (
+        <ChartWithTable
+          title="Defunciones por grupo de edad — Córdoba"
+          subtitle="Córdoba 2024 — muertes por grupo de edad (ambos sexos)"
+          color="terracotta"
+          fuente={FUENTE}
+          data={gruposEdadData}
+          dataKey="muertes"
+          xAxisKey="grupo"
+        >
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart
+                data={gruposEdadData}
+                margin={{ top: 10, right: 30, left: 10, bottom: 10 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" />
+                <XAxis dataKey="grupo" tick={{ fill: '#050506', fontSize: 11 }} interval={0} />
+                <YAxis
+                  tick={{ fill: '#050506', fontSize: 12 }}
+                  tickFormatter={(v) => Number(v).toLocaleString('es-AR')}
+                />
+                <Tooltip
+                  contentStyle={TOOLTIP_STYLE}
+                  formatter={(value, name) => [
+                    `${Number(value ?? 0).toLocaleString('es-AR')} muertes`,
+                    name,
+                  ]}
+                />
+                <Bar
+                  dataKey="muertes"
+                  name="Córdoba 2024"
+                  fill={NATALIDAD_COLORS.cordoba}
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartWithTable>
+      )}
+    </div>
+  );
+}
+
+export interface MortalidadMaternaProps {
+  /** RMM 2000-2024: { periodo, Córdoba, Nacional }, con null donde no hay dato. */
+  data: ComparativaRow[];
+}
+
+/**
+ * Sección "Mortalidad materna" — razón de mortalidad materna (muertes maternas
+ * por 10.000 nacidos vivos), 2000-2024, Córdoba vs Nación.
+ *
+ * 31 celdas de la serie vienen sin dato (Santa Cruz, Río Negro y Catamarca no
+ * publican 2024, y hay huecos históricos): llegan como `null`, el punto no se
+ * dibuja y la línea se corta. Cero sería un valor clínico, no un dato faltante.
+ */
+export function MortalidadMaterna({ data }: MortalidadMaternaProps) {
+  return (
+    <div className="space-y-6">
+      {data.length > 0 && (
+        <ChartWithTable
+          title="Razón de mortalidad materna"
+          subtitle={`Evolución ${rangoDe(data)} — muertes maternas por 10.000 nacidos vivos (Córdoba vs Nación; los años sin dato se omiten, no se dibujan como cero)`}
+          color="magenta"
+          fuente="DEIS — Anuario de Estadísticas Vitales 2024, cuadro 44"
+          data={data}
+          dataKey="Córdoba"
+          xAxisKey="periodo"
+        >
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={data} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" />
+                <XAxis dataKey="periodo" tick={{ fill: '#050506', fontSize: 12 }} />
+                <YAxis
+                  tick={{ fill: '#050506', fontSize: 12 }}
+                  domain={[0, 'auto']}
+                  tickFormatter={(v) => Number(v).toFixed(1)}
+                />
+                <Tooltip
+                  contentStyle={TOOLTIP_STYLE}
+                  formatter={(value, name) => [
+                    value === null || value === undefined
+                      ? '—'
+                      : `${Number(value).toFixed(1)} × 10.000 NV`,
+                    name,
+                  ]}
+                />
+                <Legend />
+                {tieneDatos(data, 'Córdoba') && (
+                  <Line
+                    type="monotone"
+                    dataKey="Córdoba"
+                    stroke={NATALIDAD_COLORS.adolescente}
+                    strokeWidth={2}
+                    dot={{ fill: NATALIDAD_COLORS.adolescente, r: 3 }}
+                    name="Córdoba"
+                    connectNulls={false}
+                  />
+                )}
+                {tieneDatos(data, 'Nacional') && (
+                  <Line
+                    type="monotone"
+                    dataKey="Nacional"
+                    stroke={NATALIDAD_COLORS.nacional}
+                    strokeWidth={2}
+                    dot={{ fill: NATALIDAD_COLORS.nacional, r: 3 }}
+                    name="Nación"
+                    strokeDasharray="5 5"
+                    connectNulls={false}
+                  />
+                )}
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartWithTable>
+      )}
+    </div>
+  );
+}
+

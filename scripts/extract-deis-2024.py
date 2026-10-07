@@ -164,6 +164,32 @@ print("   %-46s %2d jurisdicciones  (%d-%d)"
       % ("Serie historica defunciones (XLSX)", len(historicas),
          min(int(k) for k in historicas["Nacional"]), max(int(k) for k in historicas["Nacional"])))
 
+# ── 4. boletin 174: series de supervivencia infantil 2001-2024 ──────────────
+# 5 cuadros (4.1 TMI, 4.2 neonatal, 4.3 posneonatal, 4.4 de 1 a 4, 4.5 TMM5),
+# cada uno partido en dos paginas (2001-2012 y 2013-2024, la segunda con
+# "(Continuacion)"). Salen limpios por el mismo motivo que el cuadro 5/44.
+BOLETIN174 = PDFS / "defunciones_de_menores_de_5_anos.indicadores_seleccionados-n-174-argentina_2024.vf_.pdf"
+B174 = {
+    "tasa_mortalidad_infantil": "CUADRO 4.1",
+    "tasa_mortalidad_neonatal": "CUADRO 4.2",
+    "tasa_mortalidad_posneonatal": "CUADRO 4.3",
+    "tasa_mortalidad_1_a_4": "CUADRO 4.4",
+    "tasa_mortalidad_menores_5": "CUADRO 4.5",
+}
+A4 = [str(y) for y in range(2001, 2013)]
+A5 = [str(y) for y in range(2013, 2025)]
+supervivencia = {}
+with pdfplumber.open(str(BOLETIN174)) as pdf:
+    for key, titulo in B174.items():
+        pags = [i for i, pg in enumerate(pdf.pages, 1)
+                if titulo in (pg.extract_text() or "")]
+        if not pags:
+            raise SystemExit("ERROR: no encontre %s en el boletin 174" % titulo)
+        mitad1 = parse_cuadro(pdf.pages[pags[0]-1].extract_text() or "", A4, "%s pag %d" % (key, pags[0]))
+        mitad2 = parse_cuadro(pdf.pages[pags[1]-1].extract_text() or "", A5, "%s pag %d" % (key, pags[1])) if len(pags) > 1 else {}
+        mezcla = {r: {**mitad1.get(r, {}), **mitad2.get(r, {})} for r in set(mitad1) | set(mitad2)}
+        supervivencia[key] = [{"region": r, "serie": mezcla[r]} for r in mezcla]
+
 # ── autovalidacion ──────────────────────────────────────────────────────────
 print("\nAUTOVALIDACION")
 errores = []
@@ -183,6 +209,10 @@ check("mortalidad materna Nacional 2024", materna["Nacional"].get("2024"), 4.4)
 check("mortalidad materna Cordoba 2024", materna["Córdoba"].get("2024"), 3.8)
 check("defunciones historicas Nacional 2024 (cuadro 1)", historicas["Nacional"].get("2024"), 376405.0, 0.5)
 check("defunciones Cordoba 2024: XLSX vs CSV", historicas["Córdoba"].get("2024"), suma_cba, 0.5)
+if supervivencia["tasa_mortalidad_menores_5"]:
+    s5 = {x["region"]: x["serie"] for x in supervivencia["tasa_mortalidad_menores_5"]}
+    check("TMM5 Cordoba 2024 (cuadro 3 del mismo boletin)", s5.get("Córdoba", {}).get("2024"), 8.2)
+    check("TMM5 Nacional 2024 (cuadro 3 del mismo boletin)", s5.get("Nacional", {}).get("2024"), 10.2)
 
 if errores:
     raise SystemExit("ERROR: %d validaciones fallaron: %s" % (len(errores), ", ".join(errores)))
@@ -214,6 +244,7 @@ salida = {
     "fecundidad_adolescente": [{"region": r, "serie": fecundidad[r]} for r in fecundidad],
     "mortalidad_materna": [{"region": r, "serie": materna[r]} for r in materna],
     "defunciones_historicas": [{"region": r, "serie": historicas[r]} for r in historicas],
+    "supervivencia_infantil": supervivencia,
 }
 out = DATA / "deis-vitales-2024.json"
 out.write_text(json.dumps(salida, ensure_ascii=False, indent=1), encoding="utf-8")

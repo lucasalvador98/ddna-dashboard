@@ -12,7 +12,8 @@
  *   2. `scripts/data/deis-vitales-2024.json` — series que sólo existen en
  *      PDF/XLSX, extraídas y validadas por `scripts/extract-deis-2024.py`:
  *      fecundidad adolescente (boletín 175, cuadro 5), razón de mortalidad
- *      materna (anuario, cuadro 44) y defunciones históricas 1914-2024 (XLSX).
+ *      materna (anuario, cuadro 44), defunciones históricas 1914-2024 (XLSX) y
+ *      supervivencia infantil 2001-2024 (boletín 174, cuadros 4.1 a 4.5).
  *      El `_meta` NO se carga: se usa para construir/verificar la procedencia.
  *
  * ── Qué carga (todo 2024 salvo las series) ─────────────────────────────────
@@ -25,6 +26,8 @@
  *   JSON:
  *     · Tasa fecundidad adolescente, 2013-2024 × 25 regiones (`salud_adolescente`)
  *     · Razón de mortalidad materna, 2000-2024 × 25 regiones (`salud`)
+ *     · Supervivencia infantil, 2001-2024 × 25 regiones (`salud`): TMI, neonatal,
+ *       posneonatal, 1 a 4 años y TMM5 (boletín 174, cuadros 4.1-4.5)
  *     · Defunciones (histórico Córdoba) 2024 — SÓLO la fila nueva; 2000-2023 no se toca
  *
  * ── Decisiones que conviene leer antes de tocar ────────────────────────────
@@ -51,6 +54,11 @@
  *     SUM(desgloses) = Defunciones totales en cada jurisdicción.
  *   · Las causas NO se filtran por "mal definidas": son datos válidos (capítulo
  *     XVIII) y la decisión de presentación es de la pantalla.
+ *   · Los 5 nombres de `supervivencia_infantil` son NUEVOS (no colisionan con
+ *     `Mortalidad infantil (TMI Cba)` / `(TMI)` / `Mortalidad fetal (Córdoba)`,
+ *     que son otra familia): se verifica contra la base antes de escribir, porque
+ *     un homónimo con otra fuente quedaría "ya existente" en el pre-check y el
+ *     dato nuevo no entraría nunca.
  *
  * Dry-run por defecto; `--apply` escribe (vía insertIfMissing de etl-runner).
  * El CSV se parsea EN STREAMING (createReadStream + readline): nunca se retiene
@@ -110,6 +118,52 @@ const FUENTE_MATERNA = 'DEIS — Anuario de Estadísticas Vitales 2024, cuadro 4
 const NOMBRE_FECUNDIDAD = 'Tasa fecundidad adolescente';
 const FUENTE_FECUNDIDAD_NUEVA = 'DEIS — Boletín 175 (adolescencia 2024)';
 const NOMBRE_MATERNA = 'Razón de mortalidad materna';
+
+// ── Supervivencia infantil (boletín 174) ─────────────────────────────
+// 5 cuadros, una familia (nombre de indicador) por cuadro. El nombre lo fija acá
+// el ETL: la pantalla /salud los filtra por estos strings EXACTOS.
+const FUENTE_SUPERVIVENCIA = 'DEIS — Boletín 174 (mortalidad menores de 5 años)';
+const UNIDAD_SUPERVIVENCIA = 'por mil';
+const BOLETIN_174_PDF =
+  'defunciones_de_menores_de_5_anos.indicadores_seleccionados-n-174-argentina_2024.vf_.pdf';
+const SERIES_SUPERVIVENCIA = [
+  {
+    clave: 'tasa_mortalidad_infantil',
+    nombre: 'Tasa de mortalidad infantil por jurisdicción (TMI)',
+    cuadro: '4.1',
+    abrev: 'TMI',
+  },
+  {
+    clave: 'tasa_mortalidad_neonatal',
+    nombre: 'Tasa de mortalidad neonatal por jurisdicción',
+    cuadro: '4.2',
+    abrev: 'neonatal',
+  },
+  {
+    clave: 'tasa_mortalidad_posneonatal',
+    nombre: 'Tasa de mortalidad posneonatal por jurisdicción',
+    cuadro: '4.3',
+    abrev: 'posneonatal',
+  },
+  {
+    clave: 'tasa_mortalidad_1_a_4',
+    nombre: 'Tasa de mortalidad de 1 a 4 años',
+    cuadro: '4.4',
+    abrev: '1 a 4 años',
+  },
+  {
+    clave: 'tasa_mortalidad_menores_5',
+    nombre: 'Tasa de mortalidad de menores de 5 años (TMM5)',
+    cuadro: '4.5',
+    abrev: 'TMM5',
+  },
+];
+
+// Familia de reporte por serie: el dry-run tiene que mostrar el conteo de CADA
+// una de las 5 familias nuevas por separado, no un total agregado.
+const FAMILIA_POR_SERIE_SUPERVIVENCIA = new Map(
+  SERIES_SUPERVIVENCIA.map((s) => [s.nombre, `Supervivencia infantil — ${s.abrev}`])
+);
 
 const NOMBRE_HISTORICO_CBA = 'Defunciones (histórico Córdoba)';
 const NOMBRE_HISTORICO_NACIONAL = 'Defunciones (histórico Nacional)';
@@ -340,6 +394,8 @@ function familiaDe(row) {
   if (n.startsWith('Defunciones por capítulo CIE-10')) return 'Defunciones por capítulo CIE-10';
   if (n.startsWith('Defunciones por causa')) return 'Defunciones por causa (top-10)';
   if (n === NOMBRE_MATERNA) return 'Razón de mortalidad materna (cuadro 44)';
+  const familiaSupervivencia = FAMILIA_POR_SERIE_SUPERVIVENCIA.get(n);
+  if (familiaSupervivencia) return familiaSupervivencia;
   if (n === NOMBRE_HISTORICO_CBA) return 'Defunciones (histórico Córdoba)';
   return 'otros';
 }
@@ -823,6 +879,57 @@ function filasSeriesJson(json, fuenteFecundidad) {
   return { filas, vacios };
 }
 
+/**
+ * Series de supervivencia infantil del boletín 174 (2001-2024, 25 regiones).
+ * Una familia por cuadro (4.1-4.5). Las celdas sin dato (`-` en el PDF) vienen
+ * como null y se DESCARTAN: no se cargan ceros ni se interpola nada.
+ */
+function filasSupervivenciaJson(json) {
+  const supervivencia = json.supervivencia_infantil ?? {};
+  const filas = [];
+  const resumen = [];
+
+  for (const s of SERIES_SUPERVIVENCIA) {
+    const serie = supervivencia[s.clave] ?? [];
+    let nulos = 0;
+    for (const { region, serie: puntos } of serie) {
+      for (const [anio, valor] of Object.entries(puntos ?? {})) {
+        if (valor === null || valor === undefined) {
+          nulos++;
+          continue;
+        }
+        filas.push({
+          indicador_nombre: s.nombre,
+          categoria: CATEGORIA,
+          valor: dosDecimales(valor),
+          unidad: UNIDAD_SUPERVIVENCIA,
+          periodo: Number(anio),
+          region,
+          desglose: {
+            anio: Number(anio),
+            cuadro: s.cuadro,
+            boletin: 'Boletín 174 — Mortalidad de menores de 5 años, Argentina 2024',
+            pdf: BOLETIN_174_PDF,
+            definicion: 'muertes por 1.000 nacidos vivos',
+          },
+          fuente: FUENTE_SUPERVIVENCIA,
+          activo: true,
+        });
+      }
+    }
+    resumen.push({
+      clave: s.clave,
+      nombre: s.nombre,
+      cuadro: s.cuadro,
+      abrev: s.abrev,
+      regiones: serie.length,
+      nulos,
+    });
+  }
+
+  return { filas, resumen };
+}
+
 // ── Validaciones y reporte ──────────────────────────────────────────
 
 const fallas = [];
@@ -888,6 +995,7 @@ async function main() {
 
   // ── 2. Filas ──
   const { filas: filasJson, vacios } = filasSeriesJson(json, fuenteFecundidad);
+  const { filas: filasSupervivencia, resumen: resumenSupervivencia } = filasSupervivenciaJson(json);
   const filasCsv = filasDesdeCsv();
   const valorCordobaCsv = accTotales.get(JURIS_CORDOBA)?.valor ?? null;
   const filasHistorico = [
@@ -903,7 +1011,7 @@ async function main() {
       activo: true,
     },
   ];
-  const filas = [...filasCsv, ...filasJson, ...filasHistorico];
+  const filas = [...filasCsv, ...filasJson, ...filasSupervivencia, ...filasHistorico];
 
   console.log(`\n📥 Filas crudas del CSV: ${stats.filasLeidas} leídas · ${stats.filasDescartadas} descartadas (delimitador "${parseo.delimitador}", ${parseo.lineas} líneas)`);
   if (stats.filasDescartadas) for (const m of stats.muestrasDescartadas) console.log(`   ${m}`);
@@ -915,6 +1023,20 @@ async function main() {
   }
   console.log(`\n📊 Filas generadas: ${filas.length}`);
   for (const [f, n] of porFamilia) console.log(`   ${f.padEnd(44)} ${String(n).padStart(5)}`);
+
+  console.log(
+    `\n📈 Supervivencia infantil (boletín 174 · ${FUENTE_SUPERVIVENCIA}): ${filasSupervivencia.length} filas nuevas`
+  );
+  for (const r of resumenSupervivencia) {
+    const generadas = filasSupervivencia.filter((f) => f.indicador_nombre === r.nombre).length;
+    const anios = filasSupervivencia
+      .filter((f) => f.indicador_nombre === r.nombre)
+      .map((f) => f.periodo);
+    console.log(
+      `   cuadro ${r.cuadro}  ${r.abrev.padEnd(11)} ${String(generadas).padStart(4)} filas · ${r.regiones} regiones · ` +
+        `${anios.length ? `${Math.min(...anios)}-${Math.max(...anios)}` : 'sin años'} · ${r.nulos} celdas sin dato descartadas`
+    );
+  }
 
   // ── 3. Jurisdicciones del CSV ──
   const jidsReales = [...stats.jurisdicciones.keys()].sort(ordenarJids);
@@ -1085,6 +1207,38 @@ async function main() {
   // 4.8 nulos de las series
   console.log(`   · series con "sin dato" (-) descartadas: fecundidad ${vacios.fecundidad} · mortalidad materna ${vacios.materna} (Santa Cruz, Río Negro y Catamarca no publican 2024)`);
 
+  // 4.9 supervivencia infantil (boletín 174, cuadros 4.1-4.5): sin denominadores
+  // por jurisdicción en la base NO se puede recalcular la tasa, así que se
+  // valida la forma de la serie (25 regiones) y los dos valores de control que
+  // el extractor ya contrastó contra el cuadro 3 del mismo boletín.
+  const tmm5Json = new Map(
+    (json.supervivencia_infantil?.tasa_mortalidad_menores_5 ?? []).map((r) => [r.region, r.serie])
+  );
+  const tmm5Cba = tmm5Json.get('Córdoba')?.[String(ANIO_2024)];
+  const tmm5Nac = tmm5Json.get(REGION_NACIONAL)?.[String(ANIO_2024)];
+  console.log(
+    `   · TMM5 (menores de 5 años) 2024: Córdoba ${tmm5Cba ?? 'sin dato'} · Nacional ${tmm5Nac ?? 'sin dato'}`
+  );
+  chequear(
+    tmm5Json.size === 25,
+    `supervivencia infantil: \`tasa_mortalidad_menores_5\` trae ${tmm5Json.size} regiones (esperadas 25)`
+  );
+  chequear(tmm5Cba === 8.2, `TMM5 Córdoba 2024 = 8,2 (JSON: ${tmm5Cba})`);
+  chequear(tmm5Nac === 10.2, `TMM5 Nacional 2024 = 10,2 (JSON: ${tmm5Nac})`);
+
+  // 4.10 las 5 familias nuevas no existen todavía. Si alguna existiera, sus filas
+  // caerían en "ya existentes" del pre-check (la clave natural incluye fuente y
+  // desglose) y la serie 2001-2024 no se cargaría nunca: se corta ANTES de escribir.
+  for (const s of SERIES_SUPERVIVENCIA) {
+    const previas = await paginar(() =>
+      supabase.from('indicadores').select('periodo, region, fuente').eq('indicador_nombre', s.nombre)
+    );
+    chequear(
+      previas.length === 0,
+      `"${s.nombre}": ${previas.length} filas previas en la base (nombre nuevo, sin colisión)`
+    );
+  }
+
   // ── 5. Muestras ──
   console.log('\n🔬 Muestra Córdoba 2024');
   const muestra = filas.filter((r) => r.region === 'Córdoba' && r.periodo === ANIO_2024);
@@ -1096,6 +1250,14 @@ async function main() {
   for (const r of muestra.filter((r) => r.indicador_nombre === NOMBRE_FECUNDIDAD || r.indicador_nombre === NOMBRE_HISTORICO_CBA)) {
     console.log(
       `   ${r.periodo}  ${r.indicador_nombre.padEnd(58)} ${String(r.valor).padStart(7)}  ${r.unidad}  fuente="${r.fuente}"  desglose=${JSON.stringify(r.desglose)}`
+    );
+  }
+  for (const r of filasSupervivencia.filter(
+    (f) =>
+      (f.region === 'Córdoba' || f.region === REGION_NACIONAL) && f.periodo === ANIO_2024
+  )) {
+    console.log(
+      `   ${r.periodo}  ${r.region.padEnd(9)} ${r.indicador_nombre.padEnd(58)} ${String(r.valor).padStart(7)}  ${r.unidad}  cuadro ${r.desglose.cuadro}`
     );
   }
 
@@ -1181,8 +1343,9 @@ async function main() {
       (APPLY ? '' : '   (usá --apply para escribir)')
   );
   console.log(
-    `   (el único grupo ya existente esperado son las ${propias.length} de fecundidad Córdoba 2015-2022; ` +
-      `nacimientos ${conteos.nacimientos}, histórico Córdoba ${conteos.historicoCba} y Nacional ${conteos.historicoNacional} no se generan)`
+    `   (el pre-check es por clave natural completa: no reinserta nada ya cargado. Las 8 de ` +
+      `fecundidad Córdoba 2015-2022 y todo el ciclo 2024 que ya se haya aplicado caen en "ya existentes"; ` +
+      `las 5 familias nuevas de supervivencia infantil deben aportar 0, verificado en 4.10)`
   );
   console.log('═══════════════════════════════════════════════════════════');
 }

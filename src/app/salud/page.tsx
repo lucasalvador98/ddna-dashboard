@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Heart, Syringe, AlertCircle, Info, Baby } from 'lucide-react';
+import { Heart, Syringe, AlertCircle, Info, Baby, Activity } from 'lucide-react';
 import { parseDesglose } from '@/lib/parse-desglose';
 import { INDICATOR_NAMES } from '@/lib/indicator-names';
 import { SectionHeader } from '@/components/section-header';
@@ -7,7 +7,13 @@ import { EmptyState } from '@/components/empty-state';
 import { KpiCard } from '@/components/kpi-card';
 import { SaludCharts } from './salud-charts';
 import type { SaludChartsProps } from './salud-charts';
-import { SaludInteractive, NatalidadFecundidad } from './salud-interactive';
+import {
+  SaludInteractive,
+  NatalidadFecundidad,
+  SupervivenciaInfantil,
+  CausasDeMuerte,
+  MortalidadMaterna,
+} from './salud-interactive';
 import type { Indicador as DashboardIndicador } from '@/lib/use-dashboard-data';
 import { hasPublicSupabaseConfig } from '@/lib/runtime-config';
 import { SupabaseUnavailable } from '@/components/supabase-unavailable';
@@ -44,6 +50,99 @@ const NOMBRES_NATALIDAD_FECUNDIDAD: readonly string[] = [
   NATALIDAD_NACIONAL,
   ...FECUNDIDAD_GRUPOS.map((grupo) => `${FECUNDIDAD_EDAD_PREFIX}${grupo}`),
 ];
+
+// ─── Familias de `categoria = 'salud'` que la pantalla consume ────
+// Lista EXPLÍCITA de `indicador_nombre`: reemplaza al fetch de la categoría
+// entera (~12.800 filas, con la vacunación por jurisdicción y los 22 capítulos ×
+// 27 jurisdicciones que la pantalla no muestra). Lo que no esté acá no llega al
+// render. `salud_adolescente` sigue completo: son 4 indicadores.
+const MORTALIDAD_INFANTIL_NOMBRES: readonly string[] = [
+  INDICATOR_NAMES.TMI_CBA,
+  INDICATOR_NAMES.TMI_NAC,
+  INDICATOR_NAMES.TMI_RMM_CBA,
+  INDICATOR_NAMES.TMI_RMM,
+  INDICATOR_NAMES.TMNEO_CBA,
+  INDICATOR_NAMES.TMPOS_CBA,
+];
+
+const VACUNACION_NOMBRES: readonly string[] = [
+  INDICATOR_NAMES.DPT3_NACIONAL,
+  INDICATOR_NAMES.DPT4_NACIONAL,
+  INDICATOR_NAMES.SRP1_NACIONAL,
+  INDICATOR_NAMES.SRP2_NACIONAL,
+  INDICATOR_NAMES.PCV13_NACIONAL,
+  INDICATOR_NAMES.ESQUEMAS_INCOMPLETOS,
+  INDICATOR_NAMES.SIN_DPT4_REFUERZO,
+  INDICATOR_NAMES.SIN_SRP1_HAV,
+  INDICATOR_NAMES.SIN_PCV13,
+  INDICATOR_NAMES.DPT4_CORDOBA,
+  INDICATOR_NAMES.SRP2_CORDOBA,
+  INDICATOR_NAMES.DPT_ESCOLAR_CORDOBA,
+  INDICATOR_NAMES.DPT4_QUINTIL_1,
+  INDICATOR_NAMES.DPT4_QUINTIL_5,
+];
+
+// Supervivencia infantil — boletín 174. Los nombres los fija el ETL
+// (`scripts/load-salud-2024.mjs`) y son DISTINTOS de la familia legacy
+// `Mortalidad infantil (TMI Cba)`, que mide otra cosa en otra serie.
+const SUPERVIVENCIA_NOMBRES = {
+  tmi: 'Tasa de mortalidad infantil por jurisdicción (TMI)',
+  tmm5: 'Tasa de mortalidad de menores de 5 años (TMM5)',
+} as const;
+
+// Defunciones 2024 (y sus desagregaciones): el nombre del indicador es
+// prefijo + sufijo. El orden de los grupos de edad es el canónico del ETL.
+const PREFIJO_CAPITULO = 'Defunciones por capítulo CIE-10 — ';
+const CAPITULOS_CIE10: readonly string[] = [
+  'I Enfermedades infecciosas y parasitarias (A00-B99)',
+  'II Tumores (neoplasias) (C00-D48)',
+  'III Enfermedades de la sangre y órganos hematopoyéticos (D50-D89)',
+  'IV Enfermedades endocrinas, nutricionales y metabólicas (E00-E89)',
+  'V Trastornos mentales y del comportamiento (F00-F99)',
+  'VI Sistema nervioso (G00-G99)',
+  'VII Ojo y anexos (H00-H59)',
+  'VIII Oído y apófisis mastoides (H60-H95)',
+  'IX Sistema circulatorio (I00-I99)',
+  'X Sistema respiratorio (J00-J99)',
+  'XI Sistema digestivo (K00-K95)',
+  'XII Piel y tejido subcutáneo (L00-L99)',
+  'XIII Sistema musculoesquelético y tejido conjuntivo (M00-M99)',
+  'XIV Sistema genitourinario (N00-N99)',
+  'XV Embarazo, parto y puerperio (O00-O99)',
+  'XVI Afecciones originadas en el período perinatal (P00-P96)',
+  'XVII Malformaciones congénitas y deformidades (Q00-Q99)',
+  'XVIII Síntomas y signos mal definidos (R00-R99)',
+  'XIX Lesiones, envenenamientos y otras consecuencias de causas externas (S00-T98)',
+  'XX Causas externas de morbilidad y mortalidad (V01-Y98)',
+  'XXI Factores que influyen en el estado de salud (Z00-Z99)',
+  'XXII Códigos para propósitos especiales (U00-U99)',
+];
+const PREFIJO_GRUPO_EDAD_DEFUNCIONES = 'Defunciones — ';
+const GRUPOS_EDAD_DEFUNCIONES: readonly string[] = [
+  '0 a 14 años',
+  '15 a 34 años',
+  '35 a 54 años',
+  '55 a 74 años',
+  '75 y más años',
+  'Sin especificar',
+];
+
+const NOMBRE_MATERNA = 'Razón de mortalidad materna';
+
+const NOMBRES_SALUD: readonly string[] = [
+  ...MORTALIDAD_INFANTIL_NOMBRES,
+  ...VACUNACION_NOMBRES,
+  ...Object.values(SUPERVIVENCIA_NOMBRES),
+  ...CAPITULOS_CIE10.map((capitulo) => `${PREFIJO_CAPITULO}${capitulo}`),
+  ...GRUPOS_EDAD_DEFUNCIONES.map((grupo) => `${PREFIJO_GRUPO_EDAD_DEFUNCIONES}${grupo}`),
+  NOMBRE_MATERNA,
+];
+
+/** Sufijo del nombre tal como lo carga el ETL; se usa como etiqueta de barra. */
+const etiquetaCapitulo = (nombre: string): string =>
+  nombre
+    .slice(PREFIJO_CAPITULO.length)
+    .replace(/\s*\([A-Z]\d{2}-[A-Z]\d{2}\)$/, '');
 
 const PAGE_SIZE = 1000;
 
@@ -102,13 +201,37 @@ export default async function SaludPage() {
     return rows;
   };
 
-  // ⚠️ Paginado obligatorio: `categoria = 'salud'` tiene ~8.270 filas y PostgREST
-  // corta en 1.000 por request. Sin `.range()`, la pantalla recibía sólo las 1.000
-  // de período más viejo (ordena ascendente), así que TODO lo reciente quedaba
-  // afuera: la vacunación 2024-2025 entera y buena parte de mortalidad y
-  // nacimientos. El desempate por `id` no es decorativo: ordenar sólo por
-  // `periodo` deja el orden indefinido entre filas del mismo período, y entre
-  // páginas eso duplica o pierde filas.
+  // ⚠️ Paginado obligatorio: PostgREST corta en 1.000 por request. Acá se pide un
+  // subconjunto explícito de `categoria = 'salud'` (ver NOMBRES_SALUD): la
+  // categoría entera tiene ~12.800 filas y traerla completa hacía pesado el
+  // render del servidor. El filtro por nombre no cambia QUÉ se muestra.
+  // El desempate por `id` no es decorativo: ordenar sólo por `periodo` deja el
+  // orden indefinido entre filas del mismo período, y entre páginas eso duplica
+  // o pierde filas.
+  const fetchSalud = async (): Promise<RawIndicadorRow[]> => {
+    const rows: RawIndicadorRow[] = [];
+    for (let offset = 0; ; offset += PAGE_SIZE) {
+      const { data: page, error } = await supabase
+        .from('indicadores')
+        .select('id, indicador_nombre, valor, unidad, periodo, region, desglose, fuente')
+        .eq('categoria', 'salud')
+        .in('indicador_nombre', NOMBRES_SALUD)
+        .order('periodo', { ascending: true })
+        .order('id', { ascending: true })
+        .range(offset, offset + PAGE_SIZE - 1);
+
+      if (error) throw new Error(error.message);
+
+      const filas = (page ?? []) as unknown as RawIndicadorRow[];
+      rows.push(...filas);
+
+      if (filas.length < PAGE_SIZE) break;
+    }
+    return rows;
+  };
+
+  // `salud_adolescente` sigue completo: son 4 indicadores (y la pantalla
+  // /salud-adolescente los lee del mismo modo).
   const fetchCategoria = async (categoria: string): Promise<RawIndicadorRow[]> => {
     const rows: RawIndicadorRow[] = [];
     for (let offset = 0; ; offset += PAGE_SIZE) {
@@ -131,7 +254,7 @@ export default async function SaludPage() {
   };
 
   const [saludRows, adolesRows, natalidadFecundidadRows] = await Promise.all([
-    fetchCategoria('salud'),
+    fetchSalud(),
     fetchCategoria('salud_adolescente'),
     fetchNatalidadFecundidad(),
   ]);
@@ -338,6 +461,91 @@ export default async function SaludPage() {
     .map((d) => ({ periodo: String(d.periodo), valor: Number(d.valor) }))
     .sort((a, b) => Number(a.periodo) - Number(b.periodo));
 
+  // ─── Supervivencia infantil (‰, 2001-2024, Córdoba vs Nación) ────
+  // Serie por nombre + región. Una celda sin dato queda en `null` (nunca 0):
+  // el punto no se dibuja y no se inventa un valor de relleno.
+  const seriePorRegion = (nombre: string, region: string) =>
+    data
+      .filter((d) => d.indicador_nombre === nombre && d.region === region)
+      .map((d) => ({
+        periodo: String(d.periodo),
+        valor: d.valor === null ? null : Number(d.valor),
+      }))
+      .sort((a, b) => Number(a.periodo) - Number(b.periodo));
+
+  // Grilla = unión de años de las dos series: si una fuente se atrasa, el año se
+  // grafica igual con el valor de la otra y la línea puentea el hueco.
+  const comparativaCordobaNacion = (nombre: string): Record<string, unknown>[] => {
+    const cordoba = seriePorRegion(nombre, 'Córdoba');
+    const nacional = seriePorRegion(nombre, 'Nacional');
+    const periodos = [...new Set([...cordoba, ...nacional].map((p) => p.periodo))].sort(
+      (a, b) => Number(a) - Number(b)
+    );
+    return periodos.map((periodo) => ({
+      periodo,
+      'Córdoba': cordoba.find((p) => p.periodo === periodo)?.valor ?? null,
+      'Nacional': nacional.find((p) => p.periodo === periodo)?.valor ?? null,
+    }));
+  };
+
+  const tmm5Data = comparativaCordobaNacion(SUPERVIVENCIA_NOMBRES.tmm5);
+  const tmiJurisdiccionData = comparativaCordobaNacion(SUPERVIVENCIA_NOMBRES.tmi);
+
+  // ─── Defunciones 2024 — capítulos CIE-10 (Córdoba) ─────────────
+  const esCapitulo = (nombre: string | null): boolean =>
+    (nombre ?? '').startsWith(PREFIJO_CAPITULO);
+
+  const capitulosCordoba2024 = data.filter(
+    (d) => d.region === 'Córdoba' && String(d.periodo) === '2024' && esCapitulo(d.indicador_nombre)
+  );
+  const capitulosNacional2024 = data.filter(
+    (d) => d.region === 'Nacional' && String(d.periodo) === '2024' && esCapitulo(d.indicador_nombre)
+  );
+  // La suma de los 22 capítulos de Nación es el total del país: el ETL valida
+  // SUM(capítulos) = Defunciones totales en cada jurisdicción, así que no hace
+  // falta traer `Defunciones totales` sólo para el denominador.
+  const totalDefuncionesNacional = capitulosNacional2024.reduce(
+    (acc, d) => acc + (Number(d.valor) || 0),
+    0
+  );
+
+  // TOP-10 por valor. La cuota nacional del capítulo viaja como valor comparable
+  // (tooltip + tabla de datos), no como segunda barra: mezclar muertes con
+  // porcentajes en el mismo eje obligaría a un doble eje y sugeriría comparar
+  // magnitudes que no son comparables.
+  const capitulosData = [...capitulosCordoba2024]
+    .sort((a, b) => (Number(b.valor) || 0) - (Number(a.valor) || 0))
+    .slice(0, 10)
+    .map((d) => {
+      const nombre = d.indicador_nombre ?? '';
+      const nacional = capitulosNacional2024.find((n) => n.indicador_nombre === nombre);
+      const cuota =
+        totalDefuncionesNacional > 0 && nacional
+          ? (Number(nacional.valor ?? 0) / totalDefuncionesNacional) * 100
+          : null;
+      return {
+        capitulo: etiquetaCapitulo(nombre),
+        muertes: Number(d.valor) || 0,
+        'Cuota nacional (%)': cuota === null ? null : Number(cuota.toFixed(1)),
+      };
+    });
+
+  // ─── Defunciones 2024 — grupo de edad (Córdoba) ──────────────
+  const muertesPorGrupoEdad = new Map<string, number>();
+  for (const d of data) {
+    if (d.region !== 'Córdoba' || String(d.periodo) !== '2024') continue;
+    const nombre = d.indicador_nombre ?? '';
+    if (!nombre.startsWith(PREFIJO_GRUPO_EDAD_DEFUNCIONES)) continue;
+    muertesPorGrupoEdad.set(nombre.slice(PREFIJO_GRUPO_EDAD_DEFUNCIONES.length), Number(d.valor) || 0);
+  }
+  // Orden canónico del ETL (menor a mayor edad); un grupo ausente no se dibuja.
+  const gruposEdadData = GRUPOS_EDAD_DEFUNCIONES.filter((grupo) =>
+    muertesPorGrupoEdad.has(grupo)
+  ).map((grupo) => ({ grupo, muertes: muertesPorGrupoEdad.get(grupo) ?? 0 }));
+
+  // ─── Razón de mortalidad materna (2000-2024, Córdoba vs Nación) ─
+  const rmmJurisdiccionData = comparativaCordobaNacion(NOMBRE_MATERNA);
+
   const chartProps: Omit<SaludChartsProps, 'variant'> = {
     mortalidadComparativaData,
     rmmData,
@@ -389,6 +597,45 @@ export default async function SaludPage() {
           fecundidadAnio={fecundidadAnio}
           fecundidadOficialData={fecundidadOficialData}
         />
+      </div>
+
+      {/* Supervivencia infantil Section */}
+      <div className="space-y-4">
+        <SectionHeader
+          icon={Baby}
+          title="Supervivencia infantil"
+          description="Mortalidad de menores de 5 años por jurisdicción (DEIS, boletín 174) — Córdoba vs Nación, 2001-2024"
+          color="blue"
+          as="h2"
+        />
+
+        <SupervivenciaInfantil tmm5Data={tmm5Data} tmiData={tmiJurisdiccionData} />
+      </div>
+
+      {/* Causas de muerte Section */}
+      <div className="space-y-4">
+        <SectionHeader
+          icon={Activity}
+          title="Causas de muerte"
+          description="Defunciones 2024 por capítulo CIE-10 y por grupo de edad — Córdoba (ambos sexos)"
+          color="terracotta"
+          as="h2"
+        />
+
+        <CausasDeMuerte capitulosData={capitulosData} gruposEdadData={gruposEdadData} />
+      </div>
+
+      {/* Mortalidad materna Section */}
+      <div className="space-y-4">
+        <SectionHeader
+          icon={Heart}
+          title="Mortalidad materna"
+          description="Razón de mortalidad materna por 10.000 nacidos vivos — Córdoba vs Nación, 2000-2024"
+          color="magenta"
+          as="h2"
+        />
+
+        <MortalidadMaterna data={rmmJurisdiccionData} />
       </div>
 
       {/* Vacunación Section */}
