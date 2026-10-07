@@ -73,3 +73,8 @@ nul
 # credentials (never commit)
 docs/CREDENCIALES.md
 .codegraph/
+
+# CI controller/test artifacts and image checkpoints
+__pycache__/
+*.pyc
+image.json

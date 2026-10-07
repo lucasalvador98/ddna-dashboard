@@ -51,9 +51,10 @@ describe("Docker infrastructure", () => {
       expect(exists("Dockerfile")).toBe(true);
     });
 
-    it("uses node:20-alpine as base", () => {
+    it("pins Node 22 for consistent CI and runtime", () => {
       const dockerfile = read("Dockerfile");
-      expect(dockerfile).toContain("node:20-alpine");
+      expect(dockerfile).toMatch(/ARG NODE_IMAGE=node:22\.23\.3-alpine@sha256:[a-f0-9]{64}/);
+      expect(dockerfile).toContain("FROM ${NODE_IMAGE} AS deps");
     });
 
     it("has 3 stages: deps, builder, runner", () => {
@@ -63,9 +64,10 @@ describe("Docker infrastructure", () => {
       expect(dockerfile).toContain("AS runner");
     });
 
-    it("installs production deps only in deps stage", () => {
+    it("installs development dependencies needed to build standalone output", () => {
       const dockerfile = read("Dockerfile");
-      expect(dockerfile).toContain("npm ci --omit=dev");
+      expect(dockerfile).toContain("RUN npm ci");
+      expect(dockerfile).not.toContain("npm ci --omit=dev");
     });
 
     it("copies standalone output in runner stage", () => {

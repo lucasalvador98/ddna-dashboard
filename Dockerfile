@@ -1,18 +1,19 @@
 # Stage 1: Install ALL dependencies (including dev for build)
-FROM node:20-alpine AS deps
+ARG NODE_IMAGE=node:22.23.3-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402
+FROM ${NODE_IMAGE} AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
 # Stage 2: Build the application
-FROM node:20-alpine AS builder
+FROM ${NODE_IMAGE} AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 ARG NEXT_PUBLIC_SUPABASE_URL
 ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
-ARG NEXT_PUBLIC_BASE_PATH
+ARG NEXT_PUBLIC_BASE_PATH=/observatorio
 ARG NODE_ENV=production
 
 ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
@@ -21,13 +22,15 @@ ENV NEXT_PUBLIC_BASE_PATH=$NEXT_PUBLIC_BASE_PATH
 ENV NODE_ENV=$NODE_ENV
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN npm run build
+RUN test "$NEXT_PUBLIC_BASE_PATH" = /observatorio && npm run build
 
 # Stage 3: Production runner
-FROM node:20-alpine AS runner
+FROM ${NODE_IMAGE} AS runner
 WORKDIR /app
 
-ARG NEXT_PUBLIC_BASE_PATH
+ARG NEXT_PUBLIC_BASE_PATH=/observatorio
+ARG SOURCE_REVISION
+LABEL org.opencontainers.image.source="https://github.com/lucasalvador98/ddna-dashboard" org.opencontainers.image.revision=$SOURCE_REVISION
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NEXT_PUBLIC_BASE_PATH=$NEXT_PUBLIC_BASE_PATH
