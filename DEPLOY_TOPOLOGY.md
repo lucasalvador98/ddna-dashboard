@@ -1,6 +1,6 @@
 # DEPLOY_TOPOLOGY.md — Topología de despliegue y contrato DevOps ↔ Tablero
 
-> **Estado actual validado:** 2026-09-28. Este documento es la fuente de verdad de
+> **Estado actual validado:** 2026-10-07. Este documento es la fuente de verdad de
 > cómo se despliega el tablero en la VPS compartida y qué límites aplican.
 > **Antes de cualquier deploy o cambio de infraestructura, LEER ESTE ARCHIVO.**
 
@@ -22,7 +22,7 @@
 | Qué | URL | Notas |
 |---|---|---|
 | **Portal principal (WordPress)** | `http://179.199.132.207/` | Raíz del dominio/IP |
-| **Tablero de Monitoreo (nosotros)** | `http://179.199.132.207/observatorio/` | Servido por Caddy → `ddna-observatorio-candidate` (red `ddna_frontend`) |
+| **Tablero de Monitoreo (nosotros)** | `http://179.199.132.207/observatorio/` | Caddy `ddna-edge` → servicio `dashboard:3000` (proyecto `ddna-controlled`, `/home/deploy/ddna-infra/compose.private.yml`) |
 | **Supabase API** | `http://179.199.132.207:8000` | self-hosted |
 
 > ⚠️ **El tablero NO vive más en la raíz `http://179.199.132.207/`** (eso es WordPress)
@@ -41,16 +41,29 @@
 
 ---
 
-## 4. Estado del despliegue activo
+## 4. Estado del despliegue activo (verificado 2026-10-07)
 
-- Es un **PREVIEW por IP, sin HTTPS** (`Caddyfile.preview`, puerto 80, `auto_https off`).
-- La **imagen HTTPS está preparada pero NO es la activa**. No activar HTTPS sin nueva instrucción del DevOps.
-- **El Tablero se sirve desde la imagen `ddna-dashboard:observatorio-candidate`**
-  (contenedor `ddna-observatorio-candidate`, red `ddna_frontend`), construida con
-  `NEXT_PUBLIC_BASE_PATH=/observatorio` — por eso el subpath y los redirects de
-  login funcionan correctamente.
-- **CI/CD está preparado pero sin primer deploy** (ver `/home/deploy/ddna-cicd-staging/README-GITHUB-CICD.md`).
-- Docker: `ddna-edge` (Caddy) tiene el **puerto 80**; el tablero corre en la red `ddna_frontend`.
+- Es un **PREVIEW por IP, sin HTTPS**: el Caddyfile activo montado en `ddna-edge` es
+  **`Caddyfile.preview`** (puerto 80, `auto_https off`). La **imagen HTTPS
+  (`Caddyfile.production`) está preparada pero NO es la activa**. No activar HTTPS sin
+  nueva instrucción del DevOps.
+- **Caddy `ddna-edge` enruta `/observatorio` → servicio `dashboard:3000`**, proyecto
+  `ddna-controlled`, archivo `/home/deploy/ddna-infra/compose.private.yml`.
+- **El build correcto es `/home/deploy/ddna-infra/build-dashboard.py`**: buildea desde el
+  checkout limpio `/home/deploy/ddna-dashboard-observatorio`, pasa
+  `NEXT_PUBLIC_BASE_PATH=/observatorio` (desde `secrets/dashboard-build.env`), taguea
+  `ddna-dashboard:observatorio-candidate` y escribe la provenance en
+  `dashboard-build-inputs.json`.
+  Activación: `cd /home/deploy/ddna-infra && docker compose -f compose.private.yml up -d dashboard`.
+- **Rutas verificadas en vivo (HTTP 200)**: `/observatorio/`, `/salud`, `/poblacion`,
+  `/educacion`, `/login`.
+- **Estado de versiones**: `main` = `61f304c`. La VPS corre la imagen `e3c2229b`, construida
+  desde `4a9a9d3` — **2 commits atrás** (`f439ea1` PR #3 + `61f304c` pendientes de build).
+- **No hay CI/CD instalado**: `.github/workflows/` no existe en `main` ni en ninguna rama
+  remota. El receptor de GitHub Actions nunca se creó; el deploy sigue siendo manual con
+  aviso previo obligatorio al DevOps. Lo que disparaba auto-deploys era la integración
+  nativa de Vercel, desconectada el 2026-10-07.
+- Docker: `ddna-edge` (Caddy) tiene el **puerto 80**.
 
 ---
 
@@ -58,11 +71,13 @@
 
 El `deploy.sh` del repo fue escrito para un entorno donde el dashboard era dueño del
 puerto 80 (`80:3000`). Con Caddy al frente, **reconstruir y arrancar ese contenedor
-haría conflicto por el puerto 80** y rompería el portal. **No usarlo** para desplegar
-el tablero en el entorno actual.
+haría conflicto por el puerto 80** y rompería el portal. Está **congelado y roto en 3
+formas** (colisión de puerto 80; `docker-compose.prod.yml` sin `NEXT_PUBLIC_BASE_PATH`
+como build arg → `/observatorio/*` da 404; tag `ddna-dashboard-app:latest` que el compose
+activo no usa) y ya causó una caída de producción el 2026-10-06. **No usarlo.**
 
-Cuando el DevOps establezca el flujo de deploy del tablero (vía Caddy / CI-CD), se
-actualizará este documento y, si aplica, `deploy.sh`.
+El flujo vigente es el script del DevOps `/home/deploy/ddna-infra/build-dashboard.py`
+(ver §4). Cualquier cambio de este documento debe reflejar ese flujo, no `deploy.sh`.
 
 ---
 
@@ -109,7 +124,7 @@ y se avisa al DevOps antes de actuar.
 
 ---
 
-*Última actualización: 2026-09-28 — por acordada DevOps↔Tablero tras el rollout multi-sitio (Caddy).*
+*Última actualización: 2026-10-07 — referencias de servicio/proyecto/build corregidas a la realidad verificada (Caddy→`dashboard:3000`, `compose.private.yml`, `build-dashboard.py`).*
 
 ## Propuesta CI/CD revisable — 7 de octubre de 2026
 

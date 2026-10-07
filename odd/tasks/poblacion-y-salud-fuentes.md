@@ -111,3 +111,8 @@ cobertura vacunal provincial.
 - [ ] T5 — Cobertura vacunal Córdoba vs Nación: parser de los PDFs del CNV
       2024/2025 (corte por jurisdicción). Da los datos más actuales del tablero.
 - [ ] T6 — Deploy coordinado (va último).
+
+## Desestimado (2026-10-07)
+Las tareas que quedan abiertas en este documento no se van a hacer por ahora;
+queda como registro lo realizado. Ver odd/tasks/salud-2024-actualizacion.md para
+el trabajo vigente de Salud.

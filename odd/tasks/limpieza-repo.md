@@ -76,3 +76,8 @@ convención del framework.
 - No se pudo deployar ni verificar en producción: cada deploy requiere aviso previo
   al DevOps por el contrato de la VPS multi-sitio.
 - `git status` limpio; todo en `origin/main`.
+
+## Desestimado (2026-10-07)
+Las tareas que quedan abiertas en este documento no se van a hacer por ahora;
+queda como registro lo realizado. Ver odd/tasks/salud-2024-actualizacion.md para
+el trabajo vigente de Salud.

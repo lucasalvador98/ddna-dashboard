@@ -121,3 +121,8 @@ Recorded per task as it completes.
 - The Cloud project must stay alive: the VPS app's repository download links
   still depend on the Cloud bucket, because 0 files exist in the self-hosted
   bucket. Nothing in this feature may delete or disable the Cloud side.
+
+## Desestimado (2026-10-07)
+Las tareas que quedan abiertas en este documento no se van a hacer por ahora;
+queda como registro lo realizado. Ver odd/tasks/salud-2024-actualizacion.md para
+el trabajo vigente de Salud.

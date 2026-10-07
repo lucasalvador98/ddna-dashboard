@@ -179,7 +179,7 @@ LIMIT 10;
 | **LLM** | OpenAI (gpt-4o-mini) | Único para ambos agentes |
 | **Embeddings** | OpenAI text-embedding-3-small | 1536 dimensiones |
 | **Vector DB** | pgvector (Supabase) | Índice IVFFlat, cosine distance |
-| **Tool calling** | Function calling (Groq/OpenAI) | Tool definitions en `indicator-tools.ts` |
+| **Tool calling** | Function calling (OpenAI) | Tool definitions en `indicator-tools.ts` |
 | **Web search** | DuckDuckGo | Sin API key, HTML scraping |
 | **Text extraction** | `pdfjs-dist`, `mammoth`, `xlsx` | Según tipo de archivo |
 | **Chunking** | Custom splitter | `src/lib/rag/chunker.ts` |
@@ -224,15 +224,15 @@ CREATE INDEX idx_doc_chunks_embedding
 ### Datos actuales
 - **~16 documentos** en `repositorio` (algunos pendientes de procesar)
 - **~7,500 chunks** en `doc_chunks`
-- **~8,100 indicadores** en tabla `indicadores` (~6 categorías)
+- **`salud` ≈ 12.800 filas** (ciclo DEIS 2024); el resto de categorías no fue re-medido
 
 ---
 
 ## Variables de Entorno
 
 ```env
-# Supabase (requerido para todo)
-NEXT_PUBLIC_SUPABASE_URL=https://ppyyqrvirjqmfpqaqnxy.supabase.co
+# Supabase self-hosted en la VPS
+NEXT_PUBLIC_SUPABASE_URL=http://179.199.132.207:8000
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 SUPABASE_SERVICE_ROLE_KEY=eyJ...
 
@@ -242,7 +242,6 @@ OPENAI_API_KEY=sk-...
 # Backfill (requerido para /api/admin/backfill)
 INTERNAL_API_SECRET=...
 
-# Opcional (ya no se usa — migrado a OpenAI)
-# GROQ_API_KEY=gsk_...
-# LLM_PROVIDER=groq
+# El código usa exclusivamente OpenAI (gpt-4o-mini): no hay SDK de Groq ni
+# GROQ_API_KEY en runtime. No hay proveedor alternativo configurable.
 ```

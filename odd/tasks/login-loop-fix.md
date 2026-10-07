@@ -96,3 +96,8 @@ Out of scope (flagged, not fixed here):
       build) then re-test login in the browser: after ~1h of session use there
       must be no 401 loop, and the authenticated formularios request must be
       200. Bug B (formularios 500) is already fixed at the DB level and live.
+
+## Desestimado (2026-10-07)
+Las tareas que quedan abiertas en este documento no se van a hacer por ahora;
+queda como registro lo realizado. Ver odd/tasks/salud-2024-actualizacion.md para
+el trabajo vigente de Salud.

@@ -93,3 +93,8 @@ httpOnly cookie rework (informational).
 ## Evidence
 
 W1-W5 committed, pushed to origin/main, deployed to VPS (HEAD `05f2135`), verified live: tsc 0; LoginGate 6/6; D6 routes 401 anon; W5 authz matrix correct. PENDING USER BROWSER VERIFICATION: login no-spinner + signout clears header/redirects. Second git session active during the refactor (rebased, never force-pushed).
+
+## Desestimado (2026-10-07)
+Las tareas que quedan abiertas en este documento no se van a hacer por ahora;
+queda como registro lo realizado. Ver odd/tasks/salud-2024-actualizacion.md para
+el trabajo vigente de Salud.

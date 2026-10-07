@@ -1,7 +1,7 @@
 # DDNA Dashboard
 
-> **Producción**: http://179.199.132.207/ — VPS Hostinger (Docker)
-> **Legacy**: https://ddna-dashboard.vercel.app/ — Vercel, aún alimentado por Supabase Cloud
+> **Producción**: http://179.199.132.207/observatorio/ — VPS Hostinger, self-hosted (Caddy)
+> **Legacy**: https://ddna-dashboard.vercel.app/ — Vercel + Supabase Cloud; integración con GitHub desconectada el 2026-10-07, retiro pendiente
 > Tablero General de Monitoreo de la **Defensoría de los Derechos de Niñas, Niños y Adolescentes** — Provincia de Córdoba
 
 Sistema de monitoreo y visualización de indicadores de infancia y adolescencia que reemplaza la dependencia de Power BI por una solución web moderna, de código abierto y mantenible. **Deployado en Docker sobre una VPS de Hostinger**, con Supabase self-hosted en la misma VPS.
@@ -72,14 +72,17 @@ El dashboard funciona con **datos placeholder** sin Supabase. Al configurar las 
 
 ## Configuración de Supabase
 
-> **Este repo corre contra un Supabase self-hosted en la VPS** (ver `DEPLOY.md` y el skill `supabase-selfhosted-mcp`). El proyecto histórico de Supabase Cloud (`ppyyqrvirjqmfpqaqnxy`) sigue vivo: alimenta al deploy legacy de Vercel y lo consumen los scripts de migración en `scripts/` vía las variables `CLOUD_*` de `.env.local`.
+> **Este repo corre contra un Supabase self-hosted en la VPS** (ver `DEPLOY_TOPOLOGY.md` y el skill `supabase-selfhosted-mcp`). El proyecto histórico de Supabase Cloud (`ppyyqrvirjqmfpqaqnxy`) sigue vivo: alimenta al deploy legacy de Vercel y lo consumen los scripts de migración en `scripts/` vía las variables `CLOUD_*` de `.env.local`.
 
 1. Copiar `.env.local.example` a `.env.local` y pegar credenciales del Supabase self-hosted:
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=http://179.199.132.207:8000
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGci...
 ```
+
+> El tablero se sirve bajo el subpath `/observatorio/`; el build de producción debe
+> recibir `NEXT_PUBLIC_BASE_PATH=/observatorio` (ver `DEPLOY_TOPOLOGY.md`).
 
 3. Ejecutar la migración en **SQL Editor** del dashboard de Supabase:
    - `supabase/migrations/20260414000000_initial_schema.sql`
@@ -94,7 +97,7 @@ src/
   app/
     layout.tsx               ← Layout raíz con sidebar + header + tipografía del portal
     page.tsx                 ← Home con KPIs conectados a Supabase
-    salud/page.tsx           ← Mortalidad infantil, cobertura vacunal
+    salud/page.tsx           ← Mortalidad, natalidad, supervivencia, causas, mortalidad materna, vacunación (nombres legacy)
     educacion/page.tsx       ← Escolarización, resultados Aprender
     pobreza/page.tsx         ← Pobreza/indigencia infantil, brechas
     seguridad/page.tsx       ← Denuncias, distribución por tipo
@@ -123,15 +126,18 @@ src/
 
 | Token               | Color   | Uso                 |
 | ------------------- | ------- | ------------------- |
-| `--ddna-amber`      | #F3A712 | Primario, Educación |
-| `--ddna-magenta`    | #BF1363 | Pobreza, alertas    |
-| `--ddna-blue`       | #3777FF | Seguridad, links    |
-| `--ddna-navy`       | #1a2556 | Sidebar, títulos    |
-| `--ddna-orange`     | #FF7F11 | Inversión           |
-| `--ddna-terracotta` | #E07A5F | Salud               |
-| `--ddna-sky-blue`   | #1E9AD8 | Acentos             |
-| `--ddna-cream`      | #FFE2BF | Acentos claros      |
-| `--ddna-background` | #FFF0DE | Fondo general       |
+| `--ddna-amber`      | #ff8c00 | Marca / Educación   |
+| `--ddna-orange`     | #c2410c | Naranja quemado (series de gráfico, Salud) |
+| `--ddna-magenta`    | #9a3412 | Pobreza, alertas    |
+| `--ddna-blue`       | #165dff | Seguridad, links    |
+| `--ddna-navy`       | #050506 | Sidebar, títulos    |
+| `--ddna-terracotta` | #c2410c | Salud               |
+| `--ddna-sky-blue`   | #165dff | Acentos             |
+| `--ddna-cream`      | #f5f0ec | Acentos claros      |
+| `--ddna-background` | #e9e7e7 | Fondo general       |
+
+> Valores verificados contra `src/app/globals.css`. `docs/TOKENS_DDNA.md` lista además la
+> paleta del theme del portal; ante cualquier diferencia, manda `globals.css`.
 
 ---
 
@@ -169,39 +175,27 @@ src/
 - [x] Identidad visual completa (Caprasimo + DK Lemon fonts, Recurso 1-7 icons, Tema.json palette)
 - [x] Home page con KPIs conectados a Supabase + fallback placeholder
 - [x] 6 secciones temáticas con gráficos Recharts (salud, educación, pobreza, seguridad, inversión, fuentes)
-- [x] Supabase: tabla `indicadores` (15 categorías, 21,149 registros)
+- [x] Supabase: tabla `indicadores` (categoría `salud` ≈ **12.800 filas** tras el ciclo DEIS 2024)
 - [x] 11+ indicadores seedeados con datos históricos (2018-2024)
 - [x] API REST: `/api/health`, `/api/indicadores`, `/api/fuentes`, `/api/upload`
 - [x] Catálogo de fuentes con badges por categoría
 - [x] Interfaz de carga CSV para admins (`/admin`)
 - [x] Scripts ETL para datos Excel/CSV (Node.js en `scripts/`)
-- [x] ETL completo: salud (145), educacion (1056), pobreza (48), seguridad (7), demografia (411)
-- [x] Carga de datos reales desde Excel a Supabase (21,149 registros en 15 categorías)
-- [x] Deploy principal en Docker sobre VPS Hostinger — **http://179.199.132.207/** (ver `DEPLOY.md`)
-- [x] Deploy legacy aún en Vercel — **https://ddna-dashboard.vercel.app/** (con Supabase Cloud; decisión de retiro pendiente)
+- [x] ETL DEIS Salud 2024 completo (defunciones, causas CIE-10, fecundidad adolescente, mortalidad materna, supervivencia infantil TMI/neonatal/posneonatal/1-4/TMM5)
+- [x] Carga de datos reales a Supabase desde múltiples fuentes (Excel/CSV/PDF)
+- [x] Deploy principal en Docker sobre VPS Hostinger — **http://179.199.132.207/observatorio/** (ver `DEPLOY_TOPOLOGY.md`)
+- [x] Deploy legacy en Vercel — **https://ddna-dashboard.vercel.app/** (Supabase Cloud; integración con GitHub desconectada el 2026-10-07, retiro pendiente)
 
 ---
 
-## Contenido en Supabase (verificado al 19/08/2026)
+## Contenido en Supabase (medido 2026-10-07)
 
-| Categoría           | Registros                              |
-| ------------------- | -------------------------------------- |
-| Pobreza             | 15,977 (INDEC EPH + ENCOPRAC)          |
-| Educación           | 1,055 (Censo 2022 + Aprender)          |
-| Anuario Educativo   | 785 (Min. Educación)                   |
-| Inversión           | 725 (Visualizador PTO + Datos Abiertos)|
-| Empleo              | 709 (INDEC EPH)                        |
-| Canastas Básicas    | 500 (INDEC — CBA/CBT)                  |
-| SENAF               | 382 (Primeros Años, Dispositivos, L102)|
-| Demografía          | 361 (Censo 2022)                       |
-| Salud               | 244 (DEIS — mortalidad, vacunación)    |
-| Encuestas DDNA 2024 | 131                                    |
-| Seguridad           | 129 (MP Córdoba)                       |
-| Aprender            | 80 (Evaluaciones 2024)                 |
-| Salud Adolescente   | 32 (DEIS)                              |
-| DEIS (raw)          | 36                                     |
-| Consumos            | 3                                      |
-| **Total**           | **21,149**                             |
+- **`salud` ≈ 12.800 filas** tras el ciclo DEIS 2024 completo (defunciones 2024, causas por
+  capítulo CIE-10, top-10 causas, fecundidad adolescente 2013-2024 × 25 regiones, mortalidad
+  materna 2000-2024 × 25, supervivencia infantil TMI/neonatal/posneonatal/1-4/TMM5 2001-2024 × 25).
+- **CNV vacunación: 1.399 filas (2024-2025) cargadas pero NO visibles en `/salud`** — la sección
+  todavía usa los nombres legacy de `src/lib/indicator-names.ts`. Pendiente de cablear en la UI.
+- El resto de las categorías no fue re-medido en esta revisión; su volumen se consulta en la DB.
 
 ---
 
@@ -213,8 +207,10 @@ El dashboard se alimenta con datos cargados a Supabase mediante **scripts Node.j
 | ------------------------------------- | -------------------------- | -------------------- |
 | `scripts/update-indec-indicators.mjs` | INDEC / datos.gob.ar API   | API REST (series)    |
 | `scripts/load-senaf-data.mjs`         | SENAF                      | CSV → Supabase       |
-| `scripts/load-deis-2024.mjs`          | DEIS Estadísticas Vitales  | PDF → SQL            |
-| `scripts/load-vaccination-data.mjs`   | DEIS vacunación            | CSV → Supabase       |
+| `scripts/load-salud-2024.mjs`         | DEIS Estadísticas Vitales 2024 | CSV/JSON → Supabase |
+| `scripts/load-cnv-vacunacion.mjs`     | CNV (vacunación)           | PDF → Supabase       |
+| `scripts/load-deis-2024.mjs`          | DEIS mortalidad infantil (TMNEO) | PDF → SQL      |
+| `scripts/load-vaccination-data.mjs`   | Cobertura vacunal histórica | CSV → Supabase      |
 | `scripts/load-budget-*.mjs`           | Presupuesto                | CSV → Supabase       |
 | `scripts/config.mjs`                  | —                          | Config compartida    |
 

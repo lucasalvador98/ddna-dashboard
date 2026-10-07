@@ -103,3 +103,8 @@ bordes, radios) y **conservar la densidad** propia del tablero.
 - Contraste: `#ff8c00` sobre `#ffffff` no alcanza AA para texto pequeño; usarlo
   solo como relleno/borde, y texto sobre naranja en `#050506`.
 - Forma DJR no está licenciada/alojada: no intentar subirla.
+
+## Desestimado (2026-10-07)
+Las tareas que quedan abiertas en este documento no se van a hacer por ahora;
+queda como registro lo realizado. Ver odd/tasks/salud-2024-actualizacion.md para
+el trabajo vigente de Salud.

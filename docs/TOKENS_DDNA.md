@@ -9,16 +9,24 @@ que es el sistema de diseño **en producción**.
 
 ## Color
 
+Tokens **vigentes en el Tablero** (`src/app/globals.css`; ante cualquier diferencia, manda ese archivo):
+
 | Token | Valor | Uso |
 |---|---|---|
-| `--ddna-orange` | `#ff8c00` | primario / color de marca |
-| `--color-secondary` | `#050506` | casi-negro institucional |
-| `--color-background` | `#e9e7e7` | fondo general (gris cálido) |
-| `--color-surface` | `#ffffff` | superficie / tarjetas |
-| `--color-text` | `#050506` | texto principal |
-| `--color-muted` | `#5b5755` | texto secundario |
-| `--color-border` | `#050506` | borde |
-| `--color-focus` | `#165dff` | foco / accesibilidad |
+| `--ddna-amber` | `#ff8c00` | marca / primario (barra, acentos) |
+| `--ddna-orange` | `#c2410c` | naranja institucional quemado (series de gráfico) |
+| `--ddna-magenta` | `#9a3412` | Pobreza, alertas |
+| `--ddna-blue` / `--ddna-sky-blue` / `--ddna-info` | `#165dff` | Seguridad, links, foco |
+| `--ddna-navy` | `#050506` | sidebar, títulos |
+| `--ddna-terracotta` | `#c2410c` | Salud |
+| `--ddna-cream` | `#f5f0ec` | acentos claros |
+| `--ddna-background` | `#e9e7e7` | fondo general (gris cálido) |
+| `--ddna-outspace` | `#d8d5d3` | superficie secundaria |
+| `--ddna-text` | `#050506` | texto principal |
+| `--ddna-muted` | `#5b5755` | texto secundario |
+| `--ddna-border` | `#050506` | borde |
+
+Equivalencias del theme del portal (`--color-*`): `--color-secondary`/`--color-text`/`--color-border` `#050506` · `--color-background` `#e9e7e7` · `--color-surface` `#ffffff` · `--color-muted` `#5b5755` · `--color-focus` `#165dff`.
 
 ## Tipografía
 

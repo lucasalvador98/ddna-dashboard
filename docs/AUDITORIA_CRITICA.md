@@ -18,7 +18,7 @@
 - **Recomendación:** Mantener todo, pero ordenar como **dato → click → gráfico** y no como pared de 8 gráficos.
 
 ### Salud (P1) — Oficialista si va solo
-- **Qué hay:** DEIS (mortalidad infantil, 244 rows, última 2024) + vacunación. Última carga 2026-06-12 (stale).
+- **Qué hay:** DEIS ciclo 2024 (≈ **12.800 filas**: mortalidad, causas por capítulo CIE-10, fecundidad adolescente, mortalidad materna, supervivencia infantil) + vacunación CNV **cargada (1.399 filas, 2024-2025) pero todavía NO visible en `/salud`**.
 - **¿Oficialista?** Sí, si se muestra solo DEIS. No hay barómetro independiente para salud en Córdoba.
 - **¿Con qué se cruza?** Con `pobreza` (UCA) e `inversión` (presupuesto salud). Un pibe con mala salud + hacinamiento + sin obra social es el mismo perfil que pobreza multidimensional.
 - **Recomendación:** Mostrar DEIS tal cual, pero con banner crítico: “Dato oficial 2024. Para lectura crítica, cruzá con `Pobreza` y `Inversión`”. No ocultar, pero sincerar el vacío.

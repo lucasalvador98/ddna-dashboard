@@ -1,6 +1,6 @@
 # Guía de integración — Sub-pestaña "Pruebas PISA 2025" (Educación)
 
-> **Estado**: datos YA cargados en la base (104 filas, verificado). Falta solo la UI.
+> **Estado**: datos YA cargados en la base (104 filas, verificado) y **pestaña PISA implementada y cableada** (`src/app/educacion/educacion-charts.tsx` renderiza `<PisaTab>`; la página consulta `%PISA%`).
 > **Objetivo de esta guía**: que puedas construir la sub-pestaña sin volver a investigar nada.
 
 ---
@@ -39,7 +39,7 @@ const { data } = await supabase
 
 ## 2. Los 4 puntajes promedio (el dato estrella) — por región
 
-Unidades: **puntos** (escala PISA 0-500). Son las filas `... - Puntaje promedio`.
+Unidades: **puntos** (escala PISA centrada en 500; el rango observado va de 0 a ~1000). Son las filas `... - Puntaje promedio`.
 
 | Indicador | Córdoba | Nacional | OCDE |
 |---|---:|---:|---|
@@ -137,7 +137,7 @@ node scripts/load-pisa-2025.mjs            # dry-run
 node scripts/load-pisa-2025.mjs --apply    # escribe
 ```
 
-> **Ojo (bug ya corregido, documentado)**: la idempotencia depende del pre-check del script. La tabla `indicacion` no tiene índice único sobre la clave natural, así que si alguien borra el pre-check y re-corre, duplica. Para blindarlo de raíz hace falta una migración con `UNIQUE (indicador_nombre, periodo, region, fuente)`.
+> **Ojo (bug ya corregido, documentado)**: la idempotencia depende del pre-check del script. La tabla `indicadores` no tiene índice único sobre la clave natural, así que si alguien borra el pre-check y re-corre, duplica. Para blindarlo de raíz hace falta una migración con `UNIQUE (indicador_nombre, periodo, region, fuente)`.
 
 ---
 
@@ -148,4 +148,4 @@ node scripts/load-pisa-2025.mjs --apply    # escribe
 
 ---
 
-*Generado 2026-09-28. Datos cargados y verificados; UI pendiente.*
+*Generado 2026-09-28. Datos cargados y verificados; pestaña PISA implementada y cableada.*

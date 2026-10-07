@@ -1,7 +1,9 @@
 # Fuentes de Datos — DDNA Dashboard
 
-> **Última actualización**: 15 de Julio 2026 — Carga SENAF completada
-> **Estado actual**: 21,149 registros en Supabase (15 categorías)
+> **Última actualización**: 7 de Octubre 2026 — ciclo 2024 del DEIS cargado
+> **Estado actual**: ≈12.800 registros en la categoría salud; datos por ambiente en `PROJECT_STATUS.md`
+> (el conteo global del catálogo ya no se mantiene en este archivo: los ETL agregan por ciclo, y la
+> fuente de verdad de conteos es la tabla `indicadores`).
 
 ---
 
@@ -264,8 +266,8 @@ Mortalidad infantil TMI,Córdoba,8.5,‰,2022,Córdoba,"{""fuente"":""DEIS 2022"
 | ----------------------------------- | -------------------------- | ------------------ | ------ |
 | `scripts/update-indec-indicators.mjs` | INDEC / datos.gob.ar API  | API REST (series)  | ✅     |
 | `scripts/load-senaf-data.mjs`       | SENAF / desarrollo social  | CSV → Supabase     | ✅ (vía Wayback Machine) |
-| `scripts/load-deis-2024.mjs`        | DEIS Estadísticas Vitales  | PDF → SQL          | ✅     |
-| `scripts/load-vaccination-data.mjs` | DEIS vacunación            | CSV → Supabase     | ✅     |
+| `scripts/load-salud-2024.mjs`        | DEIS Estadísticas Vitales  | CSV/XLSX → SQL     | ✅ (ciclo 2024) |
+| `scripts/load-cnv-vacunacion.mjs`    | DEIS vacunación (CNV)      | PDF → SQL          | ✅ (cargado, sin cablear a la UI) |
 | `scripts/load-budget-*.mjs`         | Presupuesto                | CSV → Supabase     | ✅     |
 
 > Todos los scripts están en `scripts/` y usan `scripts/config.mjs` para la conexión a Supabase.

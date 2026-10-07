@@ -1,8 +1,8 @@
 # DDNA Dashboard — Estado del Proyecto
 
-> **Última actualización**: Septiembre 2026
-> **Producción**: http://179.199.132.207/ — VPS Hostinger, deploy Docker (`DEPLOY.md`)
-> **Legacy**: https://ddna-dashboard.vercel.app/ — Vercel, aún alimentado por Supabase Cloud
+> **Última actualización**: Octubre 2026
+> **Producción**: http://179.199.132.207/observatorio/ — VPS Hostinger, self-hosted (Caddy)
+> **Legacy**: https://ddna-dashboard.vercel.app/ — Vercel + Supabase Cloud; integración con GitHub desconectada el 2026-10-07, retiro pendiente
 > **Repo**: https://github.com/lucasalvador98/ddna-dashboard
 > **Supabase**: self-hosted en la VPS (API: http://179.199.132.207:8000). Cloud histórico `ppyyqrvirjqmfpqaqnxy` solo para el legacy y los scripts de migración (`CLOUD_*`)
 
@@ -27,7 +27,7 @@
   - `getCategoryOverview` — resumen de categoría
   - `getIndicatorBreakdown` — desglose por dimensión (edad, género, región)
   - `search_knowledge_base` — búsqueda vectorial en documentos
-- LLM: Groq (`llama-3.1-8b-instant`)
+- LLM: OpenAI (`gpt-4o-mini`)
 - Embeddings: OpenAI `text-embedding-3-small`
 - Modo herramienta + streaming de respuestas
 - Citas de fuentes con badges clickeables
@@ -72,19 +72,23 @@
 ### 7. Scripts ETL y Automatización
 - `scripts/update-indec-indicators.mjs` — TMI Córdoba y Nacional vía API Series (hasta 2024 ✅)
 - `scripts/load-senaf-data.mjs` — SENAF (Primeros Años, Dispositivos adolescentes, Línea 102)
-- `scripts/load-deis-2024.mjs` — DEIS Estadísticas Vitales
-- `scripts/load-vaccination-data.mjs` — Cobertura vacunal DEIS
+- `scripts/load-salud-2024.mjs` — DEIS Estadísticas Vitales 2024 (ciclo completo)
+- `scripts/load-cnv-vacunacion.mjs` — Cobertura vacunal CNV (PDFs 2024-2025)
+- `scripts/load-deis-2024.mjs` — DEIS mortalidad infantil (TMNEO)
+- `scripts/load-vaccination-data.mjs` — Cobertura vacunal histórica
 - `scripts/load-budget-*.mjs` — Presupuesto
 - `scripts/config.mjs` — Config compartida (conexión Supabase)
 
 ### 8. Deploy principal — VPS Hostinger (Docker)
-- **Producción**: http://179.199.132.207/
-- Docker Compose (`docker-compose.prod.yml`); `deploy.sh` en la VPS hace `git pull origin main` + build + up (ver `DEPLOY.md`)
+- **Producción**: http://179.199.132.207/observatorio/
+- Deploy vigente por el DevOps con `/home/deploy/ddna-infra/build-dashboard.py` (checkout limpio + `NEXT_PUBLIC_BASE_PATH=/observatorio`, tag `ddna-dashboard:observatorio-candidate`); Caddy `ddna-edge` enruta al servicio `dashboard:3000` del proyecto `ddna-controlled` (ver `DEPLOY_TOPOLOGY.md`)
+- `deploy.sh` está **congelado y roto** (colisión de puerto 80, sin `NEXT_PUBLIC_BASE_PATH` → 404 en `/observatorio/*`, tag sin uso) — no usarlo
+- La VPS corre la imagen `e3c2229b` (build `4a9a9d3`), **2 commits atrás** de `main` (`61f304c`)
 - Supabase **self-hosted** en la misma VPS
 
 ### 9. Deploy legacy — Vercel (decisión de retiro pendiente)
 - **Legacy**: https://ddna-dashboard.vercel.app/ — todavía alimentado por Supabase Cloud (`ppyyqrvirjqmfpqaqnxy`)
-- Build automático en push a main
+- Integración nativa de Vercel con GitHub **desconectada el 2026-10-07**: ya no hay build automático en push
 - Variables de entorno configuradas: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY`
 
 ---
@@ -98,7 +102,7 @@
 | Estilos | Tailwind CSS v4 |
 | Base de datos | Supabase self-hosted (PostgreSQL + pgvector) en la VPS |
 | Embeddings | OpenAI `text-embedding-3-small` |
-| LLM | Groq (`llama-3.1-8b-instant`) |
+| LLM | OpenAI (`gpt-4o-mini`) |
 | Charts | Recharts |
 | Deploy | VPS Hostinger (Docker) + legacy Vercel |
 
@@ -107,27 +111,11 @@
 ## Supabase — Schema
 
 ### Tabla `indicadores`
-- **21,149 registros** en 15 categorías
+- Categoría `salud` ≈ **12.800 filas** tras el ciclo DEIS 2024 (defunciones 2024, causas por capítulo CIE-10, top-10 causas, fecundidad adolescente 2013-2024 × 25 regiones, mortalidad materna 2000-2024 × 25, supervivencia infantil TMI/neonatal/posneonatal/1-4/TMM5 2001-2024 × 25)
+- CNV vacunación: **1.399 filas (2024-2025)** cargadas pero **NO visibles** todavía en `/salud` (nombres legacy en `src/lib/indicator-names.ts`)
+- Los volúmenes de otras categorías no fueron re-medidos en esta revisión
 - Columnas: `id`, `indicador_nombre`, `categoria`, `valor`, `unidad`, `periodo`, `region`, `desglose` (JSONB), `fuente`, `ultima_actualizacion`, `activo`
 - RLS: select público, insert/update/delete admin
-
-| Categoría           | Registros |
-|---------------------|-----------|
-| pobreza             | 15,977    |
-| educacion           | 1,055     |
-| anuario_educacion   | 785       |
-| inversion           | 725       |
-| empleo              | 709       |
-| canastas            | 500       |
-| senaf               | 382       |
-| demografia          | 361       |
-| salud               | 244       |
-| encuestas_2024      | 131       |
-| seguridad           | 129       |
-| aprender            | 80        |
-| deis                | 36        |
-| salud_adolescente   | 32        |
-| consumo             | 3         |
 
 ### Tabla `repositorio`
 - 16 archivos con metadata
@@ -147,7 +135,7 @@
 
 | Recurso | URL |
 |---------|-----|
-| Dashboard (prod) | http://179.199.132.207/ |
+| Dashboard (prod) | http://179.199.132.207/observatorio/ |
 | Dashboard (legacy) | https://ddna-dashboard.vercel.app/ |
 | GitHub | https://github.com/lucasalvador98/ddna-dashboard |
 | Supabase (Cloud legacy) | https://supabase.com/dashboard/project/ppyyqrvirjqmfpqaqnxy |
@@ -168,12 +156,11 @@ npm run dev
 ### Variables de entorno requeridas
 
 ```env
-# Self-hosted — producción (ver DEPLOY.md)
+# Self-hosted — producción (ver DEPLOY_TOPOLOGY.md)
 NEXT_PUBLIC_SUPABASE_URL=http://179.199.132.207:8000
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 SUPABASE_SERVICE_ROLE_KEY=eyJ...
 OPENAI_API_KEY=sk-...
-GROQ_API_KEY=gsk_...
 INTERNAL_API_SECRET=...       # para /api/admin/backfill
 # Supabase Cloud — solo legacy Vercel y scripts de migración (scripts/*.mjs)
 CLOUD_SUPABASE_URL=https://ppyyqrvirjqmfpqaqnxy.supabase.co
@@ -190,7 +177,7 @@ CLOUD_SUPABASE_SERVICE_ROLE_KEY=eyJ...
 | Visualización | Recharts | Ligero, React-native, suficiente para KPIs |
 | Base de datos | Supabase (PostgreSQL) | Auth, storage, API REST, pgvector |
 | Vector DB | pgvector (Supabase) | Sin infraestructura extra, misma DB |
-| LLM | Groq (Llama 3.1 8B) | Rápido, económico, buena calidad en español |
+| LLM | OpenAI gpt-4o-mini | Único proveedor en el código; rápido y económico |
 | Embeddings | OpenAI text-embedding-3-small | 1536 dims, $0.02/1M tokens |
 | RLS | Público lectura, admin escritura | Seguridad por defecto, sin auth UI |
 | N8N | Eliminado | Reemplazado por `/api/admin/backfill` |

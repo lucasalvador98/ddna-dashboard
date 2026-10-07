@@ -1,6 +1,6 @@
 # DDNA Dashboard — Roadmap
 
-> **Última actualización**: Agosto 2026
+> **Última actualización**: Octubre 2026
 
 ---
 
@@ -14,12 +14,12 @@
 - [x] Identidad visual DDNA (paleta institucional, tipografía del portal, logos oficiales)
 - [x] Mapas interactivos con Leaflet (`/geo`)
 - [x] Informe Ejecutivo (`/ejecutivo`) con generación de presentaciones
-- [x] Deploy en Vercel con build automático
+- [x] Deploy en Vercel (legacy) — integración con GitHub **desconectada el 2026-10-07**; retiro pendiente. Producción vigente: http://179.199.132.207/observatorio/
 
 ### RAG Agent (Indicadores)
 - [x] `/api/repositorio/chat` — agente con tools para consultar indicadores
 - [x] 6 tools de indicadores: listar, último valor, serie temporal, overview, breakdown, search_knowledge_base
-- [x] Integración con Groq (Llama 3.1 8B) como LLM + fallback a OpenAI
+- [x] LLM único: OpenAI `gpt-4o-mini` (function calling) + embeddings OpenAI `text-embedding-3-small`
 - [x] Chat UI en `/repositorio/chat` con fuentes citadas y badges clickeables
 
 ### Repositorio Documental
@@ -110,7 +110,7 @@
 ## 🔲 Pendiente
 
 ### Prioridad Alta
-1. **GROQ_API_KEY en Vercel** — la variable no está configurada en producción, el chat usa OpenAI como fallback
+1. **Deploy del último build a la VPS** — la VPS corre la imagen `e3c2229b` (build `4a9a9d3`), **2 commits atrás** de `main` (`61f304c`); requiere el build del DevOps (`build-dashboard.py`, ver `DEPLOY_TOPOLOGY.md`)
 2. **Testear chat en producción** — verificar que `/repositorio/chat` funciona con datos reales
 
 ### Prioridad Media
