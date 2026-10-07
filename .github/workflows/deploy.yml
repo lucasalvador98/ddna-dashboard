@@ -1,0 +1,60 @@
+name: Deploy manual
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: 'Full 40-character SHA of current main with successful CI and image publication'
+        required: true
+        type: string
+      devops_notified:
+        description: 'DevOps was notified BEFORE this Dashboard deploy (notice, not approval)'
+        required: true
+        type: boolean
+        default: false
+      devops_notice:
+        description: 'Existing notice reference/date/channel; do not send a message here'
+        required: true
+        type: string
+permissions:
+  contents: read
+  actions: read
+  packages: read
+concurrency:
+  group: production-dashboard
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    environment:
+      name: production
+      url: http://179.199.132.207/observatorio/
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Require prior DevOps notice
+        env:
+          NOTIFIED: ${{ inputs.devops_notified }}
+          NOTICE: ${{ inputs.devops_notice }}
+        run: test "$NOTIFIED" = true && test -n "$NOTICE"
+      - name: Require main tip and successful checks
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SELECTED_REVISION: ${{ inputs.revision }}
+        run: python3 deploy/gate.py
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Deploy only dashboard through restricted SSH
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SELECTED_REVISION: ${{ inputs.revision }}
+          RELEASE_IMAGE: ghcr.io/lucasalvador98/ddna-dashboard
+          VPS_SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+        run: python3 deploy/send.py

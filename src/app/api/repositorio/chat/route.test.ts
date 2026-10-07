@@ -1,7 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+const { mockAdminAuth } = vi.hoisted(() => ({ mockAdminAuth: vi.fn() }));
+vi.mock('@/lib/auth-guard', () => ({ checkAdminAuth: mockAdminAuth }));
+
 describe('POST /api/repositorio/chat', () => {
   beforeEach(() => {
+    mockAdminAuth.mockReset();
+    mockAdminAuth.mockResolvedValue({ authorized: true, user: { id: 'test-admin', email: 'admin@example.test' } });
     vi.stubEnv('OPENAI_API_KEY', 'sk-test-key');
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://test.supabase.co');
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', 'test-key');
@@ -60,4 +65,14 @@ describe('POST /api/repositorio/chat', () => {
     const data = await res.json();
     expect(data.error).toContain('OPENAI_API_KEY');
   });
+  it('preserves the admin guard before validating the request', async () => {
+    const { NextResponse } = await import('next/server');
+    mockAdminAuth.mockResolvedValueOnce({ authorized: false, response: NextResponse.json({ error: 'No autenticado' }, { status: 401 }) });
+    vi.resetModules();
+    const { POST } = await import('./route');
+    const res = await POST(new Request('http://localhost:3000/api/repositorio/chat', { method: 'POST', body: '{}' }));
+    expect(res.status).toBe(401);
+    expect(mockAdminAuth).toHaveBeenCalledOnce();
+  });
+
 });

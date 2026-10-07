@@ -110,3 +110,7 @@ y se avisa al DevOps antes de actuar.
 ---
 
 *Última actualización: 2026-09-28 — por acordada DevOps↔Tablero tras el rollout multi-sitio (Caddy).*
+
+## Propuesta CI/CD revisable — 7 de octubre de 2026
+
+Ver [deploy/README.md](deploy/README.md). CI de PR y publicación GHCR trazable están propuestos; deploy sigue solo manual con constancia de aviso previo a DevOps. No se instaló el receptor nuevo, no se activó la imagen preparada ni se modificó la topología. La regla de aviso sigue vigente y no equivale a aprobación explícita del DevOps. Las imágenes y overrides reales se consultan en runtime: los reportes históricos no prueban el SHA activo.

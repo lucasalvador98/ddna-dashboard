@@ -10,13 +10,12 @@ node_modules
 
 # Environment files (secrets)
 .env*
-!.env.production.example
 
 # Tests and coverage
 e2e
 coverage
 *.test.*
-*.spec.
+*.spec.*
 
 # Documentation
 docs
@@ -39,3 +38,9 @@ test-results
 # Misc
 *.log
 npm-debug.log*
+
+# Operational CI files and Python caches are not app build inputs
+deploy
+.github
+__pycache__
+*.pyc

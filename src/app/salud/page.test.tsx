@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 
 // ─── Deferred promises for controlling Supabase responses ─────────
@@ -25,18 +25,24 @@ function createDeferred() {
   return promise;
 }
 
-const mockSupabaseChain = {
-  select: vi.fn().mockReturnThis(),
-  eq: vi.fn().mockReturnThis(),
-  order: vi.fn().mockImplementation(() => createDeferred()),
-};
+function createMockSupabaseChain() {
+  let natalidad = false;
+  return {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    order: vi.fn().mockReturnThis(),
+    in: vi.fn().mockImplementation(function (this: unknown) {
+      natalidad = true;
+      return this;
+    }),
+    range: vi.fn().mockImplementation((offset: number) =>
+      natalidad || offset > 0 ? Promise.resolve({ data: [], error: null }) : createDeferred()
+    ),
+  };
+}
 
-// Mock @supabase/supabase-js instead of @/lib/supabase — the page now
-// uses createClient directly (Server Component pattern)
 vi.mock('@supabase/supabase-js', () => ({
-  createClient: vi.fn(() => ({
-    from: vi.fn(() => mockSupabaseChain),
-  })),
+  createClient: vi.fn(() => ({ from: vi.fn(() => createMockSupabaseChain()) })),
 }));
 
 // Mock recharts
@@ -112,7 +118,11 @@ describe('SaludPage — Nacimientos KPI', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     queryCount = 0;
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://test.supabase.co');
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', 'test-key');
   });
+
+  afterEach(() => vi.unstubAllEnvs());
 
   it('should show empty state when no data returned', async () => {
     const pagePromise = SaludPage();
