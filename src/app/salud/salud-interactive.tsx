@@ -7,9 +7,11 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   Legend,
   Line,
   LineChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -889,6 +891,364 @@ export function CausasDeMuerte({ capitulosData, gruposEdadData }: CausasDeMuerte
 export interface MortalidadMaternaProps {
   /** RMM 2000-2024: { periodo, Córdoba, Nacional }, con null donde no hay dato. */
   data: ComparativaRow[];
+}
+
+// ══════════════════════════════════════════════════════════════════
+// Sección "Cobertura CNV (2024-2025)" — cobertura vacunal por jurisdicción
+// del Calendario Nacional de Vacunación (ETL scripts/load-cnv-vacunacion.mjs).
+// NO reemplaza al gráfico legacy de 2015-2024: ese sigue arriba con su propia
+// serie y su fuente.
+// ══════════════════════════════════════════════════════════════════
+
+/** Umbral de inmunidad de rebaño: el mismo 95% que usa el gráfico legacy. */
+const CNV_UMBRAL_REBANO = 95;
+
+/**
+ * Paleta de la sección CNV. `umbral` es el gris del marcador del 95% del gráfico
+ * legacy y `bajo95` (--ddna-error) es el BORDE de alerta: el relleno sigue
+ * codificando la comparación que pide la sección (jurisdicción o año), y el
+ * borde marca el umbral sin pisar esa codificación.
+ */
+const CNV_COLORS = {
+  cordoba: '#C2410C',
+  nacion: '#165DFF',
+  anioAnterior: '#B3541E',
+  anioActual: '#C2410C',
+  bajo95: '#A11F1F',
+  umbral: '#5B5755',
+} as const;
+
+/** Cobertura de las dos jurisdicciones para una vacuna, en el año comparado. */
+export interface CnvComparacionBarra {
+  /** Rótulo de la vacuna (con la dosis): clave del eje de categorías. */
+  vacuna: string;
+  /** Cobertura de Córdoba (%), o null si el PDF de ese año no publica la fila. */
+  'Córdoba': number | null;
+  /** Cobertura del total país (en la DB, region = 'Total'), o null si no hay fila. */
+  'Nación': number | null;
+}
+
+/** Mayor cobertura de Córdoba por encima del 100% (existe y no se corrige). */
+export interface CnvExcesoCordoba {
+  vacuna: string;
+  periodo: string;
+  valor: number;
+}
+
+export interface CoberturaCnvProps {
+  /** Una barra por vacuna, ya ordenada por la cobertura de Córdoba (desc). */
+  comparacion: CnvComparacionBarra[];
+  /** Año de la comparación Córdoba vs Nación (el más reciente cargado), o null. */
+  anioComparacion: string | null;
+  /** Años de la comparación interanual de Córdoba, del más viejo al más nuevo. */
+  aniosSerie: string[];
+  /** Una fila por vacuna con una clave por año de `aniosSerie` (valor de Córdoba). */
+  cordobaPorAnio: ComparativaRow[];
+  /** Fuente declarada por el ETL para el año de comparación. */
+  fuenteComparacion: string;
+  /** Fuentes declaradas por el ETL para los años de la serie interanual. */
+  fuenteSerie: string;
+  /** Ejemplo de cobertura >100% de Córdoba, para la nota (null si no hay). */
+  excesoCordoba: CnvExcesoCordoba | null;
+}
+
+/** `true` sólo con un valor numérico por debajo del umbral (null = sin dato). */
+const bajoUmbral = (valor: unknown): boolean =>
+  typeof valor === 'number' && valor < CNV_UMBRAL_REBANO;
+
+/** Celdas de una serie: relleno de la serie y borde de alerta si está bajo el umbral. */
+const celdasCnv = (filas: readonly unknown[], clave: string, fill: string) =>
+  filas.map((fila, index) => {
+    const bajo = bajoUmbral((fila as Record<string, unknown>)[clave]);
+    return (
+      <Cell
+        key={`${clave}-${index}`}
+        fill={fill}
+        stroke={bajo ? CNV_COLORS.bajo95 : 'none'}
+        strokeWidth={bajo ? 1.5 : 0}
+      />
+    );
+  });
+
+/**
+ * Tick de dos líneas del eje de vacunas: el nombre de la vacuna y, debajo, la
+ * dosis/edad. Sin esto, rótulos como "Virus Sincicial Respiratorio (**) - Única
+ * Dosis (Embarazadas)" no entran en el ancho del eje y se recortan.
+ */
+function CnvTick({ x, y, payload }: { x?: number; y?: number; payload?: { value?: unknown } }) {
+  const texto = String(payload?.value ?? '');
+  const corte = texto.indexOf(' - ');
+  const vacuna = corte === -1 ? texto : texto.slice(0, corte);
+  const dosis = corte === -1 ? null : texto.slice(corte + 3);
+  return (
+    <text x={x} y={y} textAnchor="end" fill="#050506" fontSize={11}>
+      <tspan x={x} dy={dosis === null ? '0.35em' : '-0.3em'}>
+        {vacuna}
+      </tspan>
+      {dosis !== null && (
+        <tspan x={x} dy="1.1em" fill="#5B5755" fontSize={10}>
+          {dosis}
+        </tspan>
+      )}
+    </text>
+  );
+}
+
+/** Alto del área de trazado: 26 px por vacuna, con piso para listas cortas. */
+const altoCnv = (filas: number): number => Math.max(320, filas * 26 + 60);
+
+/** Dominio del eje de valores: arranca en 0 y nunca recorta un >100% real. */
+const dominioCnv = (valores: readonly unknown[]): [number, number] => {
+  const numericos = valores.filter((valor): valor is number => typeof valor === 'number');
+  const maximo = numericos.length > 0 ? Math.max(...numericos) : 100;
+  return [0, Math.max(100, Math.ceil(maximo / 10) * 10)];
+};
+
+/** Referencia del umbral, idéntica en los dos gráficos de la sección. */
+function CnvUmbral() {
+  return (
+    <ReferenceLine
+      x={CNV_UMBRAL_REBANO}
+      stroke={CNV_COLORS.umbral}
+      strokeDasharray="8 4"
+      label={{
+        value: '95% inmunidad de rebaño',
+        position: 'top',
+        fill: CNV_COLORS.umbral,
+        fontSize: 11,
+      }}
+    />
+  );
+}
+
+/** Leyenda propia: recharts pinta la leyenda con el fill de la serie, no con las celdas. */
+function CnvCaption({ series }: { series: readonly { label: string; color: string }[] }) {
+  return (
+    <div className="mx-6 mb-6 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-text-primary font-body">
+      {series.map((serie) => (
+        <span key={serie.label} className="flex items-center gap-2">
+          <span className={`h-3 w-6 rounded-sm ${serie.color}`} aria-hidden />
+          {serie.label}
+        </span>
+      ))}
+      <span className="flex items-center gap-2">
+        <span className="h-3 w-6 rounded-sm border-2 border-[#A11F1F] bg-white" aria-hidden />
+        Cobertura &lt; 95%
+      </span>
+      <span className="flex items-center gap-2">
+        <span className="h-0 w-6 border-t-2 border-dashed border-[#5B5755]" aria-hidden />
+        95% — inmunidad de rebaño
+      </span>
+    </div>
+  );
+}
+
+/**
+ * Sección "Cobertura CNV (2024-2025)":
+ *
+ * A) Córdoba vs total país, una barra por vacuna, último año del CNV;
+ * B) Córdoba año contra año, una barra por vacuna y por año.
+ *
+ * Las dos usan barras horizontales agrupadas: es la única codificación que deja
+ * un renglón por vacuna (32 como máximo), conserva el largo como magnitud
+ * (mismo eje 0-100) y no superpone 32 pendientes en un gráfico de líneas. Las
+ * celdas sin fila en la base llegan como null y no se dibujan: no se rellenan
+ * con 0.
+ */
+export function CoberturaCnv({
+  comparacion,
+  anioComparacion,
+  aniosSerie,
+  cordobaPorAnio,
+  fuenteComparacion,
+  fuenteSerie,
+  excesoCordoba,
+}: CoberturaCnvProps) {
+  if (comparacion.length === 0 && cordobaPorAnio.length === 0) return null;
+
+  const anioReciente = aniosSerie[aniosSerie.length - 1] ?? null;
+  const dominioComparacion = dominioCnv(
+    comparacion.flatMap((fila) => [fila['Córdoba'], fila['Nación']])
+  );
+  const dominioSerie = dominioCnv(cordobaPorAnio.flatMap((fila) => aniosSerie.map((a) => fila[a])));
+
+  const tooltipCnv = (
+    <Tooltip
+      contentStyle={TOOLTIP_STYLE}
+      formatter={(value, name) => [
+        value === null || value === undefined ? '—' : `${Number(value).toFixed(1)}%`,
+        name,
+      ]}
+    />
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Gráfico A — Córdoba vs total país, último año del CNV */}
+      {comparacion.length > 0 && (
+        <ChartWithTable
+          title={`Cobertura CNV por vacuna — Córdoba vs Nación${
+            anioComparacion ? ` (${anioComparacion})` : ''
+          }`}
+          subtitle="Una barra por vacuna, ordenadas por la cobertura de Córdoba. El borde rojo marca las coberturas por debajo del 95% (inmunidad de rebaño)."
+          color="terracotta"
+          fuente={fuenteComparacion}
+          data={comparacion}
+          dataKey="Córdoba"
+          xAxisKey="vacuna"
+        >
+          <div>
+            <ResponsiveContainer width="100%" height={altoCnv(comparacion.length)}>
+              <BarChart
+                data={comparacion}
+                layout="vertical"
+                margin={{ top: 20, right: 40, left: 10, bottom: 10 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" horizontal={false} />
+                <XAxis
+                  type="number"
+                  domain={dominioComparacion}
+                  tick={{ fill: '#050506', fontSize: 12 }}
+                  tickFormatter={(v) => `${v}%`}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="vacuna"
+                  width={230}
+                  reversed
+                  interval={0}
+                  tick={<CnvTick />}
+                />
+                {tooltipCnv}
+                <Legend />
+                <CnvUmbral />
+                <Bar dataKey="Córdoba" name="Córdoba" fill={CNV_COLORS.cordoba}>
+                  {celdasCnv(comparacion, 'Córdoba', CNV_COLORS.cordoba)}
+                </Bar>
+                <Bar dataKey="Nación" name="Nación (total país)" fill={CNV_COLORS.nacion}>
+                  {celdasCnv(comparacion, 'Nación', CNV_COLORS.nacion)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <CnvCaption
+            series={[
+              { label: 'Córdoba', color: 'bg-[#C2410C]' },
+              { label: 'Nación (total país)', color: 'bg-[#165DFF]' },
+            ]}
+          />
+        </ChartWithTable>
+      )}
+
+      {/* Gráfico B — Córdoba año contra año */}
+      {cordobaPorAnio.length > 0 && (
+        <ChartWithTable
+          title={`Cobertura CNV — Córdoba ${aniosSerie.join(' vs ')}`}
+          subtitle="Una barra por vacuna y por año (Córdoba). El borde rojo marca las coberturas por debajo del 95% (inmunidad de rebaño)."
+          color="magenta"
+          fuente={fuenteSerie}
+          data={cordobaPorAnio}
+          dataKey={anioReciente ?? 'vacuna'}
+          xAxisKey="vacuna"
+        >
+          <div>
+            <ResponsiveContainer width="100%" height={altoCnv(cordobaPorAnio.length)}>
+              <BarChart
+                data={cordobaPorAnio}
+                layout="vertical"
+                margin={{ top: 20, right: 40, left: 10, bottom: 10 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" horizontal={false} />
+                <XAxis
+                  type="number"
+                  domain={dominioSerie}
+                  tick={{ fill: '#050506', fontSize: 12 }}
+                  tickFormatter={(v) => `${v}%`}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="vacuna"
+                  width={230}
+                  reversed
+                  interval={0}
+                  tick={<CnvTick />}
+                />
+                {tooltipCnv}
+                <Legend />
+                <CnvUmbral />
+                {aniosSerie.map((anio) => (
+                  <Bar
+                    key={anio}
+                    dataKey={anio}
+                    name={anio}
+                    fill={
+                      anio === anioReciente ? CNV_COLORS.anioActual : CNV_COLORS.anioAnterior
+                    }
+                  >
+                    {celdasCnv(
+                      cordobaPorAnio,
+                      anio,
+                      anio === anioReciente ? CNV_COLORS.anioActual : CNV_COLORS.anioAnterior
+                    )}
+                  </Bar>
+                ))}
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <CnvCaption
+            series={aniosSerie.map((anio) => ({
+              label: anio,
+              color: anio === anioReciente ? 'bg-[#C2410C]' : 'bg-[#B3541E]',
+            }))}
+          />
+        </ChartWithTable>
+      )}
+
+      {/* Nota metodológica — la cobertura >100% es real y no se corrige */}
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-5">
+        <h3 className="font-accent text-sm text-navy font-medium mb-2 flex items-center gap-2">
+          <Info className="w-4 h-4 text-magenta" />
+          Nota metodológica
+        </h3>
+        <div className="font-body text-sm text-text-primary leading-relaxed space-y-3">
+          <p>
+            La serie sale de los <strong>PDF de cobertura del Calendario Nacional de
+            Vacunación</strong> (Ministerio de Salud de la Nación), parseados por{' '}
+            <code>scripts/load-cnv-vacunacion.mjs</code>: una fila por vacuna × jurisdicción × año.
+            La cobertura es <strong>dosis aplicadas / población objetivo × 100</strong>; la
+            población objetivo y las dosis aplicadas quedan en el <code>desglose</code> de cada
+            fila de la base, para poder auditar el cociente.
+          </p>
+          <p>
+            <strong>Los valores por encima de 100% no son un error y no se corrigen</strong>: aparecen
+            cuando la población objetivo estimada es menor que las dosis efectivamente aplicadas
+            (pasa en varias jurisdicciones).{' '}
+            {excesoCordoba ? (
+              <>
+                En el período cargado, Córdoba supera el 100% en{' '}
+                <strong>{excesoCordoba.vacuna}</strong> {excesoCordoba.periodo} con{' '}
+                <strong>{decimal(excesoCordoba.valor, 1)}%</strong>.
+              </>
+            ) : (
+              <>En el período cargado, Córdoba no registra valores por encima de 100%.</>
+            )}
+          </p>
+          <p>
+            El <strong>95%</strong> es la referencia de <strong>inmunidad de rebaño</strong> que ya
+            usa el gráfico histórico de esta pantalla (la línea gris punteada); las barras con borde
+            rojo están por debajo. Cuando el PDF de un año no publica la fila de una vacuna, la
+            celda queda vacía y no se dibuja: <strong>no se rellena con 0</strong>, porque 0% de
+            cobertura es un valor clínico y no un dato faltante.
+          </p>
+          <p className="text-xs text-muted-foreground">
+            El total país usa la jurisdicción <em>Total</em> del CNV (no es una provincia). Los
+            asteriscos de <em>Fiebre Amarilla (*)</em> y <em>Virus Sincicial Respiratorio (**)</em>{' '}
+            son marcas al pie del PDF original que el ETL conserva dentro del nombre del indicador.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 /**

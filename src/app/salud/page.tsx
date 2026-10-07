@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { Heart, Syringe, AlertCircle, Info, Baby, Activity } from 'lucide-react';
 import { parseDesglose } from '@/lib/parse-desglose';
-import { INDICATOR_NAMES } from '@/lib/indicator-names';
+import { INDICATOR_NAMES, CNV_VACUNA_NOMBRES, cnvVacunaEtiqueta } from '@/lib/indicator-names';
 import { SectionHeader } from '@/components/section-header';
 import { EmptyState } from '@/components/empty-state';
 import { KpiCard } from '@/components/kpi-card';
@@ -13,6 +13,7 @@ import {
   SupervivenciaInfantil,
   CausasDeMuerte,
   MortalidadMaterna,
+  CoberturaCnv,
 } from './salud-interactive';
 import type { Indicador as DashboardIndicador } from '@/lib/use-dashboard-data';
 import { hasPublicSupabaseConfig } from '@/lib/runtime-config';
@@ -53,9 +54,13 @@ const NOMBRES_NATALIDAD_FECUNDIDAD: readonly string[] = [
 
 // ─── Familias de `categoria = 'salud'` que la pantalla consume ────
 // Lista EXPLÍCITA de `indicador_nombre`: reemplaza al fetch de la categoría
-// entera (~12.800 filas, con la vacunación por jurisdicción y los 22 capítulos ×
-// 27 jurisdicciones que la pantalla no muestra). Lo que no esté acá no llega al
+// entera (~12.800 filas, con las 22 causas de muerte × 27 jurisdicciones y las
+// demás familias que la pantalla no muestra). Lo que no esté acá no llega al
 // render. `salud_adolescente` sigue completo: son 4 indicadores.
+// La familia CNV (cobertura vacunal por jurisdicción, 2024-2025) se agrega a
+// esta misma lista en vez de pedirse aparte: son 1.399 filas más en un fetch que
+// ya pagina de a 1.000, así que el request extra no ahorraría round-trips (los
+// bytes son los mismos) y sí agregaría otra consulta a la pantalla.
 const MORTALIDAD_INFANTIL_NOMBRES: readonly string[] = [
   INDICATOR_NAMES.TMI_CBA,
   INDICATOR_NAMES.TMI_NAC,
@@ -81,6 +86,21 @@ const VACUNACION_NOMBRES: readonly string[] = [
   INDICATOR_NAMES.DPT4_QUINTIL_1,
   INDICATOR_NAMES.DPT4_QUINTIL_5,
 ];
+
+// ─── Cobertura CNV (Calendario Nacional de Vacunación, 2024-2025) ────
+// El ETL (`scripts/load-cnv-vacunacion.mjs`) carga una fila por vacuna ×
+// jurisdicción × año, con `region` = provincia y 'Total' para el total país.
+// Hay celdas sin fila (vacuna que el PDF de ese año no publica): se omiten, no
+// se rellenan con 0.
+const CNV_REGION_CORDOBA = 'Córdoba';
+/** El ETL guarda el total país como jurisdicción 'Total', no 'Nacional'. */
+const CNV_REGION_TOTAL = 'Total';
+/**
+ * Regiones que no son provincias y nunca entran en una comparación entre
+ * jurisdicciones. 'Total' NO va acá: es la referencia país del CNV (la serie
+ * "Nación" la lee con `CNV_REGION_TOTAL`), no una provincia más.
+ */
+const CNV_REGIONES_NO_PROVINCIA: readonly string[] = ['NA', 'Sin Información'];
 
 // Supervivencia infantil — boletín 174. Los nombres los fija el ETL
 // (`scripts/load-salud-2024.mjs`) y son DISTINTOS de la familia legacy
@@ -132,6 +152,7 @@ const NOMBRE_MATERNA = 'Razón de mortalidad materna';
 const NOMBRES_SALUD: readonly string[] = [
   ...MORTALIDAD_INFANTIL_NOMBRES,
   ...VACUNACION_NOMBRES,
+  ...CNV_VACUNA_NOMBRES,
   ...Object.values(SUPERVIVENCIA_NOMBRES),
   ...CAPITULOS_CIE10.map((capitulo) => `${PREFIJO_CAPITULO}${capitulo}`),
   ...GRUPOS_EDAD_DEFUNCIONES.map((grupo) => `${PREFIJO_GRUPO_EDAD_DEFUNCIONES}${grupo}`),
@@ -393,6 +414,99 @@ export default async function SaludPage() {
 
   const vaccinationChartData = buildVaccinationChart();
   const quintilChartData = buildQuintilChart();
+
+  // ─── Cobertura CNV (2024-2025, por vacuna) ────────────────────
+  // Una fila por vacuna × jurisdicción × año; `region` es la provincia o
+  // 'Total' (total país). Una celda sin fila NO se rellena con 0: 0% de
+  // cobertura es un valor clínico, no un dato faltante.
+  const cnvNombres = new Set<string>(CNV_VACUNA_NOMBRES);
+  const esFilaCnv = (d: DashboardIndicador): boolean =>
+    d.indicador_nombre !== null &&
+    cnvNombres.has(d.indicador_nombre) &&
+    !CNV_REGIONES_NO_PROVINCIA.includes(d.region ?? '');
+
+  const cnvRows = data.filter(esFilaCnv).map((d) => ({
+    nombre: d.indicador_nombre as string,
+    region: d.region ?? '',
+    periodo: String(d.periodo),
+    valor: d.valor === null || !Number.isFinite(Number(d.valor)) ? null : Number(d.valor),
+    fuente: d.fuente,
+  }));
+
+  const cnvValor = (nombre: string, region: string, periodo: string): number | null =>
+    cnvRows.find((r) => r.nombre === nombre && r.region === region && r.periodo === periodo)
+      ?.valor ?? null;
+
+  /** Fuente declarada por el ETL para un conjunto de años (sin duplicados). */
+  const cnvFuente = (periodos: readonly string[]): string =>
+    [
+      ...new Set(
+        cnvRows
+          .filter((r) => periodos.includes(r.periodo) && r.fuente)
+          .map((r) => String(r.fuente))
+      ),
+    ]
+      .sort()
+      .join(' · ');
+
+  // Años cargados, del más viejo al más nuevo: el último es el de la comparación
+  // Córdoba vs Nación; los dos últimos, el de la comparación interanual.
+  const cnvAnios = [...new Set(cnvRows.map((r) => r.periodo))].sort(
+    (a, b) => Number(a) - Number(b)
+  );
+  const cnvAnioComparacion = cnvAnios[cnvAnios.length - 1] ?? null;
+  const cnvAniosSerie = cnvAnios.slice(-2);
+
+  // Una barra por vacuna, ordenada por la cobertura de Córdoba (los huecos al
+  // final). Una vacuna entra si al menos una de las dos jurisdicciones tiene fila.
+  const cnvComparacion = CNV_VACUNA_NOMBRES.map((nombre) => ({
+    vacuna: cnvVacunaEtiqueta(nombre),
+    'Córdoba': cnvAnioComparacion
+      ? cnvValor(nombre, CNV_REGION_CORDOBA, cnvAnioComparacion)
+      : null,
+    'Nación': cnvAnioComparacion ? cnvValor(nombre, CNV_REGION_TOTAL, cnvAnioComparacion) : null,
+  }))
+    .filter((fila) => fila['Córdoba'] !== null || fila['Nación'] !== null)
+    .sort((a, b) => {
+      const cordobaA = a['Córdoba'];
+      const cordobaB = b['Córdoba'];
+      if (cordobaA === null && cordobaB === null) return 0;
+      if (cordobaA === null) return 1;
+      if (cordobaB === null) return -1;
+      return cordobaB - cordobaA;
+    });
+
+  // Comparación interanual de Córdoba: una fila por vacuna con una clave por año
+  // (recharts necesita claves planas). Mismo orden que la comparación, para que
+  // las dos tarjetas se lean en espejo.
+  const cnvOrdenCordoba = new Map<string, number>(
+    cnvComparacion.map((fila, index): [string, number] => [fila.vacuna, index])
+  );
+  const cnvCordobaPorAnio: Record<string, unknown>[] = CNV_VACUNA_NOMBRES.map((nombre) => {
+    const fila: Record<string, unknown> = { vacuna: cnvVacunaEtiqueta(nombre) };
+    for (const anio of cnvAniosSerie) {
+      fila[anio] = cnvValor(nombre, CNV_REGION_CORDOBA, anio);
+    }
+    return fila;
+  })
+    .filter((fila) => cnvAniosSerie.some((anio) => fila[anio] !== null))
+    .sort(
+      (a, b) =>
+        (cnvOrdenCordoba.get(String(a.vacuna)) ?? Number.MAX_SAFE_INTEGER) -
+        (cnvOrdenCordoba.get(String(b.vacuna)) ?? Number.MAX_SAFE_INTEGER)
+    );
+
+  // Coberturas >100% de Córdoba: existen, no se corrigen y la nota metodológica
+  // usa la mayor como ejemplo. Si no hay ninguna, la nota lo dice igual.
+  const cnvExcesoCordoba = (() => {
+    const filas = cnvRows
+      .filter((r) => r.region === CNV_REGION_CORDOBA && r.valor !== null && r.valor > 100)
+      .sort((a, b) => (b.valor ?? 0) - (a.valor ?? 0));
+    const mayor = filas[0];
+    return mayor && mayor.valor !== null
+      ? { vacuna: cnvVacunaEtiqueta(mayor.nombre), periodo: mayor.periodo, valor: mayor.valor }
+      : null;
+  })();
 
   // ─── Natalidad (‰, 2000-2024, Córdoba vs Nación) ──────────────
   const natalidadRows = natalidadFecundidadRows.filter(
@@ -763,6 +877,27 @@ export default async function SaludPage() {
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Cobertura CNV (Calendario Nacional de Vacunación, 2024-2025) Section */}
+      <div className="space-y-4">
+        <SectionHeader
+          icon={Syringe}
+          title="Cobertura CNV (2024-2025)"
+          description="Cobertura por vacuna del Calendario Nacional de Vacunación — Córdoba vs total país y evolución interanual"
+          color="terracotta"
+          as="h2"
+        />
+
+        <CoberturaCnv
+          comparacion={cnvComparacion}
+          anioComparacion={cnvAnioComparacion}
+          aniosSerie={cnvAniosSerie}
+          cordobaPorAnio={cnvCordobaPorAnio}
+          fuenteComparacion={cnvFuente(cnvAnioComparacion ? [cnvAnioComparacion] : [])}
+          fuenteSerie={cnvFuente(cnvAniosSerie)}
+          excesoCordoba={cnvExcesoCordoba}
+        />
       </div>
     </div>
   );

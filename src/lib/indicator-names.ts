@@ -94,6 +94,70 @@ export const INDICATOR_NAMES = {
 
 export type IndicatorName = (typeof INDICATOR_NAMES)[keyof typeof INDICATOR_NAMES];
 
+// ─── Vacunación CNV (Calendario Nacional de Vacunación, 2024-2025) ────
+// Nombres VERIFICADOS contra `indicador_nombre` (categoria = 'salud'): los carga
+// `scripts/load-cnv-vacunacion.mjs` desde los PDFs de cobertura del CNV, una fila
+// por vacuna × jurisdicción × año (`region` = provincia, o 'Total' para el total
+// país). NO reemplazan a las constantes legacy de arriba: esas series 2015-2024
+// siguen vivas en /salud.
+//
+// La lista NO se deriva del texto del PDF: si el ETL agrega una vacuna, se agrega
+// acá a mano (y el filtro de la pantalla la ignora hasta entonces, que es el modo
+// seguro de fallar).
+export const CNV_VACUNA_NOMBRES: readonly string[] = [
+  'Cobertura BCG - Única Dosis Menor de 7 días (CNV)',
+  'Cobertura Fiebre Amarilla (*) - 1° Dosis (12 meses) (CNV)',
+  'Cobertura Fiebre Amarilla (*) - Refuerzo (11 años) (CNV)',
+  'Cobertura Hepatitis A - Única Dosis (12 meses) (CNV)',
+  'Cobertura Hepatitis B - Dosis Neonatal < 12 hs (CNV)',
+  'Cobertura IPV/Séxtuple - 1° Dosis (2 meses) (CNV)',
+  'Cobertura IPV/Séxtuple - 2° Dosis (4 meses) (CNV)',
+  'Cobertura IPV/Séxtuple - 3° Dosis (6 meses) (CNV)',
+  'Cobertura IPV/Séxtuple - Refuerzo (5 años) (CNV)',
+  'Cobertura Meningococo - 1° Dosis (3 meses) (CNV)',
+  'Cobertura Meningococo - 2° Dosis (5 meses) (CNV)',
+  'Cobertura Meningococo - Refuerzo (15 meses) (CNV)',
+  'Cobertura Meningococo - Única Dosis (11 años) (CNV)',
+  'Cobertura Neumococo - 1° Dosis (2 meses) (CNV)',
+  'Cobertura Neumococo - 2° Dosis (4 meses) (CNV)',
+  'Cobertura Neumococo - Refuerzo (12 meses) (CNV)',
+  'Cobertura Quíntuple/Séxtuple - 1° Dosis (2 meses) (CNV)',
+  'Cobertura Quíntuple/Séxtuple - 2° Dosis (4 meses) (CNV)',
+  'Cobertura Quíntuple/Séxtuple - 3° Dosis (6 meses) (CNV)',
+  'Cobertura Quíntuple/Séxtuple - Refuerzo (15 - 18 meses) (CNV)',
+  'Cobertura Rotavirus - 1° Dosis (2 meses) (CNV)',
+  'Cobertura Rotavirus - 2° Dosis (4 meses) (CNV)',
+  'Cobertura Triple Bacteriana Acelular - Única Dosis (11 años) (CNV)',
+  'Cobertura Triple Bacteriana Acelular - Única Dosis (Embarazadas) (CNV)',
+  'Cobertura Triple Bacteriana Celular - Refuerzo (5 años) (CNV)',
+  'Cobertura Triple Viral - 1° Dosis (12 meses) (CNV)',
+  'Cobertura Triple Viral - Refuerzo (5 años) (CNV)',
+  'Cobertura VPH Femenino - Única Dosis (11 años) (CNV)',
+  'Cobertura VPH Masculino - Única Dosis (11 años) (CNV)',
+  'Cobertura Varicela - 1° Dosis (15 meses) (CNV)',
+  'Cobertura Varicela - Refuerzo (5 años) (CNV)',
+  'Cobertura Virus Sincicial Respiratorio (**) - Única Dosis (Embarazadas) (CNV)',
+];
+
+/** Prefijo que el ETL agrega a cada sección del PDF. */
+export const CNV_PREFIJO = 'Cobertura ';
+
+/** Sufijo que el ETL usa para marcar la familia CNV. */
+export const CNV_SUFIJO = ' (CNV)';
+
+/**
+ * Rótulo corto para las barras: quita el andamiaje del ETL ("Cobertura " y
+ * " (CNV)"), no la dosis ni la edad, que es lo que distingue a dos dosis de la
+ * misma vacuna.
+ *
+ * @example cnvVacunaEtiqueta('Cobertura BCG - Única Dosis Menor de 7 días (CNV)')
+ *          → 'BCG - Única Dosis Menor de 7 días'
+ */
+export function cnvVacunaEtiqueta(nombre: string): string {
+  const sinPrefijo = nombre.startsWith(CNV_PREFIJO) ? nombre.slice(CNV_PREFIJO.length) : nombre;
+  return sinPrefijo.endsWith(CNV_SUFIJO) ? sinPrefijo.slice(0, -CNV_SUFIJO.length) : sinPrefijo;
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────
 
 /**
