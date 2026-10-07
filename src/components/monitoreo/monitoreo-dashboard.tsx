@@ -361,52 +361,56 @@ export function MonitoreoDashboard() {
     topTerminosData: [],
   });
 
-  const fetchDashboard = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      // Single query to the DB view — no client-side aggregation needed
-      const { data: viewData, error: viewError } = await supabase
-        .from('monitoreo_dashboard_stats')
-        .select('*')
-        .single();
+  // Loads and shapes the dashboard payload. Pure data access: the caller owns
+  // the state transitions once the request settles.
+  const loadDashboardStats = useCallback(async (): Promise<DashboardData> => {
+    // Single query to the DB view — no client-side aggregation needed
+    const { data: viewData, error: viewError } = await supabase
+      .from('monitoreo_dashboard_stats')
+      .select('*')
+      .single();
 
-      if (viewError) throw viewError;
+    if (viewError) throw viewError;
 
-      const row = viewData as DashboardViewRow;
+    const row = viewData as DashboardViewRow;
 
-      // Parse the fuentes data (view returns double-quoted column names)
-      const rawFuentes = row.uso_fuentes_medio_data ?? [];
-      const usoFuentesMedioData = rawFuentes.map((r: Record<string, unknown>) => ({
-        medio: r.medio as string,
-        'No usa fuentes': (r['"No usa fuentes"'] ?? 0) as number,
-        'Usa 1 fuente': (r['"Usa 1 fuente"'] ?? 0) as number,
-        'Usa 2 fuentes': (r['"Usa 2 fuentes"'] ?? 0) as number,
-        'Usa 3 o más fuentes': (r['"Usa 3 o más fuentes"'] ?? 0) as number,
-      }));
+    // Parse the fuentes data (view returns double-quoted column names)
+    const rawFuentes = row.uso_fuentes_medio_data ?? [];
+    const usoFuentesMedioData = rawFuentes.map((r: Record<string, unknown>) => ({
+      medio: r.medio as string,
+      'No usa fuentes': (r['"No usa fuentes"'] ?? 0) as number,
+      'Usa 1 fuente': (r['"Usa 1 fuente"'] ?? 0) as number,
+      'Usa 2 fuentes': (r['"Usa 2 fuentes"'] ?? 0) as number,
+      'Usa 3 o más fuentes': (r['"Usa 3 o más fuentes"'] ?? 0) as number,
+    }));
 
-      setData({
-        totalCount: row.total_registros ?? 0,
-        monthCount: row.registros_este_mes ?? 0,
-        pendientesCount: row.pendientes ?? 0,
-        verificadosCount: row.verificados ?? 0,
-        ultimaSincronizacion: null,
-        medioData: row.medio_distribution ?? [],
-        topicoData: row.topico_distribution ?? [],
-        monthlyData: row.monthly_evolution ?? [],
-        actorRolData: row.actor_rol_data ?? [],
-        victimaVictimarioData: row.victima_victimario_data ?? [],
-        usoFuentesMedioData,
-        notasConEstadisticas: row.notas_con_estadisticas ?? 0,
-        identificabilidadTopicoData: row.identificabilidad_topico_data ?? [],
-        topTerminosData: row.top_terminos_data ?? [],
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al cargar dashboard');
-    } finally {
-      setLoading(false);
-    }
+    return {
+      totalCount: row.total_registros ?? 0,
+      monthCount: row.registros_este_mes ?? 0,
+      pendientesCount: row.pendientes ?? 0,
+      verificadosCount: row.verificados ?? 0,
+      ultimaSincronizacion: null,
+      medioData: row.medio_distribution ?? [],
+      topicoData: row.topico_distribution ?? [],
+      monthlyData: row.monthly_evolution ?? [],
+      actorRolData: row.actor_rol_data ?? [],
+      victimaVictimarioData: row.victima_victimario_data ?? [],
+      usoFuentesMedioData,
+      notasConEstadisticas: row.notas_con_estadisticas ?? 0,
+      identificabilidadTopicoData: row.identificabilidad_topico_data ?? [],
+      topTerminosData: row.top_terminos_data ?? [],
+    };
   }, []);
+
+  const fetchDashboard = useCallback(() => {
+    return loadDashboardStats()
+      .then((next) => {
+        setData(next);
+        setError(null);
+      })
+      .catch((err) => setError(err instanceof Error ? err.message : 'Error al cargar dashboard'))
+      .finally(() => setLoading(false));
+  }, [loadDashboardStats]);
 
   useEffect(() => {
     fetchDashboard();
@@ -418,7 +422,7 @@ export function MonitoreoDashboard() {
         <AlertCircle className="w-10 h-10 text-red-400" />
         <p className="text-slate-600">{error}</p>
         <button
-          onClick={fetchDashboard}
+          onClick={() => { setError(null); setLoading(true); fetchDashboard(); }}
           className="px-4 py-2 bg-[var(--ddna-blue)] text-white rounded-lg text-sm hover:opacity-90 transition-opacity"
         >
           Reintentar

@@ -36,8 +36,8 @@ export async function GET() {
 
     checks.supabase = "connected";
 
-    let perCategory: Record<string, { ultima_carga: string | null; days_since: number | null; stale: boolean }> = {};
-    let staleCategories: string[] = [];
+    const perCategory: Record<string, { ultima_carga: string | null; days_since: number | null; stale: boolean }> = {};
+    const staleCategories: string[] = [];
     try {
       const { data: rows, error: catError } = await supabase
         .from("vw_category_freshness")

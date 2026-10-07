@@ -172,16 +172,18 @@ export function useDashboardData(): {
   loading: boolean;
   source: 'supabase' | 'placeholder';
 } {
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<DashboardData | null>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL ? null : PLACEHOLDER_DASHBOARD_DATA
+  );
+  const [loading, setLoading] = useState(Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL));
   const [source, setSource] = useState<'supabase' | 'placeholder'>('placeholder');
 
   useEffect(() => {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
     if (!supabaseUrl) {
-      setData(PLACEHOLDER_DASHBOARD_DATA);
-      setLoading(false);
+      // No client configured — the placeholder data was already used as the
+      // initial state, so there is nothing left to do.
       return;
     }
 

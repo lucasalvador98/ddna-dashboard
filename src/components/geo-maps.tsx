@@ -292,17 +292,11 @@ function EducativoMap() {
   const [selectedNiveles, setSelectedNiveles] = useState<Set<string>>(new Set());
   const [selectedSector, setSelectedSector] = useState<string>('');
 
-  const fetchSchools = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await fetchGeoJSON(wfsUrl('idecor:establecimientos_educativos'));
-      setSchools(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al cargar datos educativos');
-    } finally {
-      setLoading(false);
-    }
+  const fetchSchools = useCallback(() => {
+    return fetchGeoJSON(wfsUrl('idecor:establecimientos_educativos'))
+      .then((data) => setSchools(data))
+      .catch((err) => setError(err instanceof Error ? err.message : 'Error al cargar datos educativos'))
+      .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
@@ -331,7 +325,7 @@ function EducativoMap() {
   }, [schools, selectedNiveles, selectedSector]);
 
   if (loading) return <Spinner text="Cargando establecimientos educativos..." />;
-  if (error) return <ErrorBanner message={error} onRetry={fetchSchools} />;
+  if (error) return <ErrorBanner message={error} onRetry={() => { setError(null); setLoading(true); fetchSchools(); }} />;
   if (!schools)
     return <div className="text-sm text-text-primary text-center py-10">Sin datos.</div>;
 
@@ -513,21 +507,17 @@ function NacimientosMap() {
   const [error, setError] = useState<string | null>(null);
   const [selectedYear, setSelectedYear] = useState<number>(2023);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [deptData, birthData] = await Promise.all([
-        fetchGeoJSON(wfsUrl('idecor:departamentos')),
-        fetchGeoJSON(wfsUrl('idecor:dto_nacimiento')),
-      ]);
-      setDepartments(deptData);
-      setBirths(birthData);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al cargar datos de nacimientos');
-    } finally {
-      setLoading(false);
-    }
+  const fetchData = useCallback(() => {
+    return Promise.all([
+      fetchGeoJSON(wfsUrl('idecor:departamentos')),
+      fetchGeoJSON(wfsUrl('idecor:dto_nacimiento')),
+    ])
+      .then(([deptData, birthData]) => {
+        setDepartments(deptData);
+        setBirths(birthData);
+      })
+      .catch((err) => setError(err instanceof Error ? err.message : 'Error al cargar datos de nacimientos'))
+      .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
@@ -582,7 +572,7 @@ function NacimientosMap() {
   }, [departments, birthLookup]);
 
   if (loading) return <Spinner text="Cargando datos de nacimientos..." />;
-  if (error) return <ErrorBanner message={error} onRetry={fetchData} />;
+  if (error) return <ErrorBanner message={error} onRetry={() => { setError(null); setLoading(true); fetchData(); }} />;
 
   return (
     <div className="space-y-4">
@@ -749,9 +739,9 @@ function NBIMap() {
   const [dataSource, setDataSource] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  // Loads every NBI dataset the view needs. Returns the resolved values so the
+  // caller can commit them to state once the whole load settles.
+  const loadNbiData = useCallback(async () => {
     try {
       // Try to fetch NBI layer from IDECOR first
       let hasNbiLayer = false;
@@ -767,6 +757,9 @@ function NBIMap() {
         }
       }
 
+      let nbiData: Record<string, number>;
+      let dataSource: string;
+
       if (hasNbiLayer) {
         // If layer exists, use it (placeholder — real parsing would depend on actual schema)
         const nbiRes = await fetchGeoJSON(wfsUrl('idecor:nbi'));
@@ -777,32 +770,41 @@ function NBIMap() {
           const val = Number(p.nbi ?? p.porcentaje_nbi ?? p.valor ?? 0);
           if (nombre) lookup[nombre] = val;
         }
-        setNbiData(lookup);
-        setDataSource('IDECOR');
+        nbiData = lookup;
+        dataSource = 'IDECOR';
       } else {
         // Use static Censo 2010 data
-        setNbiData(NBI_STATIC);
-        setDataSource('Censo 2010 - INDEC (valores de referencia)');
+        nbiData = NBI_STATIC;
+        dataSource = 'Censo 2010 - INDEC (valores de referencia)';
       }
 
-      const deptData = await fetchGeoJSON(wfsUrl('idecor:departamentos'));
-      setDepartments(deptData);
+      const departments = await fetchGeoJSON(wfsUrl('idecor:departamentos'));
+      return { nbiData, dataSource, departments };
     } catch (err) {
       // Fallback: try static data anyway
       try {
-        const deptData = await fetchGeoJSON(wfsUrl('idecor:departamentos'));
-        setDepartments(deptData);
-        setNbiData(NBI_STATIC);
-        setDataSource('Censo 2010 - INDEC (valores de referencia)');
-      } catch (fallbackErr) {
-        setError(
-          err instanceof Error ? err.message : 'Error al cargar datos de NBI',
-        );
+        const departments = await fetchGeoJSON(wfsUrl('idecor:departamentos'));
+        return {
+          nbiData: NBI_STATIC,
+          dataSource: 'Censo 2010 - INDEC (valores de referencia)',
+          departments,
+        };
+      } catch {
+        throw err;
       }
-    } finally {
-      setLoading(false);
     }
   }, []);
+
+  const fetchData = useCallback(() => {
+    return loadNbiData()
+      .then(({ nbiData, dataSource, departments }) => {
+        setNbiData(nbiData);
+        setDataSource(dataSource);
+        setDepartments(departments);
+      })
+      .catch((err) => setError(err instanceof Error ? err.message : 'Error al cargar datos de NBI'))
+      .finally(() => setLoading(false));
+  }, [loadNbiData]);
 
   useEffect(() => {
     fetchData();
@@ -829,7 +831,7 @@ function NBIMap() {
   }, [departments, nbiData]);
 
   if (loading) return <Spinner text="Cargando datos de NBI..." />;
-  if (error) return <ErrorBanner message={error} onRetry={fetchData} />;
+  if (error) return <ErrorBanner message={error} onRetry={() => { setError(null); setLoading(true); fetchData(); }} />;
 
   return (
     <div className="space-y-4">
@@ -953,17 +955,11 @@ function SaludMap() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
 
-  const fetchCenters = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await fetchGeoJSON(wfsUrl('idecor:Centros_Salud'));
-      setCenters(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al cargar centros de salud');
-    } finally {
-      setLoading(false);
-    }
+  const fetchCenters = useCallback(() => {
+    return fetchGeoJSON(wfsUrl('idecor:Centros_Salud'))
+      .then((data) => setCenters(data))
+      .catch((err) => setError(err instanceof Error ? err.message : 'Error al cargar centros de salud'))
+      .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
@@ -989,7 +985,7 @@ function SaludMap() {
   }, [centers, search]);
 
   if (loading) return <Spinner text="Cargando centros de salud..." />;
-  if (error) return <ErrorBanner message={error} onRetry={fetchCenters} />;
+  if (error) return <ErrorBanner message={error} onRetry={() => { setError(null); setLoading(true); fetchCenters(); }} />;
   if (!centers) return <div className="text-sm text-text-primary text-center py-10">Sin datos.</div>;
 
   return (

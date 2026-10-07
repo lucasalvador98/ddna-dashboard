@@ -63,6 +63,14 @@ type PresentacionState =
 // ─── Component ─────────────────────────────────────────────────
 
 export function ReportModal({ isOpen, onClose }: ReportModalProps) {
+  // The body is mounted only while the modal is open, so all of its state
+  // (selected axes, report phases, tab, cached presentation payload) starts
+  // fresh on every open — no reset effect needed.
+  if (!isOpen) return null;
+  return <ReportModalContent onClose={onClose} />;
+}
+
+function ReportModalContent({ onClose }: { onClose: () => void }) {
   const [activeTab, setActiveTab] = useState<'informe' | 'presentacion'>('informe');
   
   // States for Tab 1 - Informe Ejecutivo
@@ -75,24 +83,13 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
 
   const backdropRef = useRef<HTMLDivElement>(null);
 
-  // ── Reset form when modal opens ──────────────────────────────
-  useEffect(() => {
-    if (isOpen) {
-      setSelectedAxes(new Set(ALL_AXIS_IDS));
-      setReportState({ phase: 'form' });
-      setPresentacionState({ phase: 'form' });
-      setActiveTab('informe');
-      lastPresentationPayload.current = null;
-    }
-  }, [isOpen]);
-
   const isLoading =
     reportState.phase === 'loading' || presentacionState.phase === 'loading';
 
   // ── Escape key handler ───────────────────────────────────────
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
+      if (e.key === 'Escape') {
         if (isLoading) return;
         const activeEl = document.activeElement;
         if (
@@ -104,19 +101,17 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
         onClose();
       }
     },
-    [isOpen, isLoading, onClose]
+    [isLoading, onClose]
   );
 
   useEffect(() => {
-    if (isOpen) {
-      document.addEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'hidden';
-    }
+    document.addEventListener('keydown', handleKeyDown);
+    document.body.style.overflow = 'hidden';
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = '';
     };
-  }, [isOpen, handleKeyDown]);
+  }, [handleKeyDown]);
 
   // ── Backdrop click ───────────────────────────────────────────
   const handleBackdropClick = useCallback(
@@ -227,9 +222,6 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
   const handlePrint = () => {
     window.print();
   };
-
-  // ── Render: nothing if closed ────────────────────────────────
-  if (!isOpen) return null;
 
   return (
     <div
