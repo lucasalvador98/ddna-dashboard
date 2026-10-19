@@ -46,7 +46,7 @@ export default function HomePage() {
           En mobile/tablet (la franja 5.3:1 dejaría el subtítulo ilegible y la columna de
           contenido es angosta) el recorte 8:3 encuadra el bloque del título; aspect fijo ⇒
           el encuadre no depende del ancho. Desde lg se ve el póster completo. */}
-      <section className="bg-white">
+      <section>
         <h1 className="sr-only">Tablero de Monitoreo</h1>
         <p className="sr-only">
           Defensoría de los Derechos de Niñas, Niños y Adolescentes — Provincia de Córdoba
