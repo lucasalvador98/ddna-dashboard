@@ -46,18 +46,31 @@ export default function HomePage() {
           En mobile/tablet (la franja 5.3:1 dejaría el subtítulo ilegible y la columna de
           contenido es angosta) el recorte 8:3 encuadra el bloque del título; aspect fijo ⇒
           el encuadre no depende del ancho. Desde lg se ve el póster completo. */}
-      <section>
-        <h1 className="sr-only">Tablero de Monitoreo</h1>
-        <p className="sr-only">
-          Defensoría de los Derechos de Niñas, Niños y Adolescentes — Provincia de Córdoba
-        </p>
-        <div className="max-w-5xl mx-auto px-6 pt-6 lg:pt-10">
-          <div className="relative aspect-[8/3] lg:aspect-[2506/473] rounded-2xl overflow-hidden shadow-md ring-1 ring-black/5">
+      {/* Hero — portada institucional (asset provisto por DDNA).
+          El margen del póster es #ff7f11 prácticamente uniforme (medido con sharp en los
+          4 bordes), así que la banda del hero usa ese mismo naranja de fondo: el póster
+          se funde con la página (sin tarjeta ni costura), el marco negro del asset pasa
+          a ser diseño y la banda hace de fade al gris del tablero al terminar.
+          El texto real va sr-only (lectores de pantalla y SEO) y la imagen es decorativa.
+          En mobile/tablet el recorte 8:3 (aspect fijo ⇒ encuadre estable) muestra el
+          bloque del título; desde lg se ve el póster completo. */}
+      <section className="relative">
+        <div
+          aria-hidden
+          className="absolute inset-0"
+          style={{ background: 'linear-gradient(to bottom, #ff7f11 0%, #ff7f11 84%, rgba(255, 127, 17, 0) 100%)' }}
+        />
+        <div className="relative pt-8 lg:pt-12 pb-12 lg:pb-16">
+          <h1 className="sr-only">Tablero de Monitoreo</h1>
+          <p className="sr-only">
+            Defensoría de los Derechos de Niñas, Niños y Adolescentes — Provincia de Córdoba
+          </p>
+          <div className="relative aspect-[8/3] lg:aspect-[2506/473]">
             <Image
               src={dashboardPath('/logos/portada-observatorio-web.jpg')}
               alt=""
               fill
-              sizes="(min-width: 1024px) 1024px, 100vw"
+              sizes="100vw"
               preload
               className="object-cover object-[77%_50%] lg:object-center"
             />
