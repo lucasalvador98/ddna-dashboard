@@ -39,29 +39,29 @@ export default function HomePage() {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Hero — portada institucional (asset provisto por DDNA).
-          El banner ya incluye el logo, el título y el subtítulo: por eso el texto real va
+          El asset es un póster (logo, título y subtítulo horneados): se presenta como tal,
+          en una tarjeta con esquinas y sombra sobre fondo blanco, para que el naranja
+          quede contenido y compita en volumen con el resto del tablero. El texto real va
           sr-only (lectores de pantalla y SEO) y la imagen es decorativa (alt="").
           En mobile/tablet (la franja 5.3:1 dejaría el subtítulo ilegible y la columna de
           contenido es angosta) el recorte 8:3 encuadra el bloque del título; aspect fijo ⇒
-          el encuadre no depende del ancho. Desde lg se ve el banner completo.
-          Nota: el asset es un poster (logo, título y subtítulo horneados). Si DDNA reemite el
-          banner sin texto —solo fondo e ilustración—, el hero se recompone con el sistema de
-          diseño y este poster queda para portada/print. Contexto y geometría del recorte en
-          Engram `ddna-dashboard/hero-home-decision-pendiente`. */}
-      <section className="w-full overflow-hidden bg-white">
+          el encuadre no depende del ancho. Desde lg se ve el póster completo. */}
+      <section className="bg-white">
         <h1 className="sr-only">Tablero de Monitoreo</h1>
         <p className="sr-only">
           Defensoría de los Derechos de Niñas, Niños y Adolescentes — Provincia de Córdoba
         </p>
-        <div className="relative aspect-[8/3] lg:aspect-[2506/473]">
-          <Image
-            src={dashboardPath('/logos/portada-observatorio-web.jpg')}
-            alt=""
-            fill
-            sizes="100vw"
-            preload
-            className="object-cover object-[77%_50%] lg:object-center"
-          />
+        <div className="max-w-5xl mx-auto px-6 pt-6 lg:pt-10">
+          <div className="relative aspect-[8/3] lg:aspect-[2506/473] rounded-2xl overflow-hidden shadow-md ring-1 ring-black/5">
+            <Image
+              src={dashboardPath('/logos/portada-observatorio-web.jpg')}
+              alt=""
+              fill
+              sizes="(min-width: 1024px) 1024px, 100vw"
+              preload
+              className="object-cover object-[77%_50%] lg:object-center"
+            />
+          </div>
         </div>
       </section>
 

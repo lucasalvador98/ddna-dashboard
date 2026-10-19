@@ -83,18 +83,21 @@ export function Header() {
           <Menu className="w-5 h-5" />
         </button>
 
-        {/* DDNA Logo */}
-        <Link href="/" className="flex-shrink-0">
-          <Image
-            src={dashboardPath('/logos/LOGO DDNA_HORIZONTAL_COLOR.png')}
-            alt="DDNA"
-            width={150}
-            height={40}
-            style={{ height: 'auto' }}
-            className="object-contain"
-            priority
-          />
-        </Link>
+        {/* DDNA Logo — oculto en la home: el póster del hero ya lo trae, y mostrar
+            ambas variantes (color y blanca) duplicaba la marca. */}
+        {pathname !== '/' && (
+          <Link href="/" className="flex-shrink-0">
+            <Image
+              src={dashboardPath('/logos/LOGO DDNA_HORIZONTAL_COLOR.png')}
+              alt="DDNA"
+              width={150}
+              height={40}
+              style={{ height: 'auto' }}
+              className="object-contain"
+              priority
+            />
+          </Link>
+        )}
 
         {/* Page title + breadcrumb — hidden on homepage to avoid duplication */}
         {pathname !== '/' && (
@@ -136,14 +139,18 @@ export function Header() {
             style={{ height: 'auto' }}
             className="rounded-sm"
           />
-          <Image
-            src={dashboardPath('/logos/LOGO DDNA_HORIZONTAL_COLOR.png')}
-            alt="DDNA"
-            width={100}
-            height={24}
-            style={{ height: 'auto' }}
-            className="object-contain"
-          />
+          {/* El logo DDNA se oculta en la home (el hero ya lo trae); la varita de
+              Córdoba queda siempre como sello institucional. */}
+          {pathname !== '/' && (
+            <Image
+              src={dashboardPath('/logos/LOGO DDNA_HORIZONTAL_COLOR.png')}
+              alt="DDNA"
+              width={100}
+              height={24}
+              style={{ height: 'auto' }}
+              className="object-contain"
+            />
+          )}
         </div>
 
         <button
