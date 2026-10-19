@@ -1,6 +1,7 @@
 'use client';
 
 import { Users, Heart, BookOpen, Coins, AlertTriangle, BarChart3, FileText, MapPin, MessageSquare } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { SectionCard } from '@/components/section-card';
 import { motion } from 'motion/react';
@@ -37,23 +38,32 @@ const tools = [
 export default function HomePage() {
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Hero — logo + title */}
-      <div className="bg-white">
-        <div className="max-w-4xl mx-auto px-6 py-10 lg:py-14 text-center">
-          <img
-            src={dashboardPath('/logos/LOGO DDNA_HORIZONTAL_COLOR.png')}
-            alt="DDNA"
-            className="h-13 lg:h-15 mx-auto mb-5 object-contain"
+      {/* Hero — portada institucional (asset provisto por DDNA).
+          El banner ya incluye el logo, el título y el subtítulo: por eso el texto real va
+          sr-only (lectores de pantalla y SEO) y la imagen es decorativa (alt="").
+          En mobile/tablet (la franja 5.3:1 dejaría el subtítulo ilegible y la columna de
+          contenido es angosta) el recorte 8:3 encuadra el bloque del título; aspect fijo ⇒
+          el encuadre no depende del ancho. Desde lg se ve el banner completo.
+          Nota: el asset es un poster (logo, título y subtítulo horneados). Si DDNA reemite el
+          banner sin texto —solo fondo e ilustración—, el hero se recompone con el sistema de
+          diseño y este poster queda para portada/print. Contexto y geometría del recorte en
+          Engram `ddna-dashboard/hero-home-decision-pendiente`. */}
+      <section className="w-full overflow-hidden bg-white">
+        <h1 className="sr-only">Tablero de Monitoreo</h1>
+        <p className="sr-only">
+          Defensoría de los Derechos de Niñas, Niños y Adolescentes — Provincia de Córdoba
+        </p>
+        <div className="relative aspect-[8/3] lg:aspect-[2506/473]">
+          <Image
+            src={dashboardPath('/logos/portada-observatorio-web.jpg')}
+            alt=""
+            fill
+            sizes="100vw"
+            preload
+            className="object-cover object-[77%_50%] lg:object-center"
           />
-          <h1 className="font-display text-2xl lg:text-3xl text-slate-800 tracking-tight">
-            Tablero de Monitoreo
-          </h1>
-          <p className="font-body text-sm lg:text-base text-slate-500 mt-2 max-w-xl mx-auto">
-            Defensoría de los Derechos de Niñas, Niños y Adolescentes — Provincia de Córdoba
-          </p>
-          <div className="mt-5 mx-auto w-20 h-1 bg-gradient-to-r from-[#B3541E] to-[#FF8C00] rounded-full" />
         </div>
-      </div>
+      </section>
 
       {/* Main content */}
       <main className="flex-1 max-w-5xl mx-auto px-6 py-8 lg:py-12 space-y-12">

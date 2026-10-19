@@ -21,6 +21,23 @@ describe('HomePage — estructura limpia', () => {
     expect(screen.getByText('Tablero de Monitoreo')).toBeInTheDocument();
   });
 
+  it('el título del tablero vive en un h1 real (no dentro de una imagen)', () => {
+    render(<HomePage />);
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Tablero de Monitoreo');
+  });
+
+  it('el hero muestra el banner de portada', () => {
+    render(<HomePage />);
+    const banner = document.querySelector('img[src*="portada-observatorio-web"]');
+    expect(banner).toBeInTheDocument();
+  });
+
+  it('la imagen del banner es decorativa (alt vacío) para no duplicar el h1', () => {
+    render(<HomePage />);
+    const banner = document.querySelector('img[src*="portada-observatorio-web"]');
+    expect(banner).toHaveAttribute('alt', '');
+  });
+
   it('muestra la descripción institucional', () => {
     render(<HomePage />);
     const matches = screen.getAllByText(/Defensoría de los Derechos de Niñas, Niños y Adolescentes/);
