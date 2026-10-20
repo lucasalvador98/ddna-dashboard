@@ -22,6 +22,8 @@ export interface WebSearchResponse {
   search_type: 'web';
 }
 
+const FETCH_TIMEOUT_MS = 10_000;
+
 /**
  * Search DuckDuckGo via HTML scrape.
  * Returns up to `numResults` results (default 10).
@@ -47,6 +49,7 @@ export async function searchWeb(
           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         Accept: 'text/html',
       },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     },
   );
 

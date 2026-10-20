@@ -18,7 +18,7 @@
 
 ### RAG Agent (Indicadores)
 - [x] `/api/repositorio/chat` — agente con tools para consultar indicadores
-- [x] 6 tools de indicadores: listar, último valor, serie temporal, overview, breakdown, search_knowledge_base
+- [x] 6 tools de indicadores: listar, último valor, serie temporal, overview, breakdown, searchKnowledgeBase
 - [x] LLM único: OpenAI `gpt-4o-mini` (function calling) + embeddings OpenAI `text-embedding-3-small`
 - [x] Chat UI en `/repositorio/chat` con fuentes citadas y badges clickeables
 
@@ -72,7 +72,7 @@
 - [x] `/api/repositorio/process` — POST procesamiento de documentos (chunking + embeddings)
 - [x] `/api/repositorio/chat` — POST agente de indicadores
 - [x] `/api/repositorio/chat` — agente con function-calling. Sus herramientas
-      (`search_knowledge_base`, `listAllDocuments`, `search_web`, `scrape_url`) son
+      (`searchKnowledgeBase`, `listAllDocuments`, `searchWeb`, `scrapeUrl`) son
       internas al endpoint, no rutas propias. Libs en `src/lib/agent/`.
 - [x] `/api/admin/backfill` — POST backfill de PDFs pendientes
 - [x] `/api/extract-pdf` — POST extracción de texto de PDF
@@ -176,7 +176,7 @@ ddna-dashboard/
 │   │           └── roles/                  # Gestión de roles (RBAC)
 │   ├── lib/
 │   │   ├── agent/
-│   │   │   ├── indicator-tools.ts          # 6 tools de indicadores + search_knowledge_base
+│   │   │   ├── indicator-tools.ts          # 6 tools de indicadores + searchKnowledgeBase
 │   │   │   └── openai.ts                   # Cliente OpenAI para agents
 │   │   ├── rag/
 │   │   │   ├── embedder.ts                 # Generación de embeddings

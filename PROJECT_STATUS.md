@@ -26,7 +26,7 @@
   - `getIndicatorTimeSeries` — serie temporal completa
   - `getCategoryOverview` — resumen de categoría
   - `getIndicatorBreakdown` — desglose por dimensión (edad, género, región)
-  - `search_knowledge_base` — búsqueda vectorial en documentos
+  - `searchKnowledgeBase` — búsqueda vectorial en documentos
 - LLM: OpenAI (`gpt-4o-mini`)
 - Embeddings: OpenAI `text-embedding-3-small`
 - Modo herramienta + streaming de respuestas
@@ -63,8 +63,8 @@
 - `/api/repositorio/process` — POST procesamiento de documentos (chunking + embeddings)
 - `/api/repositorio/chat` — POST agente de indicadores
 > El agente expone sus herramientas **dentro** de `/api/repositorio/chat`
-> (function-calling): `search_knowledge_base`, `listAllDocuments`, `search_web`,
-> `scrape_url`. No son endpoints HTTP separados; `web-search` y `scrape-url`
+> (function-calling): `searchKnowledgeBase`, `listAllDocuments`, `searchWeb`,
+> `scrapeUrl`. No son endpoints HTTP separados; `web-search` y `scrape-url`
 > viven como libs en `src/lib/agent/`.
 - `/api/admin/backfill` — POST backfill de PDFs pendientes
 - `/api/extract-pdf` — POST extracción de texto de PDF

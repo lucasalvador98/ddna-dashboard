@@ -6,11 +6,12 @@
  *
  * Tools disponibles:
  *   - Indicadores: listAvailableIndicators, getLatestIndicatorValue,
- *                  getIndicatorTimeSeries, getCategoryOverview, getIndicatorBreakdown
- *   - Documentos:  search_knowledge_base, listAllDocuments
- *   - Web:         search_web, scrape_url
+ *                  getIndicatorTimeSeries, getCategoryOverview, getIndicatorBreakdown,
+ *                  searchIndicators
+ *   - Documentos:  searchKnowledgeBase, listAllDocuments
+ *   - Web:         searchWeb, scrapeUrl
  *
- * Modelo: gpt-4o-mini
+ * Modelo: configurable via OPENAI_CHAT_MODEL (default gpt-4o-mini)
  */
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
@@ -20,12 +21,20 @@ import {
   INDICATOR_OPENAPI_TOOLS,
   listAvailableIndicators,
 } from '@/lib/agent/indicator-tools';
-import type { ListAvailableResult } from '@/lib/agent/indicator-tools';
 import { searchWeb } from '@/lib/agent/web-search';
 import { scrapeUrl } from '@/lib/agent/scrape-url';
 import { withRateLimit } from '@/lib/agent/rate-limit';
 import { checkAdminAuth } from '@/lib/auth-guard';
 import { trackLLMUsage } from '@/lib/usage-tracker';
+import {
+  CHAT_MODEL,
+  CHAT_TIMEOUT_MS,
+  EMBEDDING_MODEL,
+  EMBEDDING_TIMEOUT_MS,
+  chatCompletionsUrl,
+  embeddingsUrl,
+  OPENAI_API_KEY,
+} from '@/lib/ai-config';
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -33,8 +42,7 @@ import { trackLLMUsage } from '@/lib/usage-tracker';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
-const OPENAI_MODEL = 'gpt-4o-mini';
+const OPENAI_MODEL = CHAT_MODEL;
 
 const MAX_TOOL_ROUNDS = 4;
 const MAX_TOOL_CALLS = 8;
@@ -77,10 +85,10 @@ interface SearchOptions {
 // ---------------------------------------------------------------------------
 
 const TOOL_DISPLAY_NAMES: Record<string, string> = {
-  search_knowledge_base: 'Buscando documentos...',
+  searchKnowledgeBase: 'Buscando documentos...',
   listAllDocuments: 'Listando documentos disponibles...',
-  search_web: 'Buscando en la web...',
-  scrape_url: 'Extrayendo contenido web...',
+  searchWeb: 'Buscando en la web...',
+  scrapeUrl: 'Extrayendo contenido web...',
 };
 
 function getToolDisplayName(name: string): string {
@@ -105,7 +113,7 @@ const DOCUMENT_TOOLS: Array<{
   {
     type: 'function',
     function: {
-      name: 'search_knowledge_base',
+      name: 'searchKnowledgeBase',
       description:
         'Búsqueda SEMÁNTICA en documentos oficiales, informes, normativas, PDFs y encuestas de la DDNA. Usá ESTA para preguntas sobre documentos específicos, archivos subidos, informes, o "buscar en documentos". NO la uses para datos de indicadores — usá searchIndicators o las herramientas de indicadores.',
       parameters: {
@@ -150,6 +158,11 @@ const DOCUMENT_TOOLS: Array<{
             description:
               'Filtrar solo documentos procesados (true) o solo pendientes (false). Default: todos.',
           },
+          limit: {
+            type: 'number',
+            description:
+              'Cantidad máxima de documentos a listar (default: 100, máximo: 500).',
+          },
         },
         required: [],
       },
@@ -168,9 +181,9 @@ const WEB_TOOLS: Array<{
   {
     type: 'function',
     function: {
-      name: 'search_web',
+      name: 'searchWeb',
       description:
-        'Busca en INTERNET (DuckDuckGo) información ACTUALIZADA en tiempo real. Usala SOLO cuando necesites información actual/noticias que NO está en indicadores (getLatestIndicatorValue, etc) ni en documentos del repositorio (search_knowledge_base). También cuando el usuario pida explícitamente "noticias" o "información actual". Limitación: puede no funcionar desde entornos serverless.',
+        'Busca en INTERNET (DuckDuckGo) información ACTUALIZADA en tiempo real. Usala SOLO cuando necesites información actual/noticias que NO está en indicadores (getLatestIndicatorValue, etc) ni en documentos del repositorio (searchKnowledgeBase). También cuando el usuario pida explícitamente "noticias" o "información actual". Limitación: puede no funcionar desde entornos serverless.',
       parameters: {
         type: 'object',
         properties: {
@@ -191,9 +204,9 @@ const WEB_TOOLS: Array<{
   {
     type: 'function',
     function: {
-      name: 'scrape_url',
+      name: 'scrapeUrl',
       description:
-        'Extrae el contenido completo de una URL específica. Usala DESPUÉS de search_web para leer en detalle un artículo, informe o fuente que encontraste. También cuando el usuario provea una URL directamente.',
+        'Extrae el contenido completo de una URL específica. Usala DESPUÉS de searchWeb para leer en detalle un artículo, informe o fuente que encontraste. También cuando el usuario provea una URL directamente. Solo HTTP/HTTPS públicos; no acepta hosts locales o privados.',
       parameters: {
         type: 'object',
         properties: {
@@ -219,39 +232,53 @@ const ALL_TOOLS = [
 // System Prompt
 // ---------------------------------------------------------------------------
 
-const SYSTEM_PROMPT = `Sos el asistente de investigación de la Defensoría de Niños, Niñas y Adolescentes de Córdoba (DDNA). Tu objetivo es responder preguntas combinando datos estadísticos, documentos oficiales, y búsqueda web.
+const SYSTEM_PROMPT = `Sos el asistente de investigación de la Defensoría de Niños, Niñas y Adolescentes de Córdoba (DDNA). Respondés combinando datos estadísticos, documentos oficiales y, como último recurso, búsqueda web.
 
-## FUENTES DE DATOS
+## FUENTES DE DATOS (en orden de prioridad)
 
-TENÉS TRES FUENTES DE DATOS, en este orden de prioridad:
+1. **INDICADORES** (tabla \`indicadores\`): datos numéricos por periodo. El catálogo de categorías con datos cargados se inyecta automáticamente en tu contexto.
+2. **DOCUMENTOS** (\`doc_chunks\`): PDFs, informes, normativas y encuestas del repositorio.
+3. **WEB**: información actual externa. Solo cuando las dos fuentes anteriores no alcancen.
 
-1. **INDICADORES** (tabla \`indicadores\`): Datos estructurados con valores numéricos por periodo. Categorías disponibles: pobreza, salud, educacion, inversion, demografia, seguridad, consumo, justicia, salud_adolescente, anuario_educacion, aprender, deis, encuestas_2024, canastas, empleo, precios, senaf. Usá las tools de indicadores para consultarlos.
+## WORKFLOW
 
-2. **DOCUMENTOS** (\`doc_chunks\`): PDFs, informes, normativas, encuestas subidas al repositorio. Usá search_knowledge_base para buscar en ellos.
+**Preguntas sobre datos o indicadores:**
+1. Identificá la categoría del tema.
+2. Si no sabés qué indicadores existen, usá \`listAvailableIndicators\` o \`searchIndicators\` con el tema.
+3. Consultá con \`getLatestIndicatorValue\` (valor actual), \`getIndicatorTimeSeries\` (evolución), \`getCategoryOverview\` (panorama de una categoría) o \`getIndicatorBreakdown\` (desglose por grupo/región).
+4. Si no hay indicadores relevantes, pasá a documentos con \`searchKnowledgeBase\`.
+5. Solo si ambas fuentes fallan, usá \`searchWeb\`.
 
-3. **WEB**: Búsqueda en internet actualizada. Usá search_web SOLO cuando la información no esté en las fuentes anteriores.
+**Preguntas sobre documentos o archivos:**
+- "¿Qué documentos tenés?" / "mostrame los archivos" → \`listAllDocuments\` directamente, SIN consultar indicadores.
+- Preguntas sobre el contenido de un informe, normativa o encuesta → \`searchKnowledgeBase\` directamente, SIN pasar por indicadores.
+- Si el usuario provee una URL → \`scrapeUrl\` directo.
 
-## WORKFLOW — orden de búsqueda OBLIGATORIO
+**Desambiguación de prioridad:**
+- Si la pregunta menciona sustancias, drogas o consumo problemático → consultá primero las categorías \`consumo\` y \`encuestas_2024\` de indicadores.
+- Si menciona "consumo" en sentido económico (hogares, canastas, IPC) → usá \`precios\` o \`canastas\`, NO \`consumo\`.
+- Si la pregunta es conceptual o de definiciones (ej: "¿qué es el INDEC?") y las fuentes no la cubren, respondé con conocimiento general y aclaralo explícitamente. NO inventes cifras.
 
-Cuando te hagan una pregunta, SEGUÍ ESTE ORDEN. No saltees pasos:
+## LÍMITES DE BÚSQUEDA
 
-PASO 1: Identificá de qué tema habla la pregunta.
-PASO 2: Usá listAvailableIndicators() para ver las categorías de datos disponibles. NO saltees este paso.
-PASO 3: Si hay una categoría relevante, usá getCategoryOverview('categoria') para ver qué indicadores existen.
-PASO 4: Si encontraste indicadores relevantes, usá getLatestIndicatorValue() o getIndicatorTimeSeries() para obtener valores.
-PASO 5: Si no hay datos en indicadores, buscá en documentos con search_knowledge_base().
-PASO 6: Como ÚLTIMO recurso, buscá en la web con search_web().
+- Máximo 2 intentos por fuente. Si una búsqueda no devuelve resultados útiles, refiná la consulta UNA vez o cambiá de fuente. Nunca repitas la misma consulta con los mismos parámetros.
+- No consultes indicadores para preguntas documentales ni documentos para preguntas de indicadores.
 
-## REGLAS
+## CITAS
 
-1. Respondé SIEMPRE en español, tono profesional pero accesible.
-2. Basate SOLO en los datos recibidos de las herramientas — NO inventes cifras ni fuentes.
-3. Citá las fuentes: [Fuente: nombre_archivo] para documentos, [Indicador: nombre, periodo: valor] para datos, [Web: url] para web.
-4. Si encontraste información en múltiples fuentes, contextualizala y explicá qué significa.
-5. Si tras AGOTAR todos los pasos del workflow no encontrás la información, decilo con honestidad y listá QUÉ datos tenés disponibles que podrían ser relevantes.
-6. NUNCA te rindas después de solo un intento. Siempre probá al menos 2-3 herramientas diferentes antes de responder que no encontraste nada.
-7. Si la pregunta menciona "encuesta", "consumo", "sustancias", buscá PRIMERO en la categoría \`consumo\` o \`encuestas_2024\` de indicadores.
-8. Cuando te pregunten "¿qué documentos tenés?" o similares, usá listAllDocuments.`;
+- Documentos: [Fuente: nombre_archivo]
+- Indicadores (valor único): [Indicador: nombre, periodo: valor]
+- Indicadores (serie temporal): [Indicador: nombre, periodos: AAAA–AAAA] y detallá los valores en el texto
+- Web: [Web: url]
+- Si combinás fuentes, citá cada dato con su fuente en la misma respuesta.
+
+## REGLAS DE RESPUESTA
+
+1. Respondé siempre en español, tono profesional pero accesible.
+2. Basate en los datos recibidos de las herramientas. No inventes cifras ni fuentes.
+3. Si tras agotar el workflow no encontrás la información, decilo con honestidad y listá qué datos o categorías sí tenés disponibles.
+4. Si encontraste información en múltiples fuentes, contextualizá y explicá qué significa cada una.
+5. No uses herramientas para charla o aclaraciones que no requieran datos.`;
 
 // ---------------------------------------------------------------------------
 // Helpers — Embedding & Search
@@ -260,16 +287,17 @@ PASO 6: Como ÚLTIMO recurso, buscá en la web con search_web().
 async function generateEmbedding(text: string): Promise<number[] | null> {
   if (!OPENAI_API_KEY) return null;
   try {
-    const response = await fetch('https://api.openai.com/v1/embeddings', {
+    const response = await fetch(embeddingsUrl(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'text-embedding-3-small',
+        model: EMBEDDING_MODEL,
         input: text,
       }),
+      signal: AbortSignal.timeout(EMBEDDING_TIMEOUT_MS),
     });
     if (!response.ok) {
       console.error('OpenAI embedding error:', response.status, await response.text());
@@ -281,7 +309,7 @@ async function generateEmbedding(text: string): Promise<number[] | null> {
     if (usage) {
       trackLLMUsage({
         tool: 'embeddings',
-        model: 'text-embedding-3-small',
+        model: EMBEDDING_MODEL,
         promptTokens: usage.prompt_tokens || 0,
         completionTokens: 0,
       });
@@ -335,7 +363,7 @@ async function searchKnowledgeBase(
   const supabaseClient: any = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   const categoria = options?.categoria;
-  const maxChunks = options?.maxChunks ?? 20;
+  const maxChunks = options?.maxChunks ?? 10;
   const maxTokens = options?.maxTokens ?? 4000;
 
   let vectorChunks: ChunkResult[] = [];
@@ -548,7 +576,8 @@ function contentSimilarity(a: string, b: string): number {
 
 async function listAllDocuments(
   categoria?: string,
-  processed?: boolean
+  processed?: boolean,
+  limit = 100
 ): Promise<{
   documentos: Array<{
     id: string;
@@ -561,14 +590,21 @@ async function listAllDocuments(
     tamano: number | null;
   }>;
   total: number;
+  truncated: boolean;
 }> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabaseClient: any = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+  const safeLimit = Math.min(Math.max(Math.trunc(limit) || 100, 1), 500);
+
   let query = supabaseClient
     .from('repositorio')
-    .select('id, nombre_archivo, tipo_documento, categoria, processed, total_chunks, fecha_subida, tamano_bytes')
-    .order('fecha_subida', { ascending: false });
+    .select(
+      'id, nombre_archivo, tipo_documento, categoria, processed, total_chunks, fecha_subida, tamano_bytes',
+      { count: 'exact' }
+    )
+    .order('fecha_subida', { ascending: false })
+    .limit(safeLimit);
 
   if (categoria) {
     query = query.eq('categoria', categoria);
@@ -577,7 +613,7 @@ async function listAllDocuments(
     query = query.eq('processed', processed);
   }
 
-  const { data, error } = await query;
+  const { data, error, count } = await query;
 
   if (error) {
     console.error('listAllDocuments error:', error);
@@ -595,9 +631,12 @@ async function listAllDocuments(
     tamano: d.tamano_bytes as number | null,
   }));
 
+  const total = typeof count === 'number' ? count : docs.length;
+
   return {
     documentos: docs,
-    total: docs.length,
+    total,
+    truncated: total > docs.length,
   };
 }
 
@@ -633,7 +672,7 @@ async function executeToolCall(
   }
 
   // --- Documentos ---
-  if (name === 'search_knowledge_base') {
+  if (name === 'searchKnowledgeBase') {
     const query = String(args.query || '');
     const categoria = args.categoria ? String(args.categoria) : undefined;
     const maxResults = args.max_results ? Number(args.max_results) : undefined;
@@ -662,7 +701,8 @@ async function executeToolCall(
   if (name === 'listAllDocuments') {
     const categoria = args.categoria ? String(args.categoria) : undefined;
     const processed = args.processed !== undefined ? Boolean(args.processed) : undefined;
-    const result = await listAllDocuments(categoria, processed);
+    const limit = args.limit !== undefined ? Number(args.limit) : undefined;
+    const result = await listAllDocuments(categoria, processed, limit);
 
     if (result.total === 0) {
       return {
@@ -678,15 +718,18 @@ async function executeToolCall(
       return `- **${d.nombre}** (${d.tipo}) — ${d.categoria} — ${proc}${chunks}`;
     });
     const stats = `\n\n**Procesados**: ${result.documentos.filter(d => d.procesado).length} | **Pendientes**: ${result.documentos.filter(d => !d.procesado).length}`;
+    const truncation = result.truncated
+      ? `\n\n_Mostrando ${result.documentos.length} de ${result.total}. Pedí más con el parámetro limit (máx. 500)._`
+      : '';
 
     return {
-      formattedResult: header + lines.join('\n') + stats,
+      formattedResult: header + lines.join('\n') + stats + truncation,
       sourceType: 'documents',
     };
   }
 
   // --- Web ---
-  if (name === 'search_web') {
+  if (name === 'searchWeb') {
     const query = String(args.query || '');
     const site = args.site ? String(args.site) : undefined;
     try {
@@ -712,7 +755,7 @@ async function executeToolCall(
     }
   }
 
-  if (name === 'scrape_url') {
+  if (name === 'scrapeUrl') {
     const url = String(args.url || '');
     try {
       const data = await scrapeUrl(url, 'text', 3000);
@@ -767,7 +810,7 @@ async function callLLM(
   usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
 }> {
   const llmApiKey = OPENAI_API_KEY;
-  const apiUrl = 'https://api.openai.com/v1/chat/completions';
+  const apiUrl = chatCompletionsUrl();
   const model = OPENAI_MODEL;
 
   const body: Record<string, unknown> = {
@@ -805,6 +848,7 @@ async function callLLM(
           Authorization: `Bearer ${llmApiKey}`,
         },
         body: JSON.stringify(body),
+        signal: AbortSignal.timeout(CHAT_TIMEOUT_MS),
       });
 
       if (response.ok) {
@@ -1084,7 +1128,7 @@ async function handleChatPOST(request: Request) {
             });
             return `  - "${c.nombre}" (${c.indicadores.length} indicadores, ej: ${sorted.slice(0, 5).map(i => i.nombre).join(', ')}${c.indicadores.length > 5 ? '...' : ''})`;
           });
-          catalogContext = `\n\n## CATÁLOGO DE DATOS DISPONIBLES\n\nEstas son las categorías de indicadores con datos cargados. TODAS tienen datos disponibles — no necesitás buscarlas en documentos:\n${lines.join('\n')}\n\nINSTRUCCIÓN: SIEMPRE que te pregunten sobre un tema que coincida con alguna categoría, usá las herramientas de indicadores. NO uses search_knowledge_base para buscar datos de indicadores.`;
+          catalogContext = `\n\n## CATÁLOGO DE DATOS DISPONIBLES\n\nEstas son las categorías de indicadores con datos cargados. TODAS tienen datos disponibles — no necesitás buscarlas en documentos:\n${lines.join('\n')}\n\nINSTRUCCIÓN: SIEMPRE que te pregunten sobre un tema que coincida con alguna categoría, usá las herramientas de indicadores. NO uses searchKnowledgeBase para buscar datos de indicadores.`;
         }
       } catch {
         // Non-critical — continue without catalog
@@ -1222,11 +1266,11 @@ async function handleChatPOST(request: Request) {
             messages.push({
               role: 'user',
               content:
-                'Todas las herramientas fallaron. Probá con herramientas DIFERENTES a las que ya intentaste. Por ejemplo, si falló search_knowledge_base, probá listAvailableIndicators o searchIndicators. O si fallaron indicadores, buscá en documentos o web. Usá al menos 2-3 herramientas diferentes antes de rendirte.',
+                'Todas las herramientas fallaron. Probá con herramientas DIFERENTES a las que ya intentaste. Por ejemplo, si falló searchKnowledgeBase, probá listAvailableIndicators o searchIndicators. O si fallaron indicadores, buscá en documentos o web. Usá al menos 2-3 herramientas diferentes antes de rendirte.',
             });
           } else {
-            // If only search_knowledge_base was used and found nothing, force other tools
-            const onlySearchedDocs = toolsUsed.length === 1 && toolsUsed[0] === 'search_knowledge_base';
+            // If only searchKnowledgeBase was used and found nothing, force other tools
+            const onlySearchedDocs = toolsUsed.length === 1 && toolsUsed[0] === 'searchKnowledgeBase';
             if (onlySearchedDocs) {
               messages.push({
                 role: 'user',

@@ -19,13 +19,13 @@ import {
 } from '@/lib/informe-ejecutivo';
 import { withRateLimit } from '@/lib/agent/rate-limit';
 import { trackLLMUsage } from '@/lib/usage-tracker';
+import { CHAT_MODEL, CHAT_TIMEOUT_MS, chatCompletionsUrl, OPENAI_API_KEY } from '@/lib/ai-config';
 
 // ─── Configuration ──────────────────────────────────────────────
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
-const OPENAI_MODEL = 'gpt-4o-mini';
+const OPENAI_MODEL = CHAT_MODEL;
 const MAX_RETRIES = 3;
 
 // ─── Types ──────────────────────────────────────────────────────
@@ -44,7 +44,7 @@ async function callLLM(
   systemPrompt: string,
   userPayload: string,
 ): Promise<string> {
-  const apiUrl = 'https://api.openai.com/v1/chat/completions';
+  const apiUrl = chatCompletionsUrl();
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
@@ -67,10 +67,11 @@ async function callLLM(
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPayload },
           ],
-          temperature: 0.3,
+          temperature: 0.2,
           max_tokens: 8000,
           response_format: { type: 'json_object' as const },
         }),
+        signal: AbortSignal.timeout(CHAT_TIMEOUT_MS),
       });
 
       if (response.ok) {

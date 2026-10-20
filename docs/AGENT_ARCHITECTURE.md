@@ -45,7 +45,7 @@ Ambos usan OpenAI (gpt-4o-mini) como LLM y OpenAI para embeddings.
    │ • getCategoryOverview │ • download-file      │
    │ • getBreakdown        │ • list-bucket        │
    ├───────────────────────┴──────────────────────┤
-   │         search_knowledge_base                │
+   │         searchKnowledgeBase                │
    │      (compartida por ambos agentes)          │
    └───────────────────────┬──────────────────────┘
                            │
@@ -89,7 +89,7 @@ Máximo 3 rondas de tools, 5 tool calls totales.
 | `getIndicatorTimeSeries` | Serie temporal completa | `indicadorNombre` (req), `categoria` (opt), `limit` (opt) |
 | `getCategoryOverview` | Resumen de todos los indicadores de una categoría | `categoria` (req) |
 | `getIndicatorBreakdown` | Desglose por dimensión (edad, género, región) | `indicadorNombre` (req), `desgloseField` (opt) |
-| `search_knowledge_base` | Búsqueda vectorial en documentos | `query` (req), `max_results` (opt) |
+| `searchKnowledgeBase` | Búsqueda vectorial en documentos | `query` (req), `max_results` (opt) |
 
 ### LLM
 
@@ -123,10 +123,10 @@ Máximo 5 tool calls totales.
 
 | Tool | Endpoint | Descripción |
 |------|----------|-------------|
-| `search_knowledge_base` | Tool del chat | Búsqueda vectorial en `doc_chunks` |
+| `searchKnowledgeBase` | Tool del chat | Búsqueda vectorial en `doc_chunks` |
 | `listAllDocuments` | Tool del chat | Lista archivos del repositorio |
-| `search_web` | Tool (`src/lib/agent/web-search.ts`) | Búsqueda web via DuckDuckGo |
-| `scrape_url` | Tool (`src/lib/agent/scrape-url.ts`) | Extrae texto de una URL específica |
+| `searchWeb` | Tool (`src/lib/agent/web-search.ts`) | Búsqueda web via DuckDuckGo |
+| `scrapeUrl` | Tool (`src/lib/agent/scrape-url.ts`) | Extrae texto de una URL específica |
 
 ---
 

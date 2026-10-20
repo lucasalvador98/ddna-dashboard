@@ -662,12 +662,12 @@ export interface ToolDefinition {
   parameters: string;
 }
 
-/** Tool definitions for the indicator tools (excludes search_knowledge_base). */
+/** Tool definitions for the indicator tools (excludes searchKnowledgeBase). */
 export const INDICATOR_TOOL_DEFINITIONS: ToolDefinition[] = [
   {
     name: 'listAvailableIndicators',
     description:
-      'Lista todos los indicadores del DASHBOARD agrupados por categoría. Usala PRIMERO cuando el usuario pregunte "¿qué datos tenés?" o antes de buscar un indicador específico si no sabés las categorías. Para documentos usá search_knowledge_base.',
+      'Lista todos los indicadores del DASHBOARD agrupados por categoría. Usala PRIMERO cuando el usuario pregunte "¿qué datos tenés?" o antes de buscar un indicador específico si no sabés las categorías. Para documentos usá searchKnowledgeBase.',
     parameters: 'sin parámetros',
   },
   {
@@ -698,7 +698,7 @@ export const INDICATOR_TOOL_DEFINITIONS: ToolDefinition[] = [
   {
     name: 'searchIndicators',
     description:
-      'Busca indicadores del DASHBOARD por nombre/tema (ILIKE). Usala cuando el usuario pregunte por indicadores sobre un tema (ej: "pobreza", "mortalidad") pero no sepa el nombre exacto. Más específica que search_knowledge_base para datos. No para documentos.',
+      'Busca indicadores del DASHBOARD por nombre/tema (ILIKE). Usala cuando el usuario pregunte por indicadores sobre un tema (ej: "pobreza", "mortalidad") pero no sepa el nombre exacto. Más específica que searchKnowledgeBase para datos. No para documentos.',
     parameters: 'query (requerido) — término de búsqueda, categoria (opcional) para filtrar por categoría',
   },
 ];
@@ -724,7 +724,7 @@ export const INDICATOR_OPENAPI_TOOLS: Array<{
     function: {
       name: 'listAvailableIndicators',
       description:
-        'Lista todos los indicadores del DASHBOARD agrupados por categoría. Usala PRIMERO cuando el usuario pregunte "¿qué datos tenés?" o antes de buscar un indicador específico si no sabés qué categorías existen. NO busca en documentos — usá search_knowledge_base para eso.',
+        'Lista todos los indicadores del DASHBOARD agrupados por categoría. Usala PRIMERO cuando el usuario pregunte "¿qué datos tenés?" o antes de buscar un indicador específico si no sabés qué categorías existen. NO busca en documentos — usá searchKnowledgeBase para eso.',
       parameters: {
         type: 'object',
         properties: {},
@@ -737,7 +737,7 @@ export const INDICATOR_OPENAPI_TOOLS: Array<{
     function: {
       name: 'getLatestIndicatorValue',
       description:
-        'Obtiene los valores más recientes de un indicador específico del DASHBOARD. Usala para preguntas sobre el estado actual (ej: "¿Cuál es la tasa de pobreza infantil actual?"). NO busca en documentos — usá search_knowledge_base para contexto documental.',
+        'Obtiene los valores más recientes de un indicador específico del DASHBOARD. Usala para preguntas sobre el estado actual (ej: "¿Cuál es la tasa de pobreza infantil actual?"). NO busca en documentos — usá searchKnowledgeBase para contexto documental.',
       parameters: {
         type: 'object',
         properties: {
@@ -838,7 +838,7 @@ export const INDICATOR_OPENAPI_TOOLS: Array<{
     function: {
       name: 'searchIndicators',
       description:
-        'Busca indicadores del DASHBOARD por nombre/tema usando coincidencia aproximada (ILIKE). Usá ESTA cuando el usuario pregunte por "indicadores" o "datos" sobre un tema (ej: "pobreza", "mortalidad", "educación") pero no sepa el nombre exacto. Es MÁS específica que search_knowledge_base para datos de indicadores. NO la uses para buscar en documentos.',
+        'Busca indicadores del DASHBOARD por nombre/tema usando coincidencia aproximada (ILIKE). Usá ESTA cuando el usuario pregunte por "indicadores" o "datos" sobre un tema (ej: "pobreza", "mortalidad", "educación") pero no sepa el nombre exacto. Es MÁS específica que searchKnowledgeBase para datos de indicadores. NO la uses para buscar en documentos.',
       parameters: {
         type: 'object',
         properties: {

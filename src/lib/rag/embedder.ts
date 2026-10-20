@@ -1,12 +1,17 @@
 /**
- * Embedder - Generate embeddings using OpenAI API
- * 
- * Uses text-embedding-3-small (1536 dimensions)
- * Cost: $0.02 per 1M tokens (very economical)
+ * Embedder - Generate embeddings using an OpenAI-compatible API
+ *
+ * Model and endpoint are configurable via OPENAI_EMBEDDING_MODEL /
+ * OPENAI_BASE_URL. Default: text-embedding-3-small (1536 dimensions).
+ * Changing the model requires re-embedding every stored chunk.
  */
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
-const EMBEDDING_MODEL = "text-embedding-3-small";
+import {
+  EMBEDDING_MODEL,
+  EMBEDDING_TIMEOUT_MS,
+  embeddingsUrl,
+  OPENAI_API_KEY,
+} from '@/lib/ai-config';
 
 export interface EmbeddingResult {
   embedding: number[];
@@ -21,7 +26,7 @@ export async function generateEmbedding(text: string): Promise<number[]> {
     throw new Error("OPENAI_API_KEY is not configured");
   }
 
-  const response = await fetch("https://api.openai.com/v1/embeddings", {
+  const response = await fetch(embeddingsUrl(), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -31,6 +36,7 @@ export async function generateEmbedding(text: string): Promise<number[]> {
       model: EMBEDDING_MODEL,
       input: text.replace(/\n/g, " "), // Normalize whitespace
     }),
+    signal: AbortSignal.timeout(EMBEDDING_TIMEOUT_MS),
   });
 
   if (!response.ok) {
@@ -57,7 +63,7 @@ export async function generateEmbeddingsBatch(texts: string[]): Promise<number[]
   for (let i = 0; i < texts.length; i += BATCH_SIZE) {
     const batch = texts.slice(i, i + BATCH_SIZE).map((t) => t.replace(/\n/g, " "));
 
-    const response = await fetch("https://api.openai.com/v1/embeddings", {
+    const response = await fetch(embeddingsUrl(), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -67,6 +73,7 @@ export async function generateEmbeddingsBatch(texts: string[]): Promise<number[]
         model: EMBEDDING_MODEL,
         input: batch,
       }),
+      signal: AbortSignal.timeout(EMBEDDING_TIMEOUT_MS),
     });
 
     if (!response.ok) {
