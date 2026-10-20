@@ -56,13 +56,15 @@ Password authentication enabled. Root login disabled.
 | `SUPABASE_SERVICE_ROLE_KEY` | Yes | Yes | Supabase dashboard → Settings → API |
 | `OPENAI_API_KEY` | Yes | Yes | platform.openai.com → API Keys (default key for chat + embeddings) |
 | `OPENAI_CHAT_BASE_URL` | No | No | Defaults to `https://api.openai.com/v1`. Any OpenAI-compatible endpoint (DeepSeek, Gemini, OpenRouter, Groq) |
-| `OPENAI_CHAT_MODEL` | No | No | Defaults to `gpt-4o-mini` |
+| `OPENAI_CHAT_MODEL` | No | No | Defaults to `gpt-6-luna` (cheaper and newer than `gpt-4o-mini`) |
 | `OPENAI_CHAT_API_KEY` | No | Yes | Defaults to `OPENAI_API_KEY` |
 | `OPENAI_EMBEDDING_BASE_URL` | No | No | Defaults to the chat base URL / OpenAI |
 | `OPENAI_EMBEDDING_MODEL` | No | No | Defaults to `text-embedding-3-small` |
 | `OPENAI_EMBEDDING_API_KEY` | No | Yes | Defaults to `OPENAI_API_KEY` |
 | `OPENAI_EMBEDDING_DIMENSIONS` | No | No | Optional MRL output size; must match `doc_chunks.embedding vector(n)` |
 | `OPENAI_CHAT_EXTRA_BODY` | No | No | JSON merged into chat requests. DeepSeek: `{"thinking":{"type":"disabled"}}` |
+| `OPENAI_CHAT_REASONING_EFFORT` | No | No | Defaults to `none` for GPT-5+/GPT-6 models. `none` keeps latency and output cost low; raise to `low`/`medium` only if quality needs it |
+| `OPENAI_CHAT_PROMPT_CACHE_KEY` | No | No | Defaults to `ddna-repositorio-chat`. Routing hint that improves prompt-cache hits on GPT-5+ |
 | `OPENAI_CHAT_TIMEOUT_MS` | No | No | Defaults to `120000` |
 | `OPENAI_EMBEDDING_TIMEOUT_MS` | No | No | Defaults to `30000` |
 | `INTERNAL_API_SECRET` | Yes | Yes | Generated per-deploy (`openssl rand -hex 32`) |

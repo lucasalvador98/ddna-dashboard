@@ -43,7 +43,7 @@ export const EMBEDDING_API_KEY =
   process.env.OPENAI_EMBEDDING_API_KEY || process.env.OPENAI_API_KEY || '';
 
 /** Chat model used by chat, executive report and presentation generation. */
-export const CHAT_MODEL = process.env.OPENAI_CHAT_MODEL || 'gpt-4o-mini';
+export const CHAT_MODEL = process.env.OPENAI_CHAT_MODEL || 'gpt-6-luna';
 
 /** Embedding model used to index and query the document knowledge base. */
 export const EMBEDDING_MODEL =
@@ -78,6 +78,38 @@ export const CHAT_EXTRA_BODY: Record<string, unknown> = (() => {
     return {};
   }
 })();
+
+/**
+ * Reasoning effort for GPT-5+/GPT-6/o-series models. `none` keeps latency and
+ * output cost low while preserving tool calling.
+ * Supported values depend on the model:
+ *   gpt-6-luna → none | low | medium | high | xhigh
+ *   gpt-5-nano → minimal | low | medium | high
+ */
+export const CHAT_REASONING_EFFORT =
+  process.env.OPENAI_CHAT_REASONING_EFFORT || 'none';
+
+/** Prompt-cache routing hint for models that support it (GPT-5+). */
+export const CHAT_PROMPT_CACHE_KEY =
+  process.env.OPENAI_CHAT_PROMPT_CACHE_KEY || 'ddna-repositorio-chat';
+
+const REASONING_MODEL_PATTERN = /^(gpt-5|gpt-6|o[1-9])/i;
+
+export const CHAT_SUPPORTS_REASONING = REASONING_MODEL_PATTERN.test(CHAT_MODEL);
+
+/**
+ * Provider-specific fields for chat completions. Reasoning controls are only
+ * added for models that support them, so falling back to gpt-4o-mini or
+ * gpt-4.1-nano stays safe.
+ */
+export function chatProviderBody(): Record<string, unknown> {
+  const body: Record<string, unknown> = { ...CHAT_EXTRA_BODY };
+  if (CHAT_SUPPORTS_REASONING) {
+    body.reasoning_effort = CHAT_REASONING_EFFORT;
+    body.prompt_cache_key = CHAT_PROMPT_CACHE_KEY;
+  }
+  return body;
+}
 
 export const CHAT_TIMEOUT_MS =
   Number(process.env.OPENAI_CHAT_TIMEOUT_MS) || 120_000;

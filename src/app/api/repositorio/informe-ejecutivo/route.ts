@@ -19,7 +19,7 @@ import {
 } from '@/lib/informe-ejecutivo';
 import { withRateLimit } from '@/lib/agent/rate-limit';
 import { trackLLMUsage } from '@/lib/usage-tracker';
-import { CHAT_API_KEY, CHAT_EXTRA_BODY, CHAT_MODEL, CHAT_TIMEOUT_MS, chatCompletionsUrl } from '@/lib/ai-config';
+import { CHAT_API_KEY, CHAT_MODEL, CHAT_TIMEOUT_MS, chatCompletionsUrl, chatProviderBody } from '@/lib/ai-config';
 
 // ─── Configuration ──────────────────────────────────────────────
 
@@ -62,14 +62,14 @@ async function callLLM(
           Authorization: `Bearer ${CHAT_API_KEY}`,
         },
         body: JSON.stringify({
-          ...CHAT_EXTRA_BODY,
+          ...chatProviderBody(),
           model: OPENAI_MODEL,
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPayload },
           ],
           temperature: 0.2,
-          max_tokens: 8000,
+          max_completion_tokens: 8000,
           response_format: { type: 'json_object' as const },
         }),
         signal: AbortSignal.timeout(CHAT_TIMEOUT_MS),

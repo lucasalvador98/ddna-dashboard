@@ -11,7 +11,7 @@
  *   - Documentos:  searchKnowledgeBase, listAllDocuments
  *   - Web:         searchWeb, scrapeUrl
  *
- * Modelo: configurable via OPENAI_CHAT_MODEL (default gpt-4o-mini)
+ * Modelo: configurable via OPENAI_CHAT_MODEL (default gpt-6-luna)
  */
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
@@ -28,9 +28,9 @@ import { checkAdminAuth } from '@/lib/auth-guard';
 import { trackLLMUsage } from '@/lib/usage-tracker';
 import {
   CHAT_API_KEY,
-  CHAT_EXTRA_BODY,
   CHAT_MODEL,
   CHAT_TIMEOUT_MS,
+  chatProviderBody,
   EMBEDDING_API_KEY,
   EMBEDDING_DIMENSIONS,
   EMBEDDING_MODEL,
@@ -819,11 +819,11 @@ async function callLLM(
   const model = OPENAI_MODEL;
 
   const body: Record<string, unknown> = {
-    ...CHAT_EXTRA_BODY,
+    ...chatProviderBody(),
     model,
     messages,
     temperature: 0.3,
-    max_tokens: MAX_TOKENS,
+    max_completion_tokens: MAX_TOKENS,
   };
 
   if (tools && tools.length > 0) {

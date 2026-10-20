@@ -6,6 +6,9 @@
 // Update this table when switching providers; unknown models fall back to
 // gpt-4o-mini pricing, which may under- or over-estimate the real cost.
 const MODEL_COSTS: Record<string, { input: number; output: number }> = {
+  'gpt-6-luna': { input: 0.10, output: 0.50 },
+  'gpt-5-nano': { input: 0.05, output: 0.40 },
+  'gpt-4.1-nano': { input: 0.10, output: 0.40 },
   'gpt-4o-mini': { input: 0.15, output: 0.60 },
   'gpt-4o': { input: 2.50, output: 10.00 },
   'text-embedding-3-small': { input: 0.02, output: 0 },

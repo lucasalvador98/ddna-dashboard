@@ -17,7 +17,7 @@ import {
 } from '@/lib/presentacion-ia';
 import { withRateLimit } from '@/lib/agent/rate-limit';
 import { trackLLMUsage } from '@/lib/usage-tracker';
-import { CHAT_API_KEY, CHAT_EXTRA_BODY, CHAT_MODEL, CHAT_TIMEOUT_MS, chatCompletionsUrl } from '@/lib/ai-config';
+import { CHAT_API_KEY, CHAT_MODEL, CHAT_TIMEOUT_MS, chatCompletionsUrl, chatProviderBody } from '@/lib/ai-config';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -63,14 +63,14 @@ async function callLLM(systemPrompt: string, userPayload: string): Promise<strin
           Authorization: `Bearer ${CHAT_API_KEY}`,
         },
         body: JSON.stringify({
-          ...CHAT_EXTRA_BODY,
+          ...chatProviderBody(),
           model: OPENAI_MODEL,
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPayload },
           ],
           temperature: 0.4,
-          max_tokens: 16000,
+          max_completion_tokens: 16000,
           response_format: { type: 'json_object' as const },
         }),
         signal: AbortSignal.timeout(CHAT_TIMEOUT_MS),
