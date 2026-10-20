@@ -78,3 +78,12 @@ docs/CREDENCIALES.md
 __pycache__/
 *.pyc
 image.json
+
+# Informes de presentación Deán Funes (viven fuera del repo, son para el funcionario)
+docs/informe-dean-funes-primera-infancia.html
+docs/informe-dean-funes-primera-infancia.pdf
+docs/PERFIL_DEAN_FUNES_PRIMERA_INFANCIA.md
+docs/FUENTES_DATOS_LOCALIDAD.md
+
+# Crudos y descargas de los ETL (radios censales, anuarios, censo)
+.tmp-censo/
