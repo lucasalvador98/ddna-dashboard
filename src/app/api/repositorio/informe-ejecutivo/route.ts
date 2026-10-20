@@ -19,7 +19,7 @@ import {
 } from '@/lib/informe-ejecutivo';
 import { withRateLimit } from '@/lib/agent/rate-limit';
 import { trackLLMUsage } from '@/lib/usage-tracker';
-import { CHAT_MODEL, CHAT_TIMEOUT_MS, chatCompletionsUrl, OPENAI_API_KEY } from '@/lib/ai-config';
+import { CHAT_API_KEY, CHAT_EXTRA_BODY, CHAT_MODEL, CHAT_TIMEOUT_MS, chatCompletionsUrl } from '@/lib/ai-config';
 
 // ─── Configuration ──────────────────────────────────────────────
 
@@ -59,9 +59,10 @@ async function callLLM(
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${OPENAI_API_KEY}`,
+          Authorization: `Bearer ${CHAT_API_KEY}`,
         },
         body: JSON.stringify({
+          ...CHAT_EXTRA_BODY,
           model: OPENAI_MODEL,
           messages: [
             { role: 'system', content: systemPrompt },
@@ -196,11 +197,11 @@ async function fetchIndicators(
 async function handleInformeEjecutivoPOST(request: Request) {
   try {
     // --- Check API key ---
-    if (!OPENAI_API_KEY) {
+    if (!CHAT_API_KEY) {
       return NextResponse.json(
         {
           error:
-            'No hay API key configurada para OpenAI. Configurá OPENAI_API_KEY en .env.local',
+            'No hay API key configurada para el chat. Configurá OPENAI_CHAT_API_KEY u OPENAI_API_KEY en .env.local',
         },
         { status: 500 },
       );

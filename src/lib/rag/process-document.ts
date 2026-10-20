@@ -12,6 +12,7 @@ import { generateEmbeddingsBatch } from './embedder';
 import { extractTextFromPDF } from './extractors/pdf';
 import { extractTextFromDOCX } from './extractors/docx';
 import { extractTextFromXLSX } from './extractors/xlsx';
+import { EMBEDDING_API_KEY } from '@/lib/ai-config';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -197,7 +198,7 @@ export async function processDocument(
   const texts = chunks.map(c => c.content);
   let embeddings: number[][] | null = null;
 
-  if (process.env.OPENAI_API_KEY) {
+  if (EMBEDDING_API_KEY) {
     try {
       embeddings = await generateEmbeddingsBatch(texts);
     } catch (embedErr) {

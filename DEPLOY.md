@@ -54,12 +54,24 @@ Password authentication enabled. Root login disabled.
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes | No | Supabase dashboard → Settings → API |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | No | Supabase dashboard → Settings → API |
 | `SUPABASE_SERVICE_ROLE_KEY` | Yes | Yes | Supabase dashboard → Settings → API |
-| `OPENAI_API_KEY` | Yes | Yes | platform.openai.com → API Keys (LLM `gpt-4o-mini` + embeddings) |
+| `OPENAI_API_KEY` | Yes | Yes | platform.openai.com → API Keys (default key for chat + embeddings) |
+| `OPENAI_CHAT_BASE_URL` | No | No | Defaults to `https://api.openai.com/v1`. Any OpenAI-compatible endpoint (DeepSeek, Gemini, OpenRouter, Groq) |
+| `OPENAI_CHAT_MODEL` | No | No | Defaults to `gpt-4o-mini` |
+| `OPENAI_CHAT_API_KEY` | No | Yes | Defaults to `OPENAI_API_KEY` |
+| `OPENAI_EMBEDDING_BASE_URL` | No | No | Defaults to the chat base URL / OpenAI |
+| `OPENAI_EMBEDDING_MODEL` | No | No | Defaults to `text-embedding-3-small` |
+| `OPENAI_EMBEDDING_API_KEY` | No | Yes | Defaults to `OPENAI_API_KEY` |
+| `OPENAI_EMBEDDING_DIMENSIONS` | No | No | Optional MRL output size; must match `doc_chunks.embedding vector(n)` |
+| `OPENAI_CHAT_EXTRA_BODY` | No | No | JSON merged into chat requests. DeepSeek: `{"thinking":{"type":"disabled"}}` |
+| `OPENAI_CHAT_TIMEOUT_MS` | No | No | Defaults to `120000` |
+| `OPENAI_EMBEDDING_TIMEOUT_MS` | No | No | Defaults to `30000` |
 | `INTERNAL_API_SECRET` | Yes | Yes | Generated per-deploy (`openssl rand -hex 32`) |
 | `NEXT_PUBLIC_BASE_PATH` | Yes | No | `/observatorio` en producción. **Se hornea en BUILD time**: sin esto, todo `/observatorio/*` da 404 |
 | `NODE_ENV` | Yes | No | Set to `production` |
 
 ⚠️ **Never commit `.env.production` or `.env.local` to git.**
+
+⚠️ **Changing `OPENAI_EMBEDDING_MODEL` or `OPENAI_EMBEDDING_DIMENSIONS` invalidates every stored vector.** Re-embed all `doc_chunks` rows and keep the `vector(n)` column dimension in sync, or semantic search silently degrades to text search.
 
 ---
 

@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { StorageClient } from '@supabase/storage-js';
 import { chunkText } from '@/lib/rag/chunker';
 import { generateEmbeddingsBatch } from '@/lib/rag/embedder';
+import { EMBEDDING_API_KEY } from '@/lib/ai-config';
 
 // Dynamic imports to avoid loading unnecessary modules
 async function extractText(fileType: string, buffer: Buffer) {
@@ -155,7 +156,7 @@ export async function POST(request: Request) {
     const texts = chunks.map(c => c.content);
     let embeddings: number[][] | null = null;
 
-    const openAiKey = process.env.OPENAI_API_KEY;
+    const openAiKey = EMBEDDING_API_KEY;
     if (openAiKey) {
       try {
         embeddings = await generateEmbeddingsBatch(texts);
@@ -163,7 +164,7 @@ export async function POST(request: Request) {
         console.warn('Embedding generation failed, continuing without embeddings:', embedError);
       }
     } else {
-      console.log('No OPENAI_API_KEY - skipping embeddings (text search will still work)');
+      console.log('No OPENAI_EMBEDDING_API_KEY - skipping embeddings (text search will still work)');
     }
 
     // 6. Store chunks in doc_chunks table

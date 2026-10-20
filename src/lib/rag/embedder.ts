@@ -2,15 +2,16 @@
  * Embedder - Generate embeddings using an OpenAI-compatible API
  *
  * Model and endpoint are configurable via OPENAI_EMBEDDING_MODEL /
- * OPENAI_BASE_URL. Default: text-embedding-3-small (1536 dimensions).
+ * OPENAI_EMBEDDING_BASE_URL. Default: text-embedding-3-small (1536 dimensions).
  * Changing the model requires re-embedding every stored chunk.
  */
 
 import {
+  EMBEDDING_API_KEY,
+  EMBEDDING_DIMENSIONS,
   EMBEDDING_MODEL,
   EMBEDDING_TIMEOUT_MS,
   embeddingsUrl,
-  OPENAI_API_KEY,
 } from '@/lib/ai-config';
 
 export interface EmbeddingResult {
@@ -22,19 +23,20 @@ export interface EmbeddingResult {
  * Generate embedding for a single text
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
-  if (!OPENAI_API_KEY) {
-    throw new Error("OPENAI_API_KEY is not configured");
+  if (!EMBEDDING_API_KEY) {
+    throw new Error("OPENAI_EMBEDDING_API_KEY (or OPENAI_API_KEY) is not configured");
   }
 
   const response = await fetch(embeddingsUrl(), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${OPENAI_API_KEY}`,
+      "Authorization": `Bearer ${EMBEDDING_API_KEY}`,
     },
     body: JSON.stringify({
       model: EMBEDDING_MODEL,
       input: text.replace(/\n/g, " "), // Normalize whitespace
+      ...(EMBEDDING_DIMENSIONS ? { dimensions: EMBEDDING_DIMENSIONS } : {}),
     }),
     signal: AbortSignal.timeout(EMBEDDING_TIMEOUT_MS),
   });
@@ -53,8 +55,8 @@ export async function generateEmbedding(text: string): Promise<number[]> {
  * OpenAI supports up to 2048 inputs per request
  */
 export async function generateEmbeddingsBatch(texts: string[]): Promise<number[][]> {
-  if (!OPENAI_API_KEY) {
-    throw new Error("OPENAI_API_KEY is not configured");
+  if (!EMBEDDING_API_KEY) {
+    throw new Error("OPENAI_EMBEDDING_API_KEY (or OPENAI_API_KEY) is not configured");
   }
 
   const BATCH_SIZE = 100; // OpenAI recommends smaller batches
@@ -67,11 +69,12 @@ export async function generateEmbeddingsBatch(texts: string[]): Promise<number[]
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${OPENAI_API_KEY}`,
+        "Authorization": `Bearer ${EMBEDDING_API_KEY}`,
       },
       body: JSON.stringify({
         model: EMBEDDING_MODEL,
         input: batch,
+        ...(EMBEDDING_DIMENSIONS ? { dimensions: EMBEDDING_DIMENSIONS } : {}),
       }),
       signal: AbortSignal.timeout(EMBEDDING_TIMEOUT_MS),
     });

@@ -27,13 +27,16 @@ import { withRateLimit } from '@/lib/agent/rate-limit';
 import { checkAdminAuth } from '@/lib/auth-guard';
 import { trackLLMUsage } from '@/lib/usage-tracker';
 import {
+  CHAT_API_KEY,
+  CHAT_EXTRA_BODY,
   CHAT_MODEL,
   CHAT_TIMEOUT_MS,
+  EMBEDDING_API_KEY,
+  EMBEDDING_DIMENSIONS,
   EMBEDDING_MODEL,
   EMBEDDING_TIMEOUT_MS,
   chatCompletionsUrl,
   embeddingsUrl,
-  OPENAI_API_KEY,
 } from '@/lib/ai-config';
 
 // ---------------------------------------------------------------------------
@@ -285,17 +288,18 @@ const SYSTEM_PROMPT = `Sos el asistente de investigación de la Defensoría de N
 // ---------------------------------------------------------------------------
 
 async function generateEmbedding(text: string): Promise<number[] | null> {
-  if (!OPENAI_API_KEY) return null;
+  if (!EMBEDDING_API_KEY) return null;
   try {
     const response = await fetch(embeddingsUrl(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        Authorization: `Bearer ${EMBEDDING_API_KEY}`,
       },
       body: JSON.stringify({
         model: EMBEDDING_MODEL,
         input: text,
+        ...(EMBEDDING_DIMENSIONS ? { dimensions: EMBEDDING_DIMENSIONS } : {}),
       }),
       signal: AbortSignal.timeout(EMBEDDING_TIMEOUT_MS),
     });
@@ -437,7 +441,8 @@ async function searchKnowledgeBase(
   // FTS fallback to ILIKE
   if (ftsChunks.length === 0 && keywords.length > 0 && ftsFailed) {
     if (!embedding) {
-      warning = 'OPENAI_API_KEY no configurada. Usando búsqueda por texto (ILIKE).';
+      warning =
+        'OPENAI_EMBEDDING_API_KEY / OPENAI_API_KEY no configurada. Usando búsqueda por texto (ILIKE).';
     }
 
     const searchConditions = keywords.map(kw => `content.ilike.%${kw}%`).join(',');
@@ -809,11 +814,12 @@ async function callLLM(
   }>;
   usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
 }> {
-  const llmApiKey = OPENAI_API_KEY;
+  const llmApiKey = CHAT_API_KEY;
   const apiUrl = chatCompletionsUrl();
   const model = OPENAI_MODEL;
 
   const body: Record<string, unknown> = {
+    ...CHAT_EXTRA_BODY,
     model,
     messages,
     temperature: 0.3,
@@ -1090,10 +1096,11 @@ async function handleChatPOST(request: Request) {
     );
   }
 
-  if (!OPENAI_API_KEY) {
+  if (!CHAT_API_KEY) {
     return NextResponse.json(
       {
-        error: 'No hay API key configurada para OPENAI. Configurá OPENAI_API_KEY en .env.local',
+        error:
+          'No hay API key configurada para el chat. Configurá OPENAI_CHAT_API_KEY u OPENAI_API_KEY en .env.local',
       },
       { status: 500 }
     );

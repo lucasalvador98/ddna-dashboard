@@ -2,11 +2,19 @@
  * AI Usage Tracker — logs LLM token usage to Supabase.
  */
 
-// Cost per 1M tokens in USD (approximate, based on gpt-4o-mini pricing)
+// Cost per 1M tokens in USD (approximate list prices, checked 2026-10-20).
+// Update this table when switching providers; unknown models fall back to
+// gpt-4o-mini pricing, which may under- or over-estimate the real cost.
 const MODEL_COSTS: Record<string, { input: number; output: number }> = {
   'gpt-4o-mini': { input: 0.15, output: 0.60 },
   'gpt-4o': { input: 2.50, output: 10.00 },
   'text-embedding-3-small': { input: 0.02, output: 0 },
+  'text-embedding-3-large': { input: 0.13, output: 0 },
+  // DeepSeek bills peak/off-peak; this is the off-peak rate (154 of 168 weekly hours).
+  'deepseek-flash': { input: 0.15, output: 0.60 },
+  'gemini-2.5-flash-lite': { input: 0.10, output: 0.40 },
+  'gemini-2.5-flash': { input: 0.30, output: 2.50 },
+  'gemini-embedding-001': { input: 0.15, output: 0 },
 };
 
 const DEFAULT_COST = { input: 0.15, output: 0.60 };
