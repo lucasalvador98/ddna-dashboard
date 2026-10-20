@@ -1,7 +1,8 @@
 /**
  * POST /api/repositorio/informe-ejecutivo
  *
- * Generates an AI-powered executive/critical report using gpt-4o-mini.
+ * Generates an AI-powered executive/critical report using the configured
+ * OpenAI chat model.
  * Gathers from 3 sources in parallel: indicators + doc_chunks + web context.
  * Accepts a list of categories and returns a structured CriticalReport.
  */
@@ -19,14 +20,22 @@ import {
 } from '@/lib/informe-ejecutivo';
 import { withRateLimit } from '@/lib/agent/rate-limit';
 import { trackLLMUsage } from '@/lib/usage-tracker';
-import { CHAT_API_KEY, CHAT_MODEL, CHAT_TIMEOUT_MS, chatCompletionsUrl, chatProviderBody } from '@/lib/ai-config';
+import {
+  CHAT_API_KEY,
+  CHAT_MODEL,
+  CHAT_TIMEOUT_MS,
+  chatProviderBody,
+  FALLBACK_MODEL,
+  FALLBACK_REASONING_EFFORT,
+  FALLBACK_TIMEOUT_MS,
+} from '@/lib/ai-config';
+import { fetchChatCompletion } from '@/lib/ai/chat-client';
 
 // ─── Configuration ──────────────────────────────────────────────
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const OPENAI_MODEL = CHAT_MODEL;
-const MAX_RETRIES = 3;
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -38,98 +47,45 @@ interface RequestBody {
 
 /**
  * Call OpenAI with a system prompt + user payload.
- * Retries on rate limit (429) with exponential backoff.
+ * Retries 429/5xx/network errors and falls back to a secondary model.
  */
 async function callLLM(
   systemPrompt: string,
   userPayload: string,
 ): Promise<string> {
-  const apiUrl = chatCompletionsUrl();
-  let lastError: Error | null = null;
+  const { response, modelUsed } = await fetchChatCompletion({
+    primaryModel: OPENAI_MODEL,
+    fallbackModel: FALLBACK_MODEL,
+    buildBody: (model) => ({
+      ...chatProviderBody(
+        model,
+        model === FALLBACK_MODEL ? FALLBACK_REASONING_EFFORT : undefined,
+      ),
+      model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPayload },
+      ],
+      temperature: 0.2,
+      max_completion_tokens: 8000,
+      response_format: { type: 'json_object' as const },
+    }),
+    timeoutMs: CHAT_TIMEOUT_MS,
+    fallbackTimeoutMs: FALLBACK_TIMEOUT_MS,
+  });
 
-  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-    if (attempt > 0) {
-      // Exponential backoff: 1s, 3s, 7s
-      const delay = Math.pow(2, attempt + 1) * 1000 - 1000;
-      await new Promise((resolve) => setTimeout(resolve, delay));
-    }
-
-    try {
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${CHAT_API_KEY}`,
-        },
-        body: JSON.stringify({
-          ...chatProviderBody(),
-          model: OPENAI_MODEL,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPayload },
-          ],
-          temperature: 0.2,
-          max_completion_tokens: 8000,
-          response_format: { type: 'json_object' as const },
-        }),
-        signal: AbortSignal.timeout(CHAT_TIMEOUT_MS),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const content = data?.choices?.[0]?.message?.content || '';
-        const usage = data?.usage;
-        if (usage) {
-          trackLLMUsage({
-            tool: 'informe-ejecutivo',
-            model: OPENAI_MODEL,
-            promptTokens: usage.prompt_tokens || 0,
-            completionTokens: usage.completion_tokens || 0,
-          });
-        }
-        return content;
-      }
-
-      // Extract error
-      let msg = `HTTP ${response.status}`;
-      try {
-        const errorBody = await response.json();
-        msg = errorBody?.error?.message || msg;
-      } catch {
-        msg = `HTTP ${response.status} - Error desconocido`;
-      }
-
-      // Retry only on rate limit
-      const isRateLimit =
-        response.status === 429 ||
-        msg.toLowerCase().includes('rate limit') ||
-        msg.toLowerCase().includes('rate_limit');
-
-      if (!isRateLimit) {
-        throw new Error(`Error de OpenAI: ${msg}`);
-      }
-
-      lastError = new Error(`Error de OpenAI: ${msg}`);
-      console.warn(`Rate limit en intento ${attempt + 1}/${MAX_RETRIES}`);
-    } catch (err) {
-      if (
-        err instanceof Error &&
-        (err.message.includes('rate limit') ||
-          err.message.includes('rate_limit') ||
-          err.message.includes('Rate limit'))
-      ) {
-        lastError = err;
-        console.warn(`Rate limit en intento ${attempt + 1}/${MAX_RETRIES}`);
-        continue;
-      }
-      throw err;
-    }
+  const data = await response.json();
+  const content = data?.choices?.[0]?.message?.content || '';
+  const usage = data?.usage;
+  if (usage) {
+    trackLLMUsage({
+      tool: 'informe-ejecutivo',
+      model: modelUsed,
+      promptTokens: usage.prompt_tokens || 0,
+      completionTokens: usage.completion_tokens || 0,
+    });
   }
-
-  throw (
-    lastError ||
-    new Error('Error al generar el informe: máximo de reintentos alcanzado')
-  );
+  return content;
 }
 
 // ─── Supabase Query Helper ──────────────────────────────────────

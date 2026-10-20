@@ -93,6 +93,30 @@ export const CHAT_REASONING_EFFORT =
 export const CHAT_PROMPT_CACHE_KEY =
   process.env.OPENAI_CHAT_PROMPT_CACHE_KEY || 'ddna-repositorio-chat';
 
+/**
+ * Secondary chat model used when the primary exhausts retries on 429/5xx,
+ * timeouts or network errors. Set `OPENAI_FALLBACK_MODEL=off` to disable.
+ * Defaults to a non-reasoning model so tool calling and JSON mode stay cheap
+ * and predictable.
+ */
+export const FALLBACK_MODEL: string | null = (() => {
+  const raw = process.env.OPENAI_FALLBACK_MODEL;
+  if (raw === 'off') return null;
+  return raw || 'gpt-4.1-nano';
+})();
+
+/** Timeout for the fallback model. Defaults to 60s. */
+export const FALLBACK_TIMEOUT_MS =
+  Number(process.env.OPENAI_FALLBACK_TIMEOUT_MS) || 60_000;
+
+/**
+ * Reasoning effort for the fallback model when it is a reasoning model.
+ * `low` is supported by gpt-5-nano and gpt-6-luna; ignored by non-reasoning
+ * models.
+ */
+export const FALLBACK_REASONING_EFFORT =
+  process.env.OPENAI_FALLBACK_REASONING_EFFORT || 'low';
+
 const REASONING_MODEL_PATTERN = /^(gpt-5|gpt-6|o[1-9])/i;
 
 export const CHAT_SUPPORTS_REASONING = REASONING_MODEL_PATTERN.test(CHAT_MODEL);
@@ -102,10 +126,13 @@ export const CHAT_SUPPORTS_REASONING = REASONING_MODEL_PATTERN.test(CHAT_MODEL);
  * added for models that support them, so falling back to gpt-4o-mini or
  * gpt-4.1-nano stays safe.
  */
-export function chatProviderBody(): Record<string, unknown> {
+export function chatProviderBody(
+  model: string = CHAT_MODEL,
+  reasoningEffort: string = CHAT_REASONING_EFFORT,
+): Record<string, unknown> {
   const body: Record<string, unknown> = { ...CHAT_EXTRA_BODY };
-  if (CHAT_SUPPORTS_REASONING) {
-    body.reasoning_effort = CHAT_REASONING_EFFORT;
+  if (REASONING_MODEL_PATTERN.test(model)) {
+    body.reasoning_effort = reasoningEffort;
     body.prompt_cache_key = CHAT_PROMPT_CACHE_KEY;
   }
   return body;

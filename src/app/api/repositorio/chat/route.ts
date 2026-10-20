@@ -35,9 +35,12 @@ import {
   EMBEDDING_DIMENSIONS,
   EMBEDDING_MODEL,
   EMBEDDING_TIMEOUT_MS,
-  chatCompletionsUrl,
+  FALLBACK_MODEL,
+  FALLBACK_REASONING_EFFORT,
+  FALLBACK_TIMEOUT_MS,
   embeddingsUrl,
 } from '@/lib/ai-config';
+import { fetchChatCompletion } from '@/lib/ai/chat-client';
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -813,121 +816,73 @@ async function callLLM(
     function: { name: string; arguments: string };
   }>;
   usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
+  modelUsed: string;
 }> {
-  const llmApiKey = CHAT_API_KEY;
-  const apiUrl = chatCompletionsUrl();
-  const model = OPENAI_MODEL;
-
-  const body: Record<string, unknown> = {
-    ...chatProviderBody(),
-    model,
-    messages,
-    temperature: 0.3,
-    max_completion_tokens: MAX_TOKENS,
-  };
-
-  if (tools && tools.length > 0) {
-    body.tools = tools;
-    body.tool_choice = 'auto';
-  }
-
   const isStreaming = !!onToken;
+
+  const { response, modelUsed } = await fetchChatCompletion({
+    primaryModel: OPENAI_MODEL,
+    fallbackModel: FALLBACK_MODEL,
+    buildBody: (model) => {
+      const body: Record<string, unknown> = {
+        ...chatProviderBody(
+          model,
+          model === FALLBACK_MODEL ? FALLBACK_REASONING_EFFORT : undefined,
+        ),
+        model,
+        messages,
+        temperature: 0.3,
+        max_completion_tokens: MAX_TOKENS,
+      };
+
+      if (tools && tools.length > 0) {
+        body.tools = tools;
+        body.tool_choice = 'auto';
+      }
+
+      if (isStreaming) {
+        body.stream = true;
+        body.stream_options = { include_usage: true };
+      }
+
+      return body;
+    },
+    timeoutMs: CHAT_TIMEOUT_MS,
+    fallbackTimeoutMs: FALLBACK_TIMEOUT_MS,
+  });
+
   if (isStreaming) {
-    body.stream = true;
-    body.stream_options = { include_usage: true };
+    const result = await readStreamingResponse(response, onToken);
+    return { ...result, modelUsed };
   }
 
-  let lastError: Error | null = null;
-  const maxRetries = 3;
-
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    if (attempt > 0) {
-      const delay = Math.pow(2, attempt + 1) * 1000 - 1000;
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
-
-    try {
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${llmApiKey}`,
-        },
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(CHAT_TIMEOUT_MS),
-      });
-
-      if (response.ok) {
-        if (isStreaming) {
-          return await readStreamingResponse(response, onToken);
-        }
-
-        let data: {
-          choices?: Array<{
-            message?: {
-              content?: string | null;
-              tool_calls?: Array<{
-                id: string;
-                type: 'function';
-                function: { name: string; arguments: string };
-              }>;
-            };
-          }>;
-          usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
-        };
-        try {
-          data = await response.json();
-        } catch {
-          const text = await response.text();
-          throw new Error(`OpenAI devolvió una respuesta no-JSON: ${text.substring(0, 300)}`);
-        }
-
-        const message = data?.choices?.[0]?.message;
-        return {
-          content: message?.content ?? null,
-          toolCalls: message?.tool_calls,
-          usage: data?.usage,
-        };
-      }
-
-      let msg = `HTTP ${response.status}`;
-      try {
-        const errorBody = await response.json();
-        msg = errorBody?.error?.message || msg;
-      } catch {
-        const text = await response.text();
-        msg = `HTTP ${response.status} - ${text.substring(0, 200)}`;
-      }
-
-      const isRateLimit =
-        response.status === 429 ||
-        msg.toLowerCase().includes('rate limit') ||
-        msg.toLowerCase().includes('rate_limit') ||
-        msg.toLowerCase().includes('tokens per minute');
-
-      if (!isRateLimit) {
-        throw new Error(`Error al generar respuesta con OpenAI: ${msg}`);
-      }
-
-      lastError = new Error(`Error al generar respuesta con OpenAI: ${msg}`);
-      console.warn(
-        `Rate limit (attempt ${attempt + 1}/${maxRetries}): ${msg}`
-      );
-    } catch (err) {
-      if (err instanceof Error && (
-        err.message.includes('Rate limit') ||
-        err.message.includes('rate limit') ||
-        err.message.includes('rate_limit')
-      )) {
-        lastError = err;
-        console.warn(`Rate limit (attempt ${attempt + 1}/${maxRetries})`);
-        continue;
-      }
-      throw err;
-    }
+  let data: {
+    choices?: Array<{
+      message?: {
+        content?: string | null;
+        tool_calls?: Array<{
+          id: string;
+          type: 'function';
+          function: { name: string; arguments: string };
+        }>;
+      };
+    }>;
+    usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
+  };
+  try {
+    data = await response.json();
+  } catch {
+    const text = await response.text();
+    throw new Error(`OpenAI devolvió una respuesta no-JSON: ${text.substring(0, 300)}`);
   }
 
-  throw lastError || new Error(`Error al generar respuesta con OpenAI: max retries exceeded`);
+  const message = data?.choices?.[0]?.message;
+  return {
+    content: message?.content ?? null,
+    toolCalls: message?.tool_calls,
+    usage: data?.usage,
+    modelUsed,
+  };
 }
 
 /**
@@ -1151,6 +1106,7 @@ async function handleChatPOST(request: Request) {
         let finalAnswer = '';
         let round = 0;
         let totalToolCalls = 0;
+        let modelUsed = OPENAI_MODEL;
 
         while (round < MAX_TOOL_ROUNDS && totalToolCalls < MAX_TOOL_CALLS) {
           round += 1;
@@ -1160,10 +1116,11 @@ async function handleChatPOST(request: Request) {
             response = await callLLM(messages, ALL_TOOLS, (text) => {
               send('token', { text });
             });
+            modelUsed = response.modelUsed;
             if (response.usage) {
               trackLLMUsage({
                 tool: 'chat',
-                model: OPENAI_MODEL,
+                model: response.modelUsed,
                 promptTokens: response.usage.prompt_tokens,
                 completionTokens: response.usage.completion_tokens,
               });
@@ -1309,13 +1266,14 @@ async function handleChatPOST(request: Request) {
               content:
                 'Sintetizá AHORA una respuesta final con todos los datos disponibles. NO uses herramientas.',
             });
-            const { content, usage } = await callLLM(messages, undefined, (text) => {
+            const { content, usage, modelUsed: synthesisModel } = await callLLM(messages, undefined, (text) => {
               send('token', { text });
             });
+            modelUsed = synthesisModel;
             if (usage) {
               trackLLMUsage({
                 tool: 'chat',
-                model: OPENAI_MODEL,
+                model: synthesisModel,
                 promptTokens: usage.prompt_tokens,
                 completionTokens: usage.completion_tokens,
               });
@@ -1377,7 +1335,8 @@ async function handleChatPOST(request: Request) {
           searchMethod: searchMethodUsed || 'vector',
           toolsUsed: [...new Set(toolsUsed)],
           reportGenerated: (finalAnswer.match(/^#{1,3}\s/gm) || []).length >= 2 && finalAnswer.length > 400,
-          model: OPENAI_MODEL,
+          model: modelUsed,
+          fallback: modelUsed !== OPENAI_MODEL,
           functionCalling: true,
         });
       } catch (err) {
