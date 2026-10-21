@@ -256,9 +256,12 @@ async function main() {
   }
 
   const cloudHost = new URL(CLOUD_URL).host;
+// Hosts legados: el cloud y el IP del VPS (las URLs ya migradas apuntaron directo al IP)
+const LEGACY_HOSTS = [cloudHost, '179.199.132.207:8000'];
   let updatedCount = 0;
   let nullFixedCount = 0;
   const nullNeedsDecision = [];
+  const needsHuman = [];
 
   // Build a basename → full-path map for NULL resolution
   const basenameMap = new Map();
@@ -295,8 +298,13 @@ async function main() {
       continue;
     }
 
-    // Only update if still pointing to cloud
-    if (record.url_storage.includes(cloudHost)) {
+    // Only update if still pointing to cloud AND the file really migrated
+    if (LEGACY_HOSTS.some((h) => record.url_storage.includes(h))) {
+      if (!destinationSet.has(record.nombre_archivo)) {
+        console.log(`  ⚠️  ${record.nombre_archivo}: sin objeto migrado en destino — NO se actualiza la URL (evita apuntar a un 404)`);
+        needsHuman.push(record.nombre_archivo);
+        continue;
+      }
       const newUrl = buildSelfHostedUrl(record.nombre_archivo);
       if (DRY_RUN) {
         console.log(`🔍 [dry-run] Would update url_storage for ${record.nombre_archivo}: ${record.url_storage} → ${newUrl}`);
@@ -321,6 +329,9 @@ async function main() {
   }
   if (nullNeedsDecision.length > 0) {
     console.log(`   NULL rows needing human decision: ${nullNeedsDecision.join(', ')}`);
+  }
+  if (needsHuman.length > 0) {
+    console.log(`   ⚠️  Registros NO actualizados (archivo sin migrar): ${needsHuman.join(', ')}`);
   }
   console.log('');
 
