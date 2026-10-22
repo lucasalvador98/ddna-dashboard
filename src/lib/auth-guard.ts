@@ -2,6 +2,12 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { getSupabaseAdminClient } from '@/lib/supabase';
+import {
+  mergePermissions,
+  type PermissionsPayload,
+  type RolePermission,
+  type UserPermission,
+} from '@/lib/rbac-types';
 
 interface AuthUser {
   id: string;
@@ -156,4 +162,76 @@ export async function checkAdminAuth(): Promise<GuardResult> {
 }
 
 /** Built-in role names that cannot be deleted or renamed. */
-export const BUILT_IN_ROLES = ['admin', 'editor', 'visor'];
+export const BUILT_IN_ROLES = ['admin', 'agente', 'visor'];
+
+/**
+ * Resolve the merged permission matrix of a user: the role base
+ * (public.role_permissions) plus the per-user extras
+ * (public.user_permissions, additive — see mergePermissions).
+ *
+ * Server-only: reads the RBAC tables with the service_role client, so the
+ * caller must already have passed a guard (checkAuth / checkAdminAuth).
+ *
+ * Throws on a fatal read error (the caller maps it to a 500). A failure while
+ * reading the extras is non-fatal: the role base is still returned with a
+ * warning, so a deployment that lands before the user_permissions migration
+ * degrades to the role matrix instead of locking every user out.
+ */
+export async function resolvePermissions(userId: string): Promise<PermissionsPayload> {
+  const adminClient = getSupabaseAdminClient();
+
+  const { data: roleRow, error: roleError } = await adminClient
+    .from('user_roles')
+    .select('role_id, roles(name)')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (roleError) {
+    throw new Error(roleError.message);
+  }
+
+  const roleId = typeof roleRow?.role_id === 'number' ? roleRow.role_id : null;
+  const rolesData = (
+    Array.isArray(roleRow?.roles) ? roleRow?.roles[0] : roleRow?.roles
+  ) as { name: string } | null | undefined;
+
+  let base: RolePermission[] = [];
+
+  if (roleId !== null) {
+    const { data, error } = await adminClient
+      .from('role_permissions')
+      .select('route, can_view, can_edit')
+      .eq('role_id', roleId);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    base = (data ?? []) as RolePermission[];
+  }
+
+  const warnings: string[] = [];
+  let extras: UserPermission[] = [];
+
+  const extrasResult = await adminClient
+    .from('user_permissions')
+    .select('route, can_view, can_edit')
+    .eq('user_id', userId);
+
+  if (extrasResult.error) {
+    warnings.push(
+      `No se pudieron leer los permisos por usuario: ${extrasResult.error.message}`
+    );
+  } else {
+    extras = (extrasResult.data ?? []) as UserPermission[];
+  }
+
+  return {
+    user_id: userId,
+    role: roleId !== null ? { id: roleId, name: rolesData?.name ?? '' } : null,
+    base_permissions: base,
+    extras,
+    effective: mergePermissions(base, extras),
+    ...(warnings.length > 0 ? { warnings } : {}),
+  };
+}
