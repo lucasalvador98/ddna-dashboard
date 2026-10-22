@@ -57,7 +57,7 @@ export async function GET(
     }
 
     // Fetch user email from auth
-    const { data: authUser, error: authError } =
+    const { data: authUser } =
       await adminClient.auth.admin.getUserById(id);
 
     const rolesData = (Array.isArray(data.roles) ? data.roles[0] : data.roles) as { name: string } | null;
@@ -95,9 +95,12 @@ export async function PUT(
 
     const body = (await request.json()) as { role_id?: unknown };
 
-    if (body.role_id === undefined || typeof body.role_id !== 'number') {
+    // null is a valid value: it means "sin rol" and removes the user_roles row.
+    const isRemoval = body.role_id === null;
+
+    if (!isRemoval && (typeof body.role_id !== 'number' || !Number.isInteger(body.role_id))) {
       return NextResponse.json(
-        { error: 'Se requiere "role_id" (number)' },
+        { error: 'Se requiere "role_id" (number) o null para dejar al usuario sin rol' },
         { status: 400 },
       );
     }
@@ -120,16 +123,31 @@ export async function PUT(
         : (currentRoleData as { name: string })
       )?.name;
 
-    // 2. Fetch the target role name
-    const { data: targetRole } = await adminClient
-      .from('roles')
-      .select('name')
-      .eq('id', body.role_id)
-      .maybeSingle();
+    // 2. Fetch the target role name (none when the role is being removed)
+    let targetRoleName: string | undefined;
 
-    const targetRoleName = targetRole?.name;
+    if (!isRemoval) {
+      const { data: targetRole, error: targetRoleError } = await adminClient
+        .from('roles')
+        .select('name')
+        .eq('id', body.role_id as number)
+        .maybeSingle();
 
-    // 3. If demoting from admin to non-admin, check if this is the last admin
+      if (targetRoleError) {
+        return NextResponse.json({ error: targetRoleError.message }, { status: 500 });
+      }
+
+      if (!targetRole) {
+        return NextResponse.json(
+          { error: 'El rol indicado no existe' },
+          { status: 400 },
+        );
+      }
+
+      targetRoleName = targetRole.name;
+    }
+
+    // 3. If demoting (or removing) the last admin, refuse
     if (currentRoleName === 'admin' && targetRoleName !== 'admin') {
       const { count: adminCount } = await adminClient
         .from('user_roles')
@@ -144,11 +162,36 @@ export async function PUT(
       }
     }
 
+    // ── Sin rol: remove the assignment (404-safe: 0 rows deleted is fine) ──
+    if (isRemoval) {
+      const { error: deleteError } = await adminClient
+        .from('user_roles')
+        .delete()
+        .eq('user_id', id);
+
+      if (deleteError) {
+        return NextResponse.json({ error: deleteError.message }, { status: 500 });
+      }
+
+      // Fetch user email from auth (best effort: the user may be gone)
+      const { data: authUser } = await adminClient.auth.admin.getUserById(id);
+
+      const userRole: UserRole = {
+        user_id: id,
+        email: authUser?.user?.email ?? '',
+        role_id: 0,
+        role_name: 'sin_rol',
+        created_at: '',
+      };
+
+      return NextResponse.json(userRole);
+    }
+
     // Upsert: only one role per user (unique constraint on user_id)
     const { data: ur, error: upsertError } = await adminClient
       .from('user_roles')
       .upsert(
-        { user_id: id, role_id: body.role_id },
+        { user_id: id, role_id: body.role_id as number },
         { onConflict: 'user_id' },
       )
       .select('user_id, role_id, created_at, roles(name)')
@@ -159,8 +202,7 @@ export async function PUT(
     }
 
     // Fetch user email from auth
-    const { data: authUser, error: authError } =
-      await adminClient.auth.admin.getUserById(id);
+    const { data: authUser } = await adminClient.auth.admin.getUserById(id);
 
     const rolesData = (Array.isArray(ur.roles) ? ur.roles[0] : ur.roles) as { name: string } | null;
 
