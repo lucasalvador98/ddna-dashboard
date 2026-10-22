@@ -33,7 +33,7 @@ export async function DELETE(
 
     if (existingRole && BUILT_IN_ROLES.includes(existingRole.name)) {
       return NextResponse.json(
-        { error: 'No se puede eliminar un rol fijo del sistema (admin, editor, visor).' },
+        { error: 'No se puede eliminar un rol fijo del sistema (admin, agente, visor).' },
         { status: 403 }
       );
     }
@@ -94,7 +94,7 @@ export async function PATCH(
 
       if (existingRole && BUILT_IN_ROLES.includes(existingRole.name)) {
         return NextResponse.json(
-          { error: 'No se puede renombrar un rol fijo del sistema (admin, editor, visor).' },
+          { error: 'No se puede renombrar un rol fijo del sistema (admin, agente, visor).' },
           { status: 403 }
         );
       }
