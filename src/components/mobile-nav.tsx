@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ChevronDown, X } from 'lucide-react';
 import clsx from 'clsx';
-import { navigation, findGroupForPath } from '@/lib/navigation';
+import { navigation, findGroupForPath, filterNavigationAccess, useNavigationAccess } from '@/lib/navigation';
 
 interface MobileNavProps {
   isOpen: boolean;
@@ -15,6 +15,13 @@ interface MobileNavProps {
 export function MobileNav({ isOpen, onClose }: MobileNavProps) {
   const [expandedGroups, setExpandedGroups] = React.useState<Set<string>>(new Set());
   const pathname = usePathname();
+
+  // Same filtering as the desktop sidebar (see src/lib/navigation.ts).
+  const access = useNavigationAccess();
+  const groups = React.useMemo(
+    () => filterNavigationAccess(navigation, access),
+    [access],
+  );
 
   // Auto-expand the group that contains the current route
   useEffect(() => {
@@ -99,7 +106,7 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-3 px-3" style={{ height: 'calc(100% - 4rem)' }}>
           <ul className="space-y-0.5">
-            {navigation.map(group => {
+            {groups.map(group => {
               const isExpanded = expandedGroups.has(group.label);
               const isSingleItem = group.items.length === 1;
               const activeChild = group.items.find(item => isItemActive(item.href));

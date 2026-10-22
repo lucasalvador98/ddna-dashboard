@@ -66,62 +66,45 @@ function resolveConfig(enabled: boolean) {
   });
 }
 
-function mockFetchPermissions() {
+function mockPermissions(payload: unknown, status = 200) {
   vi.spyOn(globalThis, 'fetch').mockImplementation((url: string | URL | Request) => {
     const urlStr = typeof url === 'string' ? url : url instanceof URL ? url.href : url.url;
-    if (urlStr.includes('/api/auth/users/') && urlStr.includes('/role')) {
+    if (urlStr.includes('/api/auth/me/permissions')) {
       return Promise.resolve(
-        new Response(JSON.stringify({ role_name: 'admin' }), { status: 200 }),
-      );
-    }
-    if (urlStr.includes('/api/auth/roles')) {
-      return Promise.resolve(
-        new Response(
-          JSON.stringify([
-            {
-              id: 1,
-              name: 'admin',
-              permissions: [
-                { id: 1, role_id: 1, route: '/', can_view: true, can_edit: true },
-                { id: 2, role_id: 1, route: '/admin', can_view: true, can_edit: true },
-              ],
-            },
-          ]),
-          { status: 200 },
-        ),
+        new Response(JSON.stringify(payload), {
+          status,
+          headers: { 'Content-Type': 'application/json' },
+        }),
       );
     }
     return Promise.resolve(new Response(JSON.stringify({}), { status: 404 }));
   });
 }
 
-function mockFetchNoPermissions() {
-  vi.spyOn(globalThis, 'fetch').mockImplementation((url: string | URL | Request) => {
-    const urlStr = typeof url === 'string' ? url : url instanceof URL ? url.href : url.url;
-    if (urlStr.includes('/api/auth/users/') && urlStr.includes('/role')) {
-      return Promise.resolve(
-        new Response(JSON.stringify({ role_name: 'editor' }), { status: 200 }),
-      );
-    }
-    if (urlStr.includes('/api/auth/roles')) {
-      return Promise.resolve(
-        new Response(
-          JSON.stringify([
-            {
-              id: 2,
-              name: 'editor',
-              permissions: [
-                { id: 3, role_id: 2, route: '/salud', can_view: true, can_edit: false },
-              ],
-            },
-          ]),
-          { status: 200 },
-        ),
-      );
-    }
-    return Promise.resolve(new Response(JSON.stringify({}), { status: 404 }));
-  });
-}
+// The gate resolves the caller's matrix from /api/auth/me/permissions (any
+// authenticated user). /api/auth/roles is admin-only and can never be the
+// source for a non-admin session.
+const ADMIN_MATRIX = {
+  user_id: 'user-1',
+  role: { id: 1, name: 'admin' },
+  base_permissions: [
+    { route: '/monitoreo', can_view: true, can_edit: true },
+    { route: '/admin', can_view: true, can_edit: true },
+  ],
+  extras: [],
+  effective: {
+    '/monitoreo': { can_view: true, can_edit: true },
+    '/admin': { can_view: true, can_edit: true },
+  },
+};
+
+const NO_ACCESS_MATRIX = {
+  user_id: 'user-1',
+  role: { id: 2, name: 'agente' },
+  base_permissions: [{ route: '/salud', can_view: true, can_edit: false }],
+  extras: [],
+  effective: { '/salud': { can_view: true, can_edit: false } },
+};
 
 describe('LoginGate', () => {
   beforeEach(() => {
@@ -198,7 +181,8 @@ describe('LoginGate', () => {
   it('renders children when authenticated and has permission', async () => {
     mockAuthenticatedUser();
     resolveConfig(true);
-    mockFetchPermissions();
+    mockPermissions(ADMIN_MATRIX);
+    vi.mocked(usePathname).mockReturnValue('/monitoreo');
 
     render(
       <LoginGate>
@@ -214,7 +198,46 @@ describe('LoginGate', () => {
   it('shows denied screen when authenticated but lacks permission', async () => {
     mockAuthenticatedUser();
     resolveConfig(true);
-    mockFetchNoPermissions();
+    mockPermissions(NO_ACCESS_MATRIX);
+    vi.mocked(usePathname).mockReturnValue('/monitoreo');
+
+    render(
+      <LoginGate>
+        <div>Forbidden Content</div>
+      </LoginGate>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Sin acceso')).toBeInTheDocument();
+    });
+  });
+
+  it('keeps /admin reserved for the admin role', async () => {
+    mockAuthenticatedUser();
+    resolveConfig(true);
+    mockPermissions({
+      ...NO_ACCESS_MATRIX,
+      base_permissions: [{ route: '/admin', can_view: true, can_edit: true }],
+      effective: { '/admin': { can_view: true, can_edit: true } },
+    });
+    vi.mocked(usePathname).mockReturnValue('/admin');
+
+    render(
+      <LoginGate>
+        <div>Panel</div>
+      </LoginGate>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Sin acceso')).toBeInTheDocument();
+    });
+  });
+
+  it('shows denied screen when the self endpoint fails', async () => {
+    mockAuthenticatedUser();
+    resolveConfig(true);
+    mockPermissions({ error: 'boom' }, 500);
+    vi.mocked(usePathname).mockReturnValue('/monitoreo');
 
     render(
       <LoginGate>

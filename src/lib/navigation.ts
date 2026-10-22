@@ -15,6 +15,13 @@ import {
   Newspaper,
   type LucideIcon,
 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { dashboardPath } from '@/lib/app-path';
+import {
+  canAccessPath,
+  type EffectivePermissions,
+  type PermissionsPayload,
+} from '@/lib/rbac-types';
 
 export interface NavItem {
   label: string;
@@ -150,4 +157,121 @@ export function findGroupForPath(pathname: string): string | null {
     }
   }
   return null;
+}
+
+// ─── Navigation access (permissions) ────────────────────────────────────────
+//
+// The sidebar hides what the caller's merged matrix does not grant. This is a
+// cosmetic/UX filter: the authoritative denials are server-side (auth-proxy +
+// the LoginGate on gated screens), so a failure to resolve permissions never
+// blanks the navigation — it degrades to "show everything", same as public
+// mode.
+
+export interface NavigationAccess {
+  /** true once the access model is known (either resolved or degraded). */
+  ready: boolean;
+  /** true only when auth is enabled AND the caller has a session. */
+  filtered: boolean;
+  effective: EffectivePermissions;
+  isAdmin: boolean;
+}
+
+const ACCESS_UNFILTERED: NavigationAccess = {
+  ready: true,
+  filtered: false,
+  effective: {},
+  isAdmin: false,
+};
+
+// Deduplicates the concurrent mounts of Sidebar and MobileNav: at most one
+// request per page load. Cleared as soon as it settles (no stale cache).
+let inFlightAccess: Promise<NavigationAccess> | null = null;
+
+async function fetchNavigationAccess(): Promise<NavigationAccess> {
+  try {
+    const configRes = await fetch(dashboardPath('/api/auth/config'), { cache: 'no-store' });
+
+    if (!configRes.ok) return ACCESS_UNFILTERED;
+
+    const config = (await configRes.json()) as { enabled?: boolean } | null;
+
+    // Public mode (or an unreadable config): nothing is filtered, exactly like
+    // before the RBAC screens existed.
+    if (config?.enabled !== true) return ACCESS_UNFILTERED;
+
+    const res = await fetch(dashboardPath('/api/auth/me/permissions'), { cache: 'no-store' });
+
+    // No session / expired session: leave the navigation untouched and let the
+    // page-level gates decide.
+    if (!res.ok) return ACCESS_UNFILTERED;
+
+    const payload = (await res.json()) as Partial<PermissionsPayload> | null;
+
+    if (!payload || typeof payload !== 'object' || typeof payload.effective !== 'object') {
+      return ACCESS_UNFILTERED;
+    }
+
+    return {
+      ready: true,
+      filtered: true,
+      effective: payload.effective as EffectivePermissions,
+      isAdmin: payload.role?.name === 'admin',
+    };
+  } catch {
+    return ACCESS_UNFILTERED;
+  }
+}
+
+/** Resolve (and dedupe) the caller's navigation access. */
+export function loadNavigationAccess(): Promise<NavigationAccess> {
+  if (!inFlightAccess) {
+    inFlightAccess = fetchNavigationAccess().finally(() => {
+      inFlightAccess = null;
+    });
+  }
+  return inFlightAccess;
+}
+
+/** React hook consumed by Sidebar and MobileNav. */
+export function useNavigationAccess(): NavigationAccess {
+  const [access, setAccess] = useState<NavigationAccess>({
+    ...ACCESS_UNFILTERED,
+    ready: false,
+    filtered: false,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void loadNavigationAccess().then((resolved) => {
+      if (!cancelled) setAccess(resolved);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return access;
+}
+
+/**
+ * Filter the navigation groups with a resolved access model.
+ * Groups left without items are dropped; while permissions are unknown the
+ * navigation is rendered untouched (no empty flash on first paint).
+ */
+export function filterNavigationAccess(
+  groups: NavGroup[],
+  access: NavigationAccess,
+): NavGroup[] {
+  if (!access.filtered) return groups;
+
+  return groups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) =>
+        canAccessPath(access.effective, item.href, { isAdmin: access.isAdmin }),
+      ),
+    }))
+    .filter((group) => group.items.length > 0);
 }

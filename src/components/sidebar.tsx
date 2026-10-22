@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ChevronDown, ChevronLeft } from 'lucide-react';
 import clsx from 'clsx';
-import { navigation, findGroupForPath } from '@/lib/navigation';
+import { navigation, findGroupForPath, filterNavigationAccess, useNavigationAccess } from '@/lib/navigation';
 import { useSidebar } from '@/components/sidebar-context';
 
 interface SidebarProps {
@@ -19,6 +19,14 @@ export function Sidebar({ badges }: SidebarProps) {
   const { isCollapsed, toggleCollapse } = useSidebar();
   const [expandedGroups, setExpandedGroups] = React.useState<Set<string>>(new Set());
   const pathname = usePathname();
+
+  // Only the screens the caller's merged matrix grants are listed (when auth
+  // is enabled); server-side denials live in the proxy + LoginGate.
+  const access = useNavigationAccess();
+  const groups = React.useMemo(
+    () => filterNavigationAccess(navigation, access),
+    [access],
+  );
 
   useEffect(() => {
     const activeGroup = findGroupForPath(pathname);
@@ -66,7 +74,7 @@ export function Sidebar({ badges }: SidebarProps) {
       {/* Navigation */}
       <nav className="flex-1 py-3 overflow-y-auto">
         <ul className="space-y-0.5 px-2">
-          {navigation.map(group => {
+          {groups.map(group => {
             const isExpanded = expandedGroups.has(group.label);
             const isSingleItem = group.items.length === 1;
             const activeChild = group.items.find(item => isItemActive(item.href));

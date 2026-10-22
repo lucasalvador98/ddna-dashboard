@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Lock, ShieldX, Loader2 } from 'lucide-react';
 import { useAuth } from '@/components/auth-provider';
 import { dashboardPath } from '@/lib/app-path';
-import type { RolePermission } from '@/lib/rbac-types';
+import { canAccessPath, type EffectivePermissions } from '@/lib/rbac-types';
 
 interface AuthConfig {
   enabled: boolean;
@@ -39,15 +39,6 @@ function isPublicRoute(pathname: string): boolean {
 }
 
 /**
- * Check if a pathname matches a permission route (prefix match).
- * e.g. route "/admin" matches "/admin", "/admin/roles", etc.
- */
-function routeMatches(pattern: string, pathname: string): boolean {
-  if (pattern === '/') return pathname === '/';
-  return pathname === pattern || pathname.startsWith(pattern + '/');
-}
-
-/**
  * LoginGate — client-side access control gate with RBAC.
  *
  * Behavior:
@@ -57,13 +48,17 @@ function routeMatches(pattern: string, pathname: string): boolean {
  *  - auth.enabled + NOT authenticated → "Acceso restringido"
  *  - auth.enabled + authenticated + has permission → render children
  *  - auth.enabled + authenticated + NO permission → "Sin permiso"
+ *
+ * Permissions come from /api/auth/me/permissions (self endpoint, any
+ * authenticated user). /api/auth/roles is admin-only, so it can never be the
+ * source for a non-admin session.
  */
 export function LoginGate({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth();
   const pathname = usePathname();
   const [config, setConfig] = useState<AuthConfig | null>(null);
   const [configLoading, setConfigLoading] = useState(true);
-  const [permissions, setPermissions] = useState<RolePermission[]>([]);
+  const [effective, setEffective] = useState<EffectivePermissions>({});
   const [permsLoading, setPermsLoading] = useState(false);
   const [permsLoaded, setPermsLoaded] = useState(false);
   const [roleName, setRoleName] = useState<string | null>(null);
@@ -115,7 +110,7 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // ── Cargar rol + permisos cuando el usuario está autenticado ──────────────
+  // ── Cargar permisos cuando el usuario está autenticado ────────────────────
 
   useEffect(() => {
     // Nothing to load while signed out. `permsLoaded`/`permsLoading` only drive
@@ -123,77 +118,63 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
     // missing user as "no permission", so there is no stale value to clear.
     if (!user) return;
 
-    const userId = user.id; // capture for TS strict
     let cancelled = false;
 
-    async function loadRoleAndPermissions() {
+    async function loadPermissions() {
       setPermsLoading(true);
       setPermsLoaded(false);
       try {
-        // 1. Obtener el rol del usuario — with status check to avoid "No apikey" 200 masquerading as success
-        const roleRes = await fetchWithTimeout(dashboardPath(`/api/auth/users/${userId}/role`));
-        let roleData: Record<string, unknown> | null = null;
-        try {
-          roleData = (await roleRes.json()) as Record<string, unknown>;
-        } catch {
-          // Invalid JSON — treat as error
-        }
+        const res = await fetchWithTimeout(dashboardPath('/api/auth/me/permissions'));
 
         if (cancelled) return;
 
-        // If the API returned an error (401/403/500) or the Supabase "No apikey" hint, treat as no role
-        const isErrorResponse =
-          !roleRes.ok ||
-          (roleData && typeof roleData === 'object' && ('error' in roleData || 'hint' in roleData));
-
-        if (isErrorResponse || !roleData || typeof roleData['role_name'] !== 'string' || !roleData['role_name']) {
-          // Log for debugging but don't block UI — show "Sin acceso" instead of infinite spinner
-          if (isErrorResponse) {
-            console.warn('[LoginGate] role fetch failed', roleRes.status, roleData);
-          }
-          setRoleName((roleData?.['role_name'] as string) ?? null);
-          setPermissions([]);
+        if (!res.ok) {
+          // 401/500 — show "Sin acceso" instead of an infinite spinner.
+          console.warn('[LoginGate] permissions fetch failed', res.status);
+          setRoleName(null);
+          setEffective({});
           setPermsLoaded(true);
           return;
         }
 
-        setRoleName(roleData['role_name'] as string);
-
-        // 2. Obtener todos los roles con permisos y filtrar por el nuestro
-        const rolesRes = await fetchWithTimeout(dashboardPath('/api/auth/roles'));
-        let roles: unknown = null;
+        let payload: unknown = null;
         try {
-          roles = await rolesRes.json();
+          payload = await res.json();
         } catch {
-          // Invalid JSON
+          // Invalid JSON — treated as an error below
         }
 
         if (cancelled) return;
 
-        if (!rolesRes.ok || !Array.isArray(roles)) {
-          console.warn('[LoginGate] roles fetch failed', rolesRes.status, roles);
-          setPermissions([]);
+        const data = payload as {
+          role?: { name?: string } | null;
+          effective?: unknown;
+        } | null;
+
+        if (!data || typeof data !== 'object' || !data.effective || typeof data.effective !== 'object') {
+          console.warn('[LoginGate] permissions payload has an invalid shape', payload);
+          setRoleName(null);
+          setEffective({});
           setPermsLoaded(true);
           return;
         }
 
-        const myRole = (roles as Array<{ id: number; name: string; permissions: RolePermission[] }>).find(
-          (r) => r.name === (roleData['role_name'] as string),
-        );
-
-        setPermissions(myRole?.permissions ?? []);
+        setRoleName(data.role?.name ?? null);
+        setEffective(data.effective as EffectivePermissions);
         setPermsLoaded(true);
       } catch (err) {
         // Si falla la red, dejamos permisos vacíos pero marcamos como cargados para no quedar en spinner infinito
         console.warn('[LoginGate] unexpected error loading permissions', err);
-        setPermissions([]);
-        setPermsLoaded(true);
+        if (!cancelled) {
+          setEffective({});
+          setPermsLoaded(true);
+        }
       } finally {
         if (!cancelled) setPermsLoading(false);
       }
     }
 
-    loadRoleAndPermissions();
+    loadPermissions();
     return () => {
       cancelled = true;
     };
@@ -201,11 +182,14 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
 
   // ── Verificar si la ruta actual tiene permiso ─────────────────────────────
 
+  const isAdmin = roleName === 'admin';
+
   const hasPermission = useMemo(() => {
     if (!user) return false;
     if (isPublicRoute(pathname)) return true;
-    return permissions.some((p) => p.can_view && routeMatches(p.route, pathname));
-  }, [user, pathname, permissions]);
+    // Same rule the auth proxy enforces server-side (src/lib/auth-proxy.ts).
+    return canAccessPath(effective, pathname, { isAdmin });
+  }, [user, pathname, effective, isAdmin]);
 
   // ── Determinar estado final ───────────────────────────────────────────────
 

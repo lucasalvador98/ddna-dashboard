@@ -9,16 +9,54 @@ import type { Role, RolePermission } from '@/lib/rbac-types';
 
 // ── Constants ───────────────────────────────────────────────────────
 
-const BUILT_IN_ROLES = ['admin', 'editor', 'visor'];
+const BUILT_IN_ROLES = ['admin', 'agente', 'visor'];
 
 const ROUTE_GROUPS = [
   { label: 'Administración', routes: ['/admin'] },
-  { label: 'Indicadores sociales', routes: ['/salud', '/educacion', '/pobreza', '/seguridad'] },
+  {
+    label: 'Indicadores sociales',
+    routes: [
+      '/salud',
+      '/salud-adolescente',
+      '/educacion',
+      '/pobreza',
+      '/encuestas',
+      '/infancias',
+      '/poblacion',
+      '/seguridad',
+    ],
+  },
   { label: 'Finanzas públicas', routes: ['/inversion', '/presupuesto-nnya'] },
   { label: 'Monitoreo', routes: ['/monitoreo'] },
   { label: 'Documentos', routes: ['/repositorio', '/ejecutivo'] },
   { label: 'Datos', routes: ['/geo', '/fuentes'] },
+  { label: 'Formularios', routes: ['/formularios'] },
 ];
+
+/**
+ * Editable copy of a role's matrix. Every APP_ROUTE is present (a route without
+ * a row defaults to off) so newly added screens are manageable from this panel;
+ * legacy rows outside APP_ROUTES are preserved untouched.
+ */
+function buildEditablePermissions(
+  rolePermissions: RolePermission[],
+  roleId: number,
+): RolePermission[] {
+  const knownRoutes = new Set<string>(APP_ROUTES.map((r) => r.route));
+
+  const known = APP_ROUTES.map(({ route }): RolePermission => {
+    const existing = rolePermissions.find((p) => p.route === route);
+    return existing
+      ? { ...existing }
+      : { id: 0, role_id: roleId, route, can_view: false, can_edit: false };
+  });
+
+  const legacy = rolePermissions
+    .filter((p) => !knownRoutes.has(p.route))
+    .map((p) => ({ ...p }));
+
+  return [...known, ...legacy];
+}
 
 // ── Toggle Pill ─────────────────────────────────────────────────────
 
@@ -106,7 +144,7 @@ export function RoleManager({ onFlash }: RoleManagerProps) {
     if (role) {
       // Intentional form reset when selection changes — sync editable copy
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setPerms(JSON.parse(JSON.stringify(role.permissions))); // deep clone
+      setPerms(buildEditablePermissions(role.permissions, role.id));
       setHasChanges(false);
     }
   }, [selectedRoleId, roles]);
@@ -347,6 +385,11 @@ export function RoleManager({ onFlash }: RoleManagerProps) {
                   </span>
                 )}
               </div>
+              {isBuiltIn && (
+                <p className="text-[10px] text-gray-400">
+                  Rol del sistema: no se puede renombrar ni eliminar. Sus permisos sí son editables.
+                </p>
+              )}
               {selectedRole.description && (
                 <p className="text-xs text-gray-400">{selectedRole.description}</p>
               )}
@@ -375,14 +418,14 @@ export function RoleManager({ onFlash }: RoleManagerProps) {
                             <TogglePill
                               active={p.can_view}
                               onChange={(v) => handlePermChange(p.route, 'can_view', v)}
-                              disabled={isBuiltIn || saving}
+                              disabled={saving}
                               icon={Eye}
                               label="Ver"
                             />
                             <TogglePill
                               active={p.can_edit}
                               onChange={(v) => handlePermChange(p.route, 'can_edit', v)}
-                              disabled={isBuiltIn || saving}
+                              disabled={saving}
                               icon={Edit3}
                               label="Editar"
                             />
