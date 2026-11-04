@@ -230,6 +230,11 @@ async function reindexar(arch, APLICAR) {
     return;
   }
 
+  // Postgres rechaza U+0000 y PostgREST lo reporta como "unsupported Unicode
+  // escape sequence". La extracción de PDF lo emite donde no pudo decodificar
+  // una ligadura ("signi\u0000cativa"): un solo byte tumba el insert completo.
+  texto = texto.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\uFFFE\uFFFF]/g, '');
+
   const valido = esTextoReal(texto);
   log(`validación: ${valido.ok ? 'ok' : valido.motivo}`);
   if (!valido.ok) {
@@ -291,7 +296,11 @@ async function reindexar(arch, APLICAR) {
   }
 
   if (falloInsercion) {
-    console.log('  ⚠️  inserción incompleta. Volvé a correr el mismo comando: empieza borrando.');
+    // Los chunks viejos ya se borraron. Si el archivo queda marcado como
+    // procesado con cero chunks, ni el runtime ni un reintento lo recuperan.
+    await supabase.from('repositorio').update({ processed: false }).eq('id', arch.id);
+    console.log('  ⚠️  inserción incompleta: quedó marcado como NO procesado.');
+    console.log('  Volvé a correr el mismo comando: empieza borrando.');
     return;
   }
 

@@ -31,6 +31,20 @@ const DEFAULT_OPTIONS: Required<ChunkerOptions> = {
 };
 
 /**
+ * Control characters that must never reach a text column.
+ *
+ * Postgres rejects U+0000 in text, and PostgREST turns it into the opaque error
+ * "unsupported Unicode escape sequence". PDF extraction emits it wherever a
+ * ligature could not be decoded — "significación" arrives as "signi\u0000cación"
+ * — and one such byte makes the entire chunk insert fail.
+ */
+const CONTROL_CHARS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\uFFFE\uFFFF]/g;
+
+export function sanitizeText(text: string): string {
+  return text.replace(CONTROL_CHARS, '');
+}
+
+/**
  * Split text into chunks with overlap
  */
 export function chunkText(text: string, options?: ChunkerOptions): Chunk[] {
@@ -41,8 +55,9 @@ export function chunkText(text: string, options?: ChunkerOptions): Chunk[] {
     return chunks;
   }
 
-  // Normalize whitespace
-  const normalized = text.replace(/\s+/g, " ").trim();
+  // Normalize whitespace. Sanitize first: a control character here reaches the
+  // database and fails the whole insert.
+  const normalized = sanitizeText(text).replace(/\s+/g, " ").trim();
 
   // Try paragraph-based splitting first
   const paragraphs = splitByParagraphs(normalized);
