@@ -18,7 +18,12 @@ export async function GET() {
   try {
     const settings = await getAuthSettings();
 
-    return NextResponse.json(settings);
+    // Explicit shape: `degraded` is a server-side protection signal and must
+    // not reach the browser payload.
+    return NextResponse.json({
+      enabled: settings.enabled,
+      protected_routes: settings.protected_routes,
+    });
   } catch (err) {
     return NextResponse.json(
       { error: 'Error al cargar la configuración de autenticación' },

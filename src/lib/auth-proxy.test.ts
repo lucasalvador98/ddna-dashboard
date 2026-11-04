@@ -14,7 +14,11 @@ beforeEach(() => {
   vi.stubEnv('NEXT_PUBLIC_BASE_PATH', '/observatorio');
   vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://unit.invalid');
   vi.stubEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', 'unit-public-placeholder');
-  vi.mocked(getAuthSettings).mockResolvedValue({ enabled: true, protected_routes: ['/admin'] });
+  vi.mocked(getAuthSettings).mockResolvedValue({
+    enabled: true,
+    protected_routes: ['/admin'],
+    degraded: false,
+  });
   getUser.mockResolvedValue({ data: { user: null } });
   vi.mocked(createServerClient).mockReturnValue({ auth: { getUser } } as ReturnType<typeof createServerClient>);
 });
@@ -26,6 +30,12 @@ afterEach(() => {
 
 function adminRequest() {
   return new NextRequest('http://localhost/observatorio/admin?tab=roles', {
+    nextConfig: { basePath: '/observatorio' },
+  });
+}
+
+function requestFor(path: string) {
+  return new NextRequest(`http://localhost/observatorio${path}`, {
     nextConfig: { basePath: '/observatorio' },
   });
 }
@@ -52,7 +62,11 @@ describe('auth proxy behind /observatorio', () => {
   });
 
   it('preserves disabled-auth behavior without contacting the session client', async () => {
-    vi.mocked(getAuthSettings).mockResolvedValue({ enabled: false, protected_routes: ['/admin'] });
+    vi.mocked(getAuthSettings).mockResolvedValue({
+      enabled: false,
+      protected_routes: ['/admin'],
+      degraded: false,
+    });
     const { authProxy } = await import('./auth-proxy');
     const response = await authProxy(adminRequest());
     expect(response.headers.get('x-middleware-next')).toBe('1');
@@ -65,5 +79,49 @@ describe('auth proxy behind /observatorio', () => {
     const { authProxy } = await import('./auth-proxy');
     const response = await authProxy(new NextRequest('http://localhost/admin'));
     expect(new URL(response.headers.get('location')!).pathname).toBe('/login');
+  });
+
+  it('treats degraded settings as protecting every route', async () => {
+    vi.mocked(getAuthSettings).mockResolvedValue({
+      enabled: true,
+      protected_routes: [],
+      degraded: true,
+    });
+    const { authProxy } = await import('./auth-proxy');
+    // /informes is NOT in protected_routes: only the degraded flag can protect it
+    const response = await authProxy(requestFor('/informes'));
+    const location = new URL(response.headers.get('location')!);
+    expect(response.status).toBe(307);
+    expect(location.pathname).toBe('/observatorio/login');
+    expect(location.searchParams.get('redirect')).toBe('/informes');
+  });
+
+  it('keeps an authenticated user working while settings are degraded', async () => {
+    vi.mocked(getAuthSettings).mockResolvedValue({
+      enabled: true,
+      protected_routes: [],
+      degraded: true,
+    });
+    getUser.mockResolvedValue({ data: { user: { id: 'unit-user' } } });
+    const { authProxy } = await import('./auth-proxy');
+    const response = await authProxy(requestFor('/informes'));
+    expect(getUser).toHaveBeenCalledOnce();
+    expect(response.headers.get('location')).toBeNull();
+    expect(response.headers.get('x-middleware-next')).toBe('1');
+  });
+
+  it('answers 503 while degraded when the session client cannot be built', async () => {
+    vi.mocked(getAuthSettings).mockResolvedValue({
+      enabled: true,
+      protected_routes: [],
+      degraded: true,
+    });
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', '');
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', '');
+    const { authProxy } = await import('./auth-proxy');
+    const response = await authProxy(requestFor('/informes'));
+    expect(response.status).toBe(503);
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(createServerClient).not.toHaveBeenCalled();
   });
 });

@@ -13,7 +13,13 @@ import { NextRequest } from 'next/server';
 
 const { session, settings } = vi.hoisted(() => ({
   session: { user: null as { id: string } | null },
-  settings: { value: { enabled: true, protected_routes: ['/admin', '/monitoreo'] } },
+  settings: {
+    value: {
+      enabled: true,
+      protected_routes: ['/admin', '/monitoreo'],
+      degraded: false,
+    },
+  },
 }));
 
 vi.mock('@supabase/ssr', () => ({
@@ -62,7 +68,11 @@ function protectedRequest(path: string) {
 
 beforeEach(() => {
   session.user = { id: 'user-1' };
-  settings.value = { enabled: true, protected_routes: ['/admin', '/monitoreo'] };
+  settings.value = {
+    enabled: true,
+    protected_routes: ['/admin', '/monitoreo'],
+    degraded: false,
+  };
   vi.stubEnv('NEXT_PUBLIC_BASE_PATH', '/observatorio');
   vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://unit.invalid');
   vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'unit-service-placeholder');
@@ -155,7 +165,11 @@ describe('auth proxy permission enforcement', () => {
   });
 
   it('keeps today\'s behavior for a protected path outside the matrix', async () => {
-    settings.value = { enabled: true, protected_routes: ['/apis'] };
+    settings.value = {
+      enabled: true,
+      protected_routes: ['/apis'],
+      degraded: false,
+    };
     mockRbacFetch({
       role: { role_id: 3, roles: { name: 'visor' } },
       base: [],
@@ -187,7 +201,11 @@ describe('auth proxy permission enforcement', () => {
   });
 
   it('keeps public mode: auth disabled never checks permissions', async () => {
-    settings.value = { enabled: false, protected_routes: ['/monitoreo'] };
+    settings.value = {
+      enabled: false,
+      protected_routes: ['/monitoreo'],
+      degraded: false,
+    };
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
 
     const res = await runProxy('/monitoreo');

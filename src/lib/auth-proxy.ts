@@ -165,15 +165,41 @@ export async function authProxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const isProtected = settings.protected_routes.some(
-    (route) => pathname === route || pathname.startsWith(route + '/')
-  );
+  // Degraded settings mean "the row could not be read", not "nothing is
+  // protected": treat every route as protected so a PostgREST blip can never
+  // open the app. Only an empty list from a successful read is a real allowlist.
+  const isProtected =
+    settings.degraded ||
+    settings.protected_routes.some(
+      (route) => pathname === route || pathname.startsWith(route + '/')
+    );
 
   if (!isProtected) {
     return NextResponse.next();
   }
 
   // ─── Session check ────────────────────────────────────────────────────────
+
+  // A degraded read still prefers the session check over a blanket lockout: an
+  // authenticated user keeps working through the incident. That check needs the
+  // public Supabase env vars, and createServerClient would throw without them,
+  // so answer 503 instead of letting it surface as a 500.
+  if (
+    settings.degraded &&
+    (!process.env.NEXT_PUBLIC_SUPABASE_URL ||
+      !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+  ) {
+    return new NextResponse(
+      'Authentication unavailable: missing Supabase configuration.',
+      {
+        status: 503,
+        headers: {
+          'content-type': 'text/plain; charset=utf-8',
+          'cache-control': 'no-store',
+        },
+      }
+    );
+  }
 
   let supabaseResponse = NextResponse.next({
     request,
