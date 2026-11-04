@@ -194,20 +194,39 @@ export async function processDocument(
     };
   }
 
-  // 7. Generate embeddings (graceful fallback if API key missing or fails)
+  // 7. Generate embeddings
+  //
+  // Embeddings are optional per deployment but not optional per run:
+  // - Key absent: text-only deployment. Chunks are stored without embeddings
+  //   and the document is still marked processed, because that is a deliberate
+  //   configuration, not a transient failure. See step 9.
+  // - Key present: any missing embedding means the provider failed. Marking the
+  //   document processed would make the failure permanent: processDocument
+  //   skips processed rows and search_doc_chunks only returns rows with
+  //   `embedding IS NOT NULL`, so the document could never be retried or found.
+  const embeddingsConfigured = Boolean(EMBEDDING_API_KEY);
   const texts = chunks.map(c => c.content);
   let embeddings: number[][] | null = null;
 
-  if (EMBEDDING_API_KEY) {
+  if (embeddingsConfigured) {
     try {
       embeddings = await generateEmbeddingsBatch(texts);
     } catch (embedErr) {
       console.warn(
-        'Embedding generation failed — storing chunks without embeddings:',
+        'Embedding generation failed:',
         embedErr instanceof Error ? embedErr.message : String(embedErr)
       );
-      // Continue without embeddings — text search still works
     }
+  }
+
+  if (embeddingsConfigured && chunks.some((_, i) => !embeddings?.[i])) {
+    const embeddedCount = embeddings ? embeddings.filter(Boolean).length : 0;
+    return {
+      success: false,
+      totalChunks: 0,
+      textLength: extractedText.length,
+      error: `Embedding generation incomplete (${embeddedCount}/${chunks.length} chunks embedded). Document left unprocessed so it can be retried.`,
+    };
   }
 
   // 8. Insert chunks into doc_chunks
@@ -247,8 +266,14 @@ export async function processDocument(
 
   if (updateError) {
     console.error('Failed to update repositorio after processing:', updateError.message);
-    // Document was processed successfully even if metadata update fails;
-    // we still return success because the chunks are stored.
+    // Chunks are stored but the row is not marked processed. Do not report
+    // success: a caller that trusts `success` would never retry the run.
+    return {
+      success: false,
+      totalChunks: chunks.length,
+      textLength: extractedText.length,
+      error: `Failed to update repositorio (total_chunks/processed): ${updateError.message}`,
+    };
   }
 
   return {

@@ -88,9 +88,17 @@ export async function POST(request: Request) {
 
     // Trigger async processing in background (don't await)
     const repositorioId = metaData.id;
-    processDocument(supabase, repositorioId).catch(err =>
-      console.error('Background processing failed:', err)
-    );
+    // processDocument reports failures as values, not by throwing, so the
+    // result must be consumed or the failure would be silent.
+    processDocument(supabase, repositorioId)
+      .then(result => {
+        if (!result.success) {
+          console.error(
+            `Background processing failed for ${repositorioId}: ${result.error ?? 'unknown error'}`
+          );
+        }
+      })
+      .catch(err => console.error('Background processing threw:', err));
 
     return NextResponse.json({
       success: true,

@@ -59,9 +59,11 @@ export async function extractTextFromPDF(buffer: Buffer): Promise<PDFExtractResu
   const raw = rawExtract(buffer);
   if (raw.text.length > 50) return raw;
 
-  // Nothing worked
+  // Nothing worked. Return empty text, not a human-readable placeholder:
+  // callers treat empty text as an extraction failure, so a failed extraction
+  // can never be chunked, embedded and stored as if it were document content.
   return {
-    text: '[PDF extraction not available in this environment. Process PDFs locally with `node scripts/backfill.mjs`]',
+    text: '',
     pages: 0,
     metadata: { pageCount: 0 },
   };
