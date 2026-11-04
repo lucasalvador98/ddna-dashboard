@@ -17,6 +17,7 @@ import {
   type PresentationReport,
 } from '@/lib/presentacion-ia';
 import { withRateLimit } from '@/lib/agent/rate-limit';
+import { checkAdminAuth } from '@/lib/auth-guard';
 import { trackLLMUsage } from '@/lib/usage-tracker';
 import {
   CHAT_API_KEY,
@@ -130,6 +131,9 @@ async function fetchKpis(nombres: string[], _region: string): Promise<KpiRow[]> 
 // ─── POST Handler ────────────────────────────────────────────────
 
 async function handlePresentacionPOST(request: Request) {
+  const guard = await checkAdminAuth();
+  if (!guard.authorized) return guard.response!;
+
   try {
     if (!CHAT_API_KEY) {
       return NextResponse.json(

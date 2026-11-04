@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+// ─── Mock admin auth guard ──────────────────────────────────────
+const { mockAdminAuth } = vi.hoisted(() => ({ mockAdminAuth: vi.fn() }));
+vi.mock('@/lib/auth-guard', () => ({ checkAdminAuth: mockAdminAuth }));
+
 // ─── Mock Supabase ──────────────────────────────────────────────
 let mockSupabaseData: unknown[] = [];
 let mockSupabaseError: unknown = null;
@@ -84,6 +88,8 @@ function createMockFetch(
 
 describe('POST /api/repositorio/informe-ejecutivo', () => {
   beforeEach(() => {
+    mockAdminAuth.mockReset();
+    mockAdminAuth.mockResolvedValue({ authorized: true, user: { id: 'test-admin', email: 'admin@example.test' } });
     vi.stubEnv('OPENAI_API_KEY', 'sk-test-key');
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://test.supabase.co');
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', 'test-anon-key');
@@ -433,5 +439,28 @@ describe('POST /api/repositorio/informe-ejecutivo', () => {
     const data = await res.json();
     expect(data.report).toBeDefined();
     expect(data.report.title).toBeTruthy();
+  });
+
+  it('returns 401 when the admin guard denies the request', async () => {
+    const { NextResponse } = await import('next/server');
+    mockAdminAuth.mockResolvedValueOnce({
+      authorized: false,
+      response: NextResponse.json({ error: 'No autenticado' }, { status: 401 }),
+    });
+    vi.resetModules();
+    const { POST } = await import('./route');
+
+    const req = new Request(
+      'http://localhost:3000/api/repositorio/informe-ejecutivo',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ axes: ['salud'] }),
+      },
+    );
+
+    const res = await POST(req);
+    expect(res.status).toBe(401);
+    expect(mockAdminAuth).toHaveBeenCalledOnce();
   });
 });

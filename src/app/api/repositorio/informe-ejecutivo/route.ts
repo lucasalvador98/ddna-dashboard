@@ -19,6 +19,7 @@ import {
   type IndicadorRow,
 } from '@/lib/informe-ejecutivo';
 import { withRateLimit } from '@/lib/agent/rate-limit';
+import { checkAdminAuth } from '@/lib/auth-guard';
 import { trackLLMUsage } from '@/lib/usage-tracker';
 import {
   CHAT_API_KEY,
@@ -151,6 +152,9 @@ async function fetchIndicators(
 // ─── POST Handler ───────────────────────────────────────────────
 
 async function handleInformeEjecutivoPOST(request: Request) {
+  const guard = await checkAdminAuth();
+  if (!guard.authorized) return guard.response!;
+
   try {
     // --- Check API key ---
     if (!CHAT_API_KEY) {
