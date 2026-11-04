@@ -35,6 +35,9 @@ interface SeguridadChartsProps {
   crimeChartData: Record<string, unknown>[];
   crimeSeries: CrimeSeriesInfo[];
   crimeYearRange: string;
+  rateChartData: Array<{ periodo: number; valor: number }>;
+  rateIndicator: CrimeSeriesInfo;
+  rateYearRange: string;
 }
 
 export function SeguridadCharts({
@@ -43,6 +46,9 @@ export function SeguridadCharts({
   crimeChartData,
   crimeSeries,
   crimeYearRange,
+  rateChartData,
+  rateIndicator,
+  rateYearRange,
 }: SeguridadChartsProps) {
   return (
     <>
@@ -165,9 +171,56 @@ export function SeguridadCharts({
                     strokeWidth={2}
                     dot={false}
                     name={s.label}
-                    connectNulls
                   />
                 ))}
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartWithTable>
+      )}
+
+      {rateChartData.length > 0 && (
+        <ChartWithTable
+          title="Tasa de Tentativas de Hurto"
+          subtitle={`Hechos cada 100.000 habitantes — ${rateYearRange}`}
+          color="blue"
+          fuente="datos.gob.ar — Sistema Nacional de Información Criminal"
+          data={rateChartData}
+          dataKey="valor"
+          xAxisKey="periodo"
+        >
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height={320}>
+              <LineChart
+                data={rateChartData}
+                margin={{ top: 10, right: 30, left: 10, bottom: 10 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#D8D5D3" />
+                <XAxis
+                  dataKey="periodo"
+                  tick={{ fill: '#050506', fontSize: 11 }}
+                  interval="preserveStartEnd"
+                />
+                <YAxis tick={{ fill: '#050506', fontSize: 12 }} domain={[0, 'auto']} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#FFF',
+                    border: '1px solid #D8D5D3',
+                    borderRadius: '8px',
+                  }}
+                  formatter={(value, name) => [
+                    typeof value === 'number' ? `${value.toLocaleString('es-AR')} x 100.000 hab.` : value,
+                    name,
+                  ]}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="valor"
+                  stroke={rateIndicator.color}
+                  strokeWidth={2}
+                  dot={{ r: 3 }}
+                  name={rateIndicator.label}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>

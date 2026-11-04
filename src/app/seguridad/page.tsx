@@ -25,10 +25,18 @@ const isCasosIndicator = (name: string) => name.toLowerCase().startsWith('casos 
 
 const crimeIndicators = [
   { name: INDICATOR_NAMES.TENTATIVAS_HURTO, label: 'Tentativas de hurto', color: '#165DFF' },
-  { name: INDICATOR_NAMES.TASA_TENTATIVAS_HURTO, label: 'Tasa tentativas hurto (x100K)', color: '#8A4B4B' },
   { name: INDICATOR_NAMES.CONTRAVENCIONES, label: 'Contravenciones', color: '#FF8C00' },
   { name: INDICATOR_NAMES.ROBOS_TENTATIVA_ROBO, label: 'Robos y tentativa', color: '#C2410C' },
 ];
+
+// La tasa se grafica aparte: su magnitud (0–41,67) es ilegible en el mismo
+// eje que los hechos absolutos (hasta 67.288). Es además la única serie
+// normalizada por población, así que permite comparar entre años.
+const rateIndicator = {
+  name: INDICATOR_NAMES.TASA_TENTATIVAS_HURTO,
+  label: 'Tasa de tentativas de hurto (x 100.000 hab.)',
+  color: '#8A4B4B',
+};
 
 function getDistribucion(data: IndicadorRow[]) {
   return data
@@ -126,6 +134,19 @@ async function SeguridadContent() {
       ? `${crimeChartData[0].periodo}–${crimeChartData[crimeChartData.length - 1].periodo}`
       : '';
 
+  // La tasa se grafica en su propio chart: es la única serie normalizada por
+  // población, y su magnitud (0–41,67) es ilegible en el mismo eje que los
+  // hechos absolutos (hasta 67.288). Cada serie termina en un año distinto y
+  // no se rellena con línea: donde no hay dato, no hay trazo.
+  const rateChartData = getCrimeSeries(data, rateIndicator.name).map(d => ({
+    periodo: d.periodo,
+    valor: d.valor,
+  }));
+  const rateYearRange =
+    rateChartData.length > 0
+      ? `${rateChartData[0].periodo}–${rateChartData[rateChartData.length - 1].periodo}`
+      : '';
+
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -164,6 +185,9 @@ async function SeguridadContent() {
         crimeChartData={crimeChartData}
         crimeSeries={crimeSeries.map(s => ({ label: s.label, color: s.color }))}
         crimeYearRange={crimeYearRange}
+        rateChartData={rateChartData}
+        rateIndicator={rateIndicator}
+        rateYearRange={rateYearRange}
       />
     </>
   );

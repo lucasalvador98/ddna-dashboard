@@ -67,21 +67,18 @@ const crimeChartData = [
   {
     periodo: 2020,
     'Tentativas de hurto': 500,
-    'Tasa tentativas hurto (x100K)': 50,
     Contravenciones: 200,
     'Robos y tentativa': 300,
   },
   {
     periodo: 2021,
     'Tentativas de hurto': 450,
-    'Tasa tentativas hurto (x100K)': 45,
     Contravenciones: 180,
     'Robos y tentativa': 280,
   },
   {
     periodo: 2022,
     'Tentativas de hurto': 400,
-    'Tasa tentativas hurto (x100K)': 40,
     Contravenciones: 160,
     'Robos y tentativa': 250,
   },
@@ -89,17 +86,29 @@ const crimeChartData = [
 
 const crimeSeries = [
   { label: 'Tentativas de hurto', color: '#165DFF' },
-  { label: 'Tasa tentativas hurto (x100K)', color: '#8A4B4B' },
   { label: 'Contravenciones', color: '#FF8C00' },
   { label: 'Robos y tentativa', color: '#C2410C' },
 ];
+
+// La tasa va en su propio gráfico: su magnitud es ilegible en el mismo eje
+// que los hechos absolutos.
+const rateChartData = [
+  { periodo: 2020, valor: 50 },
+  { periodo: 2021, valor: 45 },
+  { periodo: 2022, valor: 40 },
+];
+
+const rateIndicator = {
+  label: 'Tasa de tentativas de hurto (x 100.000 hab.)',
+  color: '#8A4B4B',
+};
 
 describe('SeguridadCharts', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('renders all three charts when full data is provided', () => {
+  it('renders all four charts when full data is provided', () => {
     render(
       <SeguridadCharts
         distribucionData={distribucionData}
@@ -107,16 +116,20 @@ describe('SeguridadCharts', () => {
         crimeChartData={crimeChartData}
         crimeSeries={crimeSeries}
         crimeYearRange="2020–2022"
+        rateChartData={rateChartData}
+        rateIndicator={rateIndicator}
+        rateYearRange="2020–2022"
       />
     );
 
     const charts = screen.getAllByTestId('chart-with-table');
-    expect(charts).toHaveLength(3);
+    expect(charts).toHaveLength(4);
 
     const titles = charts.map(c => c.getAttribute('data-title'));
     expect(titles).toContain('Casos por Tipo');
     expect(titles).toContain('Distribución Porcentual');
     expect(titles).toContain('Evolución de Delitos');
+    expect(titles).toContain('Tasa de Tentativas de Hurto');
   });
 
   it('renders bar, pie, and line chart elements', () => {
@@ -127,15 +140,19 @@ describe('SeguridadCharts', () => {
         crimeChartData={crimeChartData}
         crimeSeries={crimeSeries}
         crimeYearRange="2020–2022"
+        rateChartData={rateChartData}
+        rateIndicator={rateIndicator}
+        rateYearRange="2020–2022"
       />
     );
 
     expect(screen.getByTestId('bar-chart')).toBeDefined();
     expect(screen.getByTestId('pie-chart')).toBeDefined();
-    expect(screen.getByTestId('line-chart')).toBeDefined();
+    // Dos line charts: volúmenes y tasa, cada uno con su propio eje
+    expect(screen.getAllByTestId('line-chart')).toHaveLength(2);
   });
 
-  it('hides evolution chart when no crime data', () => {
+  it('hides evolution and rate charts when no crime data', () => {
     render(
       <SeguridadCharts
         distribucionData={distribucionData}
@@ -143,6 +160,9 @@ describe('SeguridadCharts', () => {
         crimeChartData={[]}
         crimeSeries={[]}
         crimeYearRange=""
+        rateChartData={[]}
+        rateIndicator={rateIndicator}
+        rateYearRange=""
       />
     );
 
@@ -159,6 +179,9 @@ describe('SeguridadCharts', () => {
         crimeChartData={[]}
         crimeSeries={[]}
         crimeYearRange=""
+        rateChartData={[]}
+        rateIndicator={rateIndicator}
+        rateYearRange=""
       />
     );
 
