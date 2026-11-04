@@ -1,5 +1,6 @@
 'use server';
 
+import { assertAdminAuth } from './assert-admin';
 import { getSupabaseAdminClient } from '@/lib/supabase';
 
 export interface AiUsageLog {
@@ -16,6 +17,7 @@ export interface AiUsageLog {
 }
 
 export async function getUsageStats(days: number = 7): Promise<AiUsageLog[]> {
+  await assertAdminAuth();
   const supabase = getSupabaseAdminClient();
 
   const since = new Date();
