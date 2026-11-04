@@ -7,6 +7,7 @@
 // gpt-4o-mini pricing, which may under- or over-estimate the real cost.
 const MODEL_COSTS: Record<string, { input: number; output: number }> = {
   'gpt-6-luna': { input: 0.10, output: 0.50 },
+  'gpt-5.6-luna': { input: 0.20, output: 1.20 },
   'gpt-5-nano': { input: 0.05, output: 0.40 },
   'gpt-4.1-nano': { input: 0.10, output: 0.40 },
   'gpt-4o-mini': { input: 0.15, output: 0.60 },

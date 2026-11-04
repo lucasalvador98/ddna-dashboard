@@ -64,13 +64,13 @@ async function callLLM(systemPrompt: string, userPayload: string): Promise<strin
       ...chatProviderBody(
         model,
         model === FALLBACK_MODEL ? FALLBACK_REASONING_EFFORT : undefined,
+        0.4,
       ),
       model,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPayload },
       ],
-      temperature: 0.4,
       max_completion_tokens: 16000,
       response_format: { type: 'json_object' as const },
     }),

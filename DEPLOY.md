@@ -65,16 +65,18 @@ Password authentication enabled. Root login disabled.
 | `OPENAI_CHAT_EXTRA_BODY` | No | No | JSON merged into chat requests. DeepSeek: `{"thinking":{"type":"disabled"}}` |
 | `OPENAI_CHAT_REASONING_EFFORT` | No | No | Defaults to `none` for GPT-5+/GPT-6 models. `none` keeps latency and output cost low; raise to `low`/`medium` only if quality needs it |
 | `OPENAI_CHAT_PROMPT_CACHE_KEY` | No | No | Defaults to `ddna-repositorio-chat`. Routing hint that improves prompt-cache hits on GPT-5+ |
-| `OPENAI_FALLBACK_MODEL` | No | No | Defaults to `gpt-4.1-nano`. Secondary model for 429/5xx/timeout/network failures. Set `off` to disable |
+| `OPENAI_FALLBACK_MODEL` | No | No | Defaults to `gpt-5.6-luna`. Secondary model for 429/5xx/timeout/network failures. Set `off` to disable |
 | `OPENAI_FALLBACK_TIMEOUT_MS` | No | No | Defaults to `60000` |
-| `OPENAI_FALLBACK_REASONING_EFFORT` | No | No | Defaults to `low`; only applied when the fallback model is a GPT-5+/GPT-6/o-series model |
+| `OPENAI_FALLBACK_REASONING_EFFORT` | No | No | Defaults to `none`; only applied when the fallback model is a GPT-5+/GPT-6/o-series model. Keep it at `none` so the fallback retains function calling |
 | `OPENAI_CHAT_TIMEOUT_MS` | No | No | Defaults to `120000` |
 | `OPENAI_EMBEDDING_TIMEOUT_MS` | No | No | Defaults to `30000` |
 | `INTERNAL_API_SECRET` | Yes | Yes | Generated per-deploy (`openssl rand -hex 32`) |
 | `NEXT_PUBLIC_BASE_PATH` | Yes | No | `/observatorio` en producción. **Se hornea en BUILD time**: sin esto, todo `/observatorio/*` da 404 |
 | `NODE_ENV` | Yes | No | Set to `production` |
 
-ℹ️ **Model fallback:** chat, executive report and presentation retry the primary model on 429/5xx/network errors and then switch to `OPENAI_FALLBACK_MODEL` (default `gpt-4.1-nano`). Timeouts go straight to the fallback. Auth/config errors (400/401/403/404) surface directly. Set `OPENAI_FALLBACK_MODEL=off` to disable.
+ℹ️ **Model fallback:** chat, executive report and presentation retry the primary model on 429/5xx/network errors and then switch to `OPENAI_FALLBACK_MODEL` (default `gpt-5.6-luna`). Timeouts go straight to the fallback. Auth/config errors (400/401/403/404) surface directly. Set `OPENAI_FALLBACK_MODEL=off` to disable. Keep the fallback on a model that has not been retired — `gpt-4.1-nano` was shut down on 2026-10-23 and silently broke this path.
+
+ℹ️ **Temperature:** each route's temperature is sent only when the model accepts it, which for reasoning models means `reasoning_effort: none`. `chatProviderBody()` decides this; do not add `temperature` to a request body directly.
 
 ⚠️ **Never commit `.env.production` or `.env.local` to git.**
 

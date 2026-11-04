@@ -859,10 +859,10 @@ async function callLLM(
         ...chatProviderBody(
           model,
           model === FALLBACK_MODEL ? FALLBACK_REASONING_EFFORT : undefined,
+          0.3,
         ),
         model,
         messages,
-        temperature: 0.3,
         max_completion_tokens: MAX_TOKENS,
       };
 

@@ -96,13 +96,17 @@ export const CHAT_PROMPT_CACHE_KEY =
 /**
  * Secondary chat model used when the primary exhausts retries on 429/5xx,
  * timeouts or network errors. Set `OPENAI_FALLBACK_MODEL=off` to disable.
- * Defaults to a non-reasoning model so tool calling and JSON mode stay cheap
- * and predictable.
+ *
+ * Must be a model that still exists. The previous default, `gpt-4.1-nano`, was
+ * shut down by OpenAI on 2026-10-23, so every fallback attempt ended in a
+ * model-not-found error and the whole retry path was dead. `gpt-5.6-luna` is
+ * the vendor's replacement for that model and supports function calling and
+ * structured outputs.
  */
 export const FALLBACK_MODEL: string | null = (() => {
   const raw = process.env.OPENAI_FALLBACK_MODEL;
   if (raw === 'off') return null;
-  return raw || 'gpt-4.1-nano';
+  return raw || 'gpt-5.6-luna';
 })();
 
 /** Timeout for the fallback model. Defaults to 60s. */
@@ -110,12 +114,17 @@ export const FALLBACK_TIMEOUT_MS =
   Number(process.env.OPENAI_FALLBACK_TIMEOUT_MS) || 60_000;
 
 /**
- * Reasoning effort for the fallback model when it is a reasoning model.
- * `low` is supported by gpt-5-nano and gpt-6-luna; ignored by non-reasoning
- * models.
+ * Reasoning effort for the fallback model when it is a reasoning model,
+ * ignored by non-reasoning models.
+ *
+ * Defaults to `none` so the fallback mirrors the primary's operating mode:
+ * Chat Completions only exposes function calling and sampling parameters when
+ * reasoning is disabled, and the fallback exists precisely to keep tool-using
+ * requests alive. A higher effort here would silently drop the tools the
+ * request was built around.
  */
 export const FALLBACK_REASONING_EFFORT =
-  process.env.OPENAI_FALLBACK_REASONING_EFFORT || 'low';
+  process.env.OPENAI_FALLBACK_REASONING_EFFORT || 'none';
 
 const REASONING_MODEL_PATTERN = /^(gpt-5|gpt-6|o[1-9])/i;
 
@@ -123,18 +132,45 @@ export const CHAT_SUPPORTS_REASONING = REASONING_MODEL_PATTERN.test(CHAT_MODEL);
 
 /**
  * Provider-specific fields for chat completions. Reasoning controls are only
- * added for models that support them, so falling back to gpt-4o-mini or
- * gpt-4.1-nano stays safe.
+ * added for models that support them, so a non-reasoning fallback stays safe.
+ *
+ * Sampling parameters (temperature, top_p, logprobs) are only accepted by
+ * reasoning models when reasoning effort is `none`: "When reasoning effort is
+ * not none, remove temperature, top_p, and top_logprobs".
+ *
+ * That makes a hardcoded temperature unsafe — a config change to
+ * OPENAI_CHAT_REASONING_EFFORT would turn every request into a 400, and
+ * fetchChatCompletion never retries a 400, so the fallback could not rescue it.
+ * Route temperature through here instead of adding it to the request body
+ * directly.
  */
 export function chatProviderBody(
   model: string = CHAT_MODEL,
-  reasoningEffort: string = CHAT_REASONING_EFFORT,
+  reasoningEffort?: string,
+  temperature?: number,
 ): Record<string, unknown> {
   const body: Record<string, unknown> = { ...CHAT_EXTRA_BODY };
-  if (REASONING_MODEL_PATTERN.test(model)) {
-    body.reasoning_effort = reasoningEffort;
+  const isReasoning = REASONING_MODEL_PATTERN.test(model);
+  const effort = reasoningEffort ?? CHAT_REASONING_EFFORT;
+
+  if (isReasoning) {
+    body.reasoning_effort = effort;
     body.prompt_cache_key = CHAT_PROMPT_CACHE_KEY;
   }
+
+  const samplingAllowed = !isReasoning || effort === 'none';
+
+  if (temperature !== undefined && samplingAllowed) {
+    body.temperature = temperature;
+  }
+
+  if (!samplingAllowed) {
+    // A sampling parameter smuggled in through OPENAI_CHAT_EXTRA_BODY would
+    // recreate the same 400 this guard exists to prevent.
+    delete body.temperature;
+    delete body.top_p;
+  }
+
   return body;
 }
 
