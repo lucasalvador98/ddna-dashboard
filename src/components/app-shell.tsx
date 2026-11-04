@@ -34,17 +34,22 @@ export function AppShell({ children }: AppShellProps) {
         Saltar al contenido principal
       </a>
       <SidebarProvider>
-        <Header />
-        <div className="flex flex-1 min-h-0">
-          <SidebarBadges>
-            {(counts) => <Sidebar badges={counts} />}
-          </SidebarBadges>
-          <main
-            id="main-content"
-            className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-gray-50"
-          >
-            {children}
-          </main>
+        {/* Altura fija solo para el shell del tablero: el header ocupa su lugar
+            natural y el área de contenido es el único scroller. Las forms
+            públicas de /f/ salen antes y conservan el scroll del body. */}
+        <div className="h-dvh flex flex-col overflow-hidden">
+          <Header />
+          <div className="flex flex-1 min-h-0">
+            <SidebarBadges>
+              {(counts) => <Sidebar badges={counts} />}
+            </SidebarBadges>
+            <main
+              id="main-content"
+              className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-gray-50"
+            >
+              {children}
+            </main>
+          </div>
         </div>
       </SidebarProvider>
     </>

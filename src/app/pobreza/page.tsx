@@ -4,7 +4,6 @@ import { SectionHeader } from '@/components/section-header';
 import { EmptyState } from '@/components/empty-state';
 import { parseDesglose } from '@/lib/parse-desglose';
 import { INDICATOR_NAMES } from '@/lib/indicator-names';
-import { FilterBar } from '@/components/filter-bar';
 import PobrezaCharts from './pobreza-charts';
 import { hasPublicSupabaseConfig } from '@/lib/runtime-config';
 import { SupabaseUnavailable } from '@/components/supabase-unavailable';
@@ -391,7 +390,6 @@ export default async function PobrezaPage() {
         description="Indicadores de condiciones socioeconómicas — Córdoba (EPH-INDEC & UCA-ODSA). Medición por ingresos y enfoque multidimensional de derechos."
         color="magenta"
       />
-      <FilterBar />
       <PobrezaCharts
         indecData={indecData}
         ucaData={ucaData}
