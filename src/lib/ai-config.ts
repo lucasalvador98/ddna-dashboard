@@ -174,6 +174,25 @@ export function chatProviderBody(
   return body;
 }
 
+/**
+ * Field name for the output-token cap, which is not portable.
+ *
+ * Reasoning models require the OpenAI-specific `max_completion_tokens`: the
+ * reference states `max_tokens` is "not compatible with o-series models".
+ * OpenAI-compatible providers (DeepSeek, Gemini, OpenRouter, Groq) document
+ * `max_tokens` and have no obligation to honour the OpenAI name, so sending it
+ * to them either fails the request or silently drops the cap — which is how a
+ * 16,000-token presentation budget becomes the provider's 8,192 default.
+ *
+ * Keyed off the model rather than the base URL: a proxy in front of OpenAI
+ * still speaks the OpenAI contract.
+ */
+export function chatOutputTokenField(
+  model: string = CHAT_MODEL,
+): 'max_completion_tokens' | 'max_tokens' {
+  return REASONING_MODEL_PATTERN.test(model) ? 'max_completion_tokens' : 'max_tokens';
+}
+
 export const CHAT_TIMEOUT_MS =
   Number(process.env.OPENAI_CHAT_TIMEOUT_MS) || 120_000;
 

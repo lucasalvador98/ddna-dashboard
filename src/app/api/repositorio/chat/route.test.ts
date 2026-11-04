@@ -241,4 +241,58 @@ describe('POST /api/repositorio/chat', () => {
     expect(done!.data.searchMethod).toBe('none');
   });
 
+  it('delivers a retrieved chunk to the prompt without truncating it below its chunk size', async () => {
+    // The chunker produces 2000-character chunks, so cutting each one to 600
+    // silently dropped the tail of a fragment retrieval had selected precisely
+    // because it was relevant.
+    const marker = 'RESPUESTA_AL_FINAL_DEL_FRAGMENTO';
+    const longContent = `${'a'.repeat(900)}${marker}`;
+
+    mockCreateClient.mockReturnValue(
+      createSupabaseMock({
+        data: [
+          {
+            id: 'chunk-1',
+            repo_file_id: 'file-1',
+            chunk_index: 0,
+            content: longContent,
+            metadata: {},
+            repositorio: { nombre_archivo: 'informe.pdf', categoria: 'salud' },
+          },
+        ],
+        error: null,
+      })
+    );
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        new Response(JSON.stringify({ data: [{ embedding: [0.1, 0.2] }] }), { status: 200 })
+      )
+    );
+    mockFetchChatCompletion
+      .mockResolvedValueOnce({
+        response: toolCallResponse('searchKnowledgeBase', { query: 'salud adolescente' }),
+        modelUsed: 'gpt-test',
+      })
+      .mockResolvedValueOnce({ response: finalTextResponse('Ok.'), modelUsed: 'gpt-test' });
+
+    const res = await postChat('salud adolescente');
+    expect(res.status).toBe(200);
+
+    // The SSE body is produced lazily: consuming it is what drives the pipeline
+    // through the second LLM call.
+    const done = parseSSE(await res.text()).find(e => e.event === 'done');
+    expect(done).toBeDefined();
+
+    const secondCall = mockFetchChatCompletion.mock.calls[1][0] as {
+      buildBody: (model: string) => {
+        messages: Array<{ role: string; content: string | null }>;
+      };
+    };
+    const { messages } = secondCall.buildBody('gpt-6-luna');
+    const toolMessage = messages.find(m => m.role === 'tool');
+
+    expect(toolMessage?.content).toContain(marker);
+  });
+
 });

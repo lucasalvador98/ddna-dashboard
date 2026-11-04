@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { chatProviderBody } from './ai-config';
+import { chatOutputTokenField, chatProviderBody } from './ai-config';
 
 describe('chatProviderBody', () => {
   it('adds reasoning controls for GPT-6 models', () => {
@@ -54,6 +54,22 @@ describe('chatProviderBody temperature', () => {
     const body = chatProviderBody('gpt-6-luna', 'none');
 
     expect(body).not.toHaveProperty('temperature');
+  });
+});
+
+describe('chatOutputTokenField', () => {
+  it('uses the OpenAI-specific field for reasoning models', () => {
+    // max_tokens is documented as "not compatible with o-series models".
+    expect(chatOutputTokenField('gpt-6-luna')).toBe('max_completion_tokens');
+    expect(chatOutputTokenField('gpt-5.6-luna')).toBe('max_completion_tokens');
+  });
+
+  it('uses max_tokens for models on other OpenAI-compatible endpoints', () => {
+    // DeepSeek documents max_tokens only; sending the OpenAI name there either
+    // fails or is ignored, silently removing the output cap.
+    expect(chatOutputTokenField('deepseek-flash')).toBe('max_tokens');
+    expect(chatOutputTokenField('deepseek-v4-pro')).toBe('max_tokens');
+    expect(chatOutputTokenField('gemini-2.5-flash')).toBe('max_tokens');
   });
 });
 

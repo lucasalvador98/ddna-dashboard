@@ -19,10 +19,15 @@ export interface ChunkerOptions {
   minChunkSize?: number;   // Minimum chunk size (default: 100)
 }
 
+/** Chunk size used by every ingest path that does not override it. */
+export const DEFAULT_CHUNK_SIZE = 2000;
+export const DEFAULT_CHUNK_OVERLAP = 200;
+export const DEFAULT_MIN_CHUNK_SIZE = 100;
+
 const DEFAULT_OPTIONS: Required<ChunkerOptions> = {
-  chunkSize: 2000,
-  overlap: 200,
-  minChunkSize: 100,
+  chunkSize: DEFAULT_CHUNK_SIZE,
+  overlap: DEFAULT_CHUNK_OVERLAP,
+  minChunkSize: DEFAULT_MIN_CHUNK_SIZE,
 };
 
 /**

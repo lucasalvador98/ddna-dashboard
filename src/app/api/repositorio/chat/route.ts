@@ -31,6 +31,7 @@ import {
   CHAT_MODEL,
   CHAT_TIMEOUT_MS,
   chatProviderBody,
+  chatOutputTokenField,
   EMBEDDING_API_KEY,
   EMBEDDING_DIMENSIONS,
   EMBEDDING_MODEL,
@@ -41,6 +42,7 @@ import {
   embeddingsUrl,
 } from '@/lib/ai-config';
 import { fetchChatCompletion } from '@/lib/ai/chat-client';
+import { DEFAULT_CHUNK_SIZE } from '@/lib/rag/chunker';
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -336,7 +338,15 @@ async function generateEmbedding(text: string): Promise<number[] | null> {
   }
 }
 
-function buildContext(chunks: ChunkResult[], maxChars = 800): string {
+/**
+ * Render retrieved chunks for the prompt.
+ *
+ * The per-chunk limit must not fall below the size the chunker produced.
+ * Chunks are built at DEFAULT_CHUNK_SIZE, so truncating lower silently keeps
+ * only the head of a fragment that retrieval selected precisely because it was
+ * relevant — the answering sentence may sit in the part that gets cut.
+ */
+function buildContext(chunks: ChunkResult[], maxChars = DEFAULT_CHUNK_SIZE): string {
   return chunks
     .map((chunk, idx) => {
       const fileName =
@@ -725,7 +735,7 @@ async function executeToolCall(
       // Offer to list available documents so the LLM can retry with a better query
       formattedResult = 'No se encontraron documentos relevantes en la base de conocimiento con esa búsqueda. Podés usar listAllDocuments para ver qué documentos están disponibles y luego buscar con otros términos. IMPORTANTE: También tenés datos de INDICADORES (listAvailableIndicators, getCategoryOverview, getLatestIndicatorValue) — no te rindas después de solo buscar en documentos.';
     } else {
-      const context = buildContext(chunks, 600);
+      const context = buildContext(chunks);
       formattedResult =
         `[Búsqueda en documentos — método: ${searchMethod}]\n\n` +
         `Fragmentos encontrados (${chunks.length}):\n\n${context}`;
@@ -863,7 +873,7 @@ async function callLLM(
         ),
         model,
         messages,
-        max_completion_tokens: MAX_TOKENS,
+        [chatOutputTokenField(model)]: MAX_TOKENS,
       };
 
       if (tools && tools.length > 0) {
