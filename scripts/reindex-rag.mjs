@@ -11,8 +11,12 @@
  *   2. Extrae el texto con pdf-parse v2 (`PDFParse`).
  *   3. Verifica que el texto sea REAL: letras latinas, sin marcadores de PDF.
  *      Si no lo es, NO toca la base: avisa y sigue con el resto.
- *   4. Trocea en 2000 chars con 400 de overlap (igual que el indexador original).
- *   5. Inserta los chunks nuevos y reemplaza los viejos de ese archivo.
+ *   4. Trocea en 2000 chars con 400 de overlap. El chunker del runtime usa 200
+ *      de overlap, así que los límites difieren levemente.
+ *   5. Genera los embeddings con el mismo modelo y endpoint que el runtime.
+ *      Sin embeddings los chunks quedan invisibles para search_doc_chunks, que
+ *      filtra `embedding IS NOT NULL`. Se generan ANTES de borrar nada.
+ *   6. Inserta los chunks nuevos y reemplaza los viejos de ese archivo.
  *
  * DRY-RUN por defecto. Para ejecutar de verdad: --apply
  *
@@ -50,6 +54,71 @@ const BUCKET = 'ddna-repositorio';
 const MAX_CHARS = 2000;
 const OVERLAP = 400;
 
+// Mismos valores que src/lib/ai-config.ts, para que los vectores sean
+// comparables con los que genera el runtime al subir un archivo nuevo.
+const EMBEDDING_BASE_URL = (
+  process.env.OPENAI_EMBEDDING_BASE_URL ||
+  process.env.OPENAI_BASE_URL ||
+  'https://api.openai.com/v1'
+).replace(/\/+$/, '');
+const EMBEDDING_API_KEY =
+  process.env.OPENAI_EMBEDDING_API_KEY || process.env.OPENAI_API_KEY || '';
+const EMBEDDING_MODEL = process.env.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small';
+const EMBEDDING_DIMENSIONS = process.env.OPENAI_EMBEDDING_DIMENSIONS
+  ? Number(process.env.OPENAI_EMBEDDING_DIMENSIONS)
+  : undefined;
+const EMBEDDING_TIMEOUT_MS = Number(process.env.OPENAI_EMBEDDING_TIMEOUT_MS) || 30_000;
+
+/**
+ * Embeddings en lotes de 100, igual que generateEmbeddingsBatch del runtime.
+ * Lanza si algo falla: el llamador aborta antes de tocar la base.
+ */
+async function generarEmbeddings(textos) {
+  if (!EMBEDDING_API_KEY) {
+    throw new Error(
+      'OPENAI_EMBEDDING_API_KEY (u OPENAI_API_KEY) no está configurada'
+    );
+  }
+
+  const BATCH = 100;
+  const salida = [];
+
+  for (let i = 0; i < textos.length; i += BATCH) {
+    const lote = textos.slice(i, i + BATCH).map(t => t.replace(/\n/g, ' '));
+
+    const res = await fetch(`${EMBEDDING_BASE_URL}/embeddings`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${EMBEDDING_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: EMBEDDING_MODEL,
+        input: lote,
+        ...(EMBEDDING_DIMENSIONS ? { dimensions: EMBEDDING_DIMENSIONS } : {}),
+      }),
+      signal: AbortSignal.timeout(EMBEDDING_TIMEOUT_MS),
+    });
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`embeddings HTTP ${res.status}: ${body.slice(0, 200)}`);
+    }
+
+    const data = await res.json();
+    if (!Array.isArray(data?.data) || data.data.length !== lote.length) {
+      throw new Error(
+        `respuesta de embeddings incompleta (${data?.data?.length ?? 0}/${lote.length})`
+      );
+    }
+
+    salida.push(...data.data.map(d => d.embedding));
+    log(`embeddings ${Math.min(i + BATCH, textos.length)}/${textos.length}`);
+  }
+
+  return salida;
+}
+
 // ¿Esto es texto real o basura binaria del PDF?
 function esTextoReal(texto) {
   if (!texto || texto.length < 100) return { ok: false, motivo: 'texto demasiado corto' };
@@ -71,7 +140,11 @@ function trozar(texto) {
   const chunks = [];
   let start = 0;
   let i = 0;
+  let vueltas = 0;
   while (start < texto.length) {
+    // Guarda contra bucles que no avanzan: antes, cuando quedaban <= OVERLAP
+    // caracteres, start volvía al mismo valor y el proceso moría por OOM.
+    if (++vueltas > 100000) throw new Error(`trozar: bucle infinito en start=${start}`);
     let end = Math.min(start + MAX_CHARS, texto.length);
     if (end < texto.length) {
       const w = texto.slice(start, end);
@@ -85,8 +158,10 @@ function trozar(texto) {
       chunks.push({ index: i, content: ct });
       i++;
     }
+    // Corte final: si ya llegamos al final del texto, no hay siguiente vuelta.
+    // Sin esto, `end - OVERLAP` devuelve el mismo start y el bucle no avanza.
+    if (end >= texto.length) break;
     start = end - OVERLAP;
-    if (start >= texto.length - 10) break;
   }
   return chunks;
 }
@@ -95,12 +170,15 @@ async function extraerTexto(buf, extension) {
   const ext = extension.toLowerCase();
   if (ext === '.pdf') {
     const { PDFParse } = require('pdf-parse');
-    const parser = new PDFParse(new Uint8Array(buf));
-    await parser.load(0);
-    const { text } = await parser.getText();
-    parser.destroy();
-    if (global.gc) global.gc();
-    return text || '';
+    // Misma forma que src/lib/rag/extractors/pdf.ts: `{ data }` y destroy()
+    // siempre esperado.
+    const parser = new PDFParse({ data: new Uint8Array(buf) });
+    try {
+      const { text } = await parser.getText();
+      return text || '';
+    } finally {
+      await parser.destroy();
+    }
   }
   return null; // xlsx/docx requieren otro extractor; se informan
 }
@@ -153,19 +231,41 @@ async function reindexar(arch, APLICAR) {
   }
 
   const valido = esTextoReal(texto);
+  log(`validación: ${valido.ok ? 'ok' : valido.motivo}`);
   if (!valido.ok) {
     console.log(`  ❌ texto NO válido (${valido.motivo}) — no se toca la base`);
     return;
   }
 
   const chunks = trozar(texto);
+  log(`trozado: ${chunks.length} chunks`);
   const palabras = (texto.match(/[a-záéíóúñA-ZÁÉÍÓÚÑ]{4,}/g) || []).length;
   console.log(
     `  ✅ texto real: ${texto.length} chars, ${palabras} palabras → ${chunks.length} chunks` +
       ` (antes ${chunksActuales ?? 0})`
   );
 
-  if (!APLICAR) return;
+  if (!APLICAR) {
+    console.log(
+      `  (dry run) embeddings: ${EMBEDDING_API_KEY ? 'key presente' : 'FALTA la key — --apply fallaría'}`
+    );
+    return;
+  }
+
+  // Embeddings ANTES de borrar: si el proveedor falla, la base queda intacta.
+  log(`generando embeddings de ${chunks.length} chunks`);
+  let embeddings;
+  try {
+    embeddings = await generarEmbeddings(chunks.map(c => c.content));
+  } catch (e) {
+    console.log(`  ❌ embeddings fallaron: ${e.message.slice(0, 140)}`);
+    console.log('  No se tocó la base.');
+    return;
+  }
+  if (embeddings.length !== chunks.length || embeddings.some(v => !Array.isArray(v) || v.length === 0)) {
+    console.log(`  ❌ embeddings incompletos (${embeddings.length}/${chunks.length}) — no se toca la base`);
+    return;
+  }
 
   const { error: delErr } = await supabase.from('doc_chunks').delete().eq('repo_file_id', arch.id);
   if (delErr) {
@@ -173,18 +273,26 @@ async function reindexar(arch, APLICAR) {
     return;
   }
 
+  let falloInsercion = false;
   for (let j = 0; j < chunks.length; j += 50) {
-    const lote = chunks.slice(j, j + 50).map(c => ({
+    const lote = chunks.slice(j, j + 50).map((c, k) => ({
       repo_file_id: arch.id,
       chunk_index: c.index,
       content: c.content,
+      embedding: embeddings[j + k],
       metadata: { source: arch.nombre_archivo, type: 'pdf' },
     }));
     const { error: insErr } = await supabase.from('doc_chunks').insert(lote);
     if (insErr) {
       console.log(`  ❌ error insertando: ${insErr.message}`);
+      falloInsercion = true;
       break;
     }
+  }
+
+  if (falloInsercion) {
+    console.log('  ⚠️  inserción incompleta. Volvé a correr el mismo comando: empieza borrando.');
+    return;
   }
 
   await supabase
