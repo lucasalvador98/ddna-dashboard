@@ -86,6 +86,13 @@ interface SearchOptions {
   maxTokens?: number;
 }
 
+/**
+ * Retrieval method that actually produced chunks. `'none'` means retrieval ran
+ * (or never ran) and produced no chunks, so callers must not report a method
+ * as if it had succeeded.
+ */
+type SearchMethod = 'vector' | 'text' | 'hybrid' | 'none';
+
 // ---------------------------------------------------------------------------
 // Tool display names for SSE progress events
 // ---------------------------------------------------------------------------
@@ -363,7 +370,7 @@ async function searchKnowledgeBase(
   options?: SearchOptions
 ): Promise<{
   chunks: ChunkResult[];
-  searchMethod: 'vector' | 'text' | 'hybrid';
+  searchMethod: SearchMethod;
   warning?: string;
 }> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -376,7 +383,8 @@ async function searchKnowledgeBase(
   let vectorChunks: ChunkResult[] = [];
   let ftsChunks: ChunkResult[] = [];
   let ftsFailed = false;
-  let warning: string | undefined;
+  let vectorFailed = false;
+  const warnings: string[] = [];
 
   const keywords = query
     .toLowerCase()
@@ -402,7 +410,12 @@ async function searchKnowledgeBase(
       if (categoria) {
         ftsQuery = ftsQuery.eq('repositorio.categoria', categoria);
       }
-      const { data: ftsData } = await ftsQuery;
+      const { data: ftsData, error: ftsError } = await ftsQuery;
+      if (ftsError) {
+        console.error('FTS search failed:', ftsError.message);
+        ftsFailed = true;
+        return [];
+      }
       if (!ftsData || ftsData.length === 0) return [];
       return (ftsData as RawIlikeRow[]).map(row => ({
         id: row.id,
@@ -436,7 +449,14 @@ async function searchKnowledgeBase(
       vectorChunks = rpcChunks as ChunkResult[];
     } else if (rpcError) {
       console.error('RPC search_doc_chunks error:', rpcError);
+      vectorFailed = true;
     }
+  }
+
+  if (vectorFailed) {
+    warnings.push(
+      'La búsqueda vectorial falló; los resultados pueden estar incompletos.'
+    );
   }
 
   ftsChunks = await ftsPromise;
@@ -444,8 +464,14 @@ async function searchKnowledgeBase(
   // FTS fallback to ILIKE
   if (ftsChunks.length === 0 && keywords.length > 0 && ftsFailed) {
     if (!embedding) {
-      warning =
-        'OPENAI_EMBEDDING_API_KEY / OPENAI_API_KEY no configurada. Usando búsqueda por texto (ILIKE).';
+      // Legitimate deployment without an embedding key: keep the existing message.
+      warnings.push(
+        'OPENAI_EMBEDDING_API_KEY / OPENAI_API_KEY no configurada. Usando búsqueda por texto (ILIKE).'
+      );
+    } else {
+      warnings.push(
+        'La búsqueda de texto completo (FTS) falló; se usó la búsqueda por coincidencia de texto (ILIKE).'
+      );
     }
 
     const searchConditions = keywords.map(kw => `content.ilike.%${kw}%`).join(',');
@@ -493,7 +519,7 @@ async function searchKnowledgeBase(
 
   // Step 3: Hybrid combination
   let chunks: ChunkResult[];
-  let searchMethod: 'vector' | 'text' | 'hybrid';
+  let searchMethod: SearchMethod;
 
   if (vectorChunks.length > 0 && ftsChunks.length > 0) {
     const chunkMap = new Map<string, { chunk: ChunkResult; vectorScore: number; ftsRank: number }>();
@@ -532,7 +558,7 @@ async function searchKnowledgeBase(
     searchMethod = 'text';
   } else {
     chunks = [];
-    searchMethod = 'text';
+    searchMethod = 'none';
   }
 
   // Step 4: Smart chunk selection (diversity)
@@ -560,7 +586,11 @@ async function searchKnowledgeBase(
     chunks = selected;
   }
 
-  return { chunks, searchMethod, warning };
+  return {
+    chunks,
+    searchMethod,
+    warning: warnings.length > 0 ? warnings.join(' ') : undefined,
+  };
 }
 
 function contentSimilarity(a: string, b: string): number {
@@ -663,7 +693,8 @@ async function executeToolCall(
   sourceType: 'documents' | 'indicators' | 'web' | 'unknown';
   chunks?: ChunkResult[];
   indicatorResult?: unknown;
-  searchMethod?: 'vector' | 'text' | 'hybrid';
+  searchMethod?: SearchMethod;
+  warning?: string;
 }> {
   // --- Indicadores ---
   if (INDICATOR_OPENAPI_TOOLS.some(t => t.function.name === name)) {
@@ -703,7 +734,7 @@ async function executeToolCall(
       formattedResult += `\n\nAdvertencia: ${warning}`;
     }
 
-    return { formattedResult, sourceType: 'documents', chunks, searchMethod };
+    return { formattedResult, sourceType: 'documents', chunks, searchMethod, warning };
   }
 
   if (name === 'listAllDocuments') {
@@ -1073,7 +1104,8 @@ async function handleChatPOST(request: Request) {
         valor?: number | string;
       }> = [];
       const toolsUsed: string[] = [];
-      let searchMethodUsed: 'vector' | 'text' | 'hybrid' | undefined;
+      const accumulatedWarnings: string[] = [];
+      let searchMethodUsed: SearchMethod | undefined;
 
       // Auto-discover available indicator categories and inject into context
       let catalogContext = '';
@@ -1180,12 +1212,15 @@ async function handleChatPOST(request: Request) {
             send('tool', { tool: toolName, status: 'start', label: getToolDisplayName(toolName) });
 
             try {
-              const { formattedResult, sourceType, chunks, indicatorResult, searchMethod } = await executeToolCall(
+              const { formattedResult, sourceType, chunks, indicatorResult, searchMethod, warning } = await executeToolCall(
                 toolName,
                 toolArgs
               );
 
-              if (searchMethod) searchMethodUsed = searchMethod;
+              // Only record the method that actually produced chunks: a later
+              // empty result must not overwrite a previous successful one.
+              if (searchMethod && searchMethod !== 'none') searchMethodUsed = searchMethod;
+              if (warning) accumulatedWarnings.push(warning);
               toolsUsed.push(toolName);
               allFailed = false;
 
@@ -1327,12 +1362,17 @@ async function handleChatPOST(request: Request) {
           ? Array.from(new Map(accumulatedDataSources.map(d => [d.indicador, d])).values())
           : [];
 
+        const warningMessage = accumulatedWarnings.length > 0
+          ? Array.from(new Set(accumulatedWarnings)).join(' ')
+          : undefined;
+
         send('done', {
           sources: dedupedSources,
           dataSources: dedupedDataSources,
           hasContext: dedupedSources.length > 0,
           totalDocs: totalDocs ?? 0,
-          searchMethod: searchMethodUsed || 'vector',
+          searchMethod: searchMethodUsed ?? 'none',
+          ...(warningMessage ? { warning: warningMessage } : {}),
           toolsUsed: [...new Set(toolsUsed)],
           reportGenerated: (finalAnswer.match(/^#{1,3}\s/gm) || []).length >= 2 && finalAnswer.length > 400,
           model: modelUsed,
