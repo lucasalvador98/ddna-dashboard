@@ -3,13 +3,18 @@
  *
  * Mide la capa de recuperación, que es donde está la enfermedad:
  *   - ¿El agente recupera el contenido correcto para cada pregunta?
- *   - ¿Cuánto de lo recuperado ve realmente el modelo, con el recorte
- *     actual de 800 caracteres por fragmento?
+ *   - ¿Cuánto contexto documental llega realmente al modelo?
  *
  * No llama al LLM: determina si el dato esperado está o no en el contexto
  * que se le pasaría al modelo. Eso es objetivo, repetible y barato.
  *
- * Uso: node scripts/audit-rag-goldenset.mjs
+ * Las consultas replican la ruta de chat. Si divergen, el número no significa
+ * nada — por eso el tokenizador y el fallback ILIKE están copiados de
+ * src/app/api/repositorio/chat/route.ts y no reinventados.
+ *
+ * Uso:
+ *   node scripts/audit-rag-goldenset.mjs           # reporte, sin gate
+ *   node scripts/audit-rag-goldenset.mjs --min=5   # falla si baja de 5/10
  */
 import { createClient } from '@supabase/supabase-js';
 import { config } from 'dotenv';
@@ -106,20 +111,31 @@ const GOLDEN = [
 // ─── Búsqueda documental ────────────────────────────────────────────────────
 // Camino de texto (FTS + ILIKE), que es uno de los dos del híbrido del agente.
 // No usa embedding: mide si los términos de la pregunta alcanzan para llegar al
-// documento correcto, y cuánto del texto recuperado sobrevive al recorte.
-async function searchDocs(pregunta) {
-  const keywords = pregunta
+// documento correcto, y cuánto del texto recuperado sobrevive al armado del
+// prompt.
+
+/**
+ * Réplica exacta del tokenizador del agente (chat/route.ts, searchKnowledgeBase).
+ * No normaliza acentos y corta en 5 términos, igual que el runtime: si acá se
+ * "mejorara" el tokenizador, la medición dejaría de describir el sistema real.
+ */
+function runtimeKeywords(question) {
+  return question
     .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .split(/[^a-z0-9]+/)
-    .filter(w => w.length > 3);
+    .replace(/[?:,;.!¡¿]/g, '')
+    .split(/\s+/)
+    .filter(word => word.length > 3)
+    .slice(0, 5);
+}
+
+async function searchDocs(pregunta) {
+  const keywords = runtimeKeywords(pregunta);
 
   const sel =
     'repo_file_id, chunk_index, content, metadata, repositorio!inner(nombre_archivo, categoria)';
 
-  // Réplica EXACTA del FTS del agente (src/app/api/repositorio/chat/route.ts:356-366):
-  // columna search_vector (tsvector), sintaxis websearch, términos con OR, config español.
+  // Réplica exacta del FTS del agente: columna search_vector (tsvector),
+  // sintaxis websearch, términos unidos con OR, config español, sin ORDER BY.
   const { data: fts, error: ftsErr } = await supabase
     .from('doc_chunks')
     .select(sel)
@@ -136,12 +152,22 @@ async function searchDocs(pregunta) {
   }
 
   if (rows.length === 0) {
-    // Fallback ILIKE, igual que hace el agente cuando FTS no rinde.
-    const { data: ilike, error: ilikeErr } = await supabase
-      .from('doc_chunks')
-      .select(sel)
-      .ilike('content', `%${keywords[0] || consultaSegura(pregunta)}%`)
-      .limit(20);
+    // Réplica exacta del fallback ILIKE del agente: OR de TODOS los términos,
+    // restringido a archivos procesados.
+    const searchConditions = keywords.map(kw => `content.ilike.%${kw}%`).join(',');
+
+    const { data: processedFiles } = await supabase
+      .from('repositorio')
+      .select('id')
+      .eq('processed', true);
+
+    const fileIds = (processedFiles || []).map(f => f.id);
+
+    let query = supabase.from('doc_chunks').select(sel);
+    if (fileIds.length > 0) query = query.in('repo_file_id', fileIds);
+    if (searchConditions) query = query.or(searchConditions);
+
+    const { data: ilike, error: ilikeErr } = await query.limit(20);
     if (!ilikeErr) rows = ilike || [];
     via = 'ILIKE';
   }
@@ -153,22 +179,6 @@ async function searchDocs(pregunta) {
     return { ...c, nombre_archivo: file, ftsRank: keywords.length ? hits / keywords.length : 0 };
   });
   return scored.sort((a, b) => b.ftsRank - a.ftsRank).slice(0, 20);
-}
-
-function consultaSegura(s) {
-  return s.toLowerCase().replace(/[^a-z0-9 ]/g, '').split(/\s+/).find(w => w.length > 3) || 'informe';
-}
-
-// ─── Búsqueda de indicadores: réplica de getIndicatorTimeSeries ──────────────
-async function searchIndicators(nombre) {
-  const { data, error } = await supabase
-    .from('indicadores')
-    .select('indicador_nombre, valor, periodo, unidad, region')
-    .ilike('indicador_nombre', `%${nombre}%`)
-    .order('periodo', { ascending: false })
-    .limit(25);
-  if (error) throw new Error('indicadores: ' + error.message);
-  return data || [];
 }
 
 // ─── Búsqueda de indicadores: réplica de getIndicatorTimeSeries ──────────────
@@ -184,7 +194,11 @@ async function searchIndicadores(nombre) {
 }
 
 // ─── Medición ───────────────────────────────────────────────────────────────
-const CHARS_VISTOS = 800; // recorte actual de buildContext
+// Cuánto de cada fragmento llega al prompt. Debe seguir a DEFAULT_CHUNK_SIZE
+// (src/lib/rag/chunker.ts): buildContext ya no recorta por debajo del tamaño
+// con el que se generó el chunk, así que este valor solo mide la truncación
+// residual si alguien los vuelve a desalinear.
+const CHARS_VISTOS = 2000;
 
 const resultados = [];
 for (const g of GOLDEN) {
@@ -204,7 +218,9 @@ for (const g of GOLDEN) {
       encontrado: ok,
       detalle: ok
         ? `${filas.length} filas; ej. "${filas[0]?.indicador_nombre}" = ${filas[0]?.valor} ${filas[0]?.unidad || ''} (${filas[0]?.periodo})`
-        : `sin resultados para "${g.indicador}"`,
+        : filas.length === 0
+          ? `sin resultados para "${g.indicador}"`
+          : `valor esperado "${g.esperado.contiene}" ausente entre ${filas.length} filas (LIMIT 25 con periodo repetido: conjunto arbitrario)`,
     });
   } else {
     const chunks = await searchDocs(g.pregunta);
@@ -261,5 +277,36 @@ if (docs.length) {
   }
 }
 console.log(
-  '\nNota: medido sin embedding (piso). Con embedding activo la recuperación\nmejora, pero el recorte de 800 chars por fragmento no cambia.\n'
+  '\nNota: mide solo el camino de texto (FTS + ILIKE), sin embedding. Es el piso:\n' +
+    'con embedding activo la recuperación puede mejorar, pero esta medición no lo ve.\n'
 );
+
+console.log(
+  'Aviso: la medición todavía NO es determinista entre corridas. Las consultas\n' +
+    'replicadas usan LIMIT sin un ORDER BY que desempate (FTS sin ranking;\n' +
+    'indicadores por periodo, que se repite), así que el conjunto devuelto es\n' +
+    'arbitrario. Por eso el gate es opt-in: un --min automático fallaría solo.\n'
+);
+
+// ─── Gate (opt-in) ──────────────────────────────────────────────────────────
+// Sin --min el script solo reporta. El gate existe para cuando el orden de las
+// consultas deje de ser arbitrario; antes de eso, cablearlo a CI produce
+// falsos positivos.
+const BASELINE = 4;
+
+const minArg = process.argv.find(a => a.startsWith('--min='));
+const min = minArg ? Number(minArg.split('=')[1]) : null;
+
+if (min === null) {
+  console.log(`[gate] desactivado (piso observado: ${BASELINE}/${resultados.length}). Usá --min=N para activarlo.\n`);
+  process.exitCode = 0;
+} else if (!Number.isFinite(min) || min < 0) {
+  console.error(`[gate] --min inválido: ${minArg}`);
+  process.exitCode = 2;
+} else if (okCount < min) {
+  console.error(`[gate] FALLA: ${okCount}/${resultados.length} por debajo del mínimo ${min}.`);
+  process.exitCode = 1;
+} else {
+  console.log(`[gate] OK: ${okCount}/${resultados.length} (mínimo ${min}).`);
+  process.exitCode = 0;
+}
