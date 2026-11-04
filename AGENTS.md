@@ -89,3 +89,9 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+## Accumulated project knowledge
+
+Read `docs/ai-memory.md` before making changes: it contains migrated decisions,
+bug fixes, architecture notes, conventions, and gotchas from past working
+sessions. Trust it as historical context.
