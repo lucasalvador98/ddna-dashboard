@@ -47,7 +47,10 @@ function mockAccess(roleName: string | null, permissionsStatus = 200) {
 
 describe('repository mutation controls', () => {
   beforeEach(() => vi.clearAllMocks());
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
 
   it('keeps upload, processing, metadata, and delete actions for administrators', async () => {
     mockAccess('admin');
@@ -73,11 +76,48 @@ describe('repository mutation controls', () => {
     fireEvent.click(screen.getByText(file.nombre_archivo));
 
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
-    expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Descargar' })).toBeInTheDocument();
+    const drawer = screen.getByRole('dialog');
+    const openWindow = vi.spyOn(window, 'open').mockImplementation(() => null);
+    fireEvent.click(within(drawer).getByRole('button', { name: 'Descargar' }));
+
+    expect(openWindow).toHaveBeenCalledWith(file.url_storage, '_blank');
     expect(screen.getByText('Descripción existente')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Eliminar' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Procesar' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Editar' })).not.toBeInTheDocument();
+  });
+
+  it('keeps management controls hidden while permissions are pending, then resolves for an admin', async () => {
+    useAuthMock.mockReturnValue({
+      user: { id: 'user-1', user_metadata: { role: 'admin' } },
+      loading: false,
+    });
+    let resolvePermissions!: (response: Response) => void;
+    const permissionsResponse = new Promise<Response>((resolve) => {
+      resolvePermissions = resolve;
+    });
+    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('/api/auth/config')) {
+        return Promise.resolve(new Response(JSON.stringify({ enabled: true, protected_routes: ['/repositorio'] })));
+      }
+      if (url.includes('/api/auth/me/permissions')) return permissionsResponse;
+      return Promise.resolve(new Response('{}', { status: 500 }));
+    }));
+    render(<RepositorioClient initialFiles={[file]} />);
+
+    expect(await screen.findByText(/Verificando permisos de administración/i)).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Subir nuevo archivo' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Procesar pendientes' })).not.toBeInTheDocument();
+
+    resolvePermissions(new Response(JSON.stringify({
+      user_id: 'user-1',
+      role: { id: 1, name: 'admin' },
+      effective: {},
+    })));
+
+    expect(await screen.findByRole('heading', { name: 'Subir nuevo archivo' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Procesar pendientes' })).toBeInTheDocument();
   });
 
   it('hides every mutation control when permission verification fails', async () => {

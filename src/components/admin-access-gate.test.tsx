@@ -12,6 +12,7 @@ function mockAccess(options: {
   roleName?: string | null;
   configStatus?: number;
   permissionsStatus?: number;
+  permissionsPayload?: unknown;
 } = {}) {
   useAuthMock.mockReturnValue({
     user: {
@@ -32,11 +33,12 @@ function mockAccess(options: {
       const role = options.roleName === null
         ? null
         : { id: 1, name: options.roleName ?? 'admin' };
-      return new Response(JSON.stringify({
+      const payload = options.permissionsPayload ?? {
         user_id: 'user-1',
         role,
         effective: {},
-      }), { status: options.permissionsStatus ?? 200 });
+      };
+      return new Response(JSON.stringify(payload), { status: options.permissionsStatus ?? 200 });
     }
     return new Response('{}', { status: 404 });
   }));
@@ -74,6 +76,30 @@ describe('AdminOnlyGate', () => {
     render(<AdminOnlyGate feature={feature}><div>Contenido protegido</div></AdminOnlyGate>);
 
     expect(await screen.findByText('No se pudieron verificar los permisos. Esta función está temporalmente deshabilitada.')).toBeInTheDocument();
+    expect(screen.queryByText('Contenido protegido')).not.toBeInTheDocument();
+  });
+
+  it('fails closed when the permissions payload has an invalid shape', async () => {
+    mockAccess({ permissionsPayload: {
+      user_id: 'user-1',
+      role: { id: 1, name: 'admin' },
+      effective: [],
+    } });
+    render(<AdminOnlyGate feature={feature}><div>Contenido protegido</div></AdminOnlyGate>);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudieron verificar los permisos.');
+    expect(screen.queryByText('Contenido protegido')).not.toBeInTheDocument();
+  });
+
+  it('fails closed when permissions belong to a different user', async () => {
+    mockAccess({ permissionsPayload: {
+      user_id: 'another-user',
+      role: { id: 1, name: 'admin' },
+      effective: {},
+    } });
+    render(<AdminOnlyGate feature={feature}><div>Contenido protegido</div></AdminOnlyGate>);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudieron verificar los permisos.');
     expect(screen.queryByText('Contenido protegido')).not.toBeInTheDocument();
   });
 });
