@@ -8,6 +8,12 @@ interface CKANPackageListResponse {
   result: string[];
 }
 
+interface EndpointData {
+  source: string;
+  datasets?: string[];
+  total?: number;
+}
+
 async function fetchInitialData() {
   const url = new URL('https://datos.gob.ar/api/3/action/package_list');
   url.searchParams.set('limit', '50');
@@ -28,13 +34,15 @@ async function fetchInitialData() {
 }
 
 async function ApisContent() {
-  let initialData: Awaited<ReturnType<typeof fetchInitialData>>;
+  let initialData: EndpointData | null = null;
+  let initialError: string | null = null;
+
   try {
     initialData = await fetchInitialData();
   } catch {
-    initialData = { source: 'datos.gob.ar', total: 0, datasets: [] };
+    initialError = 'No se pudo cargar el catálogo de datos.';
   }
-  return <ApisClient initialData={initialData} />;
+  return <ApisClient initialData={initialData} initialError={initialError} />;
 }
 
 export default function ApisPage() {

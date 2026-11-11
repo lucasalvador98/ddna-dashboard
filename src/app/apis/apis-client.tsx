@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ExternalLink, Search, Database, FileText, Building2, Users, Heart } from 'lucide-react';
 import { dashboardPath } from '@/lib/app-path';
+import { PageError } from '@/components/page-error';
 
 interface Dataset {
   name: string;
@@ -19,15 +20,16 @@ interface EndpointData {
 }
 
 interface ApisClientProps {
-  initialData: EndpointData;
+  initialData: EndpointData | null;
+  initialError: string | null;
 }
 
-export function ApisClient({ initialData }: ApisClientProps) {
+export function ApisClient({ initialData, initialError }: ApisClientProps) {
   const [loading, setLoading] = useState(false);
   const [activeSource, setActiveSource] = useState<string>('datosgob');
   const [searchQuery, setSearchQuery] = useState('');
-  const [data, setData] = useState<EndpointData>(initialData);
-  const [error, setError] = useState<string | null>(null);
+  const [data, setData] = useState<EndpointData | null>(initialData);
+  const [error, setError] = useState<string | null>(initialError);
   const isFirstRender = useRef(true);
 
   const fetchData = async () => {
@@ -141,7 +143,9 @@ export function ApisClient({ initialData }: ApisClientProps) {
         />
       </div>
 
-      {loading ? (
+      {error ? (
+        <PageError message={error} onRetry={() => void fetchData()} />
+      ) : loading ? (
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-navy" />
           <span className="ml-3 text-gray-500">Cargando...</span>
