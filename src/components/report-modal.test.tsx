@@ -98,25 +98,10 @@ describe('ReportModal', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('shows loading spinner when generating report', () => {
-    // Make fetch slow so we can see loading state
+  it('shows a truthful loading status instead of simulated per-source progress', () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockImplementation(
-        () =>
-          new Promise((resolve) =>
-            setTimeout(
-              () =>
-                resolve({
-                  ok: true,
-                  json: async () => mockReportResponse,
-                  text: async () => JSON.stringify(mockReportResponse),
-                  status: 200,
-                }),
-              500,
-            ),
-          ),
-      ),
+      vi.fn().mockReturnValue(new Promise(() => {})),
     );
 
     render(<ReportModal isOpen={true} onClose={onClose} />);
@@ -126,19 +111,10 @@ describe('ReportModal', () => {
     });
     fireEvent.click(generateButton);
 
-    // Should show multi-step loading
-    expect(
-      screen.getByText('Consultando base de datos...'),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('Buscando documentos relacionados...'),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('Consultando fuentes web...'),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('Generando informe crítico...'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Generando el informe...')).toBeInTheDocument();
+    expect(screen.queryByText('Consultando base de datos...')).not.toBeInTheDocument();
+    expect(screen.queryByText('Buscando documentos relacionados...')).not.toBeInTheDocument();
+    expect(screen.queryByText('Consultando fuentes web...')).not.toBeInTheDocument();
   });
 
   it('shows error state when API fails', async () => {
@@ -207,85 +183,4 @@ describe('ReportModal', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  // ── Multi-step Loading Transitions ──────────────────────────
-
-  it('shows all 4 loading steps during generation', () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockImplementation(
-        () =>
-          new Promise((resolve) =>
-            setTimeout(
-              () =>
-                resolve({
-                  ok: true,
-                  json: async () => mockReportResponse,
-                  text: async () => JSON.stringify(mockReportResponse),
-                  status: 200,
-                }),
-              5000,
-            ),
-          ),
-      ),
-    );
-
-    render(<ReportModal isOpen={true} onClose={onClose} />);
-
-    const generateButton = screen.getByRole('button', {
-      name: /generar informe/i,
-    });
-    fireEvent.click(generateButton);
-
-    // All 4 step labels should be visible
-    expect(
-      screen.getByText('Consultando base de datos...'),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('Buscando documentos relacionados...'),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('Consultando fuentes web...'),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('Generando informe crítico...'),
-    ).toBeInTheDocument();
-  });
-
-  it('shows first step as active (highlighted) and rest as inactive', () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockImplementation(
-        () =>
-          new Promise((resolve) =>
-            setTimeout(
-              () =>
-                resolve({
-                  ok: true,
-                  json: async () => mockReportResponse,
-                  text: async () => JSON.stringify(mockReportResponse),
-                  status: 200,
-                }),
-              5000,
-            ),
-          ),
-      ),
-    );
-
-    render(<ReportModal isOpen={true} onClose={onClose} />);
-
-    const generateButton = screen.getByRole('button', {
-      name: /generar informe/i,
-    });
-    fireEvent.click(generateButton);
-
-    // First step text should have high opacity (text-gray-800)
-    expect(screen.getByText('Consultando base de datos...')).toHaveClass(
-      'text-gray-800',
-    );
-
-    // Second step should have lower opacity
-    expect(screen.getByText('Buscando documentos relacionados...')).toHaveClass(
-      'text-gray-400',
-    );
-  });
 });

@@ -5,12 +5,12 @@
  *
  * Features:
  * - Tab switcher under the header with orange underline
- * - Tab 1: Informe Ejecutivo (category checkboxes, loader steps, report preview, print)
- * - Tab 2: Presentación IA (context form, KPI selector, custom slide loader, slide viewer, PPTX download)
+ * - Tab 1: Informe Ejecutivo (category checkboxes, loading status, report preview, print)
+ * - Tab 2: Presentación IA (context form, KPI selector, loading status, slide viewer, PPTX download)
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { X, Loader2, FileText, Printer, AlertCircle, Check } from 'lucide-react';
+import { X, Loader2, FileText, Printer, AlertCircle } from 'lucide-react';
 import clsx from 'clsx';
 import { ReportContent } from './report-content';
 import { PresentacionForm } from './presentacion-form';
@@ -357,7 +357,7 @@ function ReportModalContent({ onClose }: { onClose: () => void }) {
               )}
 
               {/* ── Loading Phase (Tab 1) ──────────────────────── */}
-              {reportState.phase === 'loading' && <LoadingSteps />}
+              {reportState.phase === 'loading' && <LoadingStatus message="Generando el informe..." />}
 
               {/* ── Error Phase (Tab 1) ────────────────────────── */}
               {reportState.phase === 'error' && (
@@ -394,7 +394,7 @@ function ReportModalContent({ onClose }: { onClose: () => void }) {
 
               {/* ── Loading Phase (Tab 2) ──────────────────────── */}
               {presentacionState.phase === 'loading' && (
-                <LoadingSteps steps={PRESENTATION_LOADING_STEPS} />
+                <LoadingStatus message="Generando la presentación..." />
               )}
 
               {/* ── Error Phase (Tab 2) ────────────────────────── */}
@@ -478,111 +478,11 @@ function ReportModalContent({ onClose }: { onClose: () => void }) {
   );
 }
 
-// ─── Multi-step Loading Animation ───────────────────────────────
-
-const LOADING_STEPS = [
-  {
-    label: 'Consultando base de datos...',
-    description: 'Recuperando indicadores de las categorías seleccionadas',
-  },
-  {
-    label: 'Buscando documentos relacionados...',
-    description: 'Revisando documentos del repositorio',
-  },
-  {
-    label: 'Consultando fuentes web...',
-    description: 'Buscando contexto comparativo en línea',
-  },
-  {
-    label: 'Generando informe crítico...',
-    description: 'Analizando y cruzando todas las fuentes con IA',
-  },
-] as const;
-
-const PRESENTATION_LOADING_STEPS = [
-  {
-    label: 'Cargando KPIs seleccionados...',
-    description: 'Recuperando la información y la serie histórica de los indicadores',
-  },
-  {
-    label: 'Analizando tendencias y alertas...',
-    description: 'Buscando desvíos y variaciones significativas en los datos',
-  },
-  {
-    label: 'Estructurando narrativa de slides...',
-    description: 'Diseñando el hilo conductor y los insights para la audiencia',
-  },
-  {
-    label: 'Generando presentación...',
-    description: 'Construyendo slides ejecutivos con Inteligencia Artificial',
-  },
-] as const;
-
-interface LoadingStepItem {
-  label: string;
-  description: string;
-}
-
-interface LoadingStepsProps {
-  steps?: readonly LoadingStepItem[];
-}
-
-function LoadingSteps({ steps = LOADING_STEPS }: LoadingStepsProps) {
-  const [currentStep, setCurrentStep] = useState(0);
-
-  useEffect(() => {
-    if (currentStep >= steps.length - 1) return;
-    const timer = setTimeout(() => setCurrentStep(s => s + 1), 3500);
-    return () => clearTimeout(timer);
-  }, [currentStep, steps.length]);
-
+function LoadingStatus({ message }: { message: string }) {
   return (
-    <div className="flex flex-col items-center justify-center py-12 space-y-6">
+    <div className="flex flex-col items-center justify-center py-12 gap-4" role="status">
       <Loader2 className="w-12 h-12 text-orange animate-spin" />
-      <div className="space-y-4 w-full max-w-sm">
-        {steps.map((step, idx) => {
-          const isActive = idx === currentStep;
-          const isDone = idx < currentStep;
-          return (
-            <div
-              key={step.label}
-              className={clsx(
-                'flex items-start gap-3 transition-opacity duration-300',
-                isActive ? 'opacity-100' : isDone ? 'opacity-60' : 'opacity-30'
-              )}
-            >
-              <div
-                className={clsx(
-                  'w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5',
-                  isDone ? 'bg-green-100' : isActive ? 'bg-orange/10' : 'bg-gray-100'
-                )}
-              >
-                {isDone ? (
-                  <Check className="w-3.5 h-3.5 text-green-600" />
-                ) : (
-                  <div
-                    className={clsx(
-                      'w-2 h-2 rounded-full',
-                      isActive ? 'bg-orange animate-pulse' : 'bg-gray-300'
-                    )}
-                  />
-                )}
-              </div>
-              <div className="min-w-0">
-                <p
-                  className={clsx(
-                    'font-body text-sm font-medium',
-                    isDone ? 'text-green-700' : isActive ? 'text-gray-800' : 'text-gray-400'
-                  )}
-                >
-                  {step.label}
-                </p>
-                <p className="font-body text-xs text-gray-400 mt-0.5">{step.description}</p>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <p className="font-body text-sm text-gray-600">{message}</p>
     </div>
   );
 }
