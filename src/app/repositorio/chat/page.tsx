@@ -5,6 +5,7 @@ import { Send, Bot, User, FileText, Loader2, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { dashboardPath } from '@/lib/app-path';
+import { AdminOnlyGate } from '@/components/admin-access-gate';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -199,6 +200,7 @@ export default function ChatPage() {
   };
 
   return (
+    <AdminOnlyGate feature="el asistente de investigación">
     <div className="max-w-4xl mx-auto px-6 py-8">
       {/* Header */}
       <div className="mb-8 flex items-start justify-between">
@@ -426,5 +428,6 @@ export default function ChatPage() {
         </p>
       </div>
     </div>
+    </AdminOnlyGate>
   );
 }

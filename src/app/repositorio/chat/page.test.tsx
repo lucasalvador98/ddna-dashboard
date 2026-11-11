@@ -2,6 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import ChatPage from './page';
 
+const { useAuthMock } = vi.hoisted(() => ({ useAuthMock: vi.fn() }));
+
+vi.mock('@/components/auth-provider', () => ({ useAuth: useAuthMock }));
 vi.mock('@/lib/supabase', () => ({ supabase: {} }));
 
 function createSseResponse(done: Record<string, unknown>) {
@@ -19,10 +22,33 @@ function createSseResponse(done: Record<string, unknown>) {
   return new Response(body, { headers: { 'Content-Type': 'text/event-stream' } });
 }
 
+function mockAccess(roleName: string, permissionsStatus = 200, chatResponse?: Response) {
+  useAuthMock.mockReturnValue({
+    user: { id: 'user-1', user_metadata: { role: 'admin' } },
+    loading: false,
+  });
+  const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.includes('/api/auth/config')) {
+      return new Response(JSON.stringify({ enabled: true, protected_routes: ['/repositorio'] }));
+    }
+    if (url.includes('/api/auth/me/permissions')) {
+      return new Response(JSON.stringify({
+        user_id: 'user-1',
+        role: { id: roleName === 'admin' ? 1 : 2, name: roleName },
+        effective: {},
+      }), { status: permissionsStatus });
+    }
+    return chatResponse ?? new Response('{}', { status: 500 });
+  });
+  vi.stubGlobal('fetch', fetchMock);
+  return fetchMock;
+}
+
 async function submitQuestion(done: Record<string, unknown>) {
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(createSseResponse(done)));
+  mockAccess('admin', 200, createSseResponse(done));
   render(<ChatPage />);
-  fireEvent.change(screen.getByRole('textbox', { name: 'Escribí tu pregunta' }), {
+  fireEvent.change(await screen.findByRole('textbox', { name: 'Escribí tu pregunta' }), {
     target: { value: 'Consulta de prueba' },
   });
   fireEvent.click(screen.getByRole('button', { name: /enviar/i }));
@@ -80,5 +106,22 @@ describe('repository chat retrieval status', () => {
     expect(screen.getByText('Se encontraron documentos relacionados, pero la búsqueda generó una advertencia.')).toBeInTheDocument();
     expect(screen.getByText('Método de búsqueda: Híbrido')).toBeInTheDocument();
     expect(screen.getByText('La búsqueda vectorial falló; los resultados pueden estar incompletos.')).toBeInTheDocument();
+  });
+
+  it('shows no input to non-admin users before they submit a question', async () => {
+    const fetchMock = mockAccess('agente');
+    render(<ChatPage />);
+
+    expect(await screen.findByText('Solo las personas con rol de administrador pueden utilizar el asistente de investigación.')).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: 'Escribí tu pregunta' })).not.toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining('/api/repositorio/chat'), expect.anything());
+  });
+
+  it('fails closed when the self-permissions endpoint fails', async () => {
+    mockAccess('admin', 500);
+    render(<ChatPage />);
+
+    expect(await screen.findByText('No se pudieron verificar los permisos. Esta función está temporalmente deshabilitada.')).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: 'Escribí tu pregunta' })).not.toBeInTheDocument();
   });
 });
