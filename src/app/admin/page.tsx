@@ -202,10 +202,9 @@ function AdminDashboard({ stats }: { stats: SystemStats }) {
           color="terracotta"
         />
         <KpiCard
-          title="Usuarios del sistema"
+          title="Grupos de indicadores"
           value={formatNumber(stats.counts.grupos)}
-          subtitle="Cargá usuarios en la pestaña Usuarios"
-          icon={Users}
+          icon={FolderOpen}
           color="navy"
         />
       </div>

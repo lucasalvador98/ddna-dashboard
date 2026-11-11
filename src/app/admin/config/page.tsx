@@ -31,6 +31,7 @@ export default function ConfigPage() {
   const [enabled, setEnabled] = useState(false);
   const [protectedRoutes, setProtectedRoutes] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [configError, setConfigError] = useState<string | null>(null);
   const [toggling, setToggling] = useState(false);
   const [flash, setFlash] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
 
@@ -38,12 +39,13 @@ export default function ConfigPage() {
   const [healthLoading, setHealthLoading] = useState(true);
 
   const loadConfig = useCallback(async () => {
+    setConfigError(null);
     try {
       const { data } = await getAuthConfig();
       setEnabled(data.value?.enabled ?? false);
       setProtectedRoutes(data.value?.protected_routes ?? []);
     } catch {
-      // Error handling — default to disabled state
+      setConfigError('No se pudo cargar la configuración de autenticación.');
     }
     setLoading(false);
   }, []);
@@ -139,6 +141,22 @@ export default function ConfigPage() {
         </div>
       )}
 
+      {configError ? (
+        <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">
+          <p>{configError}</p>
+          <button
+            onClick={() => {
+              setLoading(true);
+              void loadConfig();
+            }}
+            className="mt-3 inline-flex items-center gap-2 font-medium underline"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Reintentar
+          </button>
+        </div>
+      ) : (
+        <>
       {/* Section 1: Auth toggle + status */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
         <h2 className="font-display text-lg text-navy mb-4 flex items-center gap-2">
@@ -221,6 +239,8 @@ export default function ConfigPage() {
           })}
         </div>
       </div>
+        </>
+      )}
 
       {/* Section 3: System health */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
