@@ -58,75 +58,6 @@ const methodLabels: Record<string, string> = {
   csv_upload: 'CSV',
 };
 
-const fallbackFuentes: FuenteDato[] = [
-  {
-    id: '1',
-    nombre: 'Ministerio de Salud de Córdoba',
-    organizacion: 'Gobierno de Córdoba',
-    url: 'https://salud.cba.gov.ar',
-    frecuencia: 'Trimestral',
-    categoria: 'salud',
-    ultima_actualizacion: '2024-12-15',
-    metodo_ingesta: 'api',
-    created_at: '2024-01-01',
-  },
-  {
-    id: '2',
-    nombre: 'Ministerio de Educación',
-    organizacion: 'Gobierno de Córdoba',
-    url: 'https://educacion.cba.gov.ar',
-    frecuencia: 'Anual',
-    categoria: 'educacion',
-    ultima_actualizacion: '2024-11-30',
-    metodo_ingesta: 'csv_upload',
-    created_at: '2024-01-01',
-  },
-  {
-    id: '3',
-    nombre: 'INDEC - EPH',
-    organizacion: 'Gobierno Nacional',
-    url: 'https://www.indec.gob.ar',
-    frecuencia: 'Semestral',
-    categoria: 'pobreza',
-    ultima_actualizacion: '2024-09-30',
-    metodo_ingesta: 'api',
-    created_at: '2024-01-01',
-  },
-  {
-    id: '4',
-    nombre: 'Secretaría de Niñez',
-    organizacion: 'Gobierno de Córdoba',
-    url: 'https://ninez.cba.gov.ar',
-    frecuencia: 'Mensual',
-    categoria: 'seguridad',
-    ultima_actualizacion: '2024-12-01',
-    metodo_ingesta: 'api',
-    created_at: '2024-01-01',
-  },
-  {
-    id: '5',
-    nombre: 'Ministerio de Finanzas',
-    organizacion: 'Gobierno de Córdoba',
-    url: 'https://finanzas.cba.gov.ar',
-    frecuencia: 'Trimestral',
-    categoria: 'inversion',
-    ultima_actualizacion: '2024-10-31',
-    metodo_ingesta: 'manual',
-    created_at: '2024-01-01',
-  },
-  {
-    id: '6',
-    nombre: 'Dirección General de Estadística',
-    organizacion: 'Gobierno de Córdoba',
-    url: 'https://estadistica.cba.gov.ar',
-    frecuencia: 'Decenal',
-    categoria: 'demografia',
-    ultima_actualizacion: '2022-05-18',
-    metodo_ingesta: 'csv_upload',
-    created_at: '2024-01-01',
-  },
-];
-
 const sources = [
   {
     id: 'datosgob',
@@ -175,7 +106,6 @@ function formatDate(dateString: string): string {
 
 interface FuentesClientProps {
   initialFuentes: FuenteDato[];
-  initialUsingFallback: boolean;
   initialError: string | null;
   initialLastFetch: string;
 }
@@ -184,7 +114,6 @@ interface FuentesClientProps {
 
 export function FuentesClient({
   initialFuentes,
-  initialUsingFallback,
   initialError,
   initialLastFetch,
 }: FuentesClientProps) {
@@ -192,7 +121,6 @@ export function FuentesClient({
 
   const [fuentes, setFuentes] = useState<FuenteDato[]>(initialFuentes);
   const [isLoading, setIsLoading] = useState(false);
-  const [usingFallback, setUsingFallback] = useState(initialUsingFallback);
   const [lastFetch, setLastFetch] = useState<Date | null>(new Date(initialLastFetch));
   const [fuentesError, setFuentesError] = useState<string | null>(initialError);
 
@@ -210,39 +138,29 @@ export function FuentesClient({
 
   const fetchFuentes = useCallback(async () => {
     setIsLoading(true);
-    setFuentesError(null);
     try {
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
       const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-      if (supabaseUrl && supabaseAnonKey) {
-        const { createClient } = await import('@supabase/supabase-js');
-        const supabase = createClient(supabaseUrl, supabaseAnonKey);
-        const { data, error } = await supabase
-          .from('fuentes_datos')
-          .select('*')
-          .order('nombre', { ascending: true });
+      if (!supabaseUrl || !supabaseAnonKey) throw new Error('Supabase no está configurado.');
 
-        if (error) throw error;
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+      const { data, error } = await supabase
+        .from('fuentes_datos')
+        .select('*')
+        .order('nombre', { ascending: true });
 
-        if (data && data.length > 0) {
-          setFuentes(data as FuenteDato[]);
-          setUsingFallback(false);
-        } else {
-          setFuentes(fallbackFuentes);
-          setUsingFallback(true);
-        }
-      } else {
-        setFuentes(fallbackFuentes);
-        setUsingFallback(true);
-      }
+      if (error) throw error;
+
+      setFuentes((data || []) as FuenteDato[]);
+      setFuentesError(null);
+      setLastFetch(new Date());
     } catch {
       setFuentesError('Error al cargar las fuentes de datos.');
-      setFuentes(fallbackFuentes);
-      setUsingFallback(true);
+      setFuentes([]);
     } finally {
       setIsLoading(false);
-      setLastFetch(new Date());
     }
   }, []);
 
@@ -328,31 +246,22 @@ export function FuentesClient({
 
       {activeTab === 'fuentes' && (
         <>
-          {fuentesError && <PageError message={fuentesError} onRetry={() => fetchFuentes()} />}
+          {isLoading ? (
+            <PageLoading message="Cargando fuentes de datos..." />
+          ) : fuentesError ? (
+            <PageError message={fuentesError} onRetry={() => fetchFuentes()} />
+          ) : (
+            <>
           <div
             className={clsx(
               'rounded-lg p-4 flex items-center justify-between',
-              usingFallback
-                ? 'bg-warning/10 border border-warning/30'
-                : 'bg-success/10 border border-success/30'
+              'bg-success/10 border border-success/30'
             )}
           >
             <div className="flex items-center gap-3">
-              <div
-                className={clsx(
-                  'w-2 h-2 rounded-full',
-                  usingFallback ? 'bg-warning' : 'bg-success'
-                )}
-              />
-              <span
-                className={clsx(
-                  'font-body text-sm font-medium',
-                  usingFallback ? 'text-warning' : 'text-success'
-                )}
-              >
-                {usingFallback
-                  ? 'Mostrando datos de ejemplo — Configure Supabase para conectar fuentes reales'
-                  : 'Conectado a Supabase — Datos en vivo'}
+              <div className="w-2 h-2 rounded-full bg-success" />
+              <span className="font-body text-sm font-medium text-success">
+                Conectado a Supabase — Datos en vivo
               </span>
             </div>
             {lastFetch && (
@@ -367,9 +276,11 @@ export function FuentesClient({
             subtitle={`${fuentes.length} fuentes de datos documentadas`}
             color="orange"
           >
-            {isLoading ? (
-              <PageLoading message="Cargando fuentes de datos..." />
-            ) : fuentesError ? null : (
+            {fuentes.length === 0 ? (
+              <p className="py-8 text-center text-sm text-text-primary/60">
+                No hay fuentes de datos registradas.
+              </p>
+            ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead>
@@ -453,6 +364,8 @@ export function FuentesClient({
               </div>
             )}
           </ChartCard>
+            </>
+          )}
         </>
       )}
 
