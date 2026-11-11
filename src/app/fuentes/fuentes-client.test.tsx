@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { FuentesClient } from './fuentes-client';
 
 describe('FuentesClient', () => {
@@ -21,4 +21,26 @@ describe('FuentesClient', () => {
     expect(screen.queryByText('Ministerio de Salud de Córdoba')).not.toBeInTheDocument();
   });
 
+  it('renders one external-APIs panel instead of duplicate source controls', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ source: 'datos.gob.ar', datasets: [], total: 0 }),
+      }),
+    );
+
+    render(
+      <FuentesClient
+        initialFuentes={[]}
+        initialError={null}
+        initialLastFetch="2026-11-11T00:00:00.000Z"
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'APIs Externas' }));
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('button', { name: 'Datos Argentina (Nacional)' })).toHaveLength(1);
+    });
+  });
 });
