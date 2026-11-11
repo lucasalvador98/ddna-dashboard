@@ -21,6 +21,7 @@ interface Props {
   view: ViewMode;
   onFileClick: (file: RepoFile) => void;
   onProcessPending: () => void;
+  canManage: boolean;
   processing: boolean;
   processResults: ProcessResult[];
   pendingCount: number;
@@ -31,6 +32,7 @@ export function RepoGroupList({
   view,
   onFileClick,
   onProcessPending,
+  canManage,
   processing,
   processResults,
   pendingCount,
@@ -75,23 +77,27 @@ export function RepoGroupList({
                   {pendingCount > 1 ? 's' : ''} de procesar
                 </p>
                 <p className="font-body text-xs text-amber-700 mt-0.5">
-                  Procesalos para que estén disponibles en el chat con la bibliografía
+                  {canManage
+                    ? 'Procese los archivos para que estén disponibles en el chat con la bibliografía.'
+                    : 'El procesamiento de archivos está reservado al rol de administrador.'}
                 </p>
               </div>
             </div>
-            <button
-              onClick={onProcessPending}
-              disabled={processing}
-              className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-60 text-white font-accent text-sm font-semibold rounded-lg transition-colors"
-              type="button"
-            >
-              {processing ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <RefreshCw className="w-4 h-4" />
-              )}
-              {processing ? 'Procesando...' : 'Procesar pendientes'}
-            </button>
+            {canManage && (
+              <button
+                onClick={onProcessPending}
+                disabled={processing}
+                className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-60 text-white font-accent text-sm font-semibold rounded-lg transition-colors"
+                type="button"
+              >
+                {processing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4" />
+                )}
+                {processing ? 'Procesando...' : 'Procesar pendientes'}
+              </button>
+            )}
           </div>
 
           {processResults.length > 0 && (

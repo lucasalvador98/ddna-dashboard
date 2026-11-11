@@ -38,10 +38,11 @@ interface Props {
   file: RepoFile | null;
   onClose: () => void;
   onAction: (action: DrawerAction) => void;
+  isAdmin: boolean;
   actionInProgress?: boolean;
 }
 
-export function RepoFileDrawer({ file, onClose, onAction, actionInProgress }: Props) {
+export function RepoFileDrawer({ file, onClose, onAction, isAdmin, actionInProgress }: Props) {
   const [editing, setEditing] = useState(false);
   const [descripcion, setDescripcion] = useState('');
   const [notas, setNotas] = useState('');
@@ -78,8 +79,11 @@ export function RepoFileDrawer({ file, onClose, onAction, actionInProgress }: Pr
     descripcion !== (file.descripcion ?? '') || notas !== (file.notas ?? '');
 
   const handleDownload = () => onAction({ type: 'download', file });
-  const handleReprocess = () => onAction({ type: 'reprocess', file });
+  const handleReprocess = () => {
+    if (isAdmin) onAction({ type: 'reprocess', file });
+  };
   const handleDelete = () => {
+    if (!isAdmin) return;
     if (
       confirm(
         `¿Eliminar "${file.nombre_archivo}"? Se borrará también del storage y de los chunks del RAG.`,
@@ -89,6 +93,7 @@ export function RepoFileDrawer({ file, onClose, onAction, actionInProgress }: Pr
     }
   };
   const handleSaveMetadata = () => {
+    if (!isAdmin) return;
     onAction({ type: 'save-metadata', file, descripcion, notas });
     setEditing(false);
   };
@@ -191,7 +196,7 @@ export function RepoFileDrawer({ file, onClose, onAction, actionInProgress }: Pr
               <label className="text-[10px] text-gray-400 uppercase tracking-wider font-medium">
                 Descripción
               </label>
-              {!editing && (
+              {isAdmin && !editing && (
                 <button
                   onClick={() => setEditing(true)}
                   className="text-[10px] text-blue hover:text-navy flex items-center gap-0.5"
@@ -201,7 +206,7 @@ export function RepoFileDrawer({ file, onClose, onAction, actionInProgress }: Pr
                 </button>
               )}
             </div>
-            {editing ? (
+            {isAdmin && editing ? (
               <textarea
                 value={descripcion}
                 onChange={e => setDescripcion(e.target.value)}
@@ -223,7 +228,7 @@ export function RepoFileDrawer({ file, onClose, onAction, actionInProgress }: Pr
             <label className="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-1.5 block">
               Notas
             </label>
-            {editing ? (
+            {isAdmin && editing ? (
               <textarea
                 value={notas}
                 onChange={e => setNotas(e.target.value)}
@@ -241,7 +246,7 @@ export function RepoFileDrawer({ file, onClose, onAction, actionInProgress }: Pr
 
         {/* Footer actions */}
         <div className="border-t border-gray-200 px-5 py-3 flex items-center justify-between gap-2 bg-gray-50">
-          {editing ? (
+          {isAdmin && editing ? (
             <>
               <button
                 onClick={handleCancelEdit}
@@ -261,18 +266,20 @@ export function RepoFileDrawer({ file, onClose, onAction, actionInProgress }: Pr
             </>
           ) : (
             <>
-              <button
-                onClick={handleDelete}
-                disabled={actionInProgress}
-                className="p-2 text-red-500 hover:bg-red-50 rounded-lg disabled:opacity-50"
-                title="Eliminar"
-                type="button"
-                aria-label="Eliminar"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              {isAdmin && (
+                <button
+                  onClick={handleDelete}
+                  disabled={actionInProgress}
+                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg disabled:opacity-50"
+                  title="Eliminar"
+                  type="button"
+                  aria-label="Eliminar"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
               <div className="flex items-center gap-2">
-                {file.url_storage && !file.processed && (
+                {isAdmin && file.url_storage && !file.processed && (
                   <button
                     onClick={handleReprocess}
                     disabled={actionInProgress}

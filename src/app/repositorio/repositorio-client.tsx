@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { Loader2, AlertCircle, CheckCircle, RefreshCw, FolderOpen } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { LoginGate } from '@/components/login-gate';
+import { useAdminAccess } from '@/components/admin-access-gate';
 import { SectionHeader } from '@/components/section-header';
 import { dashboardPath } from '@/lib/app-path';
 import {
@@ -22,6 +23,8 @@ interface Props {
 }
 
 export default function RepositorioClient({ initialFiles }: Props) {
+  const adminAccess = useAdminAccess();
+  const isAdmin = adminAccess === 'admin';
   const [files, setFiles] = useState<RepoFile[]>(initialFiles);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -65,6 +68,7 @@ export default function RepositorioClient({ initialFiles }: Props) {
 
   // ── Process pending ────────────────────────────────────────────────────────
   const processPending = useCallback(async () => {
+    if (!isAdmin) return;
     const pending = files.filter(f => !f.processed && f.url_storage);
     if (pending.length === 0) return;
 
@@ -118,10 +122,11 @@ export default function RepositorioClient({ initialFiles }: Props) {
 
     setProcessing(false);
     await fetchRepo();
-  }, [files, fetchRepo]);
+  }, [files, fetchRepo, isAdmin]);
 
   // ── Drawer action handler ──────────────────────────────────────────────────
   const handleDrawerAction = useCallback(async (action: DrawerAction) => {
+    if (!isAdmin && action.type !== 'download') return;
     setActionInProgress(true);
     setDrawerFlash(null);
 
@@ -191,7 +196,7 @@ export default function RepositorioClient({ initialFiles }: Props) {
     } finally {
       setActionInProgress(false);
     }
-  }, [fetchRepo]);
+  }, [fetchRepo, isAdmin]);
 
   const handleFileClick = useCallback((file: RepoFile) => {
     setSelectedFile(file);
@@ -204,12 +209,27 @@ export default function RepositorioClient({ initialFiles }: Props) {
         <SectionHeader
           icon={FolderOpen}
           title="Repositorio de Archivos"
-          description="Gestión y procesamiento de documentos del observatorio DDNA"
+          description={isAdmin
+            ? 'Gestión y procesamiento de documentos del observatorio DDNA'
+            : 'Consulta de documentos disponibles y sus metadatos'}
           color="amber"
         />
         <RepoHero />
 
         <div className="max-w-7xl mx-auto px-6 space-y-6">
+          {!isAdmin && (
+            <div
+              role={adminAccess === 'unavailable' ? 'alert' : 'status'}
+              className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+            >
+              {adminAccess === 'loading'
+                ? 'Verificando permisos de administración. Las acciones de edición están deshabilitadas mientras se cargan los permisos.'
+                : adminAccess === 'unavailable'
+                  ? 'No se pudieron verificar los permisos. Las acciones de administración están deshabilitadas; puede seguir consultando y descargando los documentos.'
+                  : 'Puede consultar y descargar los documentos. Solo las personas administradoras pueden subir, procesar, editar o eliminar archivos.'}
+            </div>
+          )}
+
           {pageFlash && (
             <div
               className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm ${
@@ -229,7 +249,7 @@ export default function RepositorioClient({ initialFiles }: Props) {
 
           <RepoStats files={files} />
 
-          <RepoUploadZone onUploaded={fetchRepo} />
+          {isAdmin && <RepoUploadZone onUploaded={fetchRepo} />}
 
           {loading ? (
             <div className="flex items-center justify-center py-16">
@@ -251,6 +271,7 @@ export default function RepositorioClient({ initialFiles }: Props) {
                 view={view}
                 onFileClick={handleFileClick}
                 onProcessPending={processPending}
+                canManage={isAdmin}
                 processing={processing}
                 processResults={processResults}
                 pendingCount={pendingCount}
@@ -263,6 +284,7 @@ export default function RepositorioClient({ initialFiles }: Props) {
           file={selectedFile}
           onClose={() => setSelectedFile(null)}
           onAction={handleDrawerAction}
+          isAdmin={isAdmin}
           actionInProgress={actionInProgress}
         />
 
