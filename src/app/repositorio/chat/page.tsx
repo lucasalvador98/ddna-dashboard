@@ -19,12 +19,33 @@ interface ChatMessage {
   timestamp: Date;
 }
 
+interface RetrievalStatus {
+  hasContext: boolean;
+  searchMethod: string;
+  warning?: string;
+}
+
+function getSearchMethodLabel(method: string): string {
+  switch (method) {
+    case 'hybrid':
+      return 'Híbrido';
+    case 'vector':
+      return 'Vectorial';
+    case 'text':
+      return 'Texto completo';
+    case 'none':
+      return 'No disponible';
+    default:
+      return method;
+  }
+}
+
 export default function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [hasContext, setHasContext] = useState<boolean | null>(null);
+  const [retrievalStatus, setRetrievalStatus] = useState<RetrievalStatus | null>(null);
   const [streamingContent, setStreamingContent] = useState('');
   const [toolProgress, setToolProgress] = useState<string[]>([]);
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -41,6 +62,7 @@ export default function ChatPage() {
     let content = '';
     let finalSources: NonNullable<ChatMessage['sources']> = [];
     let finalTools: string[] = [];
+    let finalRetrievalStatus: RetrievalStatus | null = null;
 
     while (true) {
       const { done, value } = await reader.read();
@@ -73,6 +95,11 @@ export default function ChatPage() {
             } else if (currentEvent === 'done') {
               finalSources = data.sources || [];
               finalTools = data.toolsUsed || [];
+              finalRetrievalStatus = {
+                hasContext: typeof data.hasContext === 'boolean' ? data.hasContext : finalSources.length > 0,
+                searchMethod: typeof data.searchMethod === 'string' ? data.searchMethod : 'none',
+                warning: typeof data.warning === 'string' ? data.warning : undefined,
+              };
             } else if (currentEvent === 'error') {
               setError(data.error || 'Error desconocido');
             }
@@ -92,8 +119,8 @@ export default function ChatPage() {
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, assistantMessage]);
-      setHasContext(finalSources.length > 0);
     }
+    if (finalRetrievalStatus) setRetrievalStatus(finalRetrievalStatus);
     setStreamingContent('');
   }
 
@@ -114,7 +141,11 @@ export default function ChatPage() {
     };
 
     setMessages(prev => [...prev, assistantMessage]);
-    setHasContext(data.sources && data.sources.length > 0);
+    setRetrievalStatus({
+      hasContext: typeof data.hasContext === 'boolean' ? data.hasContext : Boolean(data.sources?.length),
+      searchMethod: typeof data.searchMethod === 'string' ? data.searchMethod : 'none',
+      warning: typeof data.warning === 'string' ? data.warning : undefined,
+    });
   }
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
@@ -131,7 +162,7 @@ export default function ChatPage() {
     setInput('');
     setLoading(true);
     setError('');
-    setHasContext(null);
+    setRetrievalStatus(null);
     setStreamingContent('');
     setToolProgress([]);
 
@@ -191,18 +222,31 @@ export default function ChatPage() {
         )}
       </div>
 
-      {hasContext === false && (
-        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
+      {retrievalStatus && (
+        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3" role="status">
           <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
           <div>
-            <p className="font-accent text-sm text-amber-800">No hay documentos procesados</p>
-            <p className="text-sm text-amber-700 mt-1">
-              Subí y procesá documentos en la sección{' '}
-              <Link href="/repositorio" className="underline hover:text-amber-900">
-                Repositorio
-              </Link>{' '}
-              para que el asistente pueda responder preguntas.
+            <p className="font-accent text-sm text-amber-800">
+              {retrievalStatus.warning
+                ? retrievalStatus.hasContext
+                  ? 'Se encontraron documentos relacionados, pero la búsqueda generó una advertencia.'
+                  : 'La búsqueda generó una advertencia y no encontró documentos relacionados.'
+                : retrievalStatus.hasContext
+                  ? 'Se encontraron documentos relacionados.'
+                  : 'La búsqueda no encontró documentos relacionados.'}
             </p>
+            {retrievalStatus.warning && (
+              <p className="text-sm text-amber-700 mt-1">{retrievalStatus.warning}</p>
+            )}
+            <p className="text-sm text-amber-700 mt-1">
+              Método de búsqueda: {getSearchMethodLabel(retrievalStatus.searchMethod)}
+            </p>
+            {!retrievalStatus.warning && !retrievalStatus.hasContext && (
+              <p className="text-sm text-amber-700 mt-1">
+                Puede intentar otra consulta o revisar los documentos disponibles en{' '}
+                <Link href="/repositorio" className="underline hover:text-amber-900">Repositorio</Link>.
+              </p>
+            )}
           </div>
         </div>
       )}
