@@ -17,11 +17,11 @@ The read-only UX audit found that several pages turn failed reads into plausible
 - Do not touch the pre-existing untracked `docs/REQUERIMIENTOS_OBSERVATORIO.md`.
 - TDD is explicitly enabled by the user for this feature. Exact runner: `npx vitest run`.
 - Implementation route: delegated direct, one writer, because each work unit changes multiple non-trivial UI/test files and the permission flow crosses several components.
-- Delivery strategy: `ask-on-risk` (default). User selected `stacked-to-main`. T1 produced 992 and T2 601 authored changed lines across nine cohesive slices; every slice is below 400 lines. T3 is deferred. Do not push or create PRs without separate user authorization.
+- Delivery strategy: `ask-on-risk` (default); the user selected `stacked-to-main` for review slices. T1 produced 992 and T2 601 authored changed lines across nine cohesive slices; every slice is below 400 lines. The user later requested a single branch and explicitly authorized a fast-forward push to `main`; no PR was created. T3 is deferred.
 
 ## Authorized scope
 
-T1 and T2 only: truthful status/error states and permission-aware UI. T3 is deferred. No data cleanup, server authorization redesign, deployment, push, pull request, or database mutation is authorized by this task.
+T1 and T2 only: truthful status/error states and permission-aware UI. T3 is deferred. No data cleanup, server authorization redesign, deployment, pull request, or database mutation is authorized by this task. A fast-forward push of T1/T2 to `main` was explicitly authorized and completed on 2026-11-11.
 
 ## Acceptance criteria
 
@@ -79,5 +79,5 @@ T1 and T2 only: truthful status/error states and permission-aware UI. T3 is defe
 - Chain strategy selected: `stacked-to-main`.
 - Completed slices total: T1 = 992 lines across six commits; T2 = 601 lines across three commits. Each slice remains below 400 lines. `npx vitest run`: 64 files / 567 tests passed. `npx tsc --noEmit`: passed. The first `npm run build` stopped to surface a Next.js `SecurityFatalError` recommending a security upgrade; one retry passed the build. The upgrade was not run and awaits separate user authorization.
 - RDD status remained on. Native assessment returned high/unassessable because the active OpenCode runtime is ineligible for immutable receipt review. No review was started and the user-owned RDD switch was not changed. T1 and T2 received independent contract verification.
-- No push or PR creation is authorized by this task. The feature branch remains local.
+- User authorized a fast-forward push to `main`; the initial consolidation moved it from `057619e` to `0fbd1ee`. No PR was created. The work branch created for this task was deleted locally after consolidation; deployment remains a separate DevOps action.
 - Next step: stop here. Resume only if the user explicitly reauthorizes T3 or the separate Next.js security upgrade.
