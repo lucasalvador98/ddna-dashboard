@@ -6,25 +6,22 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { dashboardPath } from '@/lib/app-path';
 import { AdminOnlyGate } from '@/components/admin-access-gate';
-
-interface ChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
-  sources?: {
-    fileName: string;
-    categoria?: string;
-    chunkIndex?: number;
-    similarity?: number;
-  }[];
-  tools_used?: string[];
-  timestamp: Date;
-}
+import { useAuth } from '@/components/auth-provider';
+import { clearChatHistory, readChatHistory, writeChatHistory, type ChatMessage } from '@/lib/chat-history';
 
 interface RetrievalStatus {
   hasContext: boolean;
   searchMethod: string;
   warning?: string;
 }
+
+interface ChatTranscript {
+  userId: string | null;
+  messages: ChatMessage[];
+  ready: boolean;
+}
+
+const EMPTY_CHAT_MESSAGES: ChatMessage[] = [];
 
 function getSearchMethodLabel(method: string): string {
   switch (method) {
@@ -42,20 +39,82 @@ function getSearchMethodLabel(method: string): string {
 }
 
 export default function ChatPage() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const { user, loading: authLoading } = useAuth();
+  const userId = user?.id ?? null;
+  const activeUserIdRef = useRef<string | null>(null);
+  const transcriptGenerationRef = useRef(0);
+  const [transcript, setTranscript] = useState<ChatTranscript>({
+    userId: null,
+    messages: [],
+    ready: false,
+  });
+  const historyReady = !authLoading && userId !== null && transcript.ready && transcript.userId === userId;
+  const messages = historyReady ? transcript.messages : EMPTY_CHAT_MESSAGES;
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [retrievalStatus, setRetrievalStatus] = useState<RetrievalStatus | null>(null);
-  const [streamingContent, setStreamingContent] = useState('');
+  const [streamingMessage, setStreamingMessage] = useState<{ userId: string; content: string } | null>(null);
+  const streamingContent = streamingMessage?.userId === userId ? streamingMessage.content : '';
   const [toolProgress, setToolProgress] = useState<string[]>([]);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (authLoading) return;
+
+    let cancelled = false;
+    const previousUserId = activeUserIdRef.current;
+    if (previousUserId !== userId) {
+      transcriptGenerationRef.current += 1;
+      if (previousUserId) clearChatHistory(previousUserId);
+    }
+    activeUserIdRef.current = userId;
+
+    Promise.resolve().then(() => {
+      if (cancelled) return;
+      setTranscript({
+        userId,
+        messages: userId ? readChatHistory(userId) : [],
+        ready: true,
+      });
+      setInput('');
+      setLoading(false);
+      setError('');
+      setRetrievalStatus(null);
+      setStreamingMessage(null);
+      setToolProgress([]);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, userId]);
+
+  useEffect(() => {
+    if (!historyReady || !userId) return;
+    writeChatHistory(userId, transcript.messages);
+  }, [historyReady, transcript.messages, userId]);
+
+  const updateTranscriptMessages = useCallback(
+    (ownerId: string, update: (messages: ChatMessage[]) => ChatMessage[]) => {
+      setTranscript((previous) =>
+        previous.ready && previous.userId === ownerId
+          ? { ...previous, messages: update(previous.messages) }
+          : previous,
+      );
+    },
+    [],
+  );
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, streamingContent, toolProgress]);
 
-  async function handleSSEResponse(response: Response) {
+  async function handleSSEResponse(
+    response: Response,
+    requestUserId: string,
+    requestGeneration: number,
+  ) {
     const reader = response.body!.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
@@ -64,6 +123,8 @@ export default function ChatPage() {
     let finalSources: NonNullable<ChatMessage['sources']> = [];
     let finalTools: string[] = [];
     let finalRetrievalStatus: RetrievalStatus | null = null;
+    let completed = false;
+    let receivedError = false;
 
     while (true) {
       const { done, value } = await reader.read();
@@ -85,15 +146,28 @@ export default function ChatPage() {
             const data = JSON.parse(dataStr);
 
             if (currentEvent === 'token') {
+              if (
+                activeUserIdRef.current !== requestUserId ||
+                transcriptGenerationRef.current !== requestGeneration
+              ) continue;
               content += data.text;
-              setStreamingContent(content);
+              setStreamingMessage((previous) =>
+                previous?.userId === requestUserId
+                  ? { ...previous, content }
+                  : previous,
+              );
             } else if (currentEvent === 'tool') {
+              if (
+                activeUserIdRef.current !== requestUserId ||
+                transcriptGenerationRef.current !== requestGeneration
+              ) continue;
               if (data.status === 'start') {
                 setToolProgress(prev => [...prev, data.label || 'Procesando información...']);
               } else if (data.status === 'end') {
                 setToolProgress(prev => prev.slice(0, -1));
               }
             } else if (currentEvent === 'done') {
+              completed = true;
               finalSources = data.sources || [];
               finalTools = data.toolsUsed || [];
               finalRetrievalStatus = {
@@ -102,7 +176,13 @@ export default function ChatPage() {
                 warning: typeof data.warning === 'string' ? data.warning : undefined,
               };
             } else if (currentEvent === 'error') {
-              setError(data.error || 'Error desconocido');
+              receivedError = true;
+              if (
+                activeUserIdRef.current === requestUserId &&
+                transcriptGenerationRef.current === requestGeneration
+              ) {
+                setError(data.error || 'Error desconocido');
+              }
             }
           } catch {
             // skip malformed JSON
@@ -111,7 +191,12 @@ export default function ChatPage() {
       }
     }
 
-    if (content) {
+    if (
+      activeUserIdRef.current !== requestUserId ||
+      transcriptGenerationRef.current !== requestGeneration
+    ) return;
+
+    if (content && completed) {
       const assistantMessage: ChatMessage = {
         role: 'assistant',
         content,
@@ -119,14 +204,24 @@ export default function ChatPage() {
         tools_used: finalTools,
         timestamp: new Date(),
       };
-      setMessages(prev => [...prev, assistantMessage]);
+      updateTranscriptMessages(requestUserId, (previous) => [...previous, assistantMessage]);
+    } else if (content && !receivedError) {
+      setError('La respuesta se interrumpió antes de completarse.');
     }
     if (finalRetrievalStatus) setRetrievalStatus(finalRetrievalStatus);
-    setStreamingContent('');
+    setStreamingMessage((previous) => previous?.userId === requestUserId ? null : previous);
   }
 
-  async function handleJSONResponse(response: Response) {
+  async function handleJSONResponse(
+    response: Response,
+    requestUserId: string,
+    requestGeneration: number,
+  ) {
     const data = await response.json();
+    if (
+      activeUserIdRef.current !== requestUserId ||
+      transcriptGenerationRef.current !== requestGeneration
+    ) return;
 
     if (data.error) {
       setError(data.error);
@@ -141,7 +236,7 @@ export default function ChatPage() {
       timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, assistantMessage]);
+    updateTranscriptMessages(requestUserId, (previous) => [...previous, assistantMessage]);
     setRetrievalStatus({
       hasContext: typeof data.hasContext === 'boolean' ? data.hasContext : Boolean(data.sources?.length),
       searchMethod: typeof data.searchMethod === 'string' ? data.searchMethod : 'none',
@@ -149,9 +244,11 @@ export default function ChatPage() {
     });
   }
 
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!input.trim() || loading) return;
+    if (!historyReady || !userId || !input.trim() || loading) return;
+    const requestUserId = userId;
+    const requestGeneration = transcriptGenerationRef.current;
 
     const userMessage: ChatMessage = {
       role: 'user',
@@ -159,12 +256,12 @@ export default function ChatPage() {
       timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    updateTranscriptMessages(requestUserId, (previous) => [...previous, userMessage]);
     setInput('');
     setLoading(true);
     setError('');
     setRetrievalStatus(null);
-    setStreamingContent('');
+    setStreamingMessage({ userId: requestUserId, content: '' });
     setToolProgress([]);
 
     try {
@@ -183,17 +280,43 @@ export default function ChatPage() {
       const contentType = response.headers.get('Content-Type') || '';
 
       if (contentType.includes('text/event-stream')) {
-        await handleSSEResponse(response);
+        await handleSSEResponse(response, requestUserId, requestGeneration);
       } else {
-        await handleJSONResponse(response);
+        await handleJSONResponse(response, requestUserId, requestGeneration);
       }
     } catch (err) {
-      setError(String(err));
+      if (
+        activeUserIdRef.current === requestUserId &&
+        transcriptGenerationRef.current === requestGeneration
+      ) {
+        setError(String(err));
+      }
     } finally {
-      setLoading(false);
-      setToolProgress([]);
+      if (
+        activeUserIdRef.current === requestUserId &&
+        transcriptGenerationRef.current === requestGeneration
+      ) {
+        setLoading(false);
+        setToolProgress([]);
+        setStreamingMessage((previous) => previous?.userId === requestUserId ? null : previous);
+      }
     }
-  }, [input, loading, messages]);
+  }
+
+  const handleNewConversation = useCallback(() => {
+    if (!historyReady || !userId || loading) return;
+    transcriptGenerationRef.current += 1;
+    clearChatHistory(userId);
+    setTranscript((previous) =>
+      previous.userId === userId ? { ...previous, messages: [] } : previous,
+    );
+    setInput('');
+    setError('');
+    setRetrievalStatus(null);
+    setStreamingMessage((previous) => previous?.userId === userId ? null : previous);
+    setToolProgress([]);
+    setLoading(false);
+  }, [historyReady, loading, userId]);
 
   const handleExampleClick = (question: string) => {
     setInput(question);
@@ -201,6 +324,7 @@ export default function ChatPage() {
 
   return (
     <AdminOnlyGate feature="el asistente de investigación">
+    {historyReady ? (
     <div className="max-w-4xl mx-auto px-6 py-8">
       {/* Header */}
       <div className="mb-8 flex items-start justify-between">
@@ -216,7 +340,8 @@ export default function ChatPage() {
         </div>
         {messages.length > 0 && (
           <button
-            onClick={() => setMessages([])}
+            onClick={handleNewConversation}
+            disabled={loading}
             className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors whitespace-nowrap"
           >
             + Nueva conversación
@@ -428,6 +553,11 @@ export default function ChatPage() {
         </p>
       </div>
     </div>
+    ) : (
+      <div role="status" className="flex justify-center py-16 text-sm text-gray-500">
+        Restaurando la conversación...
+      </div>
+    )}
     </AdminOnlyGate>
   );
 }
