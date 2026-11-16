@@ -61,16 +61,16 @@ T1/T2 are complete; T3 is reauthorized. No data cleanup, server authorization re
 
 ### T3b — Streaming cancellation and retry
 
-- [ ] Add a cancel control for an in-flight response and a retry control for failed requests.
-- [ ] Propagate the request abort signal to the active model request and stop subsequent tool/model rounds when supported. Do not present partial output as a completed answer.
-- [ ] Add focused tests for cancel, retry, and interrupted/partial streams.
+- [x] Add a cancel control for an in-flight response and a retry control for failed requests.
+- [x] Propagate the request abort signal to the active model request and stop subsequent tool/model rounds when supported. Do not present partial output as a completed answer.
+- [x] Add focused tests for cancel, retry, and interrupted/partial streams.
 
 **Route:** delegated direct. Trigger evidence: cancellation crosses the client reader, chat route stream loop, and chat completion transport.
 
 ### T3c — Clickable document citations
 
-- [ ] Render available document citations as links while preserving a safe fallback for sources without a URL.
-- [ ] Add focused tests for safe URLs, link labels, and missing/invalid URL fallback.
+- [x] Render available document citations as links while preserving a safe fallback for sources without a URL.
+- [x] Add focused tests for safe URLs, link labels, and missing/invalid URL fallback.
 
 **Route:** delegated direct, same writer. Trigger evidence: the API already emits source URLs but the client type/render path discards them.
 
@@ -91,10 +91,11 @@ T1/T2 are complete; T3 is reauthorized. No data cleanup, server authorization re
 - T3: reauthorized by the user on 2026-11-12. User confirmed clear-on-logout; per-user history otherwise survives page reloads during the authenticated session.
 - T3a: complete. Pre-implementation RED was observed (8 failed / 5 passed); final focused suite passed 2 files / 21 tests. Parent reran that suite and `npx tsc --noEmit` (both pass). Independent T3a verification found no blocker. Targeted ESLint: 0 errors, 1 pre-existing unused import warning. Character-cap behavior is implemented but not directly asserted; no browser runtime was run.
 - T3a work-unit slices (stacked-to-main): `89dd51f` per-user browser history helper/tests (221 lines); `1967e7c` chat-page persistence integration/tests (396 lines). Both under 400 lines.
-- T3b: next; cancellation/retry and upstream abort propagation remain unimplemented.
-- T3c: pending; clickable citations remain unimplemented.
+- T3b/T3c work-unit slices: `d26c0b5` safe citation links in the history lib/tests (58 lines); `4827ff0` cancel/retry controls and citation rendering in the chat page/tests (224 lines). Both under 400 lines.
+- T3b: complete. Each request owns an `AbortController`; the Cancel action aborts it, a cancelled request emits no error and never persists partial output as a completed answer. The error banner gained Reintentar, which resends the same question, and a new request aborts the previous one. Defect found and fixed during implementation: the Cancel button was rendered `disabled={loading}` while it only exists during loading, so it could never activate. Focused suite passed 2 files / 29 tests.
+- T3c: complete. The API emits `downloadUrl` (not `url`) per source; the client type discarded it, which is now modelled and persisted. Rendering goes through `safeSourceUrl`, which accepts only absolute `http(s)` URLs, so unsafe schemes never reach the DOM; sources without a safe URL keep the existing pill.
 - Chain strategy selected: `stacked-to-main`.
 - Completed slices total: T1 = 992 lines across six commits; T2 = 601 lines across three commits. Each slice remains below 400 lines. `npx vitest run`: 64 files / 567 tests passed. `npx tsc --noEmit`: passed. The first `npm run build` stopped to surface a Next.js `SecurityFatalError` recommending a security upgrade; one retry passed the build. The upgrade was not run and awaits separate user authorization.
 - RDD status remained on. Native assessment returned high/unassessable because the active OpenCode runtime is ineligible for immutable receipt review. No review was started and the user-owned RDD switch was not changed. T1 and T2 received independent contract verification.
 - User authorized a fast-forward push to `main`; the initial consolidation moved it from `057619e` to `0fbd1ee`, followed by tracker commit `6566d90`. No PR was created. T3 branch: `feature/ux-chat-t3`, based on `6566d90`. Deployment remains a separate DevOps action.
-- Next step: implement T3b using strict TDD on `feature/ux-chat-t3`; then T3c. Do not push, run the Next.js security upgrade, or deploy without separate authorization.
+- Next step: T3 (T3a/T3b/T3c) is complete on `feature/ux-chat-t3`. No browser runtime was run for T3b/T3c. Push to `main` and the separate Next.js security upgrade both await explicit user authorization.
