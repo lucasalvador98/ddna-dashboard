@@ -3,6 +3,7 @@ import {
   chatHistoryStorageKey,
   clearChatHistory,
   readChatHistory,
+  safeSourceUrl,
   writeChatHistory,
   type ChatMessage,
 } from './chat-history';
@@ -94,5 +95,38 @@ describe('browser chat history storage', () => {
 
     expect(() => writeChatHistory('user-1', [message('user', 'Consulta')])).not.toThrow();
     expect(readChatHistory('user-1')).toEqual([]);
+  });
+
+  it('accepts absolute http and https source urls', () => {
+    expect(safeSourceUrl('https://ejemplo.invalid/doc.pdf')).toBe('https://ejemplo.invalid/doc.pdf');
+    expect(safeSourceUrl('http://ejemplo.invalid/doc.pdf')).toBe('http://ejemplo.invalid/doc.pdf');
+  });
+
+  it('rejects unsafe or non-http source urls', () => {
+    expect(safeSourceUrl('javascript:alert(1)')).toBeNull();
+    expect(safeSourceUrl('data:text/html,<b>x</b>')).toBeNull();
+    expect(safeSourceUrl('file:///etc/passwd')).toBeNull();
+    expect(safeSourceUrl('/repositorio/doc.pdf')).toBeNull();
+    expect(safeSourceUrl('  ')).toBeNull();
+    expect(safeSourceUrl(undefined)).toBeNull();
+    expect(safeSourceUrl(42)).toBeNull();
+  });
+
+  it('drops unsafe citation urls when restoring persisted history', () => {
+    writeChatHistory('user-1', [{
+      role: 'assistant',
+      content: 'Respuesta con fuente insegura',
+      sources: [
+        { fileName: 'seguro.pdf', downloadUrl: 'https://ejemplo.invalid/seguro.pdf' },
+        { fileName: 'inseguro.pdf', downloadUrl: 'javascript:alert(1)' },
+      ],
+      timestamp: new Date('2026-11-12T10:00:00.000Z'),
+    }]);
+
+    const restored = readChatHistory('user-1');
+    expect(restored[0].sources).toEqual([
+      { fileName: 'seguro.pdf', downloadUrl: 'https://ejemplo.invalid/seguro.pdf' },
+      { fileName: 'inseguro.pdf' },
+    ]);
   });
 });

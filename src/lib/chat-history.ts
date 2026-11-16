@@ -6,9 +6,28 @@ export interface ChatMessage {
     categoria?: string;
     chunkIndex?: number;
     similarity?: number;
+    downloadUrl?: string;
   }[];
   tools_used?: string[];
   timestamp: Date;
+}
+
+const ALLOWED_URL_SCHEMES = ['http:', 'https:'];
+
+/**
+ * Returns the normalized href when the stored source URL is an absolute
+ * http(s) URL, and null otherwise. Unsafe or relative URLs never reach the
+ * rendered link, so the citation falls back to a plain, non-clickable label.
+ */
+export function safeSourceUrl(value: unknown): string | null {
+  if (typeof value !== 'string' || value.trim() === '') return null;
+  try {
+    const url = new URL(value);
+    if (!ALLOWED_URL_SCHEMES.includes(url.protocol)) return null;
+    return url.href;
+  } catch {
+    return null;
+  }
 }
 
 const HISTORY_VERSION = 1;
@@ -40,11 +59,15 @@ function parseMessage(value: unknown): ChatMessage | null {
   if (Array.isArray(value.sources)) {
     message.sources = value.sources.flatMap((source) => {
       if (!isRecord(source) || typeof source.fileName !== 'string') return [];
+      const url = safeSourceUrl(
+        typeof source.downloadUrl === 'string' ? source.downloadUrl : null,
+      );
       return [{
         fileName: source.fileName,
         ...(typeof source.categoria === 'string' ? { categoria: source.categoria } : {}),
         ...(typeof source.chunkIndex === 'number' ? { chunkIndex: source.chunkIndex } : {}),
         ...(typeof source.similarity === 'number' ? { similarity: source.similarity } : {}),
+        ...(url !== null ? { downloadUrl: url } : {}),
       }];
     });
   }
