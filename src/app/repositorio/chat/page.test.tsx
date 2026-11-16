@@ -61,6 +61,15 @@ function createPartialSseResponse() {
   };
 }
 
+function createNeverEndingSseResponse() {
+  const body = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(new TextEncoder().encode('event: token\ndata: {"text":"Respuesta en curso."}\n\n'));
+    },
+  });
+  return new Response(body, { headers: { 'Content-Type': 'text/event-stream' } });
+}
+
 function mockAccess(roleName: string, permissionsStatus = 200, chatResponse?: Response, userId = 'user-1') {
   useAuthMock.mockReturnValue({
     user: { id: userId, user_metadata: { role: 'admin' } },
@@ -313,5 +322,138 @@ describe('repository chat retrieval status', () => {
 
     await waitFor(() => expect(screen.queryByText('Respuesta parcial.')).not.toBeInTheDocument());
     expect(savedMessages(key).map((message) => message.content)).toEqual(['Consulta con respuesta interrumpida']);
+  });
+});
+
+describe('repository chat streaming controls', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: vi.fn(),
+    });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+    if (localStorageDescriptor) Object.defineProperty(window, 'localStorage', localStorageDescriptor);
+    localStorage.clear();
+  });
+
+  it('cancels an in-flight request and keeps no partial answer nor error', async () => {
+    const key = historyKey('user-1');
+    let capturedSignal: AbortSignal | undefined;
+    useAuthMock.mockReturnValue({
+      user: { id: 'user-1', user_metadata: { role: 'admin' } },
+      loading: false,
+    });
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes('/api/auth/config')) {
+        return new Response(JSON.stringify({ enabled: true, protected_routes: ['/repositorio'] }));
+      }
+      if (url.includes('/api/auth/me/permissions')) {
+        return new Response(JSON.stringify({ user_id: 'user-1', role: { id: 1, name: 'admin' }, effective: {} }));
+      }
+      capturedSignal = init?.signal ?? undefined;
+      return createNeverEndingSseResponse();
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<ChatPage />);
+    fireEvent.change(await screen.findByRole('textbox', { name: 'Escribí tu pregunta' }), {
+      target: { value: 'Consulta cancelable' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /enviar/i }));
+
+    await waitFor(() => expect(capturedSignal).toBeDefined());
+    const cancel = await screen.findByRole('button', { name: 'Cancelar' });
+    expect(cancel).toBeEnabled();
+    fireEvent.click(cancel);
+
+    expect(capturedSignal?.aborted).toBe(true);
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Cancelar' })).not.toBeInTheDocument());
+    expect(screen.queryByText('La respuesta se interrumpió antes de completarse.')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /enviar/i })).toBeDisabled();
+    expect(savedMessages(key).map((message) => message.content)).toEqual(['Consulta cancelable']);
+  });
+
+  it('retries the last failed request from the error banner', async () => {
+    useAuthMock.mockReturnValue({
+      user: { id: 'user-1', user_metadata: { role: 'admin' } },
+      loading: false,
+    });
+    let chatCalls = 0;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('/api/auth/config')) {
+        return new Response(JSON.stringify({ enabled: true, protected_routes: ['/repositorio'] }));
+      }
+      if (url.includes('/api/auth/me/permissions')) {
+        return new Response(JSON.stringify({ user_id: 'user-1', role: { id: 1, name: 'admin' }, effective: {} }));
+      }
+      chatCalls += 1;
+      if (chatCalls === 1) return new Response(JSON.stringify({ error: 'Fallo de red' }), { status: 500 });
+      return createSseResponse({ sources: [], toolsUsed: [], hasContext: false, searchMethod: 'text' });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<ChatPage />);
+    fireEvent.change(await screen.findByRole('textbox', { name: 'Escribí tu pregunta' }), {
+      target: { value: 'Consulta con fallo' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /enviar/i }));
+
+    expect(await screen.findByText('Fallo de red')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
+
+    expect(await screen.findByText('Respuesta de prueba.')).toBeInTheDocument();
+    expect(fetchMock.mock.calls.filter(([input]) => String(input).includes('/api/repositorio/chat'))).toHaveLength(2);
+  });
+
+  it('renders source citations as links when they carry a safe download url', async () => {
+    await submitQuestion({
+      sources: [{
+        fileName: 'informe.pdf',
+        downloadUrl: 'https://ejemplo.invalid/storage/v1/object/public/ddna-repositorio/informe.pdf',
+      }],
+      toolsUsed: ['searchKnowledgeBase'],
+      hasContext: true,
+      searchMethod: 'hybrid',
+    });
+
+    const link = screen.getByRole('link', { name: /informe.pdf/ });
+    expect(link).toHaveAttribute(
+      'href',
+      'https://ejemplo.invalid/storage/v1/object/public/ddna-repositorio/informe.pdf',
+    );
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'));
+  });
+
+  it('keeps citations without a url as plain, non-clickable labels', async () => {
+    await submitQuestion({
+      sources: [{ fileName: 'documento.pdf' }],
+      toolsUsed: ['searchKnowledgeBase'],
+      hasContext: true,
+      searchMethod: 'hybrid',
+    });
+
+    expect(screen.queryByRole('link', { name: /documento.pdf/ })).not.toBeInTheDocument();
+    expect(screen.getAllByTitle('documento.pdf').length).toBeGreaterThan(0);
+  });
+
+  it('falls back to a plain label when a citation url is unsafe', async () => {
+    await submitQuestion({
+      sources: [{ fileName: 'peligroso.pdf', downloadUrl: 'javascript:alert(1)' }],
+      toolsUsed: ['searchKnowledgeBase'],
+      hasContext: true,
+      searchMethod: 'hybrid',
+    });
+
+    expect(screen.queryByRole('link', { name: /peligroso.pdf/ })).not.toBeInTheDocument();
+    expect(screen.getAllByTitle('peligroso.pdf').length).toBeGreaterThan(0);
   });
 });

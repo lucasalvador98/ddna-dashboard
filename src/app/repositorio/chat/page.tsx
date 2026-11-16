@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { dashboardPath } from '@/lib/app-path';
 import { AdminOnlyGate } from '@/components/admin-access-gate';
 import { useAuth } from '@/components/auth-provider';
-import { clearChatHistory, readChatHistory, writeChatHistory, type ChatMessage } from '@/lib/chat-history';
+import { clearChatHistory, readChatHistory, safeSourceUrl, writeChatHistory, type ChatMessage } from '@/lib/chat-history';
 
 interface RetrievalStatus {
   hasContext: boolean;
@@ -58,6 +58,8 @@ export default function ChatPage() {
   const streamingContent = streamingMessage?.userId === userId ? streamingMessage.content : '';
   const [toolProgress, setToolProgress] = useState<string[]>([]);
   const chatEndRef = useRef<HTMLDivElement>(null);
+const abortControllerRef = useRef<AbortController | null>(null);
+const [retryQuestion, setRetryQuestion] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -246,18 +248,28 @@ export default function ChatPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!historyReady || !userId || !input.trim() || loading) return;
+    sendMessageInternal(input);
+  }
+
+  async function sendMessageInternal(question: string) {
+    if (!historyReady || !userId || !question.trim() || loading) return;
     const requestUserId = userId;
     const requestGeneration = transcriptGenerationRef.current;
 
+    // Abort any in-flight request before starting a new one
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     const userMessage: ChatMessage = {
       role: 'user',
-      content: input,
+      content: question,
       timestamp: new Date(),
     };
 
     updateTranscriptMessages(requestUserId, (previous) => [...previous, userMessage]);
     setInput('');
+    setRetryQuestion(question);
     setLoading(true);
     setError('');
     setRetrievalStatus(null);
@@ -269,12 +281,13 @@ export default function ChatPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          question: input,
+          question,
           conversationHistory: messages.slice(-6).map(m => ({
             role: m.role,
             content: m.content,
           })),
         }),
+        signal: controller.signal,
       });
 
       const contentType = response.headers.get('Content-Type') || '';
@@ -286,11 +299,15 @@ export default function ChatPage() {
       }
     } catch (err) {
       if (
-        activeUserIdRef.current === requestUserId &&
-        transcriptGenerationRef.current === requestGeneration
-      ) {
-        setError(String(err));
+        activeUserIdRef.current !== requestUserId ||
+        transcriptGenerationRef.current !== requestGeneration
+      )
+        return;
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        setError('');
+        return;
       }
+      setError(String(err));
     } finally {
       if (
         activeUserIdRef.current === requestUserId &&
@@ -299,9 +316,26 @@ export default function ChatPage() {
         setLoading(false);
         setToolProgress([]);
         setStreamingMessage((previous) => previous?.userId === requestUserId ? null : previous);
+        if (abortControllerRef.current === controller) abortControllerRef.current = null;
       }
     }
   }
+
+  const handleCancel = useCallback(() => {
+    if (!abortControllerRef.current) return;
+    abortControllerRef.current.abort();
+    setLoading(false);
+    setError('');
+    setStreamingMessage(null);
+    setToolProgress([]);
+    abortControllerRef.current = null;
+  }, []);
+
+  const handleRetry = useCallback(() => {
+    if (!retryQuestion || loading) return;
+    setError('');
+    sendMessageInternal(retryQuestion);
+  }, [retryQuestion, loading]);
 
   const handleNewConversation = useCallback(() => {
     if (!historyReady || !userId || loading) return;
@@ -311,6 +345,7 @@ export default function ChatPage() {
       previous.userId === userId ? { ...previous, messages: [] } : previous,
     );
     setInput('');
+    setRetryQuestion(null);
     setError('');
     setRetrievalStatus(null);
     setStreamingMessage((previous) => previous?.userId === userId ? null : previous);
@@ -441,15 +476,30 @@ export default function ChatPage() {
                         {msg.sources.map((source: NonNullable<ChatMessage['sources']>[number], sIdx: number) => {
                           const name = source.fileName || 'Documento';
                           const clean = name.length > 30 ? name.substring(0, 27) + '...' : name;
+                          const href = safeSourceUrl(source.downloadUrl);
                           return (
-                            <span
-                              key={sIdx}
-                              className="inline-flex items-center gap-1 px-2 py-1 bg-blue/10 text-blue rounded text-xs font-medium"
-                              title={name}
-                            >
-                              <FileText className="w-3 h-3" />
-                              {clean}
-                            </span>
+                            href ? (
+                              <a
+                                key={sIdx}
+                                href={href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 px-2 py-1 bg-blue/10 text-blue rounded text-xs font-medium hover:bg-blue/20 hover:underline"
+                                title={name}
+                              >
+                                <FileText className="w-3 h-3" />
+                                {clean}
+                              </a>
+                            ) : (
+                              <span
+                                key={sIdx}
+                                className="inline-flex items-center gap-1 px-2 py-1 bg-blue/10 text-blue rounded text-xs font-medium"
+                                title={name}
+                              >
+                                <FileText className="w-3 h-3" />
+                                {clean}
+                              </span>
+                            )
                           );
                         })}
                       </div>
@@ -514,6 +564,13 @@ export default function ChatPage() {
             <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-red-600" />
               <p className="text-sm text-red-700">{error}</p>
+              <button
+                onClick={handleRetry}
+                disabled={loading}
+                className="ml-auto px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Reintentar
+              </button>
             </div>
           )}
           <div className="flex gap-3">
@@ -538,6 +595,15 @@ export default function ChatPage() {
               )}
               Enviar
             </button>
+            {loading && (
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="px-4 py-3 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors"
+              >
+                Cancelar
+              </button>
+            )}
           </div>
         </form>
       </div>
