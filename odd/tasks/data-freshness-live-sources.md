@@ -35,6 +35,8 @@ Findings to honor (not new requirements): `/api/external` fetches SENAF live (24
 | T15 Capture pre-write row counts per affected table through the authenticated client from `config.mjs` (no secret printed) | S5 | inline, read-only | - |
 | T16 Execute the loaders that have new upstream data, category by category, verifying `ultima_carga` advances and row counts are sane | S5, S6 | inline, DB writes authorized by S6 | - |
 | T17 Verify `/api/health` reaches `healthy` and record the per-category outcome | S5 | inline, read-only | - |
+| T18 Align freshness thresholds to the real source cadence (`20261125140000_freshness_umbral_por_cadencia.sql`) | S5, S6 | inline, high-risk item 3 (changes the `/api/health` contract) | `ec4d05f` |
+| T19 Apply the threshold migration to the production Postgres | S5 | blocked: needs the SSH tunnel or Postgres credentials | - |
 
 ## Log
 
@@ -78,3 +80,6 @@ Conclusión: el `degraded` remanente **no es atraso de carga**. Es desajuste ent
 L5. Decisión del usuario (2026-11-25): **"Umbral realista por fuente"** — no se rediseña la métrica a tres estados; se alinean los umbrales a la cadencia real.
 E6. Implementación de L5: migración `supabase/migrations/20261125140000_freshness_umbral_por_cadencia.sql` — `senaf` → NULL (sin fuente viva; el loader apunta a Wayback 2023-12-13) y `consumo` → 1825 días (Encuesta Consumo, cadencia quinquenal). El resto de los umbrales queda igual. Rollback: re-aplicar `20260909120000_category_freshness_umbral.sql`. La limitación insert-time-vs-periodo queda documentada en el encabezado de la migración y **no se resuelve** (fue la opción descartada).
 **Estado: migración escrita pero NO aplicada.** Es DDL sobre la Postgres de producción y no hay acceso DDL disponible: el MCP self-hosted necesita el túnel SSH y `psql` necesita la password de Postgres, que no está en el repo. Tampoco se commiteó: el árbol está en la rama `feature/informe-situacion-dean-funes` con cambios ajenos sin commitear (`PROJECT_STATUS.md`, `README.md`, `Microsoft/`, `docs/insumos-informe-situacion/`).
+
+L6. Usuario (2026-11-25): "commitealo en la main" + reporta que el túnel SSH estaba abierto pero se cerró al salir de la sesión (`ssh -L 8080:localhost:8000 ddna-vps` funciona por alias; `deploy@179.199.132.207` directo da `Permission denied (publickey)`).
+E7. Commit `ec4d05f` en `main` (local): migración + este documento, 2 archivos, +145 líneas. **No pusheado**: la `main` local está 6 commits detrás de `origin/main`, así que pushear requiere pull/rebase previo y esa decisión es del usuario. T19 sigue bloqueada: el túnel volvió a cerrarse, `localhost:8080/mcp` responde 000.
