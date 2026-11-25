@@ -6,12 +6,13 @@ import { createClient } from '@supabase/supabase-js';
 import { config } from 'dotenv';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { resolveSupabaseUrl } from './resolve-supabase-url.mjs';
 
 // Load .env.local from project root
 const __dirname = dirname(fileURLToPath(import.meta.url));
 config({ path: resolve(__dirname, '..', '.env.local') });
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://ppyyqrvirjqmfpqaqnxy.supabase.co';
+const SUPABASE_URL = resolveSupabaseUrl();
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 if (!SERVICE_KEY) {
