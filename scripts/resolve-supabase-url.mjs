@@ -1,3 +1,4 @@
+/** @param {{ NEXT_PUBLIC_SUPABASE_URL?: string }} [env] */
 export function resolveSupabaseUrl(env = process.env) {
   const url = env.NEXT_PUBLIC_SUPABASE_URL;
 
